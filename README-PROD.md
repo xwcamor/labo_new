@@ -171,23 +171,23 @@ sudo mkdir -p /var/www
 sudo chown deploy:www-data /var/www
 cd /var/www
 
-git clone <url-del-repo> trafodex
-cd trafodex
+git clone <url-del-repo> labo
+cd labo
 ```
 
 ### 3.2. Permisos del filesystem
 
 ```bash
 # Owner: deploy (usuario), grupo: www-data (PHP-FPM)
-sudo chown -R deploy:www-data /var/www/trafodex
+sudo chown -R deploy:www-data /var/www/labo
 
 # Permisos generales: directorios 755, archivos 644
-sudo find /var/www/trafodex -type d -exec chmod 755 {} \;
-sudo find /var/www/trafodex -type f -exec chmod 644 {} \;
+sudo find /var/www/labo -type d -exec chmod 755 {} \;
+sudo find /var/www/labo -type f -exec chmod 644 {} \;
 
 # storage/ y bootstrap/cache/ necesitan escritura por PHP-FPM
-sudo chmod -R 775 /var/www/trafodex/storage
-sudo chmod -R 775 /var/www/trafodex/bootstrap/cache
+sudo chmod -R 775 /var/www/labo/storage
+sudo chmod -R 775 /var/www/labo/bootstrap/cache
 ```
 
 ### 3.3. `.env` de producción
@@ -305,7 +305,7 @@ server {
     listen 443 ssl http2;
     server_name midominio.com;
 
-    root /var/www/trafodex/public;
+    root /var/www/labo/public;
     index index.php;
 
     # SSL — Let's Encrypt los popula después
@@ -402,7 +402,7 @@ sudo systemctl restart php8.3-fpm
 ```ini
 [program:baseapp-queue]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/trafodex/artisan queue:work --queue=default --sleep=3 --tries=3 --max-time=3600
+command=php /var/www/labo/artisan queue:work --queue=default --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
 user=deploy
@@ -432,7 +432,7 @@ sudo supervisorctl status baseapp-queue:*
 
 ```cron
 # 1) Laravel scheduler — dispara TODOS los schedules internos de Laravel
-* * * * * cd /var/www/trafodex && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/labo && php artisan schedule:run >> /dev/null 2>&1
 
 # 2) Backup BD diario a las 02:00 (independiente de Laravel)
 0 2 * * * pg_dump -U baseapp baseapp | gzip > /var/backups/baseapp-$(date +\%Y\%m\%d).sql.gz
@@ -558,7 +558,7 @@ Ya implementado a 3 niveles:
 ### Logs Laravel
 
 ```bash
-tail -f /var/www/trafodex/storage/logs/laravel.log
+tail -f /var/www/labo/storage/logs/laravel.log
 ```
 
 Rotación automática (Laravel por default, 14 días).
@@ -593,7 +593,7 @@ htop
 
 # Disco
 df -h
-du -sh /var/www/trafodex/storage/   # ¿está creciendo?
+du -sh /var/www/labo/storage/   # ¿está creciendo?
 
 # Connections Postgres
 sudo -u postgres psql -c "SELECT count(*) FROM pg_stat_activity;"
@@ -610,7 +610,7 @@ Después del primer deploy, los siguientes:
 
 ```bash
 # Como deploy en el server
-cd /var/www/trafodex
+cd /var/www/labo
 
 # 1. Pull nuevo código
 git pull origin main
@@ -685,7 +685,7 @@ Antes de mostrar el sistema a un cliente real:
 
 ### "Tira 500 en todo"
 
-1. `tail -100 /var/www/trafodex/storage/logs/laravel.log` — leer el último error
+1. `tail -100 /var/www/labo/storage/logs/laravel.log` — leer el último error
 2. Permisos de `storage/` y `bootstrap/cache/` — `chmod -R 775`
 3. `.env` con `APP_DEBUG=true` temporal para ver el error (NO dejar así)
 
@@ -731,7 +731,7 @@ Una vez al mes:
 - [ ] Reiniciar PHP-FPM + Postgres después
 - [ ] Renovar SSL si Certbot falló (`sudo certbot renew --dry-run` para verificar)
 - [ ] Revisar `storage/logs/` — si `laravel.log` pasa los 100 MB, rotar manualmente
-- [ ] Revisar uso de disco (`df -h`, `du -sh /var/www/trafodex/storage/`)
+- [ ] Revisar uso de disco (`df -h`, `du -sh /var/www/labo/storage/`)
 - [ ] Revisar audit logs por anomalías (acciones sospechosas)
 - [ ] Revisar usuarios super-only (¿alguien debería tener menos privilegios?)
 

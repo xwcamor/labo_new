@@ -1,8 +1,27 @@
-# Base App — Plataforma SaaS multi-tenant
+# TR LAB — sistema de laboratorio de análisis de aceite dieléctrico
 
-Sistema base reutilizable para construir aplicaciones B2B SaaS. Pensado como **fundación** para crear verticales específicos (sales, inventory, healthcare, etc.) y vender acceso a múltiples empresas-cliente.
+Migración del sistema Rails de 2019 (`xwcamor/labo_old`) a Laravel, construido
+sobre el núcleo multi-empresa de TrafoDex.
 
-> **Estado**: 453 tests passing, módulos core listos, scaffold `make:module` validado, multi-idioma (es/en).
+El laboratorio recibe muestras de aceite, las ensaya y emite un informe contra
+un criterio de aceptación normativo. **No diagnostica el equipo**: eso es de
+TrafoDex, y se le envía por API (fase 7).
+
+> **Estado real (2026-07-28)**: fases 0 y 1 cerradas. La aplicación arranca,
+> compila y corre. Suite: **566 pasan · 30 fallan · 19 se saltean**. Las 30 que
+> fallan son pruebas de núcleo que arman su escenario con el modelo
+> `Transformer` de TrafoDex, ya eliminado; se recablean a `Equipment`.
+>
+> **El plan completo, por fases, está en
+> [`docs/migracion/00-PLAN-MAESTRO.md`](docs/migracion/00-PLAN-MAESTRO.md).**
+> Empezar por ahí antes de tocar código.
+
+## Principio rector
+
+El sistema viejo tenía los valores de orientación clavados en ~1.100 líneas de
+`if/elsif`, y una tabla de 221 columnas para guardar los resultados. Acá:
+**el código solo tiene fórmulas y flujo; todo lo que puede cambiar (normas,
+límites, métodos, parámetros, plantillas, textos) vive en datos.**
 
 ---
 

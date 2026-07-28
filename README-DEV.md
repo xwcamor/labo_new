@@ -27,8 +27,8 @@ En Windows + Laragon, todo viene preinstalado salvo Postgres. Detalle en [`docs/
 ### 1.2. Clonar e instalar
 
 ```powershell
-git clone <url-del-repo> trafodex
-cd trafodex
+git clone https://github.com/xwcamor/labo_new.git labo_new
+cd labo_new
 
 composer install
 npm install
@@ -40,10 +40,17 @@ npm install
 
 ```sql
 -- En psql
-CREATE DATABASE trafodex;
-\c trafodex
-CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE DATABASE labo;
 ```
+
+Con **pgAdmin**: clic derecho en *Databases* → *Create* → *Database…* → nombre
+`labo` → *Save*. Nada más.
+
+> La extensión `unaccent` y la función `unaccent_immutable` **las crea la
+> migración** `2025_09_18_080000_enable_unaccent_extension.php`. No hace falta
+> correr `CREATE EXTENSION` a mano (aunque hacerlo tampoco molesta: es
+> idempotente). Sí hace falta que el usuario de la conexión tenga permiso para
+> crear extensiones — con `postgres` alcanza.
 
 ### 1.4. Configurar `.env`
 
@@ -63,7 +70,7 @@ APP_URL=http://localhost:8000
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_DATABASE=trafodex
+DB_DATABASE=labo
 DB_USERNAME=postgres
 DB_PASSWORD=<tu-password-de-postgres>
 

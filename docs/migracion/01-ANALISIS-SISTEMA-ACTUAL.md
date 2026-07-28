@@ -117,12 +117,42 @@ Lab           (hoja de trabajo de un día: prueba + fecha + analista + estado)
        └─ LabSubDetail  (el valor de cada columna)   ← EAV
 ```
 
-> **Cuántas pruebas hay: NO SE SABE.** El número que circulaba (26) salía de
-> `db/seeds.rb`, y el dueño confirmó que esos seeds eran datos iniciales de
-> prueba: *"todo cambió después"*. Las pruebas reales, sus columnas y sus
-> opciones están **solo en la base de producción**, y el volcado que hay en el
-> repo es `--no-data`. Hace falta el volcado CON DATOS de `lab_category_*`
-> antes de dar por buena cualquier cifra.
+#### Las 29 pruebas reales
+
+Salen del volcado con datos
+([`esquema/catalogos-definiciones.sql`](esquema/catalogos-definiciones.sql)),
+no del seed. El seed decía 26 y se equivocaba en el número **y** en los nombres:
+
+| id | Prueba | | id | Prueba |
+|---|---|---|---|---|
+| 1 | Número Ácido | | 16 | Grado de Polimerización |
+| 2 | Factor De Potencia 25º | | 17 | Viscocidad |
+| 3 | Factor De Potencia 100º | | 18 | Partículas |
+| 4 | Rigidez Dieléctrica | | 19 | Metales en Aceite |
+| 5 | Tensión Interfacial | | 20 | Inhibidor |
+| 6 | Contenido de Agua | | 21 | DBDS |
+| 7 | Color | | 22 | Sedimentos |
+| 8 | Condición Visual | | 23 | Fluidez |
+| 9 | Densidad Relativa | | 24 | Inflamación |
+| 10 | Análisis Cromatográfico | | 25 | Pasivador |
+| 11 | PCB | | 26 | Factor De Potencia 90º |
+| 12 | Furanos | | **27** | **Rigidez Dieléctrica Electrodos planos** |
+| 13 | Azufre 1275B | | **28** | **Resistividad Volumétrica 25º** |
+| 14 | Azufre 62535 (48 horas) | | **29** | **Resistividad Volumétrica 100º** |
+| 15 | Azufre 62535 (72 horas) | | | |
+
+Las tres en negrita **no existen en el seed**. Y varios nombres cambiaron:
+`Azufre 1/2/3` son en realidad `Azufre 1275B` y `Azufre 62535` a 48 y 72 horas
+(el método y el tiempo de ensayo, no una numeración); `Mteales` —con el error de
+tipeo— es `Metales en Aceite`; `Agua` es `Contenido de Agua`.
+
+Con esas 29 se definen **208 columnas** de hoja de trabajo
+(`lab_category_sub_details`) y **93 opciones** de selección
+(`lab_category_sub_detail_options`).
+
+> El volcado publicado está **filtrado a propósito**: solo definiciones. Las
+> tablas con nombres del personal (`samplers`, `rem_user_signatures`) y con
+> equipos y muestras de clientes quedaron afuera, porque el repo es público.
 
 La estructura sí es correcta: el laboratorio agrega pruebas y columnas sin
 tocar código.

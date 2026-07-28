@@ -46,3 +46,21 @@ __pycache__/
 /node_modules
 /public/build
 /.env
+
+# ── Volcados de la base del sistema viejo con DATOS REALES ──────────────
+# El repo es PUBLICO. La base del laboratorio trae nombres de clientes,
+# documentos de identidad, direcciones y —en la tabla `users` del sistema
+# Rails— la columna `real_password`, que guarda la contraseña EN TEXTO PLANO.
+# Nada de eso puede entrar a git: el historial no se borra.
+#
+# Lo unico versionado de la base vieja es el volcado de ESTRUCTURA
+# (docs/migracion/esquema/lab_app_development-estructura.sql), que es
+# `--no-data` y no contiene una sola fila.
+docs/migracion/esquema/*_completa.sql
+docs/migracion/esquema/*_completo.sql
+docs/migracion/esquema/*-datos.sql
+docs/migracion/esquema/labo_original*.sql
+docs/migracion/esquema/ori_aplicados.sql
+*.dump
+*.sql.gz
+*.sql.zip

@@ -24,6 +24,10 @@ return [
     'analytes'           => 'Parameters',
     'instruments'        => 'Instruments',
 
+    // Diagnostic engine catalogues. The key was missing and the menu showed
+    // the raw "SIDEBAR.GROUP_DIAGNOSTICS".
+    'group_diagnostics'  => 'Diagnostic settings',
+
     'oil_types'          => 'Oil types',
     'equipment_types'  => 'Transformer types',
     'brands'             => 'Brands',

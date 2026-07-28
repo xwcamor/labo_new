@@ -27,6 +27,10 @@ return [
     'analytes'           => 'Parámetros',
     'instruments'        => 'Instrumentos',
 
+    // Catálogos del motor de diagnóstico. La clave faltaba y el menú
+    // mostraba "SIDEBAR.GROUP_DIAGNOSTICS" en crudo.
+    'group_diagnostics'  => 'Condiciones de diagnóstico',
+
     'oil_types'          => 'Tipos de aceite',
     'equipment_types'  => 'Tipos de transformador',
     'brands'             => 'Marcas',

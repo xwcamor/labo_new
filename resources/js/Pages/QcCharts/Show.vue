@@ -115,7 +115,7 @@ const openExclusion = (point) => {
         </SectionHeader>
 
         <!-- Ficha de la carta: lote, vigencia, límites y reparto de veredictos. -->
-        <Card :bodyStyle="{ padding: 18 }" class="qcs-card">
+        <Card :bodyStyle="{ padding: 14 }" class="qcs-card">
             <div class="spec-grid qcs-specs">
                 <div class="spec-cell">
                     <span class="spec-cell__label">{{ $t('qc_charts.control_lot') }}</span>
@@ -155,7 +155,7 @@ const openExclusion = (point) => {
         </Card>
 
         <!-- ── La carta ────────────────────────────────────────────────── -->
-        <Card :bodyStyle="{ padding: 18 }" class="qcs-card">
+        <Card :bodyStyle="{ padding: 14 }" class="qcs-card">
             <template #title><LineChartOutlined /> {{ $t('qc_charts.show') }}</template>
             <template #extra>
                 <span class="qcs-tally">

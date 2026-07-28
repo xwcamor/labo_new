@@ -217,16 +217,17 @@ const tokenAbilitiesLabel = (abilities) => {
                         <span><FileTextOutlined /> {{ $t('global.details') }}</span>
                     </template>
 
-                    <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 18 }" class="info-card">
+                    <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 14 }" class="info-card">
                         <div class="spec-grid">
-                            <div v-if="isSuper" class="spec-cell">
-                                <span class="spec-cell__label">ID</span>
-                                <span class="spec-cell__value">{{ tenant.id }}</span>
-                            </div>
-                            <div v-if="isSuper" class="spec-cell">
-                                <span class="spec-cell__label">Slug</span>
-                                <span class="spec-cell__value"><code>{{ tenant.slug }}</code></span>
-                            </div>
+                        <!-- El id de la base y el slug NO son información del
+                             laboratorio: son para dar soporte. Iban en dos cajas del
+                             mismo tamaño que el nombre, compitiendo con lo que sí
+                             importa. `order` los manda al pie de la grilla sin
+                             depender de dónde estén escritos. -->
+                        <p v-if="isSuper" class="spec-ids">
+                            <span><b>ID</b> {{ tenant.id }}</span>
+                            <span><b>Slug</b> {{ tenant.slug }}</span>
+                        </p>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('tenants.name') }}</span>
                                 <span class="spec-cell__value">{{ tenant.name }}</span>
@@ -560,7 +561,7 @@ const tokenAbilitiesLabel = (abilities) => {
 
 .tabs-card { border-radius: 6px; }
 .tab-content { padding: 16px 0; }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .info-card + .info-card { margin-top: 0; }
 
 .api-tab-header {

@@ -115,14 +115,12 @@ const fmt = (d) => formatDateTimeFull(d);
                     </div>
                     <div class="spec-pad">
                         <div class="spec-grid">
-                            <div v-if="isSuper" class="spec-cell">
-                                <span class="spec-cell__label">ID</span>
-                                <span class="spec-cell__value">{{ user.id }}</span>
-                            </div>
-                            <div v-if="isSuper && user.slug" class="spec-cell">
-                                <span class="spec-cell__label">Slug</span>
-                                <span class="spec-cell__value"><code class="muted">{{ user.slug }}</code></span>
-                            </div>
+                            <!-- El id de la base y el slug son para dar soporte, no
+                                 información del laboratorio: van al pie de la grilla. -->
+                            <p v-if="isSuper" class="spec-ids">
+                                <span><b>ID</b> {{ user.id }}</span>
+                                <span v-if="user.slug"><b>Slug</b> {{ user.slug }}</span>
+                            </p>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('users.name') }}</span>
                                 <span class="spec-cell__value">{{ user.name }}</span>
@@ -182,7 +180,7 @@ const fmt = (d) => formatDateTimeFull(d);
 .deleted-info { display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }
 .deleted-reason { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(0,0,0,0.1); }
 
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; margin-left: 4px; }
 
 .user-hero {

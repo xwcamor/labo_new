@@ -124,18 +124,18 @@ const calDetail = computed(() => {
 
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <template #general>
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ToolOutlined /> {{ $t('instruments.section_identification') }}</template>
                     <div class="spec-grid">
-                        <!-- ID y slug: solo el super (datos técnicos), y van primero. -->
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">ID</span>
-                            <span class="spec-cell__value">{{ instrument.id }}</span>
-                        </div>
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">Slug</span>
-                            <span class="spec-cell__value"><code class="muted">{{ instrument.slug }}</code></span>
-                        </div>
+                        <!-- El id de la base y el slug NO son información del
+                             laboratorio: son para dar soporte. Iban en dos cajas del
+                             mismo tamaño que el nombre, compitiendo con lo que sí
+                             importa. `order` los manda al pie de la grilla sin
+                             depender de dónde estén escritos. -->
+                        <p v-if="isSuper" class="spec-ids">
+                            <span><b>ID</b> {{ instrument.id }}</span>
+                            <span><b>Slug</b> {{ instrument.slug }}</span>
+                        </p>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('instruments.code') }}</span>
                             <span class="spec-cell__value"><code>{{ instrument.code || '—' }}</code></span>
@@ -171,7 +171,7 @@ const calDetail = computed(() => {
                     </div>
                 </Card>
 
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ToolOutlined /> {{ $t('instruments.section_calibration') }}</template>
                     <div class="spec-grid">
                         <div class="spec-cell">
@@ -198,7 +198,7 @@ const calDetail = computed(() => {
                     </div>
                 </Card>
 
-                <Card v-if="instrument.notes" :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card v-if="instrument.notes" :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ToolOutlined /> {{ $t('instruments.notes') }}</template>
                     <p class="notes">{{ instrument.notes }}</p>
                 </Card>
@@ -215,7 +215,7 @@ const calDetail = computed(() => {
 .show-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; margin-left: 8px; }
 .deleted-alert { margin-bottom: 16px; }
-.info-card { margin-bottom: 16px; border-radius: 8px; }
+.info-card { margin-bottom: 12px; border-radius: 8px; }
 .notes { margin: 0; white-space: pre-wrap; color: var(--color-text); }
 
 @media (max-width: 767px) {

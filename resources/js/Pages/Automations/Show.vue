@@ -218,7 +218,7 @@ const runColumns = computed(() => [
 
 <style scoped>
 .tabs-card { border-radius: 6px; }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .muted { color: var(--color-text-muted); font-style: italic; }
 .config-pre {
     font-family: ui-monospace, Consolas, monospace;

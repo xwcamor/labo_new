@@ -129,7 +129,7 @@ const roleScopeTag = computed(() => {
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <!-- Tab 1 — Detalles: SOLO datos del dominio. -->
             <template #general>
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><IdcardOutlined /> {{ $t('global.general_info') }}</template>
                     <div class="spec-grid">
                         <div v-if="isSuper && role.slug" class="spec-cell">
@@ -225,7 +225,7 @@ const roleScopeTag = computed(() => {
 .deleted-alert { margin-bottom: 16px; }
 .deleted-info { display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }
 .deleted-reason { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(0,0,0,0.1); }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; margin-left: 4px; }
 .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 8px 0; }
 </style>

@@ -157,14 +157,12 @@ const fmt = (d) => formatDateTimeFull(d);
                     </div>
                     <div class="spec-pad">
                         <div class="spec-grid">
-                            <div v-if="isSuper" class="spec-cell">
-                                <span class="spec-cell__label">ID</span>
-                                <span class="spec-cell__value">{{ customer.id }}</span>
-                            </div>
-                            <div v-if="isSuper && customer.slug" class="spec-cell">
-                                <span class="spec-cell__label">Slug</span>
-                                <span class="spec-cell__value"><code class="muted">{{ customer.slug }}</code></span>
-                            </div>
+                            <!-- El id de la base y el slug son para dar soporte, no
+                                 información del laboratorio: van al pie de la grilla. -->
+                            <p v-if="isSuper" class="spec-ids">
+                                <span><b>ID</b> {{ customer.id }}</span>
+                                <span v-if="customer.slug"><b>Slug</b> {{ customer.slug }}</span>
+                            </p>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('customers.name') }}</span>
                                 <span class="spec-cell__value">{{ customer.name }}</span>
@@ -247,7 +245,7 @@ const fmt = (d) => formatDateTimeFull(d);
 .show-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .deleted-alert { margin-bottom: 16px; }
-.info-card { margin-bottom: 16px; border-radius: 8px; }
+.info-card { margin-bottom: 12px; border-radius: 8px; }
 
 /* ── Entrada animada (GPU-friendly, una sola vez) ── */
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

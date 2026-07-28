@@ -163,12 +163,13 @@ const tenantColumns = computed(() => [
                         <span class="tab-label"><FileTextOutlined /> {{ $t('global.details') }}</span>
                     </template>
 
-                    <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 18 }" class="info-card">
+                    <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 14 }" class="info-card">
                         <div class="spec-grid">
-                            <div v-if="isSuper" class="spec-cell">
-                                <span class="spec-cell__label">ID</span>
-                                <span class="spec-cell__value">{{ plan.id }}</span>
-                            </div>
+                            <!-- El id de la base es para dar soporte. El slug NO: en los
+                                 planes es el identificador que se usa para contratarlos. -->
+                            <p v-if="isSuper" class="spec-ids">
+                                <span><b>ID</b> {{ plan.id }}</span>
+                            </p>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('plans.slug') }}</span>
                                 <span class="spec-cell__value"><code class="muted">{{ plan.slug }}</code></span>
@@ -205,7 +206,7 @@ const tenantColumns = computed(() => [
                         </div>
                     </Card>
 
-                    <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                    <Card :bodyStyle="{ padding: 14 }" class="info-card">
                         <template #title>{{ $t('plans.section_limits') }} + {{ $t('plans.section_pricing') }}</template>
                         <div class="spec-grid">
                             <div class="spec-cell">
@@ -328,7 +329,7 @@ const tenantColumns = computed(() => [
 .tabs-card { border-radius: 6px; transition: box-shadow 0.18s ease; }
 .tabs-card:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08); }
 
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .plan-tag { font-weight: 600; letter-spacing: 0.3px; }
 .feature-group { margin-bottom: 14px; }
 .feature-group__title {

@@ -92,18 +92,18 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
 
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <template #general>
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><FileDoneOutlined /> {{ $t('test_definitions.section_identification') }}</template>
                     <div class="spec-grid">
-                        <!-- ID y slug: solo el super (datos técnicos), y van primero. -->
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">ID</span>
-                            <span class="spec-cell__value">{{ testDefinition.id }}</span>
-                        </div>
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">Slug</span>
-                            <span class="spec-cell__value"><code class="muted">{{ testDefinition.slug }}</code></span>
-                        </div>
+                        <!-- El id de la base y el slug NO son información del
+                             laboratorio: son para dar soporte. Iban en dos cajas del
+                             mismo tamaño que el nombre, compitiendo con lo que sí
+                             importa. `order` los manda al pie de la grilla sin
+                             depender de dónde estén escritos. -->
+                        <p v-if="isSuper" class="spec-ids">
+                            <span><b>ID</b> {{ testDefinition.id }}</span>
+                            <span><b>Slug</b> {{ testDefinition.slug }}</span>
+                        </p>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('test_definitions.code') }}</span>
                             <span class="spec-cell__value"><code>{{ testDefinition.code || '—' }}</code></span>
@@ -132,7 +132,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                     </div>
                 </Card>
 
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ExperimentOutlined /> {{ $t('test_definitions.section_sampling') }}</template>
                     <div class="spec-grid">
                         <div class="spec-cell">
@@ -150,7 +150,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                     </div>
                 </Card>
 
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ExperimentOutlined /> {{ $t('test_definitions.section_control') }}</template>
                     <p class="card-hint">{{ $t('test_definitions.control_intro') }}</p>
                     <div class="spec-grid">
@@ -173,7 +173,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                     </div>
                 </Card>
 
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><TableOutlined /> {{ $t('test_definitions.fields') }}</template>
                     <p class="card-hint">{{ $t('test_definitions.fields_hint') }}</p>
 
@@ -192,7 +192,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
 
                 </Card>
 
-                <Card v-if="testDefinition.legacy_id" :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card v-if="testDefinition.legacy_id" :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><FileDoneOutlined /> {{ $t('test_definitions.section_traceability') }}</template>
                     <div class="spec-grid">
                         <!-- Solo lectura, siempre: lo escribe el importador del
@@ -202,9 +202,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                             <span class="spec-cell__label">{{ $t('test_definitions.legacy_id') }}</span>
                             <span class="spec-cell__value"><code>{{ testDefinition.legacy_id }}</code></span>
                         </div>
-                        <div class="spec-cell spec-cell--wide">
-                            <span class="spec-cell__value muted">{{ $t('test_definitions.legacy_id_help') }}</span>
-                        </div>
+                        <p class="spec-note">{{ $t('test_definitions.legacy_id_help') }}</p>
                     </div>
                 </Card>
             </template>
@@ -220,7 +218,7 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
 .show-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .deleted-alert { margin-bottom: 16px; }
-.info-card { margin-bottom: 16px; border-radius: 8px; }
+.info-card { margin-bottom: 12px; border-radius: 8px; }
 .card-hint {
     margin: 0 0 14px 0;
     color: var(--color-text-muted);

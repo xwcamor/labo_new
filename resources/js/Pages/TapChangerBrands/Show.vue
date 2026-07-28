@@ -86,17 +86,18 @@ const fmt = (d) => formatDateTimeFull(d);
 
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <template #general>
-                <Card :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><ControlOutlined /> {{ $t('global.general_info') }}</template>
                     <div class="spec-grid">
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">ID</span>
-                            <span class="spec-cell__value">{{ tapChangerBrand.id }}</span>
-                        </div>
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">Slug</span>
-                            <span class="spec-cell__value"><code class="muted">{{ tapChangerBrand.slug }}</code></span>
-                        </div>
+                        <!-- El id de la base y el slug NO son información del
+                             laboratorio: son para dar soporte. Iban en dos cajas del
+                             mismo tamaño que el nombre, compitiendo con lo que sí
+                             importa. `order` los manda al pie de la grilla sin
+                             depender de dónde estén escritos. -->
+                        <p v-if="isSuper" class="spec-ids">
+                            <span><b>ID</b> {{ tapChangerBrand.id }}</span>
+                            <span><b>Slug</b> {{ tapChangerBrand.slug }}</span>
+                        </p>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('tap_changer_brands.name') }}</span>
                             <span class="spec-cell__value">{{ tapChangerBrand.name }}</span>
@@ -128,7 +129,7 @@ const fmt = (d) => formatDateTimeFull(d);
 .show-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .deleted-alert { margin-bottom: 16px; }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 
 @media (max-width: 767px) {
     :deep(.ant-descriptions-item-label) {

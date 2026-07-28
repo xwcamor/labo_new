@@ -113,7 +113,7 @@ const fmt = (d) => formatDateTimeFull(d);
 .show-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .deleted-alert { margin-bottom: 16px; }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 
 @media (max-width: 767px) {
     :deep(.ant-descriptions-item-label) {

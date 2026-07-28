@@ -127,16 +127,17 @@ const removePermission = (permissionId) => {
 
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <template #general>
-                <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 18 }" class="info-card">
+                <Card :title="$t('global.general_info')" :bodyStyle="{ padding: 14 }" class="info-card">
                     <div class="spec-grid">
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">ID</span>
-                            <span class="spec-cell__value">{{ system_module.id }}</span>
-                        </div>
-                        <div v-if="isSuper" class="spec-cell">
-                            <span class="spec-cell__label">Slug</span>
-                            <span class="spec-cell__value"><code>{{ system_module.slug }}</code></span>
-                        </div>
+                        <!-- El id de la base y el slug NO son información del
+                             laboratorio: son para dar soporte. Iban en dos cajas del
+                             mismo tamaño que el nombre, compitiendo con lo que sí
+                             importa. `order` los manda al pie de la grilla sin
+                             depender de dónde estén escritos. -->
+                        <p v-if="isSuper" class="spec-ids">
+                            <span><b>ID</b> {{ system_module.id }}</span>
+                            <span><b>Slug</b> {{ system_module.slug }}</span>
+                        </p>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('system_modules.name') }}</span>
                             <span class="spec-cell__value">{{ system_module.name }}</span>
@@ -259,7 +260,7 @@ const removePermission = (permissionId) => {
 .deleted-alert { margin-bottom: 16px; }
 .deleted-info { display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }
 .deleted-reason { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(0,0,0,0.1); }
-.info-card { margin-bottom: 16px; border-radius: 6px; }
+.info-card { margin-bottom: 12px; border-radius: 6px; }
 .muted { color: var(--color-text-muted); font-size: 0.8125rem; margin-left: 4px; }
 .activity-card__title { display: inline-flex; align-items: center; gap: 6px; }
 .hint { font-size: 0.8125rem; color: var(--color-text-muted); margin: 12px 0 0 0; line-height: 1.4; }

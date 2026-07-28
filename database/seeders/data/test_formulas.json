@@ -1,0 +1,130 @@
+{
+  "_doc": [
+    "Las fórmulas de las pruebas, portadas del sistema Rails viejo.",
+    "",
+    "DE DÓNDE SALEN. En el sistema viejo cada prueba guardaba en la columna",
+    "`blur_calculation` un bloque de JavaScript crudo que se inyectaba en la",
+    "página y direccionaba las celdas POR POSICIÓN:",
+    "",
+    "    var col5 = parseFloat(document.getElementById('col5').value);",
+    "    var result = (col8-col6)*col5/col7;",
+    "    document.getElementById('col9').value = result.toFixed(3);",
+    "",
+    "Eso tenía tres consecuencias, y las tres están anotadas en el propio sistema",
+    "viejo: su pantalla de ayuda avisaba 'si se cambia la posición de las columnas",
+    "que se usen en cálculos se tiene que cambiar la fórmula'. Insertar una",
+    "columna en el medio rompía el cálculo en silencio; el servidor no recalculaba",
+    "ni verificaba nada, así que un POST directo escribía cualquier cosa en el",
+    "resultado; y cuando un campo llegaba vacío quedaba el texto 'NaN' guardado en",
+    "la base (el sistema tenía un panel entero dedicado a cazar esos registros).",
+    "",
+    "Acá la fórmula referencia la columna POR SU CÓDIGO, se evalúa en el servidor",
+    "y es un dato editable desde el editor de columnas. Reordenar el cuadro no",
+    "cambia nada.",
+    "",
+    "CÓMO SE LEE CADA ENTRADA. La clave es 'codigo_de_prueba.codigo_de_columna'.",
+    "  formula   la expresión, con los códigos de las columnas de la misma prueba",
+    "  decimales cuántos decimales se informan (el .toFixed(n) del viejo)",
+    "  origen    el JavaScript original, literal, para poder cotejarlo",
+    "  nota      lo que haya que aclarar de la traducción",
+    "",
+    "Después de editar esto: php artisan db:seed --class=LabTestFormulasSeeder"
+  ],
+
+  "formulas": {
+    "numero_acido.resultado_mgkohg_aceite": {
+      "formula": "(volumen_gastado_ml - vol_blanco) * factor_koh / peso_aceite_g",
+      "decimales": 3,
+      "origen": "var result = (col8-col6)*col5/col7; col9.value = result.toFixed(3)",
+      "nota": "col5=factor_koh · col6=vol_blanco · col7=peso_aceite_g · col8=volumen_gastado_ml. Es el número ácido de ASTM D974: (volumen gastado menos el del blanco) por el factor del KOH sobre la masa de aceite."
+    },
+
+    "contenido_de_agua.repetibilidad": {
+      "formula": "abs(r1 - r2)",
+      "decimales": 1,
+      "origen": "var repe = col5-col7; col8.value = Math.abs(repe).toFixed(1)",
+      "nota": "La diferencia entre las dos determinaciones. Es el control de repetibilidad del ensayo, no un resultado que se informe."
+    },
+    "contenido_de_agua.resultado_ppm": {
+      "formula": "(r1 + r2) / 2",
+      "decimales": 0,
+      "origen": "var promedio = (col5+col7)/2; col9.value = promedio.toFixed(0)",
+      "nota": "El promedio de las dos determinaciones de Karl Fischer."
+    },
+
+    "analisis_cromatografico.total_de_gases_combustibles": {
+      "formula": "hidrogeno_h2_ppm + metano_ch4_ppm + mcarbono_co_ppm + etileno_c2h4_ppm + etano_c2h6_ppm + acetileno_c2h2_ppm",
+      "decimales": 2,
+      "origen": "var comresult = col3+col6+col7+col9+col10+col11; col12.value = comresult.toFixed(2)",
+      "nota": "TDCG. Suma los seis gases COMBUSTIBLES: deja afuera el oxígeno (col4), el nitrógeno (col5) y el dióxido de carbono (col8), que no son combustibles. Es la definición de IEEE C57.104."
+    },
+    "analisis_cromatografico.total": {
+      "formula": "hidrogeno_h2_ppm + oxigeno_o2_ppm + nitrogeno_n2_ppm + metano_ch4_ppm + mcarbono_co_ppm + dcarbono_co2_ppm + etileno_c2h4_ppm + etano_c2h6_ppm + acetileno_c2h2_ppm",
+      "decimales": 2,
+      "origen": "var result = col3+col4+col5+col6+col7+col8+col9+col10+col11; col13.value = result.toFixed(2)",
+      "nota": "El total de gas disuelto: los nueve, combustibles y no combustibles."
+    },
+
+    "furanos.grado_de_polimerizacion": {
+      "formula": "(1.51 - log10(furfuraldehido_2 / 1000)) / 0.0035",
+      "decimales": 0,
+      "origen": "var fal_ppm = col4/1000; var result = (1.51 - Math.log10(fal_ppm))/0.0035; col9.value = result.toFixed(0)",
+      "nota": "Grado de polimerización estimado por Chendong a partir del 2-FAL. La división por 1000 convierte de ppb (lo que informa el equipo) a ppm (lo que pide la correlación). El comentario del sistema viejo lo dejaba escrito: =(1.51-LOG10(2FAL/1000))/0.0035"
+    },
+
+    "sedimentos.total_de_sedimentos": {
+      "formula": "sedimentos_organicos + sedimentos_inorganicos",
+      "decimales": 3,
+      "origen": "var result = col3+col4; col6.value = result.toFixed(3)",
+      "nota": "FIEL AL VIEJO: suma orgánicos más inorgánicos y NO incluye los lodos solubles (col5), aunque el JavaScript los leía. Si el laboratorio quiere que entren, es agregar el término acá — no hay que tocar código."
+    },
+
+    "resistividad_volumetrica_25o.resultado_ocm": {
+      "formula": "(rho_ocm + rho_ocm_2) / 2",
+      "decimales": 2,
+      "origen": "var result = (col5+col6)/2; col7.value = result.toExponential(2).toUpperCase()",
+      "nota": "El promedio de las dos lecturas. El viejo lo mostraba en notación exponencial; acá se guarda el número y la presentación es de la pantalla, no del dato."
+    },
+    "resistividad_volumetrica_100o.resultado_ocm": {
+      "formula": "(rho_ocm + rho_ocm_2) / 2",
+      "decimales": 2,
+      "origen": "var result = (col5+col6)/2; col7.value = result.toExponential(2).toUpperCase()",
+      "nota": "Igual que la de 25 °C."
+    }
+  },
+
+  "entradas_numericas": {
+    "_doc": [
+      "Columnas que el sistema viejo declaraba de TEXTO y que una fórmula usa como",
+      "número. Allá daba igual porque todo se guardaba en la misma columna varchar;",
+      "acá el tipo decide en qué columna cae el dato, y un número guardado como",
+      "texto no lo puede leer el motor. Se corrigen al sembrar."
+    ],
+    "contenido_de_agua.r1": "number",
+    "contenido_de_agua.r2": "number"
+  },
+
+  "pendientes": {
+    "_doc": [
+      "Fórmulas del sistema viejo que NO se portan todavía, con el motivo.",
+      "Se prefiere que la columna quede vacía y se cargue a mano antes que",
+      "sembrar un cálculo que no se pudo verificar."
+    ],
+    "grado_de_polimerizacion": [
+      "La prueba de Grado de Polimerización del PAPEL (no la de Furanos) tiene el",
+      "bloque de JavaScript más grande del sistema viejo: 16 columnas, cada una",
+      "partida en sub-lecturas ('col5-1', 'col5-2', 'col5-3', 'col5-4') que el",
+      "cálculo cruza entre sí — la viscosidad de la réplica 1 se arma con las",
+      "sub-lecturas 1 y 2, y la de la réplica 2 con las 3 y 4.",
+      "",
+      "El motor de fórmulas de acá evalúa cada réplica por separado, así que una",
+      "fórmula no puede referirse a la sub-lectura de otra réplica. Portarla",
+      "requiere decidir antes cómo se modela ese cruce, y esa decisión es del",
+      "laboratorio: son cuatro pesadas de un mismo papel, y hay que confirmar si",
+      "las cuatro son réplicas de una sola determinación o dos determinaciones de",
+      "dos lecturas cada una.",
+      "",
+      "Mientras tanto la prueba funciona con carga manual, como cualquier otra."
+    ]
+  }
+}

@@ -96,10 +96,49 @@ esto deja de valer: de ahí en adelante, migración nueva siempre.
 | Parámetros medibles | `analytes` (la pieza que faltaba) + `analyte_map.json` + `lab:map-analytes` |
 | Cálculo en vivo | `worksheets.preview` (lo calcula el SERVIDOR, no el navegador) |
 | Conversión de valores | `app/Services/Lab/ValueCoercer` (una sola vez, para guardado y vista previa) |
+| **Todo eso, cargado** | los seis `Lab*Seeder` de `database/seeders/` |
 
 Rutas en `routes/lab_management.php`, grupo propio `LabManagement`, prefijo
 `/lab_management`. Los módulos de catálogo se generaron con `make:module`; las
 hojas de trabajo y las cartas de control NO, porque no son catálogos.
+
+### El laboratorio se carga con UN comando
+
+`php artisan setup:project` deja el sistema usable: 29 pruebas, 207 columnas,
+9 fórmulas, 36 parámetros, 25 instrumentos, 344 clientes y una demostración
+(6 equipos, 24 hojas validadas, 504 resultados, 1 carta de control). El comando
+imprime esa tabla al terminar, con la ruta de cada pantalla.
+
+Antes eran tres comandos que había que acordarse de correr a mano
+(`import:legacy-tests`, `lab:map-analytes`, `db:seed --class=LabAnalytesSeeder`)
+y sin ellos las tablas del laboratorio quedaban VACÍAS: el sistema se veía roto
+sin estarlo. Los comandos siguen existiendo para reimportar; los sembradores los
+llaman por dentro.
+
+| Sembrador | Qué carga | Su dato editable |
+|---|---|---|
+| `LabAnalytesSeeder` | los 36 parámetros medibles | `data/analytes.json` |
+| `LabTestTemplatesSeeder` | 29 pruebas + 207 columnas + 93 opciones | `docs/migracion/esquema/catalogos-definiciones.sql` |
+| `LabTestFormulasSeeder` | 9 fórmulas, con el JavaScript viejo al lado para cotejar | `data/test_formulas.json` |
+| `LabInstrumentsSeeder` | 25 instrumentos + pasa 19 columnas a tipo `instrument` | `data/instruments.json` |
+| `LabAnalyteMapSeeder` | qué columna alimenta qué parámetro | `data/analyte_map.json` |
+| `LabDemoWorksheetsSeeder` | **lo único inventado**: equipos, hojas, resultados | — |
+
+El orden importa y está anotado en `DatabaseSeeder`. Lo de demostración lleva la
+marca `DEMO` y se quita con `php artisan lab:demo --limpiar`, sin tocar lo real.
+
+Regresión cubierta por `tests/Feature/Lab/LabSeedersTest`, que además verifica
+que TODAS las fórmulas compilen contra las columnas reales: renombrar una
+columna y dejar una fórmula apuntando al nombre viejo no falla al sembrar,
+falla en la bancada con la muestra ya cargada.
+
+**Las fórmulas ya no son JavaScript.** El sistema viejo guardaba en
+`blur_calculation` un bloque de JS que direccionaba las celdas por POSICIÓN
+(`document.getElementById('col9')`) y su propia pantalla de ayuda avisaba que
+reordenar una columna obligaba a reescribirlo. Las nueve portadas nombran la
+columna por su código y las evalúa el servidor. La del Grado de Polimerización
+del papel NO se portó, con el motivo escrito en `test_formulas.json`: cruza
+sub-lecturas entre réplicas y hay que decidir antes cómo se modela ese cruce.
 
 ### Las cuatro reglas que el sistema viejo tenía en el HTML
 

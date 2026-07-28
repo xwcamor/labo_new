@@ -421,4 +421,97 @@ class WorksheetServiceTest extends TestCase
         $this->assertTrue($point->is_excluded);
         $this->assertSame('Patrón vencido', $point->exclusion_reason);
     }
+
+    public function test_no_se_le_exige_codigo_de_muestra_a_un_patron(): void
+    {
+        // Un patrón, un duplicado o un blanco no son la muestra de un cliente y
+        // no llevan código: saveRow() lo da por sentado y guarda nulo. Cuando el
+        // laboratorio marca esa columna como obligatoria —y en sus 29 pruebas
+        // reales lo está en todas—, la hoja no se podía cerrar nunca: reclamaba
+        // una celda que ella misma no dejaba llenar.
+        $definition = $this->makeAcidNumberTest([
+            'code' => 'acid_codigo_obligatorio',
+            'requires_duplicate' => false,
+        ]);
+        TestField::where('test_definition_id', $definition->id)
+            ->where('code', 'nro_muestra')
+            ->update(['is_required' => true]);
+
+        $worksheet = $this->makeWorksheet($definition);
+
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'peso_aceite' => '20', 'volumen_gastado' => '1.20',
+        ]);
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '1.20',
+        ]);
+
+        $this->service->close($worksheet);
+
+        $this->assertSame(Worksheet::STATUS_CLOSED, $worksheet->fresh()->status);
+    }
+
+    public function test_a_la_muestra_si_se_le_exige_el_codigo(): void
+    {
+        // La contracara de la anterior: la excepción es para el patrón, no una
+        // puerta para que una muestra entre sin identificar.
+        $definition = $this->makeAcidNumberTest([
+            'code' => 'acid_codigo_obligatorio_2',
+            'requires_control' => false, 'requires_duplicate' => false,
+        ]);
+        TestField::where('test_definition_id', $definition->id)
+            ->where('code', 'nro_muestra')
+            ->update(['is_required' => true]);
+
+        $worksheet = $this->makeWorksheet($definition);
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'peso_aceite' => '20', 'volumen_gastado' => '1.20',
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $this->service->close($worksheet);
+    }
+
+    public function test_westgard_no_baja_la_alarma_de_un_punto_fuera_del_limite_de_alerta(): void
+    {
+        // Son dos criterios distintos y ninguno reemplaza al otro: los límites
+        // de la carta responden por el punto suelto y las reglas de Westgard
+        // responden por la serie. Antes la evaluación de la serie se escribía
+        // encima de la del punto, así que un valor por fuera de la línea de
+        // alerta del laboratorio —que no rompe ninguna regla de la serie por sí
+        // solo— quedaba guardado como "ok" y se dibujaba en verde.
+        $chart = QcChart::create([
+            'slug'               => Str::random(22),
+            'test_definition_id' => $this->definition->id,
+            'test_field_id'      => $this->definition->fields->firstWhere('code', 'resultado')->id,
+            'center'             => 0.030,
+            'sd'                 => 0.002,
+            'is_derived'         => true,      // límites de 2σ y 3σ derivados
+        ]);
+
+        // (1.36 − 0.10) × 0.5531 / 20 = 0.034845 → 0.035 con 3 decimales.
+        // Contra centro 0.030 y desvío 0.002 eso es z = +2.5: pasada la línea
+        // de alerta (2σ) y adentro de la de control (3σ).
+        $worksheet = $this->makeWorksheet();
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'factor_koh' => '0.5531', 'volumen_blanco' => '0.10',
+            'peso_aceite' => '20', 'volumen_gastado' => '1.36',
+        ]);
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_DUPLICATE], [
+            'factor_koh' => '0.5531', 'volumen_blanco' => '0.10',
+            'peso_aceite' => '20', 'volumen_gastado' => '1.20',
+        ]);
+
+        $this->service->close($worksheet);
+        $this->service->validate($worksheet->fresh());
+
+        $point = QcPoint::where('qc_chart_id', $chart->id)->first();
+
+        $this->assertNotNull($point);
+        $this->assertEqualsWithDelta(2.5, (float) $point->z_score, 0.05);
+        $this->assertSame(QcPoint::FLAG_WARN, $point->flag);
+        // Un punto solo no rompe ninguna regla de serie: la alarma viene de los
+        // límites de la carta, y por eso no queda ninguna regla anotada.
+        $this->assertNull($point->westgard_rule);
+    }
 }

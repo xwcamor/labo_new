@@ -458,6 +458,16 @@ class WorksheetService
 
         foreach ($worksheet->rows()->with('values')->get() as $row) {
             foreach ($required as $field) {
+                // Un patrón, un duplicado o un blanco no son la muestra de un
+                // cliente y no llevan código de muestra: sampleCodeFrom() ya lo
+                // da por sentado y devuelve nulo para esas filas. Exigirlo acá
+                // dejaba la hoja sin poder cerrarse, reclamando una celda que la
+                // propia hoja no deja llenar.
+                if ($field->role === TestField::ROLE_SAMPLE_CODE
+                    && $row->kind !== WorksheetRow::KIND_SAMPLE) {
+                    continue;
+                }
+
                 for ($r = 1; $r <= max(1, (int) $field->replicates); $r++) {
                     $value = $row->valueFor($field, $r);
 
@@ -562,10 +572,29 @@ class WorksheetService
 
             $point->forceFill([
                 'z_score'       => $verdict['z'],
-                'flag'          => $verdict['flag'],
+                // Manda el veredicto MÁS GRAVE de los dos, no el último en
+                // escribirse. Son dos criterios distintos y ninguno reemplaza al
+                // otro: los límites de la carta responden por el punto suelto
+                // ("se pasó de la línea de alerta que declaró el laboratorio") y
+                // las reglas de Westgard responden por la serie ("cuatro
+                // seguidos del mismo lado"). Sin esto, Westgard pisaba lo
+                // anterior y un punto a 2,4 desvíos —fuera de la línea de
+                // alerta— se dibujaba en verde, porque no rompe ninguna regla
+                // de la serie por sí solo.
+                'flag'          => $this->peorBandera($point->flag, $verdict['flag']),
                 'westgard_rule' => $verdict['rule'],
             ])->save();
         }
+    }
+
+    /** ok < warn < out. */
+    private function peorBandera(?string $a, ?string $b): string
+    {
+        $orden = [QcPoint::FLAG_OK => 0, QcPoint::FLAG_WARN => 1, QcPoint::FLAG_OUT => 2];
+
+        return ($orden[$a] ?? 0) >= ($orden[$b] ?? 0)
+            ? ($a ?? QcPoint::FLAG_OK)
+            : ($b ?? QcPoint::FLAG_OK);
     }
 
     /**

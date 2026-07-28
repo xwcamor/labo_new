@@ -55,6 +55,7 @@ class SetupProjectCommand extends Command
         $this->info(Artisan::output());
 
         $this->verifyBaseData();
+        $this->resumenDelLaboratorio();
 
         $this->info("Project successfully initialized.");
         return self::SUCCESS;
@@ -73,6 +74,52 @@ class SetupProjectCommand extends Command
         if (! $hasSharing) {
             $this->error('  report_sharing missing in plans. Run: php artisan db:seed --class=PlansSeeder --force');
         }
+    }
+
+    /**
+     * Qué quedó cargado y dónde se ve.
+     *
+     * Hasta ahora el comando terminaba diciendo "Project successfully
+     * initialized" y nada más, y las tablas del laboratorio quedaban vacías: no
+     * había forma de distinguir un sistema recién sembrado de un sistema roto.
+     * Este resumen es lo que responde esa pregunta sin abrir el navegador — y si
+     * alguno de estos números sale en cero, ahí está el problema.
+     */
+    private function resumenDelLaboratorio(): void
+    {
+        $cuenta = fn (string $tabla) => \Illuminate\Support\Facades\Schema::hasTable($tabla)
+            ? \Illuminate\Support\Facades\DB::table($tabla)->count()
+            : 0;
+
+        $filas = [
+            ['Pruebas de muestras',      $cuenta('test_definitions'), '/lab_management/test_definitions'],
+            ['Columnas de las pruebas',  $cuenta('test_fields'),      ''],
+            ['Columnas calculadas',      \Illuminate\Support\Facades\Schema::hasTable('test_fields')
+                ? \Illuminate\Support\Facades\DB::table('test_fields')->whereNotNull('formula')->count() : 0, ''],
+            ['Parámetros medibles',      $cuenta('analytes'),         ''],
+            ['Instrumentos',             $cuenta('instruments'),      '/business_management/instruments'],
+            ['Clientes',                 $cuenta('customers'),        '/business_management/customers'],
+            ['Equipos (demostración)',   $cuenta('equipment'),        '/business_management/equipment'],
+            ['Hojas de trabajo',         $cuenta('worksheets'),       '/lab_management/worksheets'],
+            ['Resultados',               $cuenta('results'),          ''],
+            ['Cartas de control',        $cuenta('qc_charts'),        '/lab_management/qc_charts'],
+        ];
+
+        $this->line('');
+        $this->line('  <fg=cyan>El laboratorio quedó cargado así:</>');
+        $this->line('');
+
+        foreach ($filas as [$nombre, $total, $ruta]) {
+            $color = $total > 0 ? 'green' : 'red';
+            // Relleno con mb_str_pad: sprintf cuenta BYTES, y con "Parámetros"
+            // o "Cámara" la columna queda corrida un carácter por cada acento.
+            $etiqueta = $nombre . str_repeat(' ', max(0, 26 - mb_strlen($nombre)));
+            $this->line(sprintf('    %s <fg=%s>%6d</>  %s', $etiqueta, $color, $total, $ruta));
+        }
+
+        $this->line('');
+        $this->line('  Los equipos y las mediciones son de DEMOSTRACIÓN. Para sacarlos sin');
+        $this->line('  perder lo demás: <fg=green>php artisan lab:demo --limpiar</>');
     }
 
     private function recreateMysql(array $cfg): void

@@ -96,6 +96,28 @@ class DatabaseSeeder extends Seeder
             // sale de las columnas de resultado de las 29 pruebas reales.
             LabAnalytesSeeder::class,
 
+            // ── El laboratorio, cargado ─────────────────────────────────
+            // Estos cuatro dejan el sistema USABLE apenas termina el seed. El
+            // orden no es negociable, cada uno necesita al anterior:
+            //
+            //   1. las 29 pruebas reales, con sus columnas y sus opciones,
+            //      importadas del volcado de definiciones del sistema viejo;
+            //   2. las fórmulas de esas pruebas, traducidas del JavaScript que
+            //      el viejo guardaba en la base y direccionaba por posición;
+            //   3. los instrumentos de bancada, derivados de las opciones que
+            //      el viejo guardaba como texto suelto ("Bureta PP-LA-01C");
+            //   4. el enlace de cada columna de resultado con su parámetro, sin
+            //      el cual validar una hoja no materializa ningún resultado y
+            //      el informe se queda sin nada que leer.
+            //
+            // Antes esto eran tres comandos que había que acordarse de correr a
+            // mano después de cada migrate:fresh, y sin ellos el sistema se veía
+            // roto: Pruebas vacío y ninguna hoja de trabajo que se pudiera crear.
+            LabTestTemplatesSeeder::class,
+            LabTestFormulasSeeder::class,
+            LabInstrumentsSeeder::class,
+            LabAnalyteMapSeeder::class,
+
             // Fase 2: acá van los cuadros de límites del laboratorio (standards, analytes,
             // test_methods) y los cuadros de límites (spec_sets + spec_limits),
             // desde su JSON de fábrica. Los seeders del motor de diagnóstico de
@@ -103,6 +125,12 @@ class DatabaseSeeder extends Seeder
 
             // ── Clientes reales (los activos del sistema viejo) en Empresa 1. ─
             CustomersSeeder::class,
+
+            // ── Demostración: equipos, hojas de trabajo cargadas y validadas,
+            //    resultados y cartas de control. Va DESPUÉS de los clientes
+            //    porque los equipos cuelgan de ellos. Es lo único de todo el
+            //    seed que son datos inventados, y está marcado como tal.
+            LabDemoWorksheetsSeeder::class,
 
             // Fase 12: acá entra la migración de los datos históricos del
             // laboratorio (equipos, muestras, resultados e informes emitidos),

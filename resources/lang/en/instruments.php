@@ -29,7 +29,7 @@ return [
     'name'      => 'Name',
     'name_help' => 'What the equipment is called (e.g. Burette). It may repeat: two burettes share the same name.',
     'code'      => 'Code',
-    'code_help' => 'Equipment code in the calibration plan (e.g. PP-LA-01C). It is the unique identifier inside the lab.',
+    'code_help' => 'Internal code the laboratory uses to identify the equipment, the same one on its calibration certificate (e.g. PP-LA-01C). It is not repeated inside the laboratory.',
     'brand'     => 'Brand',
     'brand_help'=> 'Equipment manufacturer (e.g. Mettler Toledo, Megger).',
     'model'     => 'Model',

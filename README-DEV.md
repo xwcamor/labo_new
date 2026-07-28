@@ -167,6 +167,30 @@ Esto hace `migrate:fresh --seed` que crea TODA la data:
 - Suscripciones demo (cada uno con su plan)
 - 9 usuarios demo con credenciales
 
+Y **el laboratorio cargado**, que es lo que hace que el sistema se pueda usar
+apenas termina el comando:
+
+| Qué | Cuánto | De dónde sale |
+|---|---|---|
+| Pruebas de muestras | 29 | Volcado de definiciones del sistema Rails viejo (`docs/migracion/esquema/catalogos-definiciones.sql`) |
+| Columnas de esas pruebas | 207 | El mismo volcado |
+| Columnas calculadas | 9 | `database/seeders/data/test_formulas.json` — el JavaScript viejo, traducido a fórmulas |
+| Parámetros medibles | 36 | `database/seeders/data/analytes.json` |
+| Instrumentos | 25 | Derivados de las opciones del volcado (`instruments.json` les pone el nombre) |
+| Clientes | 344 | Los activos del sistema viejo |
+| Equipos, hojas y resultados | 6 · 24 · 504 | **Demostración** — inventados, marcados `DEMO` |
+
+Al terminar, el comando imprime esa tabla con los números REALES de su base y la
+ruta de cada pantalla. Si alguno sale en cero, ahí está el problema — antes esas
+tablas quedaban vacías y el sistema parecía roto.
+
+Los equipos y las mediciones son lo único inventado. Para sacarlos sin perder
+nada de lo demás:
+
+```powershell
+php artisan lab:demo --limpiar
+```
+
 > ⚠️ `setup:project` **drop la BD y la recrea desde cero**. Está bloqueado en `APP_ENV=production` por seguridad. Solo úsalo en dev.
 
 ### 1.6. Symlink de storage

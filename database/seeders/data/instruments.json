@@ -1,0 +1,74 @@
+{
+  "_doc": [
+    "Los instrumentos de bancada del laboratorio.",
+    "",
+    "DE DÓNDE SALEN. En el sistema Rails viejo el instrumento no existía como",
+    "entidad: era una OPCIÓN de texto de un campo de selección de la plantilla.",
+    "La columna 'Bureta PP-LA-01C' del Número Ácido ofrecía como opciones los",
+    "textos 'PP-LA-01C-023', 'PP-LA-01C-065', 'PP-LA-01C-100' y —erratas incluidas—",
+    "'PP-LA-01C-100.'. El código de calibración iba adentro del nombre, sin fecha",
+    "de vencimiento, sin marca, sin serie y sin forma de saber si el equipo seguía",
+    "vigente el día del ensayo, que es exactamente lo que pide ISO 17025.",
+    "",
+    "Por eso esta lista NO se transcribe a mano: el sembrador la DERIVA de las",
+    "opciones importadas del volcado. Lo único que hace falta declarar acá es qué",
+    "ES cada equipo, porque el texto de la opción no lo dice — dice el código, y",
+    "el nombre está en la etiqueta de la columna que lo ofrece.",
+    "",
+    "CÓMO SE LEE. 'nombres' va de 'codigo_de_prueba.codigo_de_columna' al nombre",
+    "del equipo. La clave lleva la prueba adelante porque el mismo código de",
+    "columna, 'equipo_pp_la_01c', designa cuatro equipos distintos según la prueba",
+    "(el colorímetro en Color, el cromatógrafo en PCB, el de líquidos en Furanos,",
+    "el de azufre corrosivo en los tres de Azufre).",
+    "",
+    "'detalle' es lo que el sistema viejo no guardaba y el laboratorio tiene que",
+    "completar: marca, modelo, serie, certificado y vencimiento de calibración. Se",
+    "siembra vacío A PROPÓSITO — inventar una fecha de calibración sería inventar",
+    "trazabilidad. Se cargan desde la pantalla de Instrumentos.",
+    "",
+    "Después de editar esto: php artisan db:seed --class=LabInstrumentsSeeder"
+  ],
+
+  "nombres": {
+    "numero_acido.bureta_pp_la_01c":        "Bureta",
+    "numero_acido.balanza_pp_la_01c":       "Balanza analítica",
+
+    "contenido_de_agua.balanza_pp_la_01c":  "Balanza analítica",
+    "contenido_de_agua.r1_pp_la_01c":       "Titulador Karl Fischer",
+    "contenido_de_agua.r2_pp_la_01c":       "Titulador Karl Fischer",
+
+    "rigidez_dielectrica.espinterometro":                      "Espinterómetro",
+    "rigidez_dielectrica_electrodos_planos.espinterometro":     "Espinterómetro",
+
+    "tension_interfacial.tensiometro_pp_la_01c": "Tensiómetro",
+    "tension_interfacial.densimetro_pp_la_01c":  "Densímetro",
+    "tension_interfacial.termometro_pp_la_01c":  "Termómetro",
+
+    "factor_de_potencia_25o.tipo_de_equipo":  "Equipo de factor de potencia",
+    "factor_de_potencia_90o.tipo_de_equipo":  "Equipo de factor de potencia",
+    "factor_de_potencia_100o.tipo_de_equipo": "Equipo de factor de potencia",
+
+    "color.equipo_pp_la_01c":                 "Colorímetro",
+    "pcb.equipo_pp_la_01c":                   "Cromatógrafo de gases",
+    "furanos.equipo_pp_la_01c":               "Cromatógrafo de líquidos (HPLC)",
+    "azufre_1275b.equipo_pp_la_01c":          "Equipo de azufre corrosivo",
+    "azufre_62535_48_horas.equipo_pp_la_01c": "Equipo de azufre corrosivo",
+    "azufre_62535_72_horas.equipo_pp_la_01c": "Equipo de azufre corrosivo"
+  },
+
+  "detalle": {
+    "_doc": [
+      "Opcional. Para cada código: brand, model, serial, location,",
+      "calibration_certificate, calibrated_at, calibration_due_at.",
+      "Vacío hasta que el laboratorio lo cargue."
+    ]
+  },
+
+  "pendientes": {
+    "_doc": [
+      "Columnas de selección que NO se convierten en instrumento, y por qué."
+    ],
+    "viscocidad.termometro_pp_la_01c": "En el sistema viejo esta columna quedó como texto libre y sin opciones cargadas: no hay códigos de dónde derivar el equipo. La prueba de Viscosidad usa termómetro y viscosímetro; hay que darlos de alta a mano y después cambiar el tipo de la columna.",
+    "viscocidad.viscosimetro_na": "Igual que la anterior: texto libre, sin opciones."
+  }
+}

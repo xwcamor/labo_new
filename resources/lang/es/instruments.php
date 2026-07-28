@@ -29,7 +29,7 @@ return [
     'name'      => 'Nombre',
     'name_help' => 'Cómo se llama el equipo (ej: Bureta). Puede repetirse: dos buretas se llaman las dos igual.',
     'code'      => 'Código',
-    'code_help' => 'Código del equipo en el plan de calibración (ej: PP-LA-01C). Es el identificador único dentro del laboratorio.',
+    'code_help' => 'Código interno con el que el laboratorio identifica el equipo, el mismo que figura en su certificado de calibración (ej: PP-LA-01C). No se repite dentro del laboratorio.',
     'brand'     => 'Marca',
     'brand_help'=> 'Fabricante del equipo (ej: Mettler Toledo, Megger).',
     'model'     => 'Modelo',

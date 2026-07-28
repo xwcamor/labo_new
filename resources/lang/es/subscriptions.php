@@ -8,7 +8,7 @@ return [
     // Estado actual
     'current_title'      => 'Suscripción actual',
     'no_active'          => 'Sin suscripción activa',
-    'no_active_hint'     => 'Este workspace no tiene un plan activo. Creá una suscripción o iniciá un trial.',
+    'no_active_hint'     => 'Este workspace no tiene un plan activo. Cree una suscripción o inicie un período de prueba.',
     'plan'               => 'Plan',
     'status'             => 'Estado',
     'starts_at'          => 'Inicio',

@@ -300,7 +300,11 @@ class ImportLegacyTestsCommand extends Command
         // que enlaza con la muestra queda sin rol, que es justo la que no puede
         // quedar sin rol.
         return match (true) {
-            (bool) preg_match('/de\s*muestra|codigo\s*de\s*muestra/u', $l)
+            // Se exige el "Nº"/"número"/"código" delante. Con solo "de muestra"
+            // alcanzaba para que "Viscosidad de Muestra (t)" —una columna
+            // calculada del Grado de Polimerización— quedara marcada como la
+            // columna que identifica la muestra.
+            (bool) preg_match('/(n[º°o]?|numero|nro|codigo)\.?\s*de\s*muestra/u', $l)
                 => \App\Models\TestField::ROLE_SAMPLE_CODE,
             (bool) preg_match('/\bnorma\b/u', $l)
                 => \App\Models\TestField::ROLE_STANDARD,
@@ -332,11 +336,32 @@ class ImportLegacyTestsCommand extends Command
         return $code;
     }
 
-    /** Etiqueta → código estable para usar en las fórmulas. */
+    /**
+     * Etiqueta → código estable para usar en las fórmulas.
+     *
+     * El código de una columna no es decorativo: es el NOMBRE con el que la
+     * fórmula la referencia. Por eso tiene que ser un identificador válido, y
+     * un identificador no puede empezar con un dígito —"2_furfuraldehido" se
+     * lee como el número 2 seguido de otra cosa, y la fórmula del Grado de
+     * Polimerización de Furanos no compila—. Cuando la etiqueta empieza con un
+     * número ("2-Furfuraldehído", "4 µm"), ese número se pasa al final:
+     *
+     *     2-Furfuraldehído   → furfuraldehido_2
+     *     4 µm               → um_4
+     *
+     * Se mueve en vez de descartarse porque el número distingue: sin él,
+     * "4 µm" y "6 µm" darían el mismo código.
+     */
     private function code(string $label): string
     {
         $c = Str::slug($label, '_');
         $c = preg_replace('/_+/', '_', trim($c, '_'));
+
+        if ($c !== '' && preg_match('/^(\d+)_?(.*)$/', $c, $m)) {
+            // Una etiqueta que es solo un número no deja nada que anteponer.
+            $c = $m[2] !== '' ? $m[2] . '_' . $m[1] : 'campo_' . $m[1];
+        }
+
         return $c !== '' ? Str::limit($c, 58, '') : 'campo';
     }
 }

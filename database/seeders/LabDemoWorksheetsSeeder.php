@@ -1,0 +1,530 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Analyte;
+use App\Models\Equipment;
+use App\Models\Instrument;
+use App\Models\QcChart;
+use App\Models\TestDefinition;
+use App\Models\TestField;
+use App\Models\User;
+use App\Models\Worksheet;
+use App\Models\WorksheetRow;
+use App\Services\Lab\WorksheetService;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+
+/**
+ * Datos de demostración: equipos, hojas de trabajo cargadas y validadas.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ POR QUÉ EXISTE                                                           │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Sin esto, después de sembrar quedaban las 29 pruebas cargadas y todas las
+ * pantallas de trabajo vacías: cero hojas, cero resultados, cero puntos de
+ * control. Un sistema donde todas las pantallas están en blanco no se puede
+ * evaluar —no se distingue "no hay datos" de "no funciona"—, y las tres piezas
+ * que de verdad hay que ver funcionando son justamente las que necesitan datos:
+ * el cálculo del servidor, la materialización de resultados al validar, y la
+ * carta de control.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ ESTO ES LO ÚNICO INVENTADO DE TODO EL SEED                               │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Las pruebas, sus columnas, sus opciones, sus fórmulas, los instrumentos y los
+ * clientes son datos REALES del sistema anterior. Los equipos y las mediciones
+ * de acá NO: son inventados, y por eso van con un `external_ref` que empieza con
+ * DEMO y con una nota en cada hoja. Se borran con:
+ *
+ *     php artisan lab:demo --limpiar
+ *
+ * Los datos reales de equipos y muestras del laboratorio no se versionan en
+ * este repositorio, que es público: entran por el volcado privado, en la fase
+ * de migración histórica.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ CÓMO SE CARGAN                                                           │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Por el MISMO servicio que usa la pantalla (`WorksheetService`), no con
+ * inserciones directas. Es a propósito: así el seed ejercita el camino real —el
+ * servidor calcula las fórmulas, exige el patrón antes de las muestras, cierra,
+ * valida y materializa— y si algo de esa cadena se rompe, se rompe el seed y se
+ * nota acá, no en la bancada.
+ *
+ * Los números salen de un generador con semilla fija, así que dos corridas dan
+ * exactamente lo mismo. Están dentro de rangos plausibles para aceite mineral en
+ * servicio, con una deriva leve en el tiempo para que las tendencias tengan
+ * forma, pero NO pretenden representar ningún equipo real.
+ */
+class LabDemoWorksheetsSeeder extends Seeder
+{
+    private const TENANT_ID = 1;
+
+    /** Marca de agua: todo lo que este sembrador crea la lleva. */
+    public const MARCA = 'DEMO';
+
+    /** Cuántas campañas de muestreo, hacia atrás desde el mes pasado. */
+    private const CAMPANAS = 6;
+
+    /** Semilla del generador. Fija para que el seed sea reproducible. */
+    private int $semilla = 20260728;
+
+    public function run(): void
+    {
+        if (app()->environment('production')) {
+            $this->command?->line('  Datos de demostración: omitidos en producción.');
+
+            return;
+        }
+
+        $analista = User::where('email', 'joe@example.com')->first()
+            ?? User::where('tenant_id', self::TENANT_ID)->first();
+
+        if (! $analista) {
+            $this->command?->warn('No hay usuario en el workspace 1; se omite la demostración.');
+
+            return;
+        }
+
+        if (TestDefinition::where('code', 'analisis_cromatografico')->doesntExist()) {
+            $this->command?->warn('Las pruebas no están cargadas; se omite la demostración.');
+
+            return;
+        }
+
+        // Las hojas se cargan por el servicio real, y el servicio sella quién
+        // cargó y quién validó cada valor. Sin sesión esos campos quedarían en
+        // nulo y la hoja se vería como si la hubiera escrito nadie.
+        Auth::login($analista);
+
+        try {
+            $equipos = $this->equipos();
+
+            if ($equipos === []) {
+                $this->command?->warn('No hay clientes en el workspace 1; se omite la demostración.');
+
+                return;
+            }
+
+            $this->cartaDeControl();
+
+            $hojas = 0;
+            $hojas += $this->campanas('analisis_cromatografico', $equipos, fn (int $i, int $c) => $this->cromas($i, $c));
+            $hojas += $this->campanas('numero_acido', $equipos, fn (int $i, int $c) => $this->acidez($i, $c));
+            $hojas += $this->campanas('contenido_de_agua', $equipos, fn (int $i, int $c) => $this->agua($i, $c));
+            $hojas += $this->campanas('rigidez_dielectrica', $equipos, fn (int $i, int $c) => $this->rigidez($i, $c));
+
+            $this->command?->info(sprintf(
+                'Demostración: %d equipos, %d hojas validadas, %d resultados.',
+                count($equipos),
+                $hojas,
+                \App\Models\Result::count(),
+            ));
+        } finally {
+            Auth::logout();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Equipos
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Seis transformadores repartidos entre los primeros clientes reales.
+     *
+     * Cuelgan de clientes reales porque el informe y el tablero se miran por
+     * cliente: seis equipos de un cliente inventado no muestran nada de lo que
+     * hay que ver.
+     *
+     * @return array<int,Equipment>
+     */
+    private function equipos(): array
+    {
+        $clientes = \App\Models\Customer::withoutGlobalScopes()
+            ->where('tenant_id', self::TENANT_ID)
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->limit(3)
+            ->pluck('id')
+            ->all();
+
+        if ($clientes === []) {
+            return [];
+        }
+
+        $plantilla = [
+            ['T-01', 'Transformador de potencia 1', 138.00, 13.80, 30.00],
+            ['T-02', 'Transformador de potencia 2', 138.00, 13.80, 20.00],
+            ['T-03', 'Transformador de distribución 1', 23.00, 0.40, 1.00],
+            ['T-04', 'Transformador de distribución 2', 23.00, 0.40, 0.50],
+            ['T-05', 'Autotransformador 1', 220.00, 138.00, 100.00],
+            ['T-06', 'Transformador de horno 1', 33.00, 0.80, 12.00],
+        ];
+
+        $equipos = [];
+
+        foreach ($plantilla as $i => [$tag, $nombre, $alta, $baja, $mva]) {
+            $ref = self::MARCA . '-' . $tag;
+
+            $equipos[] = Equipment::withoutGlobalScopes()->firstOrCreate(
+                ['external_ref' => $ref, 'tenant_id' => self::TENANT_ID],
+                [
+                    'slug'             => Str::random(22),
+                    'name'             => $nombre,
+                    'tag'              => $tag,
+                    'serial'           => sprintf('%s-SN-%04d', self::MARCA, 1000 + $i),
+                    'customer_id'      => $clientes[$i % count($clientes)],
+                    'equipment_type_id' => $i >= 2 && $i <= 3 ? 2 : ($i === 5 ? 3 : 1),
+                    'oil_type_id'      => 1,      // mineral
+                    'voltage_kv_hv'    => $alta,
+                    'voltage_kv_lv'    => $baja,
+                    'power_mva'        => $mva,
+                    'phases'           => 3,
+                    'manufacture_year' => 2005 + $i,
+                    'is_active'        => true,
+                ],
+            );
+        }
+
+        return $equipos;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Carta de control
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Una carta para el Número Ácido, sobre un lote de patrón.
+     *
+     * Los límites son los del patrón que se usa en la demostración, no un
+     * estándar de nada. Van declarados y NO derivados de los puntos: la carta
+     * tiene que existir ANTES de que haya mediciones, que es justamente lo que
+     * el sistema viejo no permitía —allá los límites se pisaban al cambiar de
+     * lote y las cartas históricas quedaban dibujadas contra el criterio de hoy—.
+     */
+    private function cartaDeControl(): void
+    {
+        $prueba = TestDefinition::where('code', 'numero_acido')->first();
+
+        if (! $prueba) {
+            return;
+        }
+
+        $columna = TestField::where('test_definition_id', $prueba->id)
+            ->where('code', 'resultado_mgkohg_aceite')
+            ->first();
+
+        if (! $columna) {
+            return;
+        }
+
+        $centro = 0.150;
+        $sd = 0.008;
+
+        QcChart::withoutGlobalScopes()->firstOrCreate(
+            ['test_definition_id' => $prueba->id, 'control_lot' => self::MARCA . '-LOTE-01'],
+            [
+                'slug'           => Str::random(22),
+                'test_field_id'  => $columna->id,
+                'analyte_id'     => Analyte::withoutGlobalScopes()->where('code', 'acid')->value('id'),
+                'label'          => 'Número Ácido — patrón ' . self::MARCA . '-LOTE-01',
+                'center'         => $centro,
+                'sd'             => $sd,
+                'lwl'            => $centro - 2 * $sd,
+                'uwl'            => $centro + 2 * $sd,
+                'lcl'            => $centro - 3 * $sd,
+                'ucl'            => $centro + 3 * $sd,
+                'is_derived'     => false,
+                'warn_sigma'     => 2,
+                'action_sigma'   => 3,
+                'effective_from' => Carbon::now()->subMonths(self::CAMPANAS + 1)->startOfMonth(),
+                'is_active'      => true,
+                'tenant_id'      => self::TENANT_ID,
+                'comment'        => 'Carta de demostración.',
+            ],
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Hojas
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Una hoja por campaña, con una fila por equipo.
+     *
+     * @param  array<int,Equipment> $equipos
+     * @param  callable(int,int):array<string,mixed> $valores  (indiceEquipo, campana) => celdas
+     */
+    private function campanas(string $codigoPrueba, array $equipos, callable $valores): int
+    {
+        $prueba = TestDefinition::where('code', $codigoPrueba)->first();
+
+        if (! $prueba) {
+            return 0;
+        }
+
+        $servicio = new WorksheetService();
+        $hechas = 0;
+
+        for ($campana = 0; $campana < self::CAMPANAS; $campana++) {
+            $fecha = Carbon::now()->subMonths(self::CAMPANAS - $campana)->startOfMonth()->addDays(9);
+
+            $hoja = Worksheet::withoutGlobalScopes()
+                ->where('test_definition_id', $prueba->id)
+                ->whereDate('run_date', $fecha)
+                ->where('notes', 'like', self::MARCA . '%')
+                ->first();
+
+            if ($hoja) {
+                continue;   // ya sembrada
+            }
+
+            $hoja = Worksheet::create([
+                'slug'               => Str::random(22),
+                'test_definition_id' => $prueba->id,
+                'run_date'           => $fecha,
+                'analyst_id'         => Auth::id(),
+                'status'             => Worksheet::STATUS_DRAFT,
+                'ambient_temp_c'     => round(21 + $this->azar(0, 4), 1),
+                'ambient_humidity'   => round(55 + $this->azar(0, 10)),
+                'notes'              => self::MARCA . ' — hoja de demostración generada por el sembrador.',
+                'tenant_id'          => self::TENANT_ID,
+            ]);
+
+            $porDefecto = $this->porDefecto($prueba, $fecha);
+
+            // El patrón va PRIMERO: mientras la prueba lo exija, el servicio no
+            // acepta muestras sin él. Se siembra en ese orden a propósito, para
+            // que el seed pase por la misma regla que la bancada.
+            if ($prueba->requires_control || $codigoPrueba === 'numero_acido') {
+                $servicio->saveRow(
+                    $hoja,
+                    ['kind' => WorksheetRow::KIND_CONTROL],
+                    $this->patronAcidez($campana) + $porDefecto,
+                );
+            }
+
+            foreach ($equipos as $i => $equipo) {
+                $codigo = sprintf('%s-%s-%02d%02d', self::MARCA, $equipo->tag, $campana + 1, $i + 1);
+
+                $servicio->saveRow($hoja, [
+                    'kind'         => WorksheetRow::KIND_SAMPLE,
+                    'equipment_id' => $equipo->id,
+                    'sample_code'  => $codigo,
+                ], $valores($i, $campana) + ['no_de_muestra' => $codigo] + $porDefecto);
+            }
+
+            $servicio->close($hoja);
+            $servicio->validate($hoja);
+            $hechas++;
+        }
+
+        return $hechas;
+    }
+
+    /**
+     * Las celdas que la prueba exige y que no son la medición: la norma, el
+     * instrumento con el que se midió, el tipo de fluido, las fechas.
+     *
+     * Se resuelven MIRANDO LA PLANTILLA y no con una lista escrita a mano por
+     * prueba. Es lo que hace que agregar una columna obligatoria a una prueba no
+     * rompa el sembrador, y de paso es la prueba de que el editor de columnas y
+     * la bancada están de acuerdo: si una columna quedara obligatoria y sin
+     * forma de llenarse, el seed se cae acá y no en producción.
+     *
+     * @return array<string,mixed>
+     */
+    private function porDefecto(TestDefinition $prueba, Carbon $fecha): array
+    {
+        static $cache = [];
+
+        if (! isset($cache[$prueba->id])) {
+            $fijas = [];
+            $fechas = [];
+
+            $columnas = TestField::with('options')
+                ->where('test_definition_id', $prueba->id)
+                ->where('is_required', true)
+                ->get();
+
+            foreach ($columnas as $columna) {
+                match ($columna->type) {
+                    // Una columna de selección guarda clave foránea, no texto.
+                    // Es el arreglo del sistema viejo, que metía el id de la
+                    // opción adentro de la misma columna de texto donde iba
+                    // todo lo demás.
+                    'select'     => $fijas[$columna->code] = $columna->options->first()?->id,
+                    'instrument' => $fijas[$columna->code] = $this->instrumentoDe($columna),
+                    'date'       => $fechas[] = $columna->code,
+                    // El resto lo llena la medición o el código de muestra.
+                    default      => null,
+                };
+            }
+
+            $cache[$prueba->id] = [
+                'fijas'  => array_filter($fijas, fn ($v) => $v !== null),
+                'fechas' => $fechas,
+            ];
+        }
+
+        $celdas = $cache[$prueba->id]['fijas'];
+
+        foreach ($cache[$prueba->id]['fechas'] as $code) {
+            $celdas[$code] = $fecha->toDateString();
+        }
+
+        return $celdas;
+    }
+
+    /**
+     * El instrumento que corresponde a ESA columna.
+     *
+     * Sale de las opciones que traía la plantilla del sistema viejo, que se
+     * conservan justamente para esto: la columna "Bureta PP-LA-01C" ofrecía los
+     * códigos de las buretas, y el sembrador de instrumentos dio de alta un
+     * equipo por cada uno. Buscar el equipo por ese código es lo que evita
+     * poner un tensiómetro donde va una balanza.
+     */
+    private function instrumentoDe(TestField $columna): ?int
+    {
+        static $cache = [];
+
+        if (array_key_exists($columna->id, $cache)) {
+            return $cache[$columna->id];
+        }
+
+        $codigos = $columna->options
+            ->map(fn ($o) => preg_match('/\b(PP-LA-\d+[A-Z](?:-\d+)?)\b/', (string) $o->value, $m) ? $m[1] : null)
+            ->filter()
+            ->all();
+
+        return $cache[$columna->id] = Instrument::withoutGlobalScopes()
+            ->where('tenant_id', self::TENANT_ID)
+            ->whereIn('code', $codigos)
+            ->orderBy('id')
+            ->value('id');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Los números
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Cromatografía: nueve gases en ppm.
+     *
+     * El equipo 4 (índice 3) lleva una deriva marcada de acetileno y etileno
+     * para que el tablero y las tendencias tengan un caso que mirar. Los otros
+     * cinco quedan en valores tranquilos.
+     *
+     * Las dos columnas de total NO se cargan: las calcula el servidor con la
+     * fórmula portada. Si algo de esa cadena estuviera roto, el seed dejaría
+     * esas celdas vacías y se vería.
+     *
+     * @return array<string,mixed>
+     */
+    private function cromas(int $equipo, int $campana): array
+    {
+        $deriva = $equipo === 3 ? $campana * 1.0 : $campana * 0.1;
+
+        return [
+            'hidrogeno_h2_ppm'   => round(18 + $this->azar(0, 12) + $deriva * 6, 2),
+            'oxigeno_o2_ppm'     => round(9000 + $this->azar(0, 3000), 2),
+            'nitrogeno_n2_ppm'   => round(45000 + $this->azar(0, 12000), 2),
+            'metano_ch4_ppm'     => round(6 + $this->azar(0, 5) + $deriva * 3, 2),
+            'mcarbono_co_ppm'    => round(220 + $this->azar(0, 90) + $deriva * 20, 2),
+            'dcarbono_co2_ppm'   => round(2400 + $this->azar(0, 900) + $deriva * 120, 2),
+            'etileno_c2h4_ppm'   => round(3 + $this->azar(0, 4) + $deriva * 9, 2),
+            'etano_c2h6_ppm'     => round(4 + $this->azar(0, 3) + $deriva * 2, 2),
+            'acetileno_c2h2_ppm' => round(0.2 + $this->azar(0, 1) + $deriva * 3, 2),
+        ];
+    }
+
+    /**
+     * Número ácido: las cuatro entradas de la titulación. El resultado en
+     * mgKOH/g lo calcula el servidor.
+     *
+     * @return array<string,mixed>
+     */
+    private function acidez(int $equipo, int $campana): array
+    {
+        $gastado = 1.10 + $equipo * 0.28 + $campana * 0.06 + $this->azar(0, 0.08);
+
+        return [
+            'factor_koh'          => 5.61,
+            'vol_blanco'          => 0.05,
+            'peso_aceite_g'       => 20.00,
+            'volumen_gastado_ml'  => round($gastado, 2),
+        ];
+    }
+
+    /**
+     * El patrón del Número Ácido: dos determinaciones alrededor del centro de
+     * la carta, con una campaña fuera de los límites de advertencia para que la
+     * carta muestre lo que tiene que mostrar. Una carta donde todos los puntos
+     * están en el centro no demuestra que las reglas de Westgard funcionen.
+     *
+     * @return array<string,mixed>
+     */
+    private function patronAcidez(int $campana): array
+    {
+        // Centro 0.150 con desvío 0.008: el gastado que lo produce, dado el
+        // factor y la masa de la fórmula, es (0.150*20/5.61)+0.05.
+        $objetivo = $campana === 3 ? 0.169 : 0.150 + $this->azar(-0.006, 0.006);
+
+        return [
+            'factor_koh'         => 5.61,
+            'vol_blanco'         => 0.05,
+            'peso_aceite_g'      => 20.00,
+            'volumen_gastado_ml' => round($objetivo * 20.00 / 5.61 + 0.05, 3),
+        ];
+    }
+
+    /**
+     * Contenido de agua: las dos determinaciones de Karl Fischer. El promedio y
+     * la repetibilidad los calcula el servidor.
+     *
+     * @return array<string,mixed>
+     */
+    private function agua(int $equipo, int $campana): array
+    {
+        $base = 8 + $equipo * 3 + $campana * 1.2;
+
+        return [
+            'r1' => round($base + $this->azar(0, 1.5), 1),
+            'r2' => round($base + $this->azar(0, 1.5), 1),
+        ];
+    }
+
+    /**
+     * Rigidez dieléctrica en kV. Va al revés que los demás: acá más es mejor,
+     * y el aceite se degrada, así que baja con el tiempo.
+     *
+     * @return array<string,mixed>
+     */
+    private function rigidez(int $equipo, int $campana): array
+    {
+        return [
+            'resultado_kv'                => round(62 - $equipo * 2.5 - $campana * 1.1 + $this->azar(0, 3), 1),
+            'temperatura_ambiente_oc'     => round(21 + $this->azar(0, 4), 1),
+            'temperatura_muestra_oc'      => round(23 + $this->azar(0, 3), 1),
+            'humedad_ambiente'            => round(55 + $this->azar(0, 10), 0),
+        ];
+    }
+
+    /**
+     * Generador con semilla fija (congruencial lineal).
+     *
+     * No se usa `rand()` a propósito: un seed que da números distintos en cada
+     * corrida no se puede comparar entre dos instalaciones ni contra una
+     * captura de pantalla de ayer.
+     */
+    private function azar(float $desde, float $hasta): float
+    {
+        $this->semilla = ($this->semilla * 1103515245 + 12345) & 0x7FFFFFFF;
+
+        return $desde + ($this->semilla / 0x7FFFFFFF) * ($hasta - $desde);
+    }
+}

@@ -8,6 +8,9 @@ return [
     'new'           => 'Registrar recepción',
     'id'            => 'N°',
 
+    'search_sample'  => 'Buscar por N° de muestra',
+    'urgent_only'    => 'Solo urgentes',
+
     'index_title'    => 'Recepción de muestras',
     'index_subtitle' => 'Lo que entra al laboratorio. De acá salen los correlativos y de acá cuelga cada muestra con su equipo.',
     'create_title'   => 'Registrar recepción',
@@ -18,6 +21,7 @@ return [
     'empty_hint'     => 'Registre la primera entrega de muestras para empezar.',
 
     // ── Cabecera ────────────────────────────────────────────────────────
+    'section_header'  => 'Datos de la entrega',
     'code'            => 'N° de recepción',
     'code_help'       => 'El número con el que el laboratorio identifica la entrega. No es el de las muestras.',
     'service_order'   => 'Orden de servicio',
@@ -48,6 +52,9 @@ return [
     'next_number'     => 'El próximo correlativo es :code',
     'will_issue'      => 'Se emitirán :count correlativos, del :from al :to.',
     'confirmed'       => 'Recepción confirmada. Se emitieron :count correlativos.',
+    'confirmed_at'    => 'Confirmada el',
+    'confirmed_by'    => 'Confirmada por',
+    'no_samples_yet'  => 'Todavía no se emitieron correlativos para esta entrega.',
 
     // ── Estados ─────────────────────────────────────────────────────────
     'status'            => 'Estado',
@@ -81,8 +88,12 @@ return [
     'requested_tests'  => 'Pruebas pedidas',
     'no_tests'         => 'Sin pruebas pedidas',
     'progress'         => 'Avance',
+    'outstanding'      => 'Pendientes',
     'assign_tests'     => 'Asignar pruebas',
     'assign_to_all'    => 'Aplicar a todas las muestras',
+    'assign_to_all_hint' => 'Lo que se marque REEMPLAZA el pedido de todas las muestras de esta entrega. Las pruebas que ya tienen trabajo hecho se conservan.',
+    'tests_of_sample'  => 'Pruebas de la muestra :code',
+    'tests_of_all'     => 'Pruebas para todas las muestras',
     'tests_saved'      => 'Pruebas actualizadas: :added agregadas, :cancelled dadas de baja.',
     'equipment_saved'  => 'Equipo asignado.',
 

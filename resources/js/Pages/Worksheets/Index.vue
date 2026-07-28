@@ -140,11 +140,11 @@ const onTableChange = (page, _filters, sorter) => {
                     v-model:value="testFilter"
                     allow-clear
                     show-search
-                    option-filter-prop="children"
+                    option-filter-prop="label"
                     style="min-width: 220px"
                     :placeholder="$t('worksheets.test_definition')"
                 >
-                    <SelectOption v-for="test in tests" :key="test.slug" :value="test.slug">
+                    <SelectOption v-for="test in tests" :key="test.slug" :value="test.slug" :label="test.name">
                         {{ test.name }}
                     </SelectOption>
                 </Select>

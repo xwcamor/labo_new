@@ -99,10 +99,10 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
                         v-model:value="form.test_definition_id"
                         size="large"
                         show-search
-                        option-filter-prop="children"
+                        option-filter-prop="label"
                         :placeholder="$t('worksheets.test_definition')"
                     >
-                        <SelectOption v-for="test in tests" :key="test.id" :value="test.id">
+                        <SelectOption v-for="test in tests" :key="test.id" :value="test.id" :label="test.name">
                             {{ test.name }}
                         </SelectOption>
                     </Select>

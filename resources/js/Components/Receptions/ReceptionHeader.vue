@@ -12,6 +12,7 @@ import { CheckCircleFilled, CloseCircleFilled, ThunderboltFilled } from '@ant-de
 
 import ReceptionStatusTag from '@/Components/Receptions/ReceptionStatusTag.vue';
 import { useDateFormat } from '@/Composables/useDateFormat';
+import { useViewport } from '@/Composables/useViewport';
 import { plainDate } from '@/Pages/Receptions/config/format';
 
 const props = defineProps({
@@ -19,6 +20,16 @@ const props = defineProps({
 });
 
 const { formatDateTimeFull } = useDateFormat();
+const { isMobile } = useViewport();
+
+/**
+ * En pantalla chica la etiqueta va ARRIBA del valor, no al costado.
+ *
+ * Con dos columnas, "Fecha de recepción" entra en un ancho de 90 px y se parte
+ * a media palabra ("recepci / ón"): una etiqueta cortada así se lee mal y hace
+ * dudar de qué dato es. Apiladas ocupan una línea más y se leen enteras.
+ */
+const layout = computed(() => (isMobile.value ? 'vertical' : 'horizontal'));
 
 const dash = '—';
 
@@ -36,7 +47,7 @@ const checks = computed(() => [
 
 <template>
     <Card class="rc-head" :body-style="{ padding: '16px 18px' }">
-        <Descriptions :column="{ xs: 1, sm: 2, lg: 3 }" size="small" bordered>
+        <Descriptions :column="{ xs: 1, sm: 2, lg: 3 }" :layout="layout" size="small" bordered>
             <DescriptionsItem :label="$t('receptions.code')">
                 {{ reception.code || dash }}
             </DescriptionsItem>

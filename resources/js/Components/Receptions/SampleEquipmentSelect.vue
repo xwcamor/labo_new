@@ -53,7 +53,7 @@ const save = (equipmentId) => {
         v-model:value="value"
         allow-clear
         show-search
-        option-filter-prop="children"
+        option-filter-prop="label"
         size="small"
         class="rc-eqsel"
         :loading="saving"
@@ -61,7 +61,12 @@ const save = (equipmentId) => {
         :placeholder="$t('receptions.no_equipment')"
         @change="save"
     >
-        <SelectOption v-for="item in equipment" :key="item.id" :value="item.id">
+        <SelectOption
+            v-for="item in equipment"
+            :key="item.id"
+            :value="item.id"
+            :label="label(item)"
+        >
             {{ label(item) }}
         </SelectOption>
     </Select>

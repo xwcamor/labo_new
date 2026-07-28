@@ -431,8 +431,6 @@ provide('sidebarCollapsed', collapsed);
 const selectedKey = computed(() => {
     const url = page.url ?? '';
     // Comparación: 2 páginas independientes con paths distintos.
-    if (url.includes('/comparison/patrones')) return 'cmp_patrones';
-    if (url.includes('/comparison/gases')) return 'cmp_gases';
     const matchers = [
         ['audit_logs',     '/audit_logs'],
         ['system_modules', '/system_modules'],
@@ -449,12 +447,9 @@ const selectedKey = computed(() => {
         ['workspace',      '/workspace'],
         ['my_requests',    '/my-requests'],
         ['approvals',      '/approvals'],
-        ['diagnostic_rules', '/diagnostic-rules'],
-        ['tools-duval',    '/tools/duval'],
         ['roles',          '/roles'],
         ['users',          '/users'],
         ['customers',          '/customers'],
-        ['transformers',       '/transformers'],
         ['oil_types',          '/oil_types'],
         ['brands',             '/brands'],
         ['transformer_types',  '/transformer_types'],
@@ -660,21 +655,6 @@ const menuStructure = computed(() => [
                 visible: () => can('customers.view'),
             },
             {
-                key: 'transformers', label: t('sidebar.transformers'), icon: TransformerIcon,
-                href: route('business_management.transformers.index'), inertia: true,
-                visible: () => can('transformers.view'),
-            },
-            {
-                key: 'cmp_gases', label: t('sidebar.comparison_gases'), icon: LineChartOutlined,
-                href: route('business_management.comparison.gases'), inertia: true,
-                visible: () => can('transformers.view'),
-            },
-            {
-                key: 'cmp_patrones', label: t('sidebar.comparison_patrones'), icon: BarChartOutlined,
-                href: route('business_management.comparison.patrones'), inertia: true,
-                visible: () => can('transformers.view'),
-            },
-            {
                 // Historial de enlaces compartidos, cruzando clientes. Premium
                 // (misma feature de plan que el botón de compartir).
                 key: 'report_shares', label: t('sidebar.report_shares'), icon: ShareAltOutlined,
@@ -694,13 +674,6 @@ const menuStructure = computed(() => [
         key: 'group-diagnostics', title: t('sidebar.group_diagnostics'),
         items: [
             // Editor del semáforo + pesos del HI (reglas en datos). SOLO super.
-            {
-                key: 'diagnostic_rules', label: t('sidebar.diagnostic_rules'), icon: ExperimentOutlined,
-                href: route('system_management.diagnostic_rules.index'), inertia: true,
-                // Híbrido: super edita el estándar global; el admin del workspace
-                // edita SU override (aislado). Por eso ahora también lo ve el admin.
-                visible: () => hasRole('super') || hasRole('admin'),
-            },
             // Tipo de aceite / tipo de trafo / conmutador: catálogos internos del
             // motor de diagnóstico. SOLO super los ve y edita; el admin del workspace
             // no los necesita (las reglas viven en datos, no se tocan por tenant).
@@ -863,11 +836,6 @@ const menuStructure = computed(() => [
         kind: 'group',
         key: 'group-tools', title: t('sidebar.group_tools'),
         items: [
-            {
-                key: 'tools-duval', label: t('sidebar.tools_duval'), icon: RadarChartOutlined,
-                href: route('tools.duval.index'), inertia: true,
-                visible: () => hasRole('super'),
-            },
         ],
     },
 ]);

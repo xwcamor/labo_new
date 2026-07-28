@@ -71,10 +71,7 @@ return [
             'model'      => \App\Models\OilType::class,
             'show_route' => 'business_management.oil_types.show',
         ],
-        'transformers' => [
-            'model'      => \App\Models\Transformer::class,
-            'show_route' => 'business_management.transformers.show',
-        ],
+        // 'equipment' se registra en la fase 1, cuando exista el modelo.
         'brands' => [
             'model'      => \App\Models\Brand::class,
             'show_route' => 'business_management.brands.show',

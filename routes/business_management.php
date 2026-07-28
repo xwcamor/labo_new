@@ -8,17 +8,11 @@ use App\Http\Controllers\BusinessManagement\TapChangerBrandController;
 use App\Http\Controllers\BusinessManagement\LaboratoryController;
 use App\Http\Controllers\BusinessManagement\TapChangerTypeController;
 use App\Http\Controllers\BusinessManagement\TransformerTypeController;
-use App\Http\Controllers\BusinessManagement\TransformerController;
 use App\Http\Controllers\BusinessManagement\ReportShareController;
 use App\Http\Controllers\BusinessManagement\ReportShareLogController;
 use App\Http\Controllers\BusinessManagement\OilTypeController;
 use App\Http\Controllers\BusinessManagement\CustomerController;
 use App\Http\Controllers\BusinessManagement\CustomerHierarchyController;
-use App\Http\Controllers\BusinessManagement\ChromatographicalController;
-use App\Http\Controllers\BusinessManagement\FuranoController;
-use App\Http\Controllers\BusinessManagement\FiquiController;
-use App\Http\Controllers\BusinessManagement\FpotController;
-use App\Http\Controllers\BusinessManagement\TransformerEventController;
 use App\Http\Controllers\BusinessManagement\CommentController;
 
 /*
@@ -193,166 +187,10 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     }); // fin OilTypes (role:super)
 
 
-    // ── Transformers ──
-    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
-
-    // 1) Trash + restore + force_delete (super only — defense in depth)
-    Route::middleware('role:super')->group(function () {
-        Route::get('transformers/trash',                  [TransformerController::class, 'trash'])->name('transformers.trash');
-        Route::post('transformers/bulk_restore',          [TransformerController::class, 'bulkRestore'])->name('transformers.bulk_restore');
-        Route::post('transformers/{slug}/restore',        [TransformerController::class, 'restore'])->name('transformers.restore');
-        Route::get('transformers/{slug}/restore',         fn () => redirect()->route('business_management.transformers.trash'));
-        Route::delete('transformers/{slug}/force_delete', [TransformerController::class, 'forceDelete'])->name('transformers.force_delete');
-    });
-
-    // 2) Exports (gated por plan_feature por formato)
-    Route::middleware('permission:transformers.view')->group(function () {
-        // Comparación "por grupos": 2 páginas independientes (sin query mode).
-        Route::get('comparison/gases', [\App\Http\Controllers\BusinessManagement\ComparisonController::class, 'gases'])->name('comparison.gases');
-        Route::get('comparison/patrones', [\App\Http\Controllers\BusinessManagement\ComparisonController::class, 'patrones'])->name('comparison.patrones');
-        // Panel de flota: vista de águila (conteos por banda de salud + peores).
-        Route::get('transformers/fleet', [TransformerController::class, 'fleet'])->name('transformers.fleet');
-        // Reporte de flota consolidado (todas las pruebas de los trafos del
-        // cliente en un solo Excel con pestañas).
-        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
-            ->post('transformers/fleet_report_excel', [TransformerController::class, 'fleetReportExcel'])->name('transformers.fleet_report_excel');
-        Route::middleware('throttle:5,1')
-            ->post('transformers/fleet_report_csv', [TransformerController::class, 'fleetReportCsv'])->name('transformers.fleet_report_csv');
-        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
-            ->post('transformers/fleet_report_pdf', [TransformerController::class, 'fleetReportPdf'])->name('transformers.fleet_report_pdf');
-        Route::middleware(['throttle:5,1', 'permission:transformers.export', 'plan_feature:export_excel'])
-            ->post('transformers/export_excel', [TransformerController::class, 'exportExcel'])->name('transformers.export_excel');
-        Route::middleware(['throttle:5,1', 'permission:transformers.export', 'plan_feature:export_pdf'])
-            ->post('transformers/export_pdf',   [TransformerController::class, 'exportPdf'])->name('transformers.export_pdf');
-        Route::middleware(['throttle:5,1', 'permission:transformers.export', 'plan_feature:export_word'])
-            ->post('transformers/export_word',  [TransformerController::class, 'exportWord'])->name('transformers.export_word');
-        Route::middleware(['throttle:5,1', 'permission:transformers.export'])
-            ->post('transformers/export_csv',   [TransformerController::class, 'exportCsv'])->name('transformers.export_csv');
-    });
-
-    // 3) Imports
-    Route::middleware(['permission:transformers.create', 'permission:transformers.import', 'plan_feature:bulk_operations'])->group(function () {
-        Route::post('transformers/import',          [TransformerController::class, 'import'])->name('transformers.import');
-        Route::get('transformers/import_template',  [TransformerController::class, 'importTemplate'])->name('transformers.import_template');
-    });
-
-    // 4) Bulk operations
-    Route::middleware(['permission:transformers.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
-        Route::post('transformers/bulk_delete',     [TransformerController::class, 'bulkDelete'])->name('transformers.bulk_delete');
-    });
-
-    // Undo del ultimo borrado (60s window)
-    Route::middleware('permission:transformers.delete')->group(function () {
-        Route::post('transformers/undo_last_delete', [TransformerController::class, 'undoLastDelete'])->name('transformers.undo_last_delete');
-    });
-
-    // Edit All
-    Route::middleware('permission:transformers.edit')->group(function () {
-        Route::get('transformers/edit_all',         [TransformerController::class, 'editAll'])->name('transformers.edit_all');
-        Route::post('transformers/edit_all/update', [TransformerController::class, 'editAllUpdate'])->name('transformers.edit_all.update');
-    });
-
-    // 5) CRUD principal — paths estaticos PRIMERO.
-    Route::middleware('permission:transformers.create')->group(function () {
-        Route::get('transformers/create', [TransformerController::class, 'create'])->name('transformers.create');
-        Route::post('transformers',       [TransformerController::class, 'store'])->name('transformers.store');
-        Route::post('transformers/{transformer}/duplicate', [TransformerController::class, 'duplicate'])->name('transformers.duplicate');
-    });
-
-    Route::middleware('permission:transformers.view')->group(function () {
-        Route::get('transformers',                [TransformerController::class, 'index'])->name('transformers.index');
-        Route::get('transformers/{transformer}',  [TransformerController::class, 'show'])->name('transformers.show');
-        // "¿Por qué este resultado?" — detalle del diagnóstico (SOLO LECTURA,
-        // no guarda nada). Disponible para cualquiera que pueda VER el trafo, no
-        // solo para quien carga muestras (antes estaba con samples|edit → un
-        // perfil de solo-lectura recibía 403 al abrir el drawer).
-        Route::post('transformers/{transformer}/cromas-explain',  [ChromatographicalController::class, 'explain'])->name('transformers.cromas.explain');
-        Route::post('transformers/{transformer}/furanos-explain', [FuranoController::class, 'explain'])->name('transformers.furanos.explain');
-        Route::post('transformers/{transformer}/fiquis-explain',  [FiquiController::class, 'explain'])->name('transformers.fiquis.explain');
-        Route::post('transformers/{transformer}/fpot-explain',    [FpotController::class, 'explain'])->name('transformers.fpot.explain');
-        // Informe ÚNICO consolidado del transformador: incluye solo las pruebas
-        // con datos. (Los PDFs por prueba se eliminaron a propósito.)
-        Route::match(['get', 'post'], 'transformers/{transformer}/report', [TransformerController::class, 'report'])->name('transformers.report');
-        // Enviar el informe a aprobación (etapa 2 de firmas; solo si el workspace lo exige).
-        Route::post('transformers/{transformer}/send-for-approval', [TransformerController::class, 'sendForApproval'])->name('transformers.send_for_approval');
-        // Auto-caché de gráficos del informe (lo manda Ver trafo en background
-        // cuando el caché está vacío — alimenta el PDF del portal compartido).
-        Route::post('transformers/{transformer}/report-charts', [TransformerController::class, 'storeReportCharts'])->name('transformers.report_charts');
-        // Selección manual de muestras para Tabla 4 (DGA Status, IEEE C57.104).
-        Route::post('transformers/{transformer}/dga-rate-selection', [TransformerController::class, 'saveDgaRateSelection'])->name('transformers.dga_rate_selection.save');
-        Route::delete('transformers/{transformer}/dga-rate-selection', [TransformerController::class, 'clearDgaRateSelection'])->name('transformers.dga_rate_selection.clear');
-        // Informe borrador en Word (editable, sin QR ni firmas). Solo 1 trafo.
-        Route::post('transformers/{transformer}/report-word', [TransformerController::class, 'reportWord'])->name('transformers.report_word');
-        // Compartir diagnóstico con clientes externos (link público + OTP). Premium.
-        Route::middleware('plan_feature:report_sharing')->group(function () {
-            Route::get('report-shares', [ReportShareController::class, 'index'])->name('report_shares.index');
-            Route::post('report-shares', [ReportShareController::class, 'store'])->name('report_shares.store');
-            Route::post('report-shares/{share}/resend', [ReportShareController::class, 'resend'])->name('report_shares.resend');
-            Route::post('report-shares/{share}/extend', [ReportShareController::class, 'extend'])->name('report_shares.extend');
-            Route::delete('report-shares/{share}', [ReportShareController::class, 'revoke'])->name('report_shares.revoke');
-
-            // Historial CRUZANDO clientes ("Envíos de informes"). El modal solo
-            // muestra el de un alcance; esta pantalla responde "qué mandé".
-            Route::get('report-shares-log', [ReportShareLogController::class, 'index'])->name('report_shares_log.index');
-            Route::delete('report-shares-log/{share}', [ReportShareLogController::class, 'revoke'])->name('report_shares_log.revoke');
-        });
-    });
-    Route::middleware('permission:transformers.edit')->group(function () {
-        Route::get('transformers/{transformer}/edit', [TransformerController::class, 'edit'])->name('transformers.edit');
-        Route::put('transformers/{transformer}',      [TransformerController::class, 'update'])->name('transformers.update');
-
-        // Bitácora del transformador (eventos / comentarios: timeline + kanban).
-        Route::post('transformers/{transformer}/events', [TransformerEventController::class, 'store'])->name('transformers.events.store');
-        Route::put('transformers/{transformer}/events/{event}', [TransformerEventController::class, 'update'])->name('transformers.events.update');
-        Route::delete('transformers/{transformer}/events/{event}', [TransformerEventController::class, 'destroy'])->name('transformers.events.destroy');
-    });
-
-    // Muestras de ensayos (cromas/furanos/fiquis/fpot). Permiso PROPIO
-    // (transformers.samples) separado de editar la FICHA del trafo — permite
-    // perfiles tipo "Cliente Editor" que cargan resultados de laboratorio sin
-    // poder tocar los datos de placa. transformers.edit lo incluye (OR) para
-    // retrocompatibilidad con los roles existentes.
-    Route::middleware('permission:transformers.samples|transformers.edit')->group(function () {
-        // Ensayos de cromatografía (DGA) del transformador.
-        Route::post('transformers/{transformer}/cromas', [ChromatographicalController::class, 'store'])->name('transformers.cromas.store');
-        Route::put('transformers/{transformer}/cromas/{croma}', [ChromatographicalController::class, 'update'])->name('transformers.cromas.update');
-        Route::delete('transformers/{transformer}/cromas/{croma}', [ChromatographicalController::class, 'destroy'])->name('transformers.cromas.destroy');
-        // Editor estilo Excel: guardado por lote + preview en vivo del diagnóstico.
-        Route::post('transformers/{transformer}/cromas-batch', [ChromatographicalController::class, 'batch'])->name('transformers.cromas.batch');
-        Route::post('transformers/{transformer}/cromas-preview', [ChromatographicalController::class, 'preview'])->name('transformers.cromas.preview');
-
-        // Ensayos de furanos (degradación del papel) del transformador.
-        Route::post('transformers/{transformer}/furanos', [FuranoController::class, 'store'])->name('transformers.furanos.store');
-        Route::put('transformers/{transformer}/furanos/{furano}', [FuranoController::class, 'update'])->name('transformers.furanos.update');
-        Route::delete('transformers/{transformer}/furanos/{furano}', [FuranoController::class, 'destroy'])->name('transformers.furanos.destroy');
-        Route::post('transformers/{transformer}/furanos-batch', [FuranoController::class, 'batch'])->name('transformers.furanos.batch');
-        Route::post('transformers/{transformer}/furanos-preview', [FuranoController::class, 'preview'])->name('transformers.furanos.preview');
-
-        // Ensayos fisicoquímicos del aceite del transformador.
-        Route::post('transformers/{transformer}/fiquis', [FiquiController::class, 'store'])->name('transformers.fiquis.store');
-        Route::put('transformers/{transformer}/fiquis/{fiqui}', [FiquiController::class, 'update'])->name('transformers.fiquis.update');
-        Route::delete('transformers/{transformer}/fiquis/{fiqui}', [FiquiController::class, 'destroy'])->name('transformers.fiquis.destroy');
-        Route::post('transformers/{transformer}/fiquis-batch', [FiquiController::class, 'batch'])->name('transformers.fiquis.batch');
-        Route::post('transformers/{transformer}/fiquis-preview', [FiquiController::class, 'preview'])->name('transformers.fiquis.preview');
-
-        // Ensayos de Factor de Potencia del aislamiento del transformador.
-        Route::post('transformers/{transformer}/fpot', [FpotController::class, 'store'])->name('transformers.fpot.store');
-        Route::put('transformers/{transformer}/fpot/{fpot}', [FpotController::class, 'update'])->name('transformers.fpot.update');
-        Route::delete('transformers/{transformer}/fpot/{fpot}', [FpotController::class, 'destroy'])->name('transformers.fpot.destroy');
-        Route::post('transformers/{transformer}/fpot-batch', [FpotController::class, 'batch'])->name('transformers.fpot.batch');
-        Route::post('transformers/{transformer}/fpot-preview', [FpotController::class, 'preview'])->name('transformers.fpot.preview');
-    });
-    Route::middleware('permission:transformers.delete')->group(function () {
-        Route::get('transformers/{transformer}/delete',        [TransformerController::class, 'delete'])->name('transformers.delete');
-        Route::delete('transformers/{transformer}/deleteSave', [TransformerController::class, 'deleteSave'])->name('transformers.deleteSave');
-    });
-
-    // Bloquear/desbloquear trafo (Lockable) — solo super|admin. El nivel del
-    // candado y quién lo saca se resuelve en el controller (HandlesRecordLocking).
-    Route::middleware('role:super|admin')->group(function () {
-        Route::post('transformers/{transformer}/lock',   [TransformerController::class, 'lock'])->name('transformers.lock');
-        Route::post('transformers/{transformer}/unlock', [TransformerController::class, 'unlock'])->name('transformers.unlock');
-    });
+    // ── Equipment + Samples ──
+    // Fase 1 (equipos) y fase 3 (muestras). El bloque de Transformers de
+    // TrafoDex se eliminó completo: su modelo y su controlador eran del
+    // dominio de diagnóstico, no del laboratorio.
 
     // ── Comentarios (polimórfico: transformer + muestras de cada prueba) ──
     // Texto libre del usuario, con autor + fecha. Ver/crear/borrar se gatean por

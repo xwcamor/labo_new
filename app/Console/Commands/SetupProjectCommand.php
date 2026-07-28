@@ -54,29 +54,19 @@ class SetupProjectCommand extends Command
         Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
         $this->info(Artisan::output());
 
-        $this->verifyDiagnosticData();
+        $this->verifyBaseData();
 
         $this->info("Project successfully initialized.");
         return self::SUCCESS;
     }
 
     /**
-     * Verifica que el motor de diagnóstico quedó cargado: cuadros/reglas de cromas
-     * (vienen de CromasRulesSeeder) y la feature report_sharing en los planes pagos
-     * (PlansSeeder). Si algo falta, avisa fuerte con el comando para corregirlo.
+     * Verifica que los datos base quedaron cargados. Fase 2: sumar el chequeo
+     * de spec_sets / spec_limits (el equivalente al motor de reglas).
      */
-    private function verifyDiagnosticData(): void
+    private function verifyBaseData(): void
     {
         $this->line('');
-        $this->info('Verifying diagnostic engine data...');
-
-        $ruleSets = \App\Models\RuleSet::count();
-        $rules    = \App\Models\Rule::count();
-        $this->line("  rule_sets: {$ruleSets} · rules: {$rules}");
-        if ($rules === 0) {
-            $this->error('  No diagnostic rules loaded. Run: php artisan db:seed --class=CromasRulesSeeder --force');
-        }
-
         $ent = \App\Models\Plan::findBySlug('enterprise');
         $hasSharing = $ent?->hasFeature('report_sharing') ?? false;
         $this->line('  enterprise.report_sharing: ' . ($hasSharing ? 'yes' : 'NO'));

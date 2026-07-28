@@ -155,7 +155,7 @@ class HandleInertiaRequests extends Middleware
             // Colores del diagnóstico (semáforo + gradiente de celda), editables por
             // super con override por tenant. Se comparten en TODA página porque
             // utils/severity.js los usa en cualquier vista (no solo el editor).
-            'diagnosticColors' => fn () => \App\Support\Diagnostics\DiagnosticColors::all(),
+            // 'diagnosticColors': lo inyecta la fase 2 desde los colores del laboratorio.
             'app'    => [
                 'name' => config('app.name'),
             ],
@@ -284,21 +284,10 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
-        // Las 5 etiquetas de calificación (cond_*) son editables por idioma desde
-        // el dataset `condition_labels` (indexado por rating). Las sobrescribimos
-        // aquí en UN solo punto → todos los componentes Vue que usan
-        // t('diagnostics.cond_*') reflejan la edición sin tocarlos uno por uno.
-        // Si la BD no está lista, el helper cae al archivo lang (no-op).
-        try {
-            if (isset($out['diagnostics'])) {
-                $out['diagnostics'] = array_merge(
-                    $out['diagnostics'],
-                    \App\Support\Diagnostics\ConditionLabel::i18nOverrides()
-                );
-            }
-        } catch (\Throwable) {
-            // Tabla aún no migrada / sin datos → se queda con el archivo lang.
-        }
+        // Fase 2: acá se inyectan las etiquetas editables del laboratorio
+        // (los veredictos "dentro / fuera de norma / sin criterio"), en UN solo
+        // punto, con el mismo patrón que usaba TrafoDex para las 5 etiquetas del
+        // semáforo: si la tabla no está migrada, cae al archivo lang sin romper.
 
         return $out;
     }

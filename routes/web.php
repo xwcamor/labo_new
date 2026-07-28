@@ -40,7 +40,6 @@ Route::group(
             require __DIR__.'/saved_views.php';
             require __DIR__.'/approvals.php';
             require __DIR__.'/user_preferences.php';
-            require __DIR__.'/tools.php';
 
             // ── Mi Perfil ──
             // Buscador global del topbar (transformadores + clientes del workspace).

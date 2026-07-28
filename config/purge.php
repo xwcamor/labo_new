@@ -99,10 +99,7 @@ return [
             'model' => \App\Models\OilType::class,
             'days'  => 90,
         ],
-        'transformers' => [
-            'model' => \App\Models\Transformer::class,
-            'days'  => 90,
-        ],
+        // 'equipment' se registra en la fase 1, cuando exista el modelo.
         'transformer_types' => [
             'model' => \App\Models\TransformerType::class,
             'days'  => 90,

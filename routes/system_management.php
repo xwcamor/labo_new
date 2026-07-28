@@ -11,7 +11,6 @@ use App\Http\Controllers\SystemManagement\TenantSubscriptionController;
 use App\Http\Controllers\SystemManagement\RegionController;
 use App\Http\Controllers\SystemManagement\PlanController;
 use App\Http\Controllers\SystemManagement\AuditLogController;
-use App\Http\Controllers\SystemManagement\DiagnosticRulesController;
 
 Route::prefix('system_management')->name('system_management.')->group(function () {
 
@@ -43,21 +42,7 @@ Route::prefix('system_management')->name('system_management.')->group(function (
     | edita un cuadro global crea/edita su propia copia (gateado en el controlador).
     */
     Route::middleware(['role:super|admin'])->group(function () {
-        Route::get('diagnostic-rules', [DiagnosticRulesController::class, 'index'])->name('diagnostic_rules.index');
         // Cuadros de reglas — tenant-safe (copy-on-write, gateado en el controlador).
-        Route::get('diagnostic-rules/sets', [DiagnosticRulesController::class, 'sets'])->name('diagnostic_rules.sets');
-        Route::get('diagnostic-rules/sets/{ruleSet}', [DiagnosticRulesController::class, 'editSet'])->name('diagnostic_rules.set_edit');
-        Route::put('diagnostic-rules/sets/{ruleSet}', [DiagnosticRulesController::class, 'updateSet'])->name('diagnostic_rules.set_update');
-        Route::post('diagnostic-rules/sets/{ruleSet}/restore', [DiagnosticRulesController::class, 'restoreSet'])->name('diagnostic_rules.set_restore');
-        Route::post('diagnostic-rules/restore', [DiagnosticRulesController::class, 'restore'])->name('diagnostic_rules.restore');
-        Route::put('diagnostic-rules/labels', [DiagnosticRulesController::class, 'updateLabels'])->name('diagnostic_rules.labels_update');
-        Route::post('diagnostic-rules/labels/restore', [DiagnosticRulesController::class, 'restoreLabels'])->name('diagnostic_rules.labels_restore');
-        Route::put('diagnostic-rules/colors', [DiagnosticRulesController::class, 'updateColors'])->name('diagnostic_rules.colors_update');
-        Route::post('diagnostic-rules/colors/restore', [DiagnosticRulesController::class, 'restoreColors'])->name('diagnostic_rules.colors_restore');
-        Route::get('diagnostic-rules/data/{key}', [DiagnosticRulesController::class, 'editData'])->name('diagnostic_rules.data_edit');
-        Route::put('diagnostic-rules/data/{key}', [DiagnosticRulesController::class, 'updateData'])->name('diagnostic_rules.data_update');
-        Route::post('diagnostic-rules/data/{key}/restore', [DiagnosticRulesController::class, 'restoreData'])->name('diagnostic_rules.data_restore');
-        Route::put('diagnostic-rules/{code}', [DiagnosticRulesController::class, 'update'])->name('diagnostic_rules.update');
     });
 
     Route::middleware('role:super')->group(function () {

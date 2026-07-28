@@ -167,8 +167,8 @@ class OilTypeController extends Controller
     /** ¿Este aceite ya tiene reglas configuradas (cromas o fiquis)? */
     protected function oilHasRules(OilType $m): bool
     {
-        return \App\Models\RuleSet::where('oil_type_id', $m->id)->exists()
-            || ($m->code && \DB::table('fiqui_thresholds')->where('oil_code', $m->code)->exists());
+        // Fase 2: pasa a consultar spec_sets. Sin motor de reglas, nunca hay.
+        return false;
     }
 
     public function store(StoreOilTypeRequest $request, OilTypeService $service): RedirectResponse
@@ -192,12 +192,7 @@ class OilTypeController extends Controller
         // Escalable: si se eligió clonar reglas de otro aceite, se copian sus
         // cuadros de cromas + umbrales de fiquis → el aceite nuevo diagnostica
         // desde el inicio (no queda "Sin reglas"). Luego se ajustan.
-        if ($cloneFrom) {
-            $source = OilType::find($cloneFrom);
-            if ($source) {
-                app(\App\Services\Diagnostics\OilRuleCloner::class)->clone($source, $oilType);
-            }
-        }
+        // Fase 2: clonar los cuadros de límites de otro aceite (spec_sets).
 
         return redirect()
             ->route('business_management.oil_types.index')
@@ -227,12 +222,7 @@ class OilTypeController extends Controller
 
         // Si el aceite no tenía reglas y se eligió copiarlas de otro, se clonan
         // ahora (el cloner es idempotente: si ya tuviera reglas, no hace nada).
-        if ($cloneFrom && !$this->oilHasRules($oilType)) {
-            $source = OilType::find($cloneFrom);
-            if ($source) {
-                app(\App\Services\Diagnostics\OilRuleCloner::class)->clone($source, $oilType);
-            }
-        }
+        // Fase 2: clonar los cuadros de límites de otro aceite (spec_sets).
 
         return redirect()
             ->route('business_management.oil_types.index')

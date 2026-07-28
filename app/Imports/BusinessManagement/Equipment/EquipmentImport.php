@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Imports\BusinessManagement\Equipments;
+namespace App\Imports\BusinessManagement\Equipment;
 
 use App\Models\Equipment;
 use Illuminate\Support\Collection;

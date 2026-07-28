@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs\BusinessManagement\Equipments;
+namespace App\Jobs\BusinessManagement\Equipment;
 
 use App\Exports\BusinessManagement\Equipment\EquipmentWord;
 use App\Models\Download;

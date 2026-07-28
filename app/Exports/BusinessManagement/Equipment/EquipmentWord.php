@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exports\BusinessManagement\Equipments;
+namespace App\Exports\BusinessManagement\Equipment;
 
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;

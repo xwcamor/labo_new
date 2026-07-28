@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs\BusinessManagement\Equipments;
+namespace App\Jobs\BusinessManagement\Equipment;
 
 use App\Models\Download;
 use Illuminate\Support\Facades\Storage;

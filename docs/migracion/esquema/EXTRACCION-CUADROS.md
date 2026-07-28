@@ -115,6 +115,23 @@ lee igual, pero el informe imprime `16` pelado.
 
 ---
 
+## Las condiciones van por CÓDIGO, no por ID
+
+Los cuadros condicionan por `oil_type_code` y `equipment_type_code`
+(`mineral`, `bushing`), no por el ID numérico del sistema viejo.
+
+En la primera versión de esta extracción sí iban por ID, y el
+`LabCatalogsSeeder` clavaba los IDs del Ruby para que coincidieran. Era cómodo
+para verificar, y estaba mal: acopla las claves primarias del sistema nuevo a
+las de un sistema muerto. Alguien que en 2028 lea `oil_type_id = 7` necesitaría
+un mapa de 2019 para saber que es Midel — o sea, exactamente el "mandrakeo" del
+que esta migración se trata de salir.
+
+La correspondencia ID viejo → código vive en `_meta.aceites` y `_meta.equipos`
+del JSON, y sirve **solo** para el ETL de la fase 12.
+
+---
+
 ## Lo que NO se hizo, a propósito
 
 **No se corrigió ningún número.** El JSON refleja lo que el sistema viejo hace

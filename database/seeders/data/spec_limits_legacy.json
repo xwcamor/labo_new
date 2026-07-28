@@ -6,30 +6,95 @@
     "fecha": "2026-07-28",
     "estado": "SIN VALIDAR por el laboratorio — ver anomalias[] y docs/migracion/03-NORMAS-Y-LIMITES.md §7",
     "aceites": {
-      "1": "Mineral",
-      "2": "?",
-      "3": "?",
-      "4": "Silicona",
-      "5": "Vegetal/Soya",
-      "6": "Girasol",
-      "7": "Midel/Éster sintético",
-      "8": "?",
-      "9": "?"
+      "1": {
+        "code": "mineral"
+      },
+      "2": {
+        "code": "aceite_2"
+      },
+      "3": {
+        "code": "aceite_3"
+      },
+      "4": {
+        "code": "silicona"
+      },
+      "5": {
+        "code": "vegetal_soya"
+      },
+      "6": {
+        "code": "vegetal_girasol"
+      },
+      "7": {
+        "code": "ester_sintetico"
+      },
+      "8": {
+        "code": "aceite_8"
+      },
+      "9": {
+        "code": "aceite_9"
+      }
     },
     "equipos": {
-      "1": "Potencia",
-      "2": "Distribución",
-      "3": "Horno",
-      "4": "De corriente",
-      "5": "De voltaje",
-      "6": "Instrumento",
-      "7": "Bushing",
-      "8": "Cables",
-      "9": "Interruptor",
-      "10": "Conmutador",
-      "11": "Reactor",
-      "12": "Termovacío",
-      "13": "Transformador"
+      "1": {
+        "code": "potencia"
+      },
+      "2": {
+        "code": "distribucion"
+      },
+      "3": {
+        "code": "horno"
+      },
+      "4": {
+        "code": "corriente"
+      },
+      "5": {
+        "code": "voltaje"
+      },
+      "6": {
+        "code": "instrumento"
+      },
+      "7": {
+        "code": "bushing"
+      },
+      "8": {
+        "code": "cables"
+      },
+      "9": {
+        "code": "interruptor"
+      },
+      "10": {
+        "code": "conmutador"
+      },
+      "11": {
+        "code": "reactor"
+      },
+      "12": {
+        "code": "termovacio"
+      },
+      "13": {
+        "code": "transformador"
+      },
+      "14": {
+        "code": "rectificador"
+      },
+      "15": {
+        "code": "trafomix"
+      },
+      "16": {
+        "code": "nulo"
+      },
+      "17": {
+        "code": "autotransformador"
+      },
+      "18": {
+        "code": "electrobomba"
+      },
+      "19": {
+        "code": "magneto"
+      },
+      "20": {
+        "code": "intercambiador"
+      }
     },
     "gases": {
       "cro": "h2",
@@ -41,7 +106,8 @@
       "cro7": "c2h4",
       "cro8": "c2h6",
       "cro9": "c2h2"
-    }
+    },
+    "por_que_codigos": "Las condiciones se expresan por CÓDIGO, no por ID numérico. Los IDs de este mapa son los del sistema Rails viejo y quedan SOLO como referencia para el ETL de la fase 12. Atar el motor a los IDs de un sistema muerto obliga a consultar un mapa de 2019 para entender una fila de 2028."
   },
   "anomalias": [
     {
@@ -108,8 +174,8 @@
       "label": "Conmutador",
       "origen": "app/models/rem_report_detail.rb:404",
       "condicion": {
-        "equipment_type": [
-          10
+        "equipment_type_code": [
+          "conmutador"
         ]
       },
       "limites": [
@@ -176,11 +242,11 @@
       "label": "Reactor · Mineral",
       "origen": "app/models/rem_report_detail.rb:420",
       "condicion": {
-        "equipment_type": [
-          11
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "reactor"
         ]
       },
       "limites": [
@@ -246,8 +312,8 @@
       "label": "Reactor · otros aceites",
       "origen": "app/models/rem_report_detail.rb:432",
       "condicion": {
-        "equipment_type": [
-          11
+        "equipment_type_code": [
+          "reactor"
         ]
       },
       "limites": [
@@ -314,11 +380,11 @@
       "label": "Distribución · Mineral",
       "origen": "app/models/rem_report_detail.rb:458",
       "condicion": {
-        "equipment_type": [
-          2
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "distribucion"
         ]
       },
       "limites": [
@@ -384,11 +450,11 @@
       "label": "Potencia · Mineral",
       "origen": "app/models/rem_report_detail.rb:471",
       "condicion": {
-        "equipment_type": [
-          1
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "potencia"
         ]
       },
       "limites": [
@@ -454,11 +520,11 @@
       "label": "Horno · Mineral",
       "origen": "app/models/rem_report_detail.rb:485",
       "condicion": {
-        "equipment_type": [
-          3
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "horno"
         ]
       },
       "limites": [
@@ -525,11 +591,11 @@
       "label": "De corriente · Mineral",
       "origen": "app/models/rem_report_detail.rb:499",
       "condicion": {
-        "equipment_type": [
-          4
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "corriente"
         ]
       },
       "limites": [
@@ -595,11 +661,11 @@
       "label": "De voltaje · Mineral",
       "origen": "app/models/rem_report_detail.rb:513",
       "condicion": {
-        "equipment_type": [
-          5
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "voltaje"
         ]
       },
       "limites": [
@@ -667,11 +733,11 @@
       "label": "Instrumento · Mineral",
       "origen": "app/models/rem_report_detail.rb:527",
       "condicion": {
-        "equipment_type": [
-          6
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "instrumento"
         ]
       },
       "limites": [
@@ -738,11 +804,11 @@
       "label": "Bushing · Mineral",
       "origen": "app/models/rem_report_detail.rb:540",
       "condicion": {
-        "equipment_type": [
-          7
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "bushing"
         ]
       },
       "limites": [
@@ -809,11 +875,11 @@
       "label": "Cables · Mineral",
       "origen": "app/models/rem_report_detail.rb:553",
       "condicion": {
-        "equipment_type": [
-          8
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "cables"
         ]
       },
       "limites": [
@@ -880,11 +946,11 @@
       "label": "Interruptor · Mineral",
       "origen": "app/models/rem_report_detail.rb:566",
       "condicion": {
-        "equipment_type": [
-          9
+        "oil_type_code": [
+          "mineral"
         ],
-        "oil_type": [
-          1
+        "equipment_type_code": [
+          "interruptor"
         ]
       },
       "limites": [
@@ -951,8 +1017,8 @@
       "label": "Silicona",
       "origen": "app/models/rem_report_detail.rb:595",
       "condicion": {
-        "oil_type": [
-          4
+        "oil_type_code": [
+          "silicona"
         ]
       },
       "limites": [
@@ -1018,8 +1084,8 @@
       "label": "Midel",
       "origen": "app/models/rem_report_detail.rb:610",
       "condicion": {
-        "oil_type": [
-          7
+        "oil_type_code": [
+          "ester_sintetico"
         ]
       },
       "limites": [
@@ -1085,8 +1151,8 @@
       "label": "Vegetal soya",
       "origen": "app/models/rem_report_detail.rb:625",
       "condicion": {
-        "oil_type": [
-          5
+        "oil_type_code": [
+          "vegetal_soya"
         ]
       },
       "limites": [
@@ -1152,8 +1218,8 @@
       "label": "Vegetal girasol",
       "origen": "app/models/rem_report_detail.rb:640",
       "condicion": {
-        "oil_type": [
-          6
+        "oil_type_code": [
+          "vegetal_girasol"
         ]
       },
       "limites": [
@@ -1219,10 +1285,10 @@
       "label": "Conmutador · ≤69 kV",
       "origen": "app/models/rem_report_detail.rb:199",
       "condicion": {
-        "equipment_type": [
-          10
-        ],
-        "voltage_to": 69
+        "voltage_to": 69,
+        "equipment_type_code": [
+          "conmutador"
+        ]
       },
       "limites": [
         {
@@ -1299,10 +1365,10 @@
       "label": "Conmutador · >69 kV",
       "origen": "app/models/rem_report_detail.rb:214",
       "condicion": {
-        "equipment_type": [
-          10
-        ],
-        "voltage_from": 69
+        "voltage_from": 69,
+        "equipment_type_code": [
+          "conmutador"
+        ]
       },
       "limites": [
         {
@@ -1380,10 +1446,10 @@
       "label": "Mineral · ≤69 kV",
       "origen": "app/models/rem_report_detail.rb:236",
       "condicion": {
-        "oil_type": [
-          1
-        ],
-        "voltage_to": 69
+        "voltage_to": 69,
+        "oil_type_code": [
+          "mineral"
+        ]
       },
       "limites": [
         {
@@ -1460,11 +1526,11 @@
       "label": "Mineral · 69-230 kV",
       "origen": "app/models/rem_report_detail.rb:251",
       "condicion": {
-        "oil_type": [
-          1
-        ],
         "voltage_from": 69,
-        "voltage_to": 230
+        "voltage_to": 230,
+        "oil_type_code": [
+          "mineral"
+        ]
       },
       "limites": [
         {
@@ -1541,10 +1607,10 @@
       "label": "Mineral · ≥230 kV",
       "origen": "app/models/rem_report_detail.rb:266",
       "condicion": {
-        "oil_type": [
-          1
-        ],
-        "voltage_from": 230
+        "voltage_from": 230,
+        "oil_type_code": [
+          "mineral"
+        ]
       },
       "limites": [
         {
@@ -1621,8 +1687,8 @@
       "label": "Silicona",
       "origen": "app/models/rem_report_detail.rb:284",
       "condicion": {
-        "oil_type": [
-          4
+        "oil_type_code": [
+          "silicona"
         ]
       },
       "limites": [
@@ -1700,11 +1766,11 @@
       "label": "Éster · ≤72.5 kV",
       "origen": "app/models/rem_report_detail.rb:302",
       "condicion": {
-        "oil_type": [
-          5,
-          7
-        ],
-        "voltage_to": 72.5
+        "voltage_to": 72.5,
+        "oil_type_code": [
+          "vegetal_soya",
+          "ester_sintetico"
+        ]
       },
       "limites": [
         {
@@ -1781,12 +1847,12 @@
       "label": "Éster · 72.5-170 kV",
       "origen": "app/models/rem_report_detail.rb:317",
       "condicion": {
-        "oil_type": [
-          5,
-          7
-        ],
         "voltage_from": 72.5,
-        "voltage_to": 170
+        "voltage_to": 170,
+        "oil_type_code": [
+          "vegetal_soya",
+          "ester_sintetico"
+        ]
       },
       "limites": [
         {
@@ -1863,11 +1929,11 @@
       "label": "Éster · ≥170 kV",
       "origen": "app/models/rem_report_detail.rb:332",
       "condicion": {
-        "oil_type": [
-          5,
-          7
-        ],
-        "voltage_from": 170
+        "voltage_from": 170,
+        "oil_type_code": [
+          "vegetal_soya",
+          "ester_sintetico"
+        ]
       },
       "limites": [
         {

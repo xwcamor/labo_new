@@ -66,7 +66,7 @@ class CustomerController extends Controller
             // areas (hasManyThrough) y transformers (FK directa) van por withCount;
             // substations (3 niveles) por subquery escalar. Todos respetan el
             // soft-delete (scope global de cada modelo).
-            ->withCount(['locations', 'areas', 'transformers'])
+            ->withCount(['locations', 'areas'])
             ->addSelect(['substations_count' => \App\Models\CustomerSubstation::query()
                 ->selectRaw('count(*)')
                 ->whereIn('customer_area_id', \App\Models\CustomerArea::query()
@@ -224,7 +224,6 @@ class CustomerController extends Controller
     protected function hierarchyTree(Customer $customer): array
     {
         $customer->load([
-            'locations.areas.substations.transformers' => fn ($q) => $q->orderBy('serial'),
         ]);
 
         $totalAreas = 0; $totalSubs = 0; $totalTrafos = 0;
@@ -237,15 +236,8 @@ class CustomerController extends Controller
                 $subs = [];
                 foreach ($ar->substations as $su) {
                     $totalSubs++;
+                    // Fase 1: acá cuelga el equipment de la subestación.
                     $trafos = [];
-                    foreach ($su->transformers as $tr) {
-                        $totalTrafos++;
-                        $trafos[] = [
-                            'type' => 'transformer', 'id' => $tr->id, 'slug' => $tr->slug,
-                            'name' => $tr->serial ?: $tr->name,
-                            'health_index' => $tr->health_index, 'health_rating' => $tr->health_rating,
-                        ];
-                    }
                     $subs[] = [
                         'type' => 'substation', 'id' => $su->id, 'slug' => $su->slug,
                         'name' => $su->name, 'count' => count($trafos), 'children' => $trafos,
@@ -849,7 +841,7 @@ class CustomerController extends Controller
         $isSuper = $request->user()?->hasRole('super') ?? false;
         $allowedColumns = array_values(array_filter([
             'name', 'cod', 'country', 'address', 'is_active',
-            'locations_count', 'areas_count', 'substations_count', 'transformers_count',
+            'locations_count', 'areas_count', 'substations_count',
             $isSuper ? 'tenant' : null,
             'created_at', 'updated_at', 'creator',
         ]));

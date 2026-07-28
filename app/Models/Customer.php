@@ -69,22 +69,7 @@ class Customer extends Model
     }
 
     /** Transformadores del cliente (FK directa customer_id) — para conteos. */
-    public function transformers(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Transformer::class);
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function ($model) {
-            if (empty($model->slug)) {
-                do {
-                    $slug = Str::random(22);
-                } while (static::withTrashed()->where('slug', $slug)->exists());
-                $model->slug = $slug;
-            }
-        });
-    }
+    // Fase 1: reemplazada por equipment() cuando exista el modelo Equipment.
 
     public function getRouteKeyName(): string
     {
@@ -152,9 +137,7 @@ class Customer extends Model
             match ($request->customer_group) {
                 'active'     => $q->where("{$tbl}.is_active", true),
                 'inactive'   => $q->where("{$tbl}.is_active", false),
-                'with_tx'    => $q->whereHas('transformers'),
-                'without_tx' => $q->whereDoesntHave('transformers'),
-                default      => null,
+                                                default      => null,
             };
         });
 
@@ -214,7 +197,7 @@ class Customer extends Model
             // select customers.* del controller evita colisión de columnas).
             $query->leftJoin('countries', 'countries.id', '=', "{$tbl}.country_id")
                   ->orderBy('countries.name', $direction);
-        } elseif (in_array($sort, ['locations_count', 'areas_count', 'substations_count', 'transformers_count'], true) && in_array($direction, ['asc', 'desc'])) {
+        } elseif (in_array($sort, ['locations_count', 'areas_count', 'substations_count'], true) && in_array($direction, ['asc', 'desc'])) {
             // Orden por conteos de la jerarquía: los alias ya vienen en el SELECT
             // del controller (withCount + subquery escalar). Son alias, sin prefijo
             // de tabla.

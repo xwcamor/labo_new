@@ -89,7 +89,9 @@ class DatabaseSeeder extends Seeder
             TapChangerTechnologiesSeeder::class,
             ConnectionTypesSeeder::class,
             TransformerPreservationsSeeder::class,
-            // Fase 2: acá van los catálogos del laboratorio (standards, analytes,
+            LabCatalogsSeeder::class,
+
+            // Fase 2: acá van los cuadros de límites del laboratorio (standards, analytes,
             // test_methods) y los cuadros de límites (spec_sets + spec_limits),
             // desde su JSON de fábrica. Los seeders del motor de diagnóstico de
             // TrafoDex se eliminaron: ese motor no vive acá.

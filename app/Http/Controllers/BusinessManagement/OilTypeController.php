@@ -44,14 +44,9 @@ class OilTypeController extends Controller
 
         $oilTypes = OilType::query()
             ->select('oil_types.*')
-            // ¿Tiene reglas de diagnóstico? = existe un cuadro de cromas para el
-            // aceite, o umbrales fisicoquímicos para su código. 1/0 (portable
-            // pgsql/sqlite) para que el listado muestre "Con/Sin reglas".
-            ->selectRaw(
-                '(case when exists(select 1 from rule_sets where rule_sets.oil_type_id = oil_types.id)'
-                .' or exists(select 1 from fiqui_thresholds where fiqui_thresholds.oil_code = oil_types.code)'
-                .' then 1 else 0 end) as has_rules'
-            )
+            // Fase 2: has_rules pasa a mirar spec_sets. Sin cuadros de límites
+            // todavía, ningún aceite los tiene.
+            ->selectRaw('0 as has_rules')
             ->with($with)
             ->orderByFavoriteFirst($userId)
             ->filter($request)
@@ -155,12 +150,7 @@ class OilTypeController extends Controller
         return OilType::query()
             ->where('is_active', true)
             ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
-            ->where(function ($q) {
-                $q->whereExists(fn ($s) => $s->selectRaw('1')->from('rule_sets')
-                        ->whereColumn('rule_sets.oil_type_id', 'oil_types.id'))
-                  ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('fiqui_thresholds')
-                        ->whereColumn('fiqui_thresholds.oil_code', 'oil_types.code'));
-            })
+            // Fase 2: filtrar por los que ya tengan cuadros en spec_sets.
             ->orderBy('name')->get(['id', 'name'])->all();
     }
 

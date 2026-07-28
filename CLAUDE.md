@@ -13,6 +13,37 @@
 
 ---
 
+## Fuente de verdad del sistema viejo — LEER ANTES DE BUSCAR NADA
+
+El esquema real de la base del laboratorio **está en este repo**:
+[`docs/migracion/esquema/lab_app_development-estructura.sql`](docs/migracion/esquema/lab_app_development-estructura.sql)
+(47 tablas, `--no-data`). **No hay que abrir `labo_old` para saber qué columnas
+hay.**
+
+Y de `labo_old`, estos tres archivos **NO son fuente de nada**:
+
+| Archivo | Por qué no sirve |
+|---|---|
+| `db/migrate/` | las tablas se crearon con **SQL directo** contra la base, no con migraciones. Las 30 que hay cubren 18 de 47 tablas |
+| `db/schema.rb` | se generó de esas migraciones: describe un esquema anterior |
+| `db/seeds.rb` | eran **datos iniciales de prueba**; cambió todo después. Además ni siquiera corre: escribe columnas que ya no existen |
+
+Confirmado por el dueño (2026-07-28). Ya costó una vez: se dio por buena la
+cifra de "26 pruebas" porque estaba en el seed, y no hay forma de saber cuántas
+son sin el volcado CON DATOS.
+
+**Lo único de `labo_old` que sí es fuente es el CÓDIGO** (`app/models/*.rb`,
+`app/views/**`), porque es lo que corre en producción. De ahí salieron los 25
+cuadros de límites.
+
+**Lo que falta**: el volcado con datos de `lab_category_detail_types`,
+`lab_category_details`, `lab_category_sub_detail_types`,
+`lab_category_sub_details`, `lab_category_sub_detail_options`,
+`lab_detail_types`, `norms` y `patron_tendences`. Sin eso no se puede cerrar la
+fase 4.
+
+---
+
 ## Git: una sola rama
 
 **Todo se commitea y se pushea a `main`, directo. No se crean ramas.**

@@ -80,7 +80,7 @@ Rem (recepción)
 ```
 
 **Problema estructural 1.** `RemCorrelative#generate_rem_jobs` crea un `RemJob`
-por **cada** `LabCategoryDetail` existente (26 pruebas), sin importar qué se pidió.
+por **cada** `LabCategoryDetail` existente, sin importar qué se pidió.
 El filtro por prueba solicitada quedó comentado en el código. Resultado: cada
 muestra arrastra 26 tareas, la mayoría vacías.
 
@@ -117,8 +117,15 @@ Lab           (hoja de trabajo de un día: prueba + fecha + analista + estado)
        └─ LabSubDetail  (el valor de cada columna)   ← EAV
 ```
 
-26 pruebas definidas en `db/seeds.rb`. La estructura es correcta: el
-laboratorio agrega pruebas y columnas sin tocar código.
+> **Cuántas pruebas hay: NO SE SABE.** El número que circulaba (26) salía de
+> `db/seeds.rb`, y el dueño confirmó que esos seeds eran datos iniciales de
+> prueba: *"todo cambió después"*. Las pruebas reales, sus columnas y sus
+> opciones están **solo en la base de producción**, y el volcado que hay en el
+> repo es `--no-data`. Hace falta el volcado CON DATOS de `lab_category_*`
+> antes de dar por buena cualquier cifra.
+
+La estructura sí es correcta: el laboratorio agrega pruebas y columnas sin
+tocar código.
 
 **Pero** `blur_calculation` guarda **JavaScript crudo** en la base:
 
@@ -512,7 +519,8 @@ umbrales de potencia. No hay error ni aviso: hay un diagnóstico equivocado.
 | SQL interpolado | `where("... = #{self.lab.lab_category_detail_id}")` en modelos |
 | Esquema incompleto | `db/schema.rb` solo declara 18 tablas de las ~50 reales. `rems`, `rem_reports`, `rem_report_details`, `transformers`, `stocks` y todos los catálogos se crearon **fuera de las migraciones** |
 | Sin pruebas | `test/` está vacío |
-| **`db/seeds.rb` no corre** | escribe `is_blur` y `has_patron` en `lab_category_details`, columnas que **no existen** en la tabla real. `rails db:seed` revienta con `unknown attribute`. E ignora cinco columnas que sí existen: `container`, `is_grouped`, `description`, `unit_name_amchart`, `has_reuse` |
+| **`db/seeds.rb` no corre Y ADEMÁS es obsoleto** | escribe `is_blur` y `has_patron` en `lab_category_details`, columnas que **no existen** en la tabla real → `rails db:seed` revienta con `unknown attribute`. E ignora cinco que sí existen: `container`, `is_grouped`, `description`, `unit_name_amchart`, `has_reuse`. El dueño confirmó que eran datos iniciales de prueba y que todo cambió después: **no usarlo como fuente de nada** |
+| **`db/migrate/` tampoco sirve** | las tablas se crearon con SQL directo contra la base, no con migraciones. Las 30 migraciones que hay cubren 18 de 47 tablas y describen un esquema anterior |
 | Multi-idioma | No existe; todo el texto está en español dentro de las vistas |
 | Multi-empresa | No existe; una instalación = un laboratorio |
 
@@ -523,15 +531,19 @@ sirve para cada cosa:
 
 | Para saber… | Fuente | Por qué |
 |---|---|---|
-| qué tablas y columnas hay | **el volcado de estructura** (`esquema/`) | es la base real; `db/schema.rb` cubre 18 de 47 tablas y `db/seeds.rb` no corre |
+| qué tablas y columnas hay | **el volcado de estructura** (`esquema/lab_app_development-estructura.sql`, en ESTE repo) | es la base real de producción. `db/schema.rb`, `db/migrate/` y `db/seeds.rb` de `labo_old` describen un esquema anterior y NO se consultan |
 | qué pruebas y plantillas existen | **la base, con datos** | el seed está desactualizado años (ver arriba); pendiente de conseguir |
 | los 24 cuadros de límites | **el código Ruby** (`RemReport`, `RemReportDetail`) | nunca fueron datos: la tabla `rem_conditions` quedó vacía |
 | qué límites se aplicaron de verdad | **`rem_report_details.*_ori` de los informes emitidos** | son la copia congelada de lo que salió impreso; sirven para validar lo extraído del código |
 
-`db/seeds.rb` queda como **documentación histórica**, no como fuente. Muestra
-cómo era el esquema hace unos años, y por eso ayuda a entender la evolución
-(`is_blur` se mudó a `lab_category_sub_details`, `has_patron` se convirtió en
-`has_reuse`), pero no describe el sistema actual.
+**Ni `db/seeds.rb` ni `db/migrate/` de `labo_old` se usan como fuente.** El
+dueño creó las tablas con SQL directo contra la base y los seeds fueron datos
+iniciales de prueba que quedaron atrás. Sirven, como mucho, para entender la
+evolución del esquema (`is_blur` se mudó a `lab_category_sub_details`,
+`has_patron` se convirtió en `has_reuse`) — nada más.
+
+**El volcado de estructura vive en este repo** (`esquema/`), justamente para no
+tener que abrir `labo_old` a buscar nada.
 
 ---
 

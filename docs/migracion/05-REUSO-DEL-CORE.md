@@ -116,7 +116,7 @@ Se rehace como `equipment` (ver `02-MODELO-DE-DATOS.md`).
 `chromatographicals`, `fiquis`, `furanos`, `fpots` de TRAFODEX son tablas de
 **una fila por muestra con una columna por parámetro**. Sirven bien para el
 diagnóstico (siempre son los mismos 9 gases, los mismos 5 fisicoquímicos), pero
-no para un laboratorio que hoy corre 26 pruebas y mañana 30.
+no para un laboratorio que corre decenas de pruebas y mañana agrega otra.
 
 TR LAB usa `results` (una fila por parámetro medido). Es el mismo motivo por el
 que se descarta `rem_report_details`.

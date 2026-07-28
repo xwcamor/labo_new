@@ -201,7 +201,8 @@ una y quedan 15 tareas, no 130.
 - Filas de patrón, muestra y duplicado.
 - Cierre y validación de hoja por el supervisor.
 
-**Puerta de salida**: las 26 pruebas del sistema viejo quedan cargadas como
+**Puerta de salida**: TODAS las pruebas del sistema viejo (cuántas son sale del
+volcado con datos, no del seed) quedan cargadas como
 plantillas y una hoja de trabajo real se puede completar de punta a punta.
 
 ---

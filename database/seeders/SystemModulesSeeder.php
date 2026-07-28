@@ -70,6 +70,7 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Instruments',      'permission_key' => 'instruments'],
             ['name' => 'TestGroups',       'permission_key' => 'test_groups'],
             ['name' => 'TestDefinitions',  'permission_key' => 'test_definitions'],
+            ['name' => 'Receptions',       'permission_key' => 'receptions'],
             ['name' => 'Worksheets',       'permission_key' => 'worksheets'],
             ['name' => 'QcCharts',         'permission_key' => 'qc_charts'],
         ];

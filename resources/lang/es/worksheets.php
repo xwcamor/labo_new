@@ -94,6 +94,8 @@ return [
         'value_not_above'       => ':field: el valor tiene que ser mayor que :min. Si la propiedad no se midió, deje la celda vacía en vez de poner :min.',
         'value_below_min'       => ':field: el valor no puede ser menor que :min.',
         'value_above_max'       => ':field: el valor no puede ser mayor que :max.',
+        'unknown_sample_test'   => 'La prueba pedida no existe. Vuelva a elegir la muestra.',
+        'sample_test_other_definition' => 'Esa muestra tiene pedida otra prueba. Cárguela en la hoja que corresponde.',
     ],
 
     // ── Cálculo ───────────────────────────────────────────────────────────

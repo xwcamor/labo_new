@@ -5,6 +5,7 @@ namespace App\Services\Lab;
 use App\Models\QcChart;
 use App\Models\QcDuplicate;
 use App\Models\QcPoint;
+use App\Models\SampleTest;
 use App\Models\TestField;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
@@ -46,6 +47,7 @@ class WorksheetService
         private readonly RepeatabilityEvaluator $repeatability = new RepeatabilityEvaluator(),
         private readonly ResultMaterializer $materializer = new ResultMaterializer(),
         private readonly ValueCoercer $coercer = new ValueCoercer(),
+        private readonly SampleProgressService $progress = new SampleProgressService(),
     ) {
     }
 
@@ -76,11 +78,21 @@ class WorksheetService
         return DB::transaction(function () use ($worksheet, $attributes, $input, $row, $fields, $kind) {
             $row ??= new WorksheetRow(['worksheet_id' => $worksheet->id]);
 
+            // La muestra manda. Si la fila referencia una prueba pedida, el
+            // código de muestra y el equipo se HEREDAN de ella y no se tipean:
+            // el analista tiene el envase en la mano, no el dato de a qué
+            // transformador pertenece — ése lo puso quien lo recibió.
+            $desdeLaMuestra = $this->inheritFromSampleTest($attributes, $row);
+
             $row->fill([
                 'worksheet_id'  => $worksheet->id,
                 'kind'          => $kind,
-                'sample_code'   => $this->sampleCodeFrom($attributes, $input, $fields, $kind),
+                'sample_code'   => $desdeLaMuestra['sample_code']
+                    ?? $this->sampleCodeFrom($attributes, $input, $fields, $kind),
                 'position'      => $attributes['position'] ?? $row->position ?? $this->nextPosition($worksheet),
+
+                'sample_id'      => $desdeLaMuestra['sample_id'] ?? $row->sample_id,
+                'sample_test_id' => $desdeLaMuestra['sample_test_id'] ?? $row->sample_test_id,
 
                 // Estos tres se resuelven con array_key_exists y NO con `??`.
                 // La diferencia importa: con `??`, mandar el campo en nulo
@@ -88,14 +100,20 @@ class WorksheetService
                 // un botón de limpiar que no limpiaba nada. Acá "no vino la
                 // clave" significa no tocar, y "vino en nulo" significa borrar.
                 'instrument_id' => $this->resolve($attributes, 'instrument_id', $row->instrument_id),
-                // De qué equipo del cliente es esta muestra. Es lo que después
-                // permite consultar el resultado por equipo.
-                'equipment_id'  => $this->resolve($attributes, 'equipment_id', $row->equipment_id),
+                // De qué equipo del cliente es esta muestra. Cuando la fila
+                // viene de una muestra, sale de ella; se admite a mano solo
+                // mientras la recepción no esté cargada.
+                'equipment_id'  => $desdeLaMuestra['equipment_id']
+                    ?? $this->resolve($attributes, 'equipment_id', $row->equipment_id),
                 'notes'         => $this->resolve($attributes, 'notes', $row->notes),
             ])->save();
 
             $this->writeValues($row, $fields, $input);
             $this->recalculate($row, $fields);
+
+            // La prueba pedida pasa a "en proceso". Se escribe acá, cuando
+            // ocurre, y no al abrir la pantalla de la recepción.
+            $this->progress->markInProgress($row);
 
             return $row->refresh();
         });
@@ -230,6 +248,12 @@ class WorksheetService
             // una tendencia.
             $this->materializer->forWorksheet($worksheet);
 
+            // Y las pruebas pedidas de esas muestras quedan validadas. Es UNA
+            // actualización masiva sobre las filas de la hoja: el avance de la
+            // recepción se escribe acá, cuando pasa, no cuando alguien abre la
+            // pantalla.
+            $this->progress->markValidated($worksheet);
+
             return $worksheet;
         });
     }
@@ -269,6 +293,10 @@ class WorksheetService
                 'exclusion_reason' => $reason,
             ]);
 
+        // Y sus pruebas pedidas vuelven a la cola: el ensayo hay que rehacerlo.
+        // Es el único retroceso de estado admitido, y es explícito.
+        $this->progress->markVoided($worksheet);
+
         return $worksheet;
     }
 
@@ -288,6 +316,66 @@ class WorksheetService
     private function resolve(array $attributes, string $key, mixed $current): mixed
     {
         return array_key_exists($key, $attributes) ? $attributes[$key] : $current;
+    }
+
+    /**
+     * Lo que la fila hereda de la prueba pedida: la muestra, su código y su
+     * equipo.
+     *
+     * Éste es el arreglo de fondo respecto del sistema anterior. Allá la fila de
+     * bancada guardaba el número de muestra como TEXTO, copiado por jQuery desde
+     * la primera celda, y para encontrar la muestra se partía la cadena
+     * ("2026-0695" → año 2026, número 695) y se interpolaba cruda en SQL. Sin
+     * clave foránea, sin índice y sin garantía de que la muestra existiera; el
+     * propio autor lo dejó anotado: "No funciona si el usuario crea antes de que
+     * registre el ingreso de la muestra".
+     *
+     * Acá la relación es una clave foránea y el número de muestra pasa a ser lo
+     * que siempre debió ser: una etiqueta que se muestra.
+     *
+     * @param  array<string,mixed> $attributes
+     * @return array<string,mixed>
+     * @throws ValidationException
+     */
+    private function inheritFromSampleTest(array $attributes, WorksheetRow $row): array
+    {
+        if (! array_key_exists('sample_test_id', $attributes)) {
+            return [];
+        }
+
+        $id = $attributes['sample_test_id'];
+
+        if ($id === null) {
+            return ['sample_test_id' => null, 'sample_id' => null];
+        }
+
+        $prueba = SampleTest::with('sample')->find($id);
+
+        if (! $prueba) {
+            throw ValidationException::withMessages([
+                'sample_test_id' => __('worksheets.errors.unknown_sample_test'),
+            ]);
+        }
+
+        // La prueba pedida tiene que ser la MISMA que corre esta hoja. Sin esta
+        // verificación se podría cargar una cromatografía en la hoja de número
+        // ácido y el resultado saldría informado bajo el parámetro equivocado.
+        $hoja = $row->worksheet_id
+            ? Worksheet::find($row->worksheet_id)
+            : null;
+
+        if ($hoja && (int) $prueba->test_definition_id !== (int) $hoja->test_definition_id) {
+            throw ValidationException::withMessages([
+                'sample_test_id' => __('worksheets.errors.sample_test_other_definition'),
+            ]);
+        }
+
+        return [
+            'sample_test_id' => $prueba->id,
+            'sample_id'      => $prueba->sample_id,
+            'sample_code'    => $prueba->sample?->code,
+            'equipment_id'   => $prueba->sample?->equipment_id,
+        ];
     }
 
     /** @throws ValidationException */

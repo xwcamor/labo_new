@@ -6,6 +6,7 @@ use App\Http\Controllers\LabManagement\TestFieldController;
 use App\Http\Controllers\LabManagement\TestGroupController;
 use App\Http\Controllers\LabManagement\WorksheetController;
 use App\Http\Controllers\LabManagement\QcChartController;
+use App\Http\Controllers\LabManagement\ReceptionController;
 use App\Http\Controllers\LabManagement\InstrumentFileController;
 
 /*
@@ -247,6 +248,46 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
 
     Route::middleware('permission:worksheets.delete')->group(function () {
         Route::post('worksheets/{worksheet}/void', [WorksheetController::class, 'void'])->name('worksheets.void');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Recepción de muestras
+    |----------------------------------------------------------------------
+    | Es la puerta de entrada del laboratorio: acá se emiten los correlativos y
+    | acá se declara de qué equipo es cada muestra y qué pruebas le tocan.
+    |
+    | ORDEN: `receptions/create` va ANTES de `receptions/{reception}` o el
+    | resolvedor de modelo intentaría buscar una recepción llamada "create".
+    |
+    | Nótese que NO hay ruta que recalcule estados. En el sistema anterior eso
+    | ocurría solo, dentro del GET de la ficha, desde la propia vista.
+    */
+    Route::middleware('permission:receptions.create')->group(function () {
+        Route::get('receptions/create', [ReceptionController::class, 'create'])->name('receptions.create');
+        Route::post('receptions',       [ReceptionController::class, 'store'])->name('receptions.store');
+    });
+
+    Route::middleware('permission:receptions.view')->group(function () {
+        Route::get('receptions',               [ReceptionController::class, 'index'])->name('receptions.index');
+        Route::get('receptions/{reception}',   [ReceptionController::class, 'show'])->name('receptions.show');
+    });
+
+    Route::middleware('permission:receptions.edit')->group(function () {
+        Route::get('receptions/{reception}/edit', [ReceptionController::class, 'edit'])->name('receptions.edit');
+        Route::put('receptions/{reception}',      [ReceptionController::class, 'update'])->name('receptions.update');
+
+        // Emitir los correlativos. Es el acto que convierte el borrador en
+        // trabajo del laboratorio, y ocurre UNA vez.
+        Route::post('receptions/{reception}/confirm', [ReceptionController::class, 'confirm'])->name('receptions.confirm');
+
+        // De qué equipo se tomó la muestra, y qué pruebas se le piden.
+        Route::patch('receptions/{reception}/samples/{sample}/equipment', [ReceptionController::class, 'assignEquipment'])->name('receptions.samples.equipment');
+        Route::post('receptions/{reception}/tests', [ReceptionController::class, 'requestTests'])->name('receptions.tests');
+    });
+
+    Route::middleware('permission:receptions.delete')->group(function () {
+        Route::delete('receptions/{reception}', [ReceptionController::class, 'destroy'])->name('receptions.destroy');
     });
 
     /*

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Equipment;
 use App\Models\QcChart;
+use App\Models\Reception;
 use App\Models\Worksheet;
 use Database\Seeders\LabDemoWorksheetsSeeder;
 use Illuminate\Console\Command;
@@ -47,15 +48,17 @@ class LabDemoCommand extends Command
         $hojas = Worksheet::withoutGlobalScopes()->where('notes', 'like', $marca . '%')->pluck('id');
         $equipos = Equipment::withoutGlobalScopes()->where('external_ref', 'like', $marca . '-%')->pluck('id');
         $cartas = QcChart::withoutGlobalScopes()->where('control_lot', 'like', $marca . '-%')->pluck('id');
+        $recepciones = Reception::withoutGlobalScopes()->where('code', 'like', $marca . '-REM-%')->pluck('id');
 
-        if ($hojas->isEmpty() && $equipos->isEmpty() && $cartas->isEmpty()) {
+        if ($hojas->isEmpty() && $equipos->isEmpty() && $cartas->isEmpty() && $recepciones->isEmpty()) {
             $this->info('No hay datos de demostración. No hay nada que borrar.');
 
             return self::SUCCESS;
         }
 
         $this->line(sprintf(
-            'Se van a borrar %d hojas de trabajo, %d equipos y %d cartas de control de demostración.',
+            'Se van a borrar %d recepciones, %d hojas de trabajo, %d equipos y %d cartas de control de demostración.',
+            $recepciones->count(),
             $hojas->count(),
             $equipos->count(),
             $cartas->count()
@@ -65,11 +68,13 @@ class LabDemoCommand extends Command
             return self::SUCCESS;
         }
 
-        DB::transaction(function () use ($hojas, $equipos, $cartas) {
+        DB::transaction(function () use ($hojas, $equipos, $cartas, $recepciones) {
             // El borrado en cascada del esquema se lleva las filas, los valores,
-            // los resultados y los puntos de control colgados de cada hoja.
+            // los resultados y los puntos de control colgados de cada hoja; y
+            // las muestras y las pruebas pedidas colgadas de cada recepción.
             Worksheet::withoutGlobalScopes()->whereIn('id', $hojas)->forceDelete();
             QcChart::withoutGlobalScopes()->whereIn('id', $cartas)->forceDelete();
+            Reception::withoutGlobalScopes()->whereIn('id', $recepciones)->forceDelete();
             Equipment::withoutGlobalScopes()->whereIn('id', $equipos)->forceDelete();
         });
 

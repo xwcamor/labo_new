@@ -6,11 +6,14 @@ use App\Models\Analyte;
 use App\Models\Equipment;
 use App\Models\Instrument;
 use App\Models\QcChart;
+use App\Models\Reception;
+use App\Models\Sample;
 use App\Models\TestDefinition;
 use App\Models\TestField;
 use App\Models\User;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
+use App\Services\Lab\ReceptionService;
 use App\Services\Lab\WorksheetService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -111,15 +114,22 @@ class LabDemoWorksheetsSeeder extends Seeder
 
             $this->cartaDeControl();
 
+            // La recepción va PRIMERO, como en el laboratorio: primero entra la
+            // muestra y se le emite su correlativo, después se ensaya. Devuelve
+            // las pruebas pedidas, que es lo que la bancada va a cargar.
+            $pedidos = $this->recepciones($equipos);
+
             $hojas = 0;
-            $hojas += $this->campanas('analisis_cromatografico', $equipos, fn (int $i, int $c) => $this->cromas($i, $c));
-            $hojas += $this->campanas('numero_acido', $equipos, fn (int $i, int $c) => $this->acidez($i, $c));
-            $hojas += $this->campanas('contenido_de_agua', $equipos, fn (int $i, int $c) => $this->agua($i, $c));
-            $hojas += $this->campanas('rigidez_dielectrica', $equipos, fn (int $i, int $c) => $this->rigidez($i, $c));
+            $hojas += $this->campanas('analisis_cromatografico', $equipos, $pedidos, fn (int $i, int $c) => $this->cromas($i, $c));
+            $hojas += $this->campanas('numero_acido', $equipos, $pedidos, fn (int $i, int $c) => $this->acidez($i, $c));
+            $hojas += $this->campanas('contenido_de_agua', $equipos, $pedidos, fn (int $i, int $c) => $this->agua($i, $c));
+            $hojas += $this->campanas('rigidez_dielectrica', $equipos, $pedidos, fn (int $i, int $c) => $this->rigidez($i, $c));
 
             $this->command?->info(sprintf(
-                'Demostración: %d equipos, %d hojas validadas, %d resultados.',
+                'Demostración: %d equipos, %d recepciones, %d muestras, %d hojas validadas, %d resultados.',
                 count($equipos),
+                \App\Models\Reception::withoutGlobalScopes()->count(),
+                \App\Models\Sample::withoutGlobalScopes()->count(),
                 $hojas,
                 \App\Models\Result::count(),
             ));
@@ -253,12 +263,105 @@ class LabDemoWorksheetsSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────────────
 
     /**
-     * Una hoja por campaña, con una fila por equipo.
+     * Una recepción por campaña: entra la entrega del cliente, se emiten los
+     * correlativos, se le asigna el equipo a cada muestra y se piden las cuatro
+     * pruebas.
+     *
+     * Es el orden real del laboratorio y por eso el sembrador lo respeta: si la
+     * recepción no existe, la bancada no tiene qué cargar.
      *
      * @param  array<int,Equipment> $equipos
+     * @return array<int,array<int,array<string,int>>>  [campaña][equipo][prueba] => sample_test_id
+     */
+    private function recepciones(array $equipos): array
+    {
+        $servicio = new ReceptionService();
+        $pruebas = TestDefinition::whereIn('code', [
+            'analisis_cromatografico', 'numero_acido', 'contenido_de_agua', 'rigidez_dielectrica',
+        ])->pluck('id', 'code');
+
+        // Una recepción es de UN cliente, así que los equipos se agrupan por
+        // cliente y cada grupo entra en su propia entrega. No es un detalle
+        // cosmético: el servicio rechaza asignarle a una muestra un equipo que
+        // no sea del cliente de su recepción, que es justo el agujero que tenía
+        // el sistema anterior.
+        $porCliente = [];
+
+        foreach ($equipos as $i => $equipo) {
+            $porCliente[$equipo->customer_id][$i] = $equipo;
+        }
+
+        $pedidos = [];
+
+        for ($campana = 0; $campana < self::CAMPANAS; $campana++) {
+            $fecha = Carbon::now()->subMonths(self::CAMPANAS - $campana)->startOfMonth()->addDays(8);
+            $orden = 0;
+
+            foreach ($porCliente as $clienteId => $delCliente) {
+                $orden++;
+                $codigo = sprintf('%s-REM-%02d-%d', self::MARCA, $campana + 1, $orden);
+
+                $recepcion = Reception::withoutGlobalScopes()->where('code', $codigo)->first();
+
+                if (! $recepcion) {
+                    $recepcion = Reception::create([
+                        'slug'          => Str::random(22),
+                        'code'          => $codigo,
+                        'customer_id'   => $clienteId,
+                        'received_at'   => $fecha,
+                        'due_at'        => $fecha->copy()->addDays(10)->toDateString(),
+                        'packages'      => count($delCliente),
+                        'container_ok'  => true,
+                        'volume_ok'     => true,
+                        'label_ok'      => true,
+                        'sampler_name'  => 'Personal del cliente',
+                        'notes'         => self::MARCA . ' — recepción de demostración generada por el sembrador.',
+                        'tenant_id'     => self::TENANT_ID,
+                        'created_by'    => Auth::id(),
+                    ]);
+
+                    $servicio->confirm($recepcion, count($delCliente));
+                }
+
+                $muestras = $recepcion->samples()->orderBy('number')->get();
+                $indices = array_keys($delCliente);
+
+                foreach ($muestras as $n => $muestra) {
+                    $i = $indices[$n] ?? null;
+
+                    if ($i === null) {
+                        continue;
+                    }
+
+                    if ($muestra->equipment_id === null) {
+                        $servicio->assignEquipment($muestra, $equipos[$i]->id);
+                    }
+
+                    $servicio->requestTests($muestra, $pruebas->values()->all());
+
+                    // El correlativo se guarda junto a los ids: la columna
+                    // "Nº de Muestra" de la plantilla lo muestra, y es lo que va
+                    // impreso en el envase.
+                    $pedidos[$campana][$i]['_code'] = $muestra->code;
+
+                    foreach ($muestra->tests()->with('definition:id,code')->get() as $pedido) {
+                        $pedidos[$campana][$i][$pedido->definition->code] = $pedido->id;
+                    }
+                }
+            }
+        }
+
+        return $pedidos;
+    }
+
+    /**
+     * Una hoja por campaña, con una fila por muestra recibida.
+     *
+     * @param  array<int,Equipment> $equipos
+     * @param  array<int,array<int,array<string,int>>> $pedidos
      * @param  callable(int,int):array<string,mixed> $valores  (indiceEquipo, campana) => celdas
      */
-    private function campanas(string $codigoPrueba, array $equipos, callable $valores): int
+    private function campanas(string $codigoPrueba, array $equipos, array $pedidos, callable $valores): int
     {
         $prueba = TestDefinition::where('code', $codigoPrueba)->first();
 
@@ -307,14 +410,24 @@ class LabDemoWorksheetsSeeder extends Seeder
                 );
             }
 
+            // Cada fila referencia la PRUEBA PEDIDA. El código de muestra y el
+            // equipo no se tipean: se heredan de la muestra que se recibió.
             foreach ($equipos as $i => $equipo) {
-                $codigo = sprintf('%s-%s-%02d%02d', self::MARCA, $equipo->tag, $campana + 1, $i + 1);
+                $pedidoId = $pedidos[$campana][$i][$codigoPrueba] ?? null;
 
+                if ($pedidoId === null) {
+                    continue;
+                }
+
+                // Una sola llamada con TODAS las celdas: guardar una fila es
+                // guardarla entera, así que un segundo guardado parcial dejaría
+                // en nulo lo que no viniera en él.
                 $servicio->saveRow($hoja, [
-                    'kind'         => WorksheetRow::KIND_SAMPLE,
-                    'equipment_id' => $equipo->id,
-                    'sample_code'  => $codigo,
-                ], $valores($i, $campana) + ['no_de_muestra' => $codigo] + $porDefecto);
+                    'kind'           => WorksheetRow::KIND_SAMPLE,
+                    'sample_test_id' => $pedidoId,
+                ], $valores($i, $campana)
+                   + ['no_de_muestra' => $pedidos[$campana][$i]['_code'] ?? null]
+                   + $porDefecto);
             }
 
             $servicio->close($hoja);

@@ -83,6 +83,8 @@ return [
         'value_not_above'       => ':field: the value must be greater than :min. If the property was not measured, leave the cell empty instead of entering :min.',
         'value_below_min'       => ':field: the value cannot be lower than :min.',
         'value_above_max'       => ':field: the value cannot be higher than :max.',
+        'unknown_sample_test'   => 'That requested test does not exist. Pick the sample again.',
+        'sample_test_other_definition' => 'That sample has a different test requested. Load it in the matching worksheet.',
     ],
 
     // ── Calculation ───────────────────────────────────────────────────────

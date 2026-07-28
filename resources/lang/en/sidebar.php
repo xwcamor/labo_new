@@ -17,6 +17,7 @@ return [
 
     // Group: Sample testing — the heart of the laboratory.
     'group_lab'          => 'Sample testing',
+    'receptions'         => 'Sample reception',
     'worksheets'         => 'Worksheets',
     'qc_charts'          => 'Control charts',
     'test_definitions'   => 'Tests',

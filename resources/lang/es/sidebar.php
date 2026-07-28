@@ -20,6 +20,7 @@ return [
     // referirse a las pruebas y "Muestras" para las hojas de trabajo, que es
     // otra cosa (una hoja agrupa muchas muestras del mismo día).
     'group_lab'          => 'Pruebas de Muestras',
+    'receptions'         => 'Recepción de muestras',
     'worksheets'         => 'Hojas de trabajo',
     'qc_charts'          => 'Cartas de control',
     'test_definitions'   => 'Pruebas',

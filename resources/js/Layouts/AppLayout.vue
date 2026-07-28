@@ -682,6 +682,14 @@ const menuStructure = computed(() => [
         kind: 'group',
         key: 'group-lab', title: t('sidebar.group_lab'),
         items: [
+            // ── Recepción: la puerta de entrada ──
+            // Va PRIMERO porque es el orden real del trabajo: primero entra la
+            // muestra y se le emite su correlativo, después se ensaya.
+            {
+                key: 'receptions', label: t('sidebar.receptions'), icon: InboxOutlined,
+                href: route('lab_management.receptions.index'), inertia: true,
+                visible: () => can('receptions.view'),
+            },
             // ── Bancada ──
             {
                 key: 'worksheets', label: t('sidebar.worksheets'), icon: ProfileOutlined,

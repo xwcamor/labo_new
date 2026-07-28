@@ -128,6 +128,10 @@ return [
             'model' => \App\Models\TapChangerTechnology::class,
             'days'  => 90,
         ],
+        'analytes' => [
+            'model' => \App\Models\Analyte::class,
+            'days'  => 90,
+        ],
         // Suma modulos nuevos aqui:
         // 'patients' => [...],
         // 'doctors'  => [...],

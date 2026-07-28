@@ -89,34 +89,17 @@ class DatabaseSeeder extends Seeder
             TapChangerTechnologiesSeeder::class,
             ConnectionTypesSeeder::class,
             TransformerPreservationsSeeder::class,
-            DiagnosticCatalogSeeder::class,
-            CromasRulesSeeder::class,
-            // Reglas de fisicoquímico en tablas relacionales (desde el JSON de fábrica).
-            FiquiRulesSeeder::class,
-            // Datos editables (ieee) a BD para editarse desde la UI.
-            DiagnosticDatasetsSeeder::class,
+            // Fase 2: acá van los catálogos del laboratorio (standards, analytes,
+            // test_methods) y los cuadros de límites (spec_sets + spec_limits),
+            // desde su JSON de fábrica. Los seeders del motor de diagnóstico de
+            // TrafoDex se eliminaron: ese motor no vive acá.
 
             // ── Clientes reales (los activos del sistema viejo) en Empresa 1. ─
             CustomersSeeder::class,
 
-            // ── Transformadores REALES del sistema viejo. ─
-            // Lee database/seeders/data/transformers_legacy.sql; se omite si falta.
-            // (Los trafos demo de prueba se quitaron a propósito: solo data real.)
-            LegacyTransformersSeeder::class,
-
-            // ── Muestras REALES de ensayos del sistema viejo (cuelgan de los trafos). ─
-            // Lee database/seeders/data/*_legacy.sql; cada uno se omite si falta.
-            LegacyChromatographicalsSeeder::class,
-            LegacyPhysicalsSeeder::class,
-            LegacyFuranosSeeder::class,
-
-            // ── Limpieza + diagnóstico real de lo importado. ─
-            // El dump viejo trae muestras duplicadas (mismo trafo+fecha por
-            // zona horaria/recargas); se conserva una por fecha.
-            DeduplicateLegacySamplesSeeder::class,
-            // Recalcula el Índice de Salud con el motor NUEVO desde las muestras
-            // (reemplaza el snapshot cacheado del viejo en health_index/state).
-            RecalculateTransformerHealthSeeder::class,
+            // Fase 12: acá entra la migración de los datos históricos del
+            // laboratorio (equipos, muestras, resultados e informes emitidos),
+            // con seeders idempotentes sobre volcados versionados.
         ]);
 
         // Los dumps legacy se insertan con IDs explícitos (SQL crudo), lo que NO

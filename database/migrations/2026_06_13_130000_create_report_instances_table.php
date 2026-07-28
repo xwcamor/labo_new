@@ -21,7 +21,8 @@ return new class extends Migration
         Schema::create('report_instances', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->index();
-            $table->foreignId('transformer_id')->constrained()->cascadeOnDelete();
+            // Fase 6: pasa a sample_id con su FK. Se deja sin constraint hasta entonces.
+            $table->unsignedBigInteger('transformer_id')->index();
             $table->unsignedBigInteger('preparer_id')->nullable()->index(); // user que preparó
             $table->string('status', 20)->default('in_review')->index();    // in_review|approved|rejected
             $table->string('report_code', 120)->nullable();

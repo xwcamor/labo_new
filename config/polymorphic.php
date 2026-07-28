@@ -96,6 +96,10 @@ return [
             'model'      => \App\Models\TapChangerTechnology::class,
             'show_route' => 'business_management.tap_changer_technologies.show',
         ],
+        'analytes' => [
+            'model'      => \App\Models\Analyte::class,
+            'show_route' => 'business_management.analytes.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

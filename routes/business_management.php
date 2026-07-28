@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\AnalyteController;
 use App\Http\Controllers\BusinessManagement\BrandController;
 use App\Http\Controllers\BusinessManagement\TapChangerTechnologyController;
 use App\Http\Controllers\BusinessManagement\TapChangerModelController;
@@ -715,4 +716,78 @@ Route::prefix('business_management')->name('business_management.')->group(functi
         Route::delete('transformer_types/{transformerType}/deleteSave', [TransformerTypeController::class, 'deleteSave'])->name('transformer_types.deleteSave');
     });
     }); // fin TransformerTypes (role:super)
+
+
+    // ── Analytes ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('analytes/trash',                  [AnalyteController::class, 'trash'])->name('analytes.trash');
+        Route::post('analytes/bulk_restore',          [AnalyteController::class, 'bulkRestore'])->name('analytes.bulk_restore');
+        Route::post('analytes/{slug}/restore',        [AnalyteController::class, 'restore'])->name('analytes.restore');
+        Route::get('analytes/{slug}/restore',         fn () => redirect()->route('business_management.analytes.trash'));
+        Route::delete('analytes/{slug}/force_delete', [AnalyteController::class, 'forceDelete'])->name('analytes.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:analytes.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('analytes/export_excel', [AnalyteController::class, 'exportExcel'])->name('analytes.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('analytes/export_pdf',   [AnalyteController::class, 'exportPdf'])->name('analytes.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('analytes/export_word',  [AnalyteController::class, 'exportWord'])->name('analytes.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('analytes/export_csv',   [AnalyteController::class, 'exportCsv'])->name('analytes.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:analytes.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('analytes/import',          [AnalyteController::class, 'import'])->name('analytes.import');
+        Route::get('analytes/import_template',  [AnalyteController::class, 'importTemplate'])->name('analytes.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:analytes.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('analytes/bulk_delete',     [AnalyteController::class, 'bulkDelete'])->name('analytes.bulk_delete');
+        Route::post('analytes/bulk_set_active', [AnalyteController::class, 'bulkSetActive'])->name('analytes.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:analytes.delete')->group(function () {
+        Route::post('analytes/undo_last_delete', [AnalyteController::class, 'undoLastDelete'])->name('analytes.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:analytes.edit')->group(function () {
+        Route::get('analytes/edit_all',         [AnalyteController::class, 'editAll'])->name('analytes.edit_all');
+        Route::post('analytes/edit_all/update', [AnalyteController::class, 'editAllUpdate'])->name('analytes.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:analytes.create')->group(function () {
+        Route::get('analytes/create', [AnalyteController::class, 'create'])->name('analytes.create');
+        Route::post('analytes',       [AnalyteController::class, 'store'])->name('analytes.store');
+        Route::post('analytes/{analyte}/duplicate', [AnalyteController::class, 'duplicate'])->name('analytes.duplicate');
+    });
+
+    Route::middleware('permission:analytes.view')->group(function () {
+        Route::get('analytes',                [AnalyteController::class, 'index'])->name('analytes.index');
+        Route::get('analytes/{analyte}',  [AnalyteController::class, 'show'])->name('analytes.show');
+    });
+    Route::middleware('permission:analytes.edit')->group(function () {
+        Route::get('analytes/{analyte}/edit', [AnalyteController::class, 'edit'])->name('analytes.edit');
+        Route::put('analytes/{analyte}',      [AnalyteController::class, 'update'])->name('analytes.update');
+    });
+    Route::middleware('permission:analytes.delete')->group(function () {
+        Route::get('analytes/{analyte}/delete',        [AnalyteController::class, 'delete'])->name('analytes.delete');
+        Route::delete('analytes/{analyte}/deleteSave', [AnalyteController::class, 'deleteSave'])->name('analytes.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('analytes/{analyte}/lock',   [AnalyteController::class, 'lock'])->name('analytes.lock');
+        Route::post('analytes/{analyte}/unlock', [AnalyteController::class, 'unlock'])->name('analytes.unlock');
+    });
 });

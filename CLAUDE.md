@@ -10,39 +10,65 @@
 
 ---
 
-## Estado actual: fase 0 en curso
+## Estado actual: fase 0 CERRADA
 
-| | |
+Verificado en este entorno (PHP 8.4, Composer 2.8, Node 22, PostgreSQL 16):
+
+| Comprobación | Resultado |
 |---|---|
-| Commit base | copia de TrafoDex @ `9a3b2f6`, sin modificar |
-| Poda | hecha: 192 archivos del dominio de diagnóstico |
-| Recableado | **pendiente** — la aplicación todavía no arranca |
-| Dependencias | `composer install` / `npm install` sin correr todavía |
+| `composer install` | OK |
+| `npm install` | OK |
+| `php artisan --version` | Laravel Framework 13.9.0 |
+| `php artisan route:list` | **629 rutas** cargan sin error |
+| `php artisan migrate` | 56 migraciones OK |
+| `php artisan db:seed` | OK (175 clientes, 843 ubicaciones, 1940 áreas, 1368 subestaciones) |
+| `php artisan make:module Analyte --group=BusinessManagement` | genera el módulo y se auto-registra en `system_modules`, `polymorphic.php` y `purge.php` |
+| `npm run build` | verde (828 módulos, 2.4 MB) |
+| `php artisan test` | **546 pasan · 50 fallan · 19 se saltean** |
 
-**La puerta de salida de la fase 0** es:
-`php artisan make:module Prueba --group=X` genera un módulo que compila y pasa
-sus pruebas. Hasta entonces la fase no está cerrada.
+### Las 50 pruebas que fallan
 
-### Los 14 archivos a recablear
+Se reducen a **dos** causas, las dos del dominio eliminado:
 
-No se borraron porque son núcleo, no dominio. Referencian clases eliminadas:
+- 20 llaman a `DiagnosticCatalogSeeder`
+- 19 usan `App\Models\Transformer`
+- el resto son cascada de esas dos
 
-| Archivo | Qué hay que hacer | Fase |
-|---|---|---|
-| `Models/ReportShare.php` | tipado a `Transformer` → pasa a `Sample` | 6 |
-| `Services/Reports/ReportApprovalService.php` | ídem | 6 |
-| `Services/Sharing/ReportShareService.php` | ídem | 6 |
-| `Controllers/.../ReportShareController.php` | ídem | 6 |
-| `Controllers/.../ReportShareLogController.php` | ídem | 6 |
-| `Controllers/ReportVerifyController.php` | ídem | 6 |
-| `Controllers/SystemManagement/DiagnosticRulesController.php` | **es el molde del editor de normas y cuadros de límites** — se reescribe, no se tira | 2 |
-| `Controllers/.../OilTypeController.php` | quitar el conteo de transformadores | 1 |
-| `Controllers/.../CommentController.php` | quitar `Transformer` de los comentables | 1 |
-| `Controllers/SearchController.php` | quitar transformadores del buscador global | 1 |
-| `Middleware/HandleInertiaRequests.php` | quitar la inyección de colores de diagnóstico | 1 |
-| `Console/Commands/SetupProjectCommand.php` | quitar los seeders eliminados | 1 |
-| `config/polymorphic.php` | quitar las entradas de muestras | 1 |
-| `config/purge.php` | ídem | 1 |
+**No se borran.** Son pruebas de comportamiento del núcleo (orden, filtros,
+exportación, bloqueo de registros, permisos, comentarios, buscador) que apenas
+arman su escenario con `Transformer`. Se recablean a `Equipment` en la fase 1.
+Borrarlas sería tirar cobertura de núcleo para dejar la suite en verde.
+
+Los archivos afectados: `CustomerCrudTest`, `CustomerCountSortTest`,
+`CustomerCountrySortTest`, `CustomerExportTest`, `CustomerFlatFilterTest`,
+`CustomerScopedAccessTest`, `CommentTest`, `ExportPdfTemplatesTest`,
+`ImportExportPermissionTest`, `OilTypeCrudTest`, `PresetFilterTest`,
+`RecordLockTest`, `TransformerTypeCrudTest`, `SearchTest`.
+
+> El scaffold generó `Analyte` sin pruebas, porque su master `Brand` tampoco
+> las tiene. Vale agregarle una suite a `Brand` antes de generar los módulos
+> de la fase 1: se hereda a todos.
+
+### Lo que queda tipado a `Transformer` (fase 6)
+
+La pila de compartir y aprobar informes se conserva entera y sin tocar:
+`Models/ReportShare`, `Services/Reports/ReportApprovalService`,
+`Services/Sharing/ReportShareService`, `ReportShareController`,
+`ReportShareLogController`, `ReportVerifyController`. Se recablean a `Sample`.
+
+En `report_instances` la FK a `transformers` se degradó a
+`unsignedBigInteger` con índice, para que la migración corra; la fase 6 la
+convierte en `sample_id` con su constraint.
+
+### Recuperable del commit base
+
+El editor de reglas de TrafoDex se eliminó para que el build pase, pero **es el
+molde del editor de normas y cuadros de límites de la fase 2**:
+
+```bash
+git checkout 7b9c489 -- app/Http/Controllers/SystemManagement/DiagnosticRulesController.php \
+                        resources/js/Pages/SystemManagement/DiagnosticRules
+```
 
 ---
 

@@ -40,3 +40,9 @@ Thumbs.db
 # la primera vez que se renderiza un PDF. No commitearlas.
 /storage/fonts
 __pycache__/
+
+# Entorno local de verificación de la fase 0
+/vendor
+/node_modules
+/public/build
+/.env

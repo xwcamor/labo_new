@@ -7,7 +7,6 @@ import Antd from 'ant-design-vue';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
 import I18nPlugin from '@/Plugins/i18n';
-import { setDiagnosticColors } from '@/utils/severity';
 
 // Register AG Grid Community modules once for the whole app
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -21,8 +20,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         // Colores del diagnóstico (editables por super/tenant): aplica el override
         // antes de montar y en cada navegación (la prop compartida se revalúa).
-        setDiagnosticColors(props.initialPage?.props?.diagnosticColors);
-        router.on('navigate', (e) => setDiagnosticColors(e.detail?.page?.props?.diagnosticColors));
+        // Fase 2: acá se cargan los colores editables de los veredictos del laboratorio.
         createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)

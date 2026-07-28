@@ -8,7 +8,6 @@ use App\Services\Automations\ActionRegistry;
 use App\Services\Automations\DataSourceRegistry;
 use App\Services\Automations\DataSources\CustomersDataSource;
 use App\Services\Automations\DataSources\SubscriptionsDataSource;
-use App\Services\Automations\DataSources\TransformersDataSource;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -36,7 +35,7 @@ class AutomationServiceProvider extends ServiceProvider
         $this->app->singleton(DataSourceRegistry::class, function () {
             $registry = new DataSourceRegistry();
             $registry->register(new CustomersDataSource());
-            $registry->register(new TransformersDataSource());
+            // Fase 1: EquipmentDataSource; fase 3: SamplesDataSource.
             $registry->register(new SubscriptionsDataSource());
             return $registry;
         });

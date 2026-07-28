@@ -105,9 +105,11 @@ hojas de trabajo y las cartas de control NO, porque no son catálogos.
 ### El laboratorio se carga con UN comando
 
 `php artisan setup:project` deja el sistema usable: 29 pruebas, 207 columnas,
-9 fórmulas, 36 parámetros, 25 instrumentos, 344 clientes y una demostración
-(6 equipos, 24 hojas validadas, 504 resultados, 1 carta de control). El comando
-imprime esa tabla al terminar, con la ruta de cada pantalla.
+9 fórmulas, 37 parámetros, 24 instrumentos, 34 normas, 27 cuadros de límites,
+344 clientes y una demostración completa (18 recepciones, 36 muestras con su
+correlativo, 144 pruebas pedidas, 6 equipos, 24 hojas validadas, 504 resultados
+—301 dentro de norma, 53 fuera, 150 sin criterio—, 1 carta de control). El
+comando imprime esa tabla al terminar, con la ruta de cada pantalla.
 
 Antes eran tres comandos que había que acordarse de correr a mano
 (`import:legacy-tests`, `lab:map-analytes`, `db:seed --class=LabAnalytesSeeder`)
@@ -123,7 +125,9 @@ llaman por dentro.
 | `LabTestFormulasSeeder` | 9 fórmulas, con el JavaScript viejo al lado para cotejar | `data/test_formulas.json` |
 | `LabInstrumentsSeeder` | 25 instrumentos + pasa 19 columnas a tipo `instrument` | `data/instruments.json` |
 | `LabAnalyteMapSeeder` | qué columna alimenta qué parámetro | `data/analyte_map.json` |
-| `LabDemoWorksheetsSeeder` | **lo único inventado**: equipos, hojas, resultados | — |
+| `LabStandardsSeeder` | 34 normas + 19 métodos de ensayo | `data/standards.json` |
+| `LabSpecSetsSeeder` | 27 cuadros de límites, con sus 16 anomalías anotadas | `data/spec_limits_legacy.json` |
+| `LabDemoWorksheetsSeeder` | **lo único inventado**: recepciones, equipos, hojas, resultados | — |
 
 El orden importa y está anotado en `DatabaseSeeder`. Lo de demostración lleva la
 marca `DEMO` y se quita con `php artisan lab:demo --limpiar`, sin tocar lo real.
@@ -133,15 +137,14 @@ que TODAS las fórmulas compilen contra las columnas reales: renombrar una
 columna y dejar una fórmula apuntando al nombre viejo no falla al sembrar,
 falla en la bancada con la muestra ya cargada.
 
-### Recepción de muestras — LA FASE QUE FALTA, y por qué importa
+### Recepción de muestras — CONSTRUIDA
 
 `docs/migracion/09-RECEPCION-CORRELATIVOS-Y-ESTADOS.md` responde cuatro preguntas
 del laboratorio con el código del sistema anterior al lado. Lo esencial:
 
-- **Elegir el equipo en la fila de la bancada es un parche.** El equipo cuelga de
-  la MUESTRA, que se registra en la recepción. `worksheet_rows.sample_id` y
-  `sample_test_id` ya están reservados y en nulo. Hay que construir la recepción
-  ANTES de cargar datos reales.
+- **El equipo cuelga de la MUESTRA, no de la fila de bancada.** La fila
+  referencia `sample_test_id` y hereda de ahí el código de muestra y el equipo.
+  Elegir el transformador con el envase en la mano era un parche, y se quitó.
 - **El correlativo (`2026-0695`) no se genera con `MAX+1`.** El sistema anterior
   lo hacía dentro de un bucle, sin bloqueo, con la unicidad comentada y filtrando
   por `deleted = 0` — o sea que reemitía el número de un correlativo dado de
@@ -156,6 +159,33 @@ del laboratorio con el código del sistema anterior al lado. Lo esencial:
   quedaron cortos al agregar la cuarta prueba nueva; y `rem_report_details` con
   221 columnas y un solo índice). Se guarda tipado y se LEE ancho, con una vista
   por prueba generada desde su definición.
+
+### Los límites de norma — ya dictaminan
+
+`results.spec_status` dejó de estar en nulo: al validar una hoja, cada resultado
+queda con su veredicto CONGELADO (dentro / cerca del límite / fuera de norma),
+los dos límites que se le aplicaron y de qué norma salieron. Se calcula al
+materializar y NO al leer el informe: si se recalculara, un cambio de límite
+reescribiría un certificado ya emitido.
+
+- `SpecSetResolver` elige el cuadro: por la fecha de la MUESTRA (no hoy), y entre
+  varios gana el más específico y el del workspace sobre el global.
+- `SpecEvaluator` dictamina. Respeta la censura: ">75 kV" cumple contra un
+  mínimo y NO se puede juzgar contra un máximo. El sistema anterior limpiaba el
+  signo antes de convertir, así que ">75" y "75" eran lo mismo.
+- **Sin cuadro el estado queda en NULO, y eso NO es "cumple".** El informe tiene
+  que decirlo. Es la misma lección que TrafoDex aprendió: un aceite sin reglas
+  devolvía "100 Excelente" y ocultaba una muestra peligrosa.
+
+Los 27 cuadros salen del árbol de `if/elsif` del sistema anterior, que estaba
+escrito TRES veces (dos completas y una parcial) y ya divergido. Se siembran
+FIELES, con sus **16 anomalías anotadas** en el JSON — 5 graves. La peor: en
+"De voltaje · Mineral" el acetileno dice `"16"` sin la palabra "máximo", y el
+parser del informe (`String#delete!` sobre `"(máximo)"`) devuelve `nil` cuando no
+encuentra ninguno de esos caracteres → `nil.to_f` = **0.0**. El informe imprime
+16 y colorea contra 0, así que cualquier acetileno detectable sale fuera de
+norma. Corregirlas es del laboratorio, no nuestro: cambiaría lo que dicen los
+informes ya emitidos.
 
 **Las fórmulas ya no son JavaScript.** El sistema viejo guardaba en
 `blur_calculation` un bloque de JS que direccionaba las celdas por POSICIÓN

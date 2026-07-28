@@ -123,10 +123,13 @@ class DatabaseSeeder extends Seeder
             LabInstrumentsSeeder::class,
             LabAnalyteMapSeeder::class,
 
-            // Fase 2: acá van los cuadros de límites del laboratorio (standards, analytes,
-            // test_methods) y los cuadros de límites (spec_sets + spec_limits),
-            // desde su JSON de fábrica. Los seeders del motor de diagnóstico de
-            // TrafoDex se eliminaron: ese motor no vive acá.
+            // ── Contra qué se compara el resultado ──────────────────────
+            // Las normas y los métodos primero; después los cuadros de límites,
+            // que los referencian. Es lo que convierte un número en un
+            // veredicto: sin esto, `results.spec_status` queda en nulo — que
+            // significa "sin criterio", NO "cumple".
+            LabStandardsSeeder::class,
+            LabSpecSetsSeeder::class,
 
             // ── Clientes reales (los activos del sistema viejo) en Empresa 1. ─
             CustomersSeeder::class,

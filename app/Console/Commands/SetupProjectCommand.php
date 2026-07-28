@@ -104,7 +104,15 @@ class SetupProjectCommand extends Command
             ['Muestras',                 $cuenta('samples'),          ''],
             ['Pruebas pedidas',          $cuenta('sample_tests'),     ''],
             ['Hojas de trabajo',         $cuenta('worksheets'),       '/lab_management/worksheets'],
+            ['Normas',                   $cuenta('standards'),        ''],
+            ['Cuadros de límites',       $cuenta('spec_sets'),        ''],
             ['Resultados',               $cuenta('results'),          ''],
+            ['   dentro de norma',       \Illuminate\Support\Facades\Schema::hasTable('results')
+                ? \Illuminate\Support\Facades\DB::table('results')->where('spec_status', 'in_spec')->count() : 0, ''],
+            ['   fuera de norma',        \Illuminate\Support\Facades\Schema::hasTable('results')
+                ? \Illuminate\Support\Facades\DB::table('results')->where('spec_status', 'out_of_spec')->count() : 0, ''],
+            ['   sin criterio',          \Illuminate\Support\Facades\Schema::hasTable('results')
+                ? \Illuminate\Support\Facades\DB::table('results')->whereNull('spec_status')->count() : 0, ''],
             ['Cartas de control',        $cuenta('qc_charts'),        '/lab_management/qc_charts'],
         ];
 
@@ -113,7 +121,7 @@ class SetupProjectCommand extends Command
         $this->line('');
 
         foreach ($filas as [$nombre, $total, $ruta]) {
-            $color = $total > 0 ? 'green' : 'red';
+            $color = $total > 0 ? "green" : (str_starts_with($nombre, " ") ? "yellow" : "red");
             // Relleno con mb_str_pad: sprintf cuenta BYTES, y con "Parámetros"
             // o "Cámara" la columna queda corrida un carácter por cada acento.
             $etiqueta = $nombre . str_repeat(' ', max(0, 26 - mb_strlen($nombre)));

@@ -15,52 +15,272 @@
     "  higher_better el valor baja y empeora (rigidez, tensión interfacial, DP)",
     "  neutral       no tiene un lado malo por sí solo (oxígeno, nitrógeno)"
   ],
-
   "dga": [
-    { "code": "h2",   "name": "Hidrógeno",              "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "o2",   "name": "Oxígeno",                "unit": "ppm", "decimals": 1, "direction": "neutral" },
-    { "code": "n2",   "name": "Nitrógeno",              "unit": "ppm", "decimals": 1, "direction": "neutral" },
-    { "code": "ch4",  "name": "Metano",                 "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "co",   "name": "Monóxido de carbono",    "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "co2",  "name": "Dióxido de carbono",     "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "c2h4", "name": "Etileno",                "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "c2h6", "name": "Etano",                  "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "c2h2", "name": "Acetileno",              "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "tdcg", "name": "Total de gases combustibles", "unit": "ppm", "decimals": 1, "direction": "lower_better" },
-    { "code": "tgas", "name": "Total de gases disueltos",     "unit": "ppm", "decimals": 1, "direction": "neutral" }
+    {
+      "code": "h2",
+      "name": "Hidrógeno",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "o2",
+      "name": "Oxígeno",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "neutral"
+    },
+    {
+      "code": "n2",
+      "name": "Nitrógeno",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "neutral"
+    },
+    {
+      "code": "ch4",
+      "name": "Metano",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "co",
+      "name": "Monóxido de carbono",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "co2",
+      "name": "Dióxido de carbono",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "c2h4",
+      "name": "Etileno",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "c2h6",
+      "name": "Etano",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "c2h2",
+      "name": "Acetileno",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "tdcg",
+      "name": "Total de gases combustibles",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "tgas",
+      "name": "Total de gases disueltos",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "neutral"
+    }
   ],
-
   "fiqui": [
-    { "code": "acid",   "name": "Número ácido",                    "unit": "mg KOH/g", "decimals": 3, "direction": "lower_better" },
-    { "code": "rig",    "name": "Rigidez dieléctrica",             "unit": "kV",       "decimals": 1, "direction": "higher_better" },
-    { "code": "rig_ep", "name": "Rigidez dieléctrica (electrodos planos)", "unit": "kV", "decimals": 1, "direction": "higher_better" },
-    { "code": "ift",    "name": "Tensión interfacial",             "unit": "mN/m",     "decimals": 1, "direction": "higher_better" },
-    { "code": "wat",    "name": "Contenido de agua",               "unit": "ppm",      "decimals": 1, "direction": "lower_better" },
-    { "code": "fp25",   "name": "Factor de potencia a 25 °C",       "unit": "%",        "decimals": 3, "direction": "lower_better" },
-    { "code": "fp90",   "name": "Factor de potencia a 90 °C",       "unit": "%",        "decimals": 3, "direction": "lower_better" },
-    { "code": "fp100",  "name": "Factor de potencia a 100 °C",      "unit": "%",        "decimals": 3, "direction": "lower_better" },
-    { "code": "rho25",  "name": "Resistividad volumétrica a 25 °C", "unit": "Ω·cm",     "decimals": 0, "direction": "higher_better" },
-    { "code": "rho100", "name": "Resistividad volumétrica a 100 °C","unit": "Ω·cm",     "decimals": 0, "direction": "higher_better" },
-    { "code": "dens",   "name": "Densidad relativa",               "unit": "",         "decimals": 4, "direction": "neutral" },
-    { "code": "visc",   "name": "Viscosidad cinemática",           "unit": "mm²/s",    "decimals": 2, "direction": "lower_better" },
-    { "code": "color",  "name": "Color",                           "unit": "",         "decimals": 1, "direction": "lower_better" },
-    { "code": "flash",  "name": "Punto de inflamación",            "unit": "°C",       "decimals": 0, "direction": "higher_better" },
-    { "code": "pour",   "name": "Punto de fluidez",                "unit": "°C",       "decimals": 0, "direction": "lower_better" }
+    {
+      "code": "acid",
+      "name": "Número ácido",
+      "unit": "mg KOH/g",
+      "decimals": 3,
+      "direction": "lower_better"
+    },
+    {
+      "code": "rig",
+      "name": "Rigidez dieléctrica",
+      "unit": "kV",
+      "decimals": 1,
+      "direction": "higher_better"
+    },
+    {
+      "code": "rig_ep",
+      "name": "Rigidez dieléctrica (electrodos planos)",
+      "unit": "kV",
+      "decimals": 1,
+      "direction": "higher_better"
+    },
+    {
+      "code": "ift",
+      "name": "Tensión interfacial",
+      "unit": "mN/m",
+      "decimals": 1,
+      "direction": "higher_better"
+    },
+    {
+      "code": "wat",
+      "name": "Contenido de agua",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "fp25",
+      "name": "Factor de potencia a 25 °C",
+      "unit": "%",
+      "decimals": 3,
+      "direction": "lower_better"
+    },
+    {
+      "code": "fp90",
+      "name": "Factor de potencia a 90 °C",
+      "unit": "%",
+      "decimals": 3,
+      "direction": "lower_better"
+    },
+    {
+      "code": "fp100",
+      "name": "Factor de potencia a 100 °C",
+      "unit": "%",
+      "decimals": 3,
+      "direction": "lower_better"
+    },
+    {
+      "code": "rho25",
+      "name": "Resistividad volumétrica a 25 °C",
+      "unit": "Ω·cm",
+      "decimals": 0,
+      "direction": "higher_better"
+    },
+    {
+      "code": "rho100",
+      "name": "Resistividad volumétrica a 100 °C",
+      "unit": "Ω·cm",
+      "decimals": 0,
+      "direction": "higher_better"
+    },
+    {
+      "code": "dens",
+      "name": "Densidad relativa",
+      "unit": "",
+      "decimals": 4,
+      "direction": "neutral"
+    },
+    {
+      "code": "visc",
+      "name": "Viscosidad cinemática",
+      "unit": "mm²/s",
+      "decimals": 2,
+      "direction": "lower_better"
+    },
+    {
+      "code": "color",
+      "name": "Color",
+      "unit": "",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "con",
+      "name": "Condición visual",
+      "unit": "",
+      "decimals": 0,
+      "direction": "qualitative",
+      "nota": "Cualitativo: el aspecto del aceite (\"Brillante y Claro\", \"Claro y libre de partículas\"). Es el único parámetro que los cuadros de límites comparan por TEXTO y no por número, y sin él los siete límites de aspecto del sistema anterior no tendrían a qué atarse."
+    },
+    {
+      "code": "flash",
+      "name": "Punto de inflamación",
+      "unit": "°C",
+      "decimals": 0,
+      "direction": "higher_better"
+    },
+    {
+      "code": "pour",
+      "name": "Punto de fluidez",
+      "unit": "°C",
+      "decimals": 0,
+      "direction": "lower_better"
+    }
   ],
-
   "papel": [
-    { "code": "dp",  "name": "Grado de polimerización", "unit": "", "decimals": 0, "direction": "higher_better" },
-    { "code": "hum_papel", "name": "Contenido de agua en el papel", "unit": "%", "decimals": 2, "direction": "lower_better" }
+    {
+      "code": "dp",
+      "name": "Grado de polimerización",
+      "unit": "",
+      "decimals": 0,
+      "direction": "higher_better"
+    },
+    {
+      "code": "hum_papel",
+      "name": "Contenido de agua en el papel",
+      "unit": "%",
+      "decimals": 2,
+      "direction": "lower_better"
+    }
   ],
-
   "otros": [
-    { "code": "pcb",        "name": "Contenido total de PCB",   "unit": "ppm", "decimals": 2, "direction": "lower_better" },
-    { "code": "inhibitor",  "name": "Inhibidor de oxidación",   "unit": "%",   "decimals": 3, "direction": "higher_better" },
-    { "code": "dbds",       "name": "DBDS",                     "unit": "mg/kg", "decimals": 2, "direction": "lower_better" },
-    { "code": "passivator", "name": "Pasivador",                "unit": "ppm", "decimals": 1, "direction": "neutral" },
-    { "code": "sediments",  "name": "Sedimentos",               "unit": "",    "decimals": 3, "direction": "lower_better" },
-    { "code": "s1275b",     "name": "Azufre corrosivo D1275B",  "unit": "",    "decimals": 0, "direction": "lower_better" },
-    { "code": "s62535_48",  "name": "Azufre corrosivo 62535 (48 h)", "unit": "", "decimals": 0, "direction": "lower_better" },
-    { "code": "s62535_72",  "name": "Azufre corrosivo 62535 (72 h)", "unit": "", "decimals": 0, "direction": "lower_better" }
+    {
+      "code": "pcb",
+      "name": "Contenido total de PCB",
+      "unit": "ppm",
+      "decimals": 2,
+      "direction": "lower_better"
+    },
+    {
+      "code": "inhibitor",
+      "name": "Inhibidor de oxidación",
+      "unit": "%",
+      "decimals": 3,
+      "direction": "higher_better"
+    },
+    {
+      "code": "dbds",
+      "name": "DBDS",
+      "unit": "mg/kg",
+      "decimals": 2,
+      "direction": "lower_better"
+    },
+    {
+      "code": "passivator",
+      "name": "Pasivador",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "neutral"
+    },
+    {
+      "code": "sediments",
+      "name": "Sedimentos",
+      "unit": "",
+      "decimals": 3,
+      "direction": "lower_better"
+    },
+    {
+      "code": "s1275b",
+      "name": "Azufre corrosivo D1275B",
+      "unit": "",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "s62535_48",
+      "name": "Azufre corrosivo 62535 (48 h)",
+      "unit": "",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "s62535_72",
+      "name": "Azufre corrosivo 62535 (72 h)",
+      "unit": "",
+      "decimals": 0,
+      "direction": "lower_better"
+    }
   ]
 }

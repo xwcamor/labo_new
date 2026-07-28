@@ -3,6 +3,7 @@
 namespace App\Services\Lab;
 
 use App\Models\Result;
+use App\Models\Sample;
 use App\Models\TestField;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
@@ -39,6 +40,11 @@ use Illuminate\Support\Facades\DB;
  */
 class ResultMaterializer
 {
+    public function __construct(
+        private readonly SpecEvaluator $specs = new SpecEvaluator(),
+    ) {
+    }
+
     /**
      * Materializa una hoja completa.
      *
@@ -55,7 +61,7 @@ class ResultMaterializer
         // Solo las columnas que declaran alimentar un parámetro.
         $resultFields = $definition->fields()
             ->whereNotNull('output_analyte_id')
-            ->with('analyte:id,unit,decimals')
+            ->with('analyte:id,code,unit,decimals,group')
             ->get();
 
         if ($resultFields->isEmpty()) {
@@ -121,7 +127,17 @@ class ResultMaterializer
      */
     private function equipmentFor(WorksheetRow $row): ?int
     {
-        // Fase 3: cuando exista `samples`, resolver primero por $row->sample_id.
+        // La muestra manda: es donde el equipo vive conceptualmente, y lo eligió
+        // quien recibió el envase. El campo directo de la fila queda como
+        // respaldo para las filas cargadas antes de que existiera la recepción.
+        if ($row->sample_id) {
+            $deLaMuestra = Sample::withoutGlobalScopes()->whereKey($row->sample_id)->value('equipment_id');
+
+            if ($deLaMuestra !== null) {
+                return (int) $deLaMuestra;
+            }
+        }
+
         return $row->equipment_id;
     }
 
@@ -148,6 +164,31 @@ class ResultMaterializer
                 continue;
             }
 
+            // El veredicto contra la norma, CONGELADO en la misma escritura. Se
+            // calcula acá, al materializar, y NO al leer el informe: si se
+            // recalculara, un cambio de límite reescribiría en silencio un
+            // certificado ya emitido.
+            //
+            // Cuando no hay cuadro para ese fluido y ese equipo, o el cuadro no
+            // declara ese parámetro, el estado queda en NULO y el informe tiene
+            // que decirlo. Rellenar con "cumple" lo que no se pudo evaluar es
+            // fabricar una afirmación.
+            $cuadro = $this->specs->setFor(
+                $row->sample_id,
+                $equipmentId,
+                $worksheet->tenant_id,
+                $field->analyte?->group ?? 'fiqui',
+                $worksheet->run_date ? \Illuminate\Support\Carbon::parse($worksheet->run_date) : null,
+            );
+
+            $veredicto = $this->specs->verdictFor(
+                $cuadro,
+                (int) $field->output_analyte_id,
+                $value->value_num !== null ? (float) $value->value_num : null,
+                $value->value_text,
+                $value->qualifier,
+            );
+
             Result::updateOrCreate(
                 [
                     'worksheet_row_id' => $row->id,
@@ -170,12 +211,7 @@ class ResultMaterializer
                     // define para el sistema. Si difieren, manda el parámetro.
                     'unit'       => $field->analyte?->unit ?? $field->unit,
 
-                    // El veredicto contra la norma lo llena la fase 2, cuando
-                    // existan los cuadros de límites. Queda en nulo a
-                    // propósito: un "dentro de norma" inventado sobre un límite
-                    // que no se cargó es peor que no dictaminar.
-                    'spec_status' => null,
-                ],
+                ] + $veredicto,
             );
 
             $written++;

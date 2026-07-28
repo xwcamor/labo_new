@@ -107,7 +107,13 @@
       "cro8": "c2h6",
       "cro9": "c2h2"
     },
-    "por_que_codigos": "Las condiciones se expresan por CÓDIGO, no por ID numérico. Los IDs de este mapa son los del sistema Rails viejo y quedan SOLO como referencia para el ETL de la fase 12. Atar el motor a los IDs de un sistema muerto obliga a consultar un mapa de 2019 para entender una fila de 2028."
+    "por_que_codigos": "Las condiciones se expresan por CÓDIGO, no por ID numérico. Los IDs de este mapa son los del sistema Rails viejo y quedan SOLO como referencia para el ETL de la fase 12. Atar el motor a los IDs de un sistema muerto obliga a consultar un mapa de 2019 para entender una fila de 2028.",
+    "segunda_extraccion": {
+      "que": "Una segunda extracción independiente comparó los DOS archivos duplicados del sistema anterior (rem_report.rb y rem_report_detail.rb) cuadro por cuadro.",
+      "resultado": "Los valores de los 24 cuadros comunes COINCIDEN en los dos archivos. Toda la divergencia entre las copias está en las CONDICIONES y en la asignación de normas.",
+      "aporte": "9 anomalías nuevas, y la causa exacta del límite de acetileno de \"De voltaje\".",
+      "fecha": "2026-07-28"
+    }
   },
   "anomalias": [
     {
@@ -125,13 +131,6 @@
       "grupo": "ambos",
       "que": "Los aceites 6 (girasol) y 9 no reciben norma al crear el informe.",
       "detalle": "save_default_values cubre aceites {1,2,3,8}, {4}, {7}, {5}; refresh_orientation_fiqui_values cubre {1,2,3,8}, {4}, {7}, {5,6,9}. Un informe de girasol recién creado imprime \"-\" como norma; guardado dos veces imprime IEC 610203-2025."
-    },
-    {
-      "id": "C2H2-VOLTAJE",
-      "gravedad": "baja",
-      "grupo": "cromas",
-      "que": "En \"De voltaje · Mineral\" el acetileno dice \"16\", sin \"máximo\".",
-      "detalle": "El parser del sistema viejo lo lee igual como número, pero el informe imprime \"16\" pelado. Confirmar si es 16 máximo."
     },
     {
       "id": "HORNO-REVISAR",
@@ -166,6 +165,125 @@
       "grupo": "fiquis",
       "que": "Los límites de rigidez no registran la separación de electrodos.",
       "detalle": "rig (40/47/50 kV) y rigep (\"electrodos planos\") se tratan como parámetros distintos. D877 es 2.54 mm fijo; D1816 admite 1.0 o 2.0 mm y los kV no son comparables. Sin el gap no se puede saber contra qué norma se juzgó."
+    },
+    {
+      "id": "NORMAS-TERCERA-COPIA-INCOMPLETA",
+      "gravedad": "media",
+      "tipo": "divergencia entre los dos archivos duplicados",
+      "que": "Hay TRES copias del árbol de normas y la tercera solo contempla el aceite mineral.",
+      "version_a": "rem_report.rb:459-469, dentro de refresh_orientation_croma_values: un único 'if oil_type_id == 1 or == 2 or == 3 or == 8', sin ningún elsif para silicona, sintético ni vegetal.",
+      "version_b": "rem_report.rb:204-243 y rem_report_detail.rb:145-176: las otras dos copias sí tienen las cuatro ramas.",
+      "efecto": "Hoy no rompe nada, porque las tres asignan y ninguna limpia, y la de fisicoquímico corre antes en la cadena de after_update. Pero es una tercera copia divergente del mismo árbol: un cambio en cualquiera de las tres se pierde en las otras dos.",
+      "cuadros_afectados": [],
+      "que_hacer": "Ninguna acción sobre los datos. Se registra porque es la prueba de que el árbol duplicado no se puede sostener a mano."
+    },
+    {
+      "id": "FIQUI-GIRASOL-SIN-CUADRO",
+      "gravedad": "alta",
+      "tipo": "incoherencia interna (las dos copias coinciden)",
+      "que": "El girasol tiene cuadro de cromatografía pero NINGÚN límite fisicoquímico.",
+      "version_a": "rem_report.rb:351: 'elsif @transformer_oil_type_id.to_i == 5 or @transformer_oil_type_id.to_i == 7' — la rama de éster cubre soya y sintético, no girasol.",
+      "version_b": "rem_report_detail.rb:299: la misma condición, idéntica.",
+      "efecto": "Un transformador con girasol cae al else de fisicoquímico (rem_report.rb:399-413, rem_report_detail.rb:347-361) y sale con acidez, rigidez, tensión interfacial, agua, factor de potencia, color y condición visual todos en '-'. Y sin embargo el árbol de normas (rem_report.rb:234) le imprime 'IEC 610203-2025' como norma de aceptación: el informe declara una norma y no compara contra nada.",
+      "cuadros_afectados": [
+        "fiqui_ester_hasta_72_5",
+        "fiqui_ester_72_5_170",
+        "fiqui_ester_desde_170"
+      ],
+      "que_hacer": "Preguntar al laboratorio si las tres bandas de éster (72.5 y 170 kV) aplican también al girasol. Si aplican, alcanza con agregar el id 6 al arreglo 'oil_type_id' de esos tres cuadros."
+    },
+    {
+      "id": "C2H2-VOLTAJE-16",
+      "gravedad": "alta",
+      "tipo": "bug vivo de parseo (las dos copias coinciden)",
+      "que": "En 'De voltaje · Mineral' el acetileno se escribe '16' sin la palabra 'máximo', y el sistema viejo lo termina leyendo como 0.",
+      "version_a": "rem_report.rb:588 — cro9_ori: \"16\"",
+      "version_b": "rem_report_detail.rb:522 — cro9_ori: \"16\"  (idéntico)",
+      "efecto": "El límite se recupera con (texto.strip.delete! \"(máximo)\").to_f. String#delete! borra CARACTERES del conjunto {( á x i m o )}, no la palabra; como '16' no tiene ninguno de esos caracteres, delete! devuelve nil y nil.to_f da 0.0. El informe IMPRIME '16' en la tabla y al lado colorea contra un límite de 0.0 ppm, así que cualquier acetileno detectable sale fuera de norma. Verificado en app/views/im_management/rem_reports/partials/_report_cromas.erb:27 (@word_removed = \"(máximo)\"), :263 (el parseo) y :264 (la comparación 'cro9_val.to_f <= 0.0').",
+      "cuadros_afectados": [
+        "cromas_mineral_voltaje"
+      ],
+      "que_hacer": "Confirmar con el laboratorio si el límite es 16 ppm. Acá se transcribió como '<= 16' con la advertencia dentro del propio límite; NO se copió el 0.0 que produce el bug, porque ese 0.0 no es lo que nadie quiso escribir."
+    },
+    {
+      "id": "GIRASOL-C2H2-CERO",
+      "gravedad": "media",
+      "tipo": "valor sospechoso (las dos copias coinciden)",
+      "que": "El límite de acetileno del girasol es 0 ppm.",
+      "version_a": "rem_report.rb:715 — cro9_ori: \"0 - máximo\"",
+      "version_b": "rem_report_detail.rb:649 — cro9_ori: \"0 - máximo\"  (idéntico)",
+      "efecto": "Cualquier acetileno medible deja la muestra fuera de norma. Puede ser deliberado (en un éster no debería haber acetileno) o un 'sin dato' escrito como cero, que es exactamente el vicio que llenó de ceros la base vieja.",
+      "cuadros_afectados": [
+        "cromas_girasol"
+      ],
+      "que_hacer": "Transcrito tal cual. Confirmar si es un 0 real o un 'sin criterio'."
+    },
+    {
+      "id": "TENSION-TRUNCADA",
+      "gravedad": "media",
+      "tipo": "comportamiento de borde (las dos copias coinciden)",
+      "que": "La tensión se trunca a entero antes de compararla contra los cortes, y hay cortes con decimal.",
+      "version_a": "rem_report.rb:190-191 y 446-448: '@num_ten = self.num_ten.split(\"/\").map(&:to_f).max.to_i'",
+      "version_b": "rem_report_detail.rb:191-192 y 393-394: idéntico.",
+      "efecto": "Un equipo de 69.5 kV se compara como 69 y cae en la banda 'hasta 69' en vez de la de 69-230, con un límite de acidez más flojo (0.20 en vez de 0.15). Los cortes de éster son peores: '@num_ten <= 72.5' contra un entero es en realidad '<= 72', y la banda del medio arranca en 73. Además, cuando la tensión viene como '138/13.8' se toma el MÁXIMO de los tramos.",
+      "cuadros_afectados": [
+        "fiqui_mineral_hasta_69",
+        "fiqui_mineral_69_230",
+        "fiqui_ester_hasta_72_5",
+        "fiqui_ester_72_5_170"
+      ],
+      "que_hacer": "Decidir si el resolver nuevo reproduce el truncamiento (para que los informes históricos den lo mismo) o compara en decimal (correcto hacia adelante). Son cosas distintas y hay que elegir a propósito."
+    },
+    {
+      "id": "EQUIPO-13-SIN-RAMA-MINERAL",
+      "gravedad": "media",
+      "tipo": "incoherencia interna (las dos copias coinciden)",
+      "que": "El tipo de equipo 13 pasa las dos puertas de cromatografía pero no tiene rama propia con aceite mineral.",
+      "version_a": "rem_report.rb:518 lo deja pasar ('or @transformer_type_id.to_i == 13') y después la cadena de elsif solo pregunta por 2, 1, 3, 4, 5, 6, 7, 8 y 9 — cae al else de la línea 644 y sale todo en '-'.",
+      "version_b": "rem_report_detail.rb:452 y 578: idéntico.",
+      "efecto": "Un equipo tipo 13 con aceite mineral queda sin criterio de gases; el mismo equipo con silicona SÍ recibe el cuadro de silicona, porque ese se elige por aceite y no por tipo. El resultado depende del fluido de una forma que nadie escribió.",
+      "cuadros_afectados": [],
+      "que_hacer": "Averiguar qué equipo es el 13 (el mapa de ids de spec_limits_legacy.json lo llama 'transformador') y si debe reusar el cuadro de potencia."
+    },
+    {
+      "id": "REACTOR-NO-MINERAL-SIN-CUADRO",
+      "gravedad": "baja",
+      "tipo": "incoherencia interna (las dos copias coinciden)",
+      "que": "El reactor con cualquier aceite que no sea mineral queda sin límites de gases.",
+      "version_a": "rem_report.rb:488-514: dentro de la rama del reactor solo hay 'if oil == 1'; el else pone los nueve gases en '-'.",
+      "version_b": "rem_report_detail.rb:417-443: idéntico.",
+      "efecto": "Los cuadros de silicona, Midel, soya y girasol existen y no se le aplican al reactor, porque su rama se resuelve antes y nunca llega a la cadena por aceite. En fisicoquímico pasa lo contrario: el reactor SÍ recibe el cuadro de su aceite, porque esa puerta es 'tipo < 12' y no tiene rama propia de reactor. El mismo equipo se trata distinto en las dos pruebas.",
+      "cuadros_afectados": [
+        "cromas_reactor_mineral"
+      ],
+      "que_hacer": "Confirmar si al reactor con éster o silicona le corresponde el cuadro de su fluido."
+    },
+    {
+      "id": "CONMUTADOR-COMENTARIO-AL-REVES",
+      "gravedad": "baja",
+      "tipo": "comentario equivocado (las dos copias coinciden)",
+      "que": "Las dos ramas del conmutador están comentadas casi igual y una de las dos miente.",
+      "version_a": "rem_report.rb:248 dice 'CONDITIONS FOR CONMUTADOR <= 69 USADO' y rem_report.rb:263 dice 'CONDITIONS FOR CONMUTADOR < 69 USADO', pero la segunda es el else, o sea > 69.",
+      "version_b": "rem_report_detail.rb:197 y 212: los mismos dos comentarios.",
+      "efecto": "Ninguno en ejecución. Se registra porque ese comentario es la única pista escrita de qué rango cubre cada cuadro, y está mal: hay que leer la condición, no el comentario.",
+      "cuadros_afectados": [
+        "fiqui_conmutador_hasta_69",
+        "fiqui_conmutador_mas_69"
+      ],
+      "que_hacer": "Nada. El rango de este JSON sale de la condición."
+    },
+    {
+      "id": "SILICONA-AGUA-SIN-DECIMAL",
+      "gravedad": "baja",
+      "tipo": "formato (las dos copias coinciden)",
+      "que": "El agua de la silicona se escribe '100 - máximo' y todos los demás límites de agua llevan decimal ('35.0 - máximo').",
+      "version_a": "rem_report.rb:344",
+      "version_b": "rem_report_detail.rb:292",
+      "efecto": "Ninguno en el cálculo. Solo hace que la columna del informe se vea despareja.",
+      "cuadros_afectados": [
+        "fiqui_silicona"
+      ],
+      "que_hacer": "Nada. El valor numérico es 100 y quedó así; 'display' conserva el texto original."
     }
   ],
   "cuadros": [
@@ -2005,5 +2123,17 @@
       ],
       "norma_aceptacion": "IEC 610203-2025"
     }
+  ],
+  "pendientes": [
+    "EL PARÁMETRO 'con' NO TIENE CÓDIGO EN EL SISTEMA NUEVO. La condición visual (con_ori: 'Brillante y Claro', 'Claro y libre de partículas', 'Claro libre de sedimentos') se cargó con la clave 'con', que es la que usa el ejemplo del pedido y la que declara docs/migracion/03-NORMAS-Y-LIMITES.md sección 2 (code=con, 'Condición visual', direction=qualitative). PERO 'con' no figura en la lista de códigos de parámetro vigente ni en database/seeders/data/analytes.json (que tiene 15 códigos de fisicoquímico y ninguno cualitativo). Hay que darlo de alta como analito antes de sembrar este archivo, o el seeder no va a encontrar a qué parámetro atar esos 7 límites de texto.",
+    "PREFIJOS QUE EXISTEN COMO COLUMNA PERO NUNCA RECIBEN LÍMITE: r25 (rho25), r100 (rho100), vis (visc) y pol (dp). Tienen su columna en rem_report_details y su relación declarada en el modelo (rem_report_detail.rb:20, 21, 28 y 29), pero NINGÚN bloque de orientación les asigna valor: no aparecen ni en set_orientation_fiqui_values ni en set_orientation_croma_values. No es que falten en la extracción — el sistema viejo nunca tuvo criterio para ellos. Decidir si el laboratorio quiere límites de resistividad, viscosidad y grado de polimerización, o si se quedan sin cuadro.",
+    "GAP DE RIGIDEZ (RIG-GAP). 'rig' y 'rig_ep' quedaron como dos parámetros distintos porque lo eran en el sistema viejo, pero el Ruby nunca registra la separación de electrodos con la que se midió. Los límites de rig (35/40/45/47/50/60 kV) y los de rig_ep (25 kV) se transcribieron sin método asociado. Hasta que el laboratorio confirme el gap, ningún límite de rigidez puede llevar test_method. Es el punto 1 de docs/migracion/03-NORMAS-Y-LIMITES.md, sección 7.",
+    "QUÉ EQUIPO ES EL TIPO 13, y por qué pasa las dos puertas sin tener rama propia (ver la discrepancia EQUIPO-13-SIN-RAMA-MINERAL). El mapa de ids de spec_limits_legacy.json lo llama 'transformador', que no lo distingue de 'potencia' ni de 'distribución'.",
+    "QUÉ EQUIPO ES EL TIPO 12, y por qué está excluido de las dos puertas: la de fisicoquímico es 'tipo < 12' (rem_report.rb:281) y la de cromatografía 'tipo < 10' (rem_report.rb:517), así que el 12 no recibe nada en ninguna de las dos pruebas. El mapa de ids lo llama 'termovacío'; si es un proceso y no un equipo, la exclusión es correcta y hay que documentarla, no arreglarla.",
+    "SI LOS ACEITES 2, 3, 8 y 9 SON ALIAS DE MINERAL o fluidos distintos (ver ACEITES-2-3-8-9-SIN-CUADRO). De esto depende que 4 aceites tengan o no cuadro.",
+    "SI LAS BANDAS DE ÉSTER (72.5 y 170 kV) APLICAN AL GIRASOL (ver FIQUI-GIRASOL-SIN-CUADRO).",
+    "'IEC 610203-2025' NO ES UN NÚMERO DE NORMA IEC VÁLIDO. Aparece así en el código (rem_report.rb:226 y 236; rem_report_detail.rb:162 y 170) y también impreso en los informes (app/views/im_management/rem_reports/partials/_form_add_details_physicals_default_values.html.erb:137). Probablemente sea IEC 61203 o IEC 62770. Se transcribió literal en el campo 'standard' de los tres cuadros de éster porque corregirlo sería inventar. Verificarlo antes de imprimirlo en un informe firmado.",
+    "CUADROS DE ACEITE NUEVO (recepción): no existen. El Ruby solo tiene criterios de aceite en servicio. Si el laboratorio evalúa aceite de recepción contra otros valores, ese cuadro hay que pedirlo, no derivarlo de este archivo.",
+    "VIGENCIA (effective_from / effective_to): este archivo no la trae porque el sistema viejo no versiona cuadros. Al sembrar hay que decidir desde qué fecha rige cada uno; si se pone 'desde siempre', los informes históricos se recalculan con el criterio actual y se pierde justamente lo que la vigencia venía a arreglar (sección 3.3 del documento de diseño)."
   ]
 }

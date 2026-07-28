@@ -8,6 +8,7 @@ use App\Http\Controllers\LabManagement\WorksheetController;
 use App\Http\Controllers\LabManagement\QcChartController;
 use App\Http\Controllers\LabManagement\ReceptionController;
 use App\Http\Controllers\LabManagement\InstrumentFileController;
+use App\Http\Controllers\LabManagement\TestReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -284,6 +285,18 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         // De qué equipo se tomó la muestra, y qué pruebas se le piden.
         Route::patch('receptions/{reception}/samples/{sample}/equipment', [ReceptionController::class, 'assignEquipment'])->name('receptions.samples.equipment');
         Route::post('receptions/{reception}/tests', [ReceptionController::class, 'requestTests'])->name('receptions.tests');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | El informe de ensayo — lo que recibe el cliente
+    |----------------------------------------------------------------------
+    | Se gobierna por `receptions.view`: quien puede ver la entrega puede
+    | imprimir su informe. Emitirlo NO cambia nada de la muestra; solo deja
+    | constancia en el registro de auditoría.
+    */
+    Route::middleware('permission:receptions.view')->group(function () {
+        Route::get('samples/{sample}/report', [TestReportController::class, 'pdf'])->name('samples.report');
     });
 
     Route::middleware('permission:receptions.delete')->group(function () {

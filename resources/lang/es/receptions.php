@@ -89,6 +89,8 @@ return [
     'no_tests'         => 'Sin pruebas pedidas',
     'progress'         => 'Avance',
     'outstanding'      => 'Pendientes',
+    'report'      => 'Informe',
+    'report_help' => 'Abre el informe de ensayo de esta muestra en PDF. Solo incluye los ensayos ya validados.',
     'assign_tests'     => 'Asignar pruebas',
     'assign_to_all'    => 'Aplicar a todas las muestras',
     'assign_to_all_hint' => 'Lo que se marque REEMPLAZA el pedido de todas las muestras de esta entrega. Las pruebas que ya tienen trabajo hecho se conservan.',

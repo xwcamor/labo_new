@@ -22,7 +22,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Alert, Button, Card, Space, Tag, Tooltip } from 'ant-design-vue';
-import { EditOutlined, ExperimentOutlined, InboxOutlined, ThunderboltFilled } from '@ant-design/icons-vue';
+import { EditOutlined, ExperimentOutlined, FilePdfOutlined, InboxOutlined, ThunderboltFilled } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -85,6 +85,10 @@ const openForAll = () => {
     modalSample.value = null;
     modalOpen.value = true;
 };
+
+/** ¿Tiene al menos un ensayo firmado? Es la condición para poder informar. */
+const hasValidated = (sample) => (sample.tests ?? [])
+    .some((t) => ['validated', 'reported'].includes(t.status));
 
 // ── Tabla de muestras ────────────────────────────────────────────────────
 const columns = computed(() => [
@@ -255,13 +259,28 @@ const columns = computed(() => [
                     </template>
 
                     <template v-else-if="column.key === 'actions'">
-                        <Button
-                            v-if="canEdit"
-                            size="small"
-                            @click="openForSample(record)"
-                        >
-                            {{ $t('receptions.assign_tests') }}
-                        </Button>
+                        <Space :size="6">
+                            <Button
+                                v-if="canEdit"
+                                size="small"
+                                @click="openForSample(record)"
+                            >
+                                {{ $t('receptions.assign_tests') }}
+                            </Button>
+                            <!-- El informe se ofrece solo cuando hay algo
+                                 firmado que informar. Un botón que abre un
+                                 informe vacío se lee como que el ensayo dio
+                                 cero. -->
+                            <Tooltip v-if="hasValidated(record)" :title="$t('receptions.report_help')">
+                                <Button
+                                    size="small"
+                                    :href="route('lab_management.samples.report', record.slug)"
+                                    target="_blank"
+                                >
+                                    <FilePdfOutlined /> {{ $t('receptions.report') }}
+                                </Button>
+                            </Tooltip>
+                        </Space>
                     </template>
                 </template>
             </ResponsiveTable>

@@ -75,6 +75,8 @@ return [
     'no_tests' => 'No tests requested',
     'progress' => 'Progress',
     'outstanding' => 'Outstanding',
+    'report'      => 'Report',
+    'report_help' => 'Opens this sample test report as a PDF. It only includes tests already validated.',
     'assign_tests' => 'Assign tests',
     'assign_to_all' => 'Apply to every sample',
     'assign_to_all_hint' => 'What is ticked REPLACES the requested tests on every sample of this delivery. Tests that already have work done are kept.',

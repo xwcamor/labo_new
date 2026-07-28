@@ -14,13 +14,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
- * Analyte — catálogo de marcas/fabricantes de transformadores (ABB, Siemens…).
+ * Analyte — el parámetro que se mide (acidez, rigidez, H2, CH4…).
  *
- * Metadato descriptivo del transformador (NO es eje de diagnóstico). Es un
- * catálogo PER-TENANT: cada workspace tiene su propio catálogo de marcas, por
- * eso usa BelongsToTenantOrGlobal (con bypass de super). Mantiene SoftDeletes + Auditable
- * + HasFavorites. Campos: `name`, `code` (slug técnico), `sort_order`, `is_active`,
- * `tenant_id`.
+ * Es la pieza que el sistema Rails viejo NO tenía, y su ausencia es la razón
+ * por la que hacía falta una tabla de 221 columnas: sin un concepto de
+ * "parámetro", el "Hidrógeno H2 ppm" de la hoja de cromatografía y el H2 del
+ * informe son dos textos sin relación, y solo se los puede unir con una
+ * columna fija por cada uno.
+ *
+ * `direction` dice hacia dónde es peor: la acidez sube (lower_better), la
+ * rigidez baja (higher_better). Lo usa la evaluación contra el límite.
  */
 class Analyte extends Model
 {
@@ -29,13 +32,15 @@ class Analyte extends Model
     protected string $auditModule = 'analytes';
 
     protected $fillable = [
-        'slug', 'name', 'code', 'is_active', 'sort_order', 'tenant_id',
+        'slug', 'code', 'name', 'unit', 'decimals', 'group', 'direction',
+        'sort_order', 'is_active', 'tenant_id',
         'created_by', 'deleted_by', 'deleted_description',
     ];
 
     protected $casts = [
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
+        'decimals'   => 'integer',
     ];
 
     /** Transformadores de esta marca (FK directa analyte_id). */

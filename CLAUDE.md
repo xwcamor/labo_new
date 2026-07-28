@@ -3,10 +3,13 @@
 > Migración del sistema Rails de 2019 (`xwcamor/labo_old`) a Laravel, sobre el
 > núcleo de TrafoDex (`xwcamor/trafodex`).
 >
-> **El plan vive en [`docs/migracion/`](docs/migracion/00-PLAN-MAESTRO.md)** —
-> 13 fases, decisiones cerradas, riesgos. Empezar por ahí.
-> El análisis del sistema viejo queda en `labo_old/docs/migracion/01-*` porque
-> documenta ese repo, no éste.
+> **Todo el plan vive en [`docs/migracion/`](docs/migracion/00-PLAN-MAESTRO.md)** —
+> 13 fases, decisiones cerradas, riesgos, el análisis del sistema viejo y el
+> volcado de su esquema. Empezar por ahí.
+>
+> **`labo_old` y `trafodex` no se tocan.** Decisión del dueño: este repo es el
+> único que se modifica. El análisis de `labo_old` y lo que TrafoDex tiene que
+> construir para la integración están acá, en `docs/migracion/01-*` y `06-*`.
 
 ---
 

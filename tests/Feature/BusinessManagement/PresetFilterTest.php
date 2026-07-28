@@ -5,7 +5,7 @@ namespace Tests\Feature\BusinessManagement;
 use App\Models\Customer;
 use App\Models\OilType;
 use App\Models\Transformer;
-use App\Models\TransformerType;
+use App\Models\EquipmentType;
 use App\Models\User;
 use Database\Seeders\DiagnosticCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +47,7 @@ class PresetFilterTest extends TestCase
         $t = (new Transformer())->forceFill([
             'slug' => 'tr-' . uniqid(), 'serial' => Str::random(6), 'tag' => 'T',
             'oil_type_id' => OilType::where('code', 'mineral')->value('id'),
-            'transformer_type_id' => TransformerType::where('code', 'potencia')->value('id'),
+            'equipment_type_id' => EquipmentType::where('code', 'potencia')->value('id'),
             'health_rating' => $rating, 'tenant_id' => 1, 'created_by' => $this->admin->id,
         ]);
         $t->save();

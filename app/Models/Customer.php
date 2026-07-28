@@ -68,8 +68,21 @@ class Customer extends Model
         return $this->hasManyThrough(CustomerArea::class, CustomerLocation::class);
     }
 
-    /** Transformadores del cliente (FK directa customer_id) — para conteos. */
-    // Fase 1: reemplazada por equipment() cuando exista el modelo Equipment.
+    // Fase 1: acá va equipment() — los equipos del cliente por FK directa,
+    // para los conteos del listado. Reemplaza a la relación transformers()
+    // que traía TrafoDex.
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->slug)) {
+                do {
+                    $slug = Str::random(22);
+                } while (static::withTrashed()->where('slug', $slug)->exists());
+                $model->slug = $slug;
+            }
+        });
+    }
 
     public function getRouteKeyName(): string
     {
@@ -137,7 +150,9 @@ class Customer extends Model
             match ($request->customer_group) {
                 'active'     => $q->where("{$tbl}.is_active", true),
                 'inactive'   => $q->where("{$tbl}.is_active", false),
-                                                default      => null,
+                // Fase 1: 'with_eq' / 'without_eq' cuando exista la relación
+                // equipment(). Declararlos antes rompería en tiempo de ejecución.
+                default      => null,
             };
         });
 

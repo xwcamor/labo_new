@@ -42,7 +42,7 @@ return [
     // Barra de norma + condiciones por prueba.
     'applies_by'        => 'Se aplica según:',
     'cond_oil'              => 'Aceite',
-    'cond_transformer_type' => 'Tipo de trafo',
+    'cond_equipment_type' => 'Tipo de trafo',
     'cond_voltage_class'    => 'Clase de tensión',
     'link_sets'             => 'Cuadros de reglas',
     'link_fiquis_thresholds' => 'Umbrales',

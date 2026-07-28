@@ -79,7 +79,7 @@ class OilTypeCrudTest extends TestCase
         $var    = \App\Models\Variable::query()->value('id');
         $source = OilType::create(['name' => 'Origen', 'code' => 'origen', 'is_active' => true]);
         $set = \App\Models\RuleSet::create([
-            'test_id' => $cromas, 'oil_type_id' => $source->id, 'transformer_type_id' => null,
+            'test_id' => $cromas, 'oil_type_id' => $source->id, 'equipment_type_id' => null,
             'standard_id' => null, 'total_weight' => 2, 'label' => 'Base', 'is_active' => true,
         ]);
         $rule = \App\Models\Rule::create([
@@ -112,7 +112,7 @@ class OilTypeCrudTest extends TestCase
 
         $withRules = OilType::create(['name' => 'Con Reglas', 'code' => 'con_reglas', 'is_active' => true]);
         $set = \App\Models\RuleSet::create([
-            'test_id' => $cromas, 'oil_type_id' => $withRules->id, 'transformer_type_id' => null,
+            'test_id' => $cromas, 'oil_type_id' => $withRules->id, 'equipment_type_id' => null,
             'standard_id' => null, 'total_weight' => 2, 'label' => 'Base', 'is_active' => true,
         ]);
         \App\Models\Rule::create([

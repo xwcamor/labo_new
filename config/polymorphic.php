@@ -23,9 +23,9 @@
 */
 return [
     'modules' => [
-        'transformer_types' => [
-            'model'      => \App\Models\TransformerType::class,
-            'show_route' => 'business_management.transformer_types.show',
+        'equipment_types' => [
+            'model'      => \App\Models\EquipmentType::class,
+            'show_route' => 'business_management.equipment_types.show',
         ],
         'regions' => [
             'model'      => \App\Models\Region::class,

@@ -102,7 +102,7 @@ class RolesAndPermissionsSeeder extends Seeder
             );
         };
 
-        // Módulos de DATOS de negocio (excluye oil_types/transformer_types/
+        // Módulos de DATOS de negocio (excluye oil_types/equipment_types/
         // tap_changer_types: son globales super-only y no se ofrecen a perfiles).
         $bizModules = ['customers', 'transformers', 'brands', 'laboratories',
             'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies'];

@@ -11,7 +11,7 @@ use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Subscription;
 use App\Models\Tenant;
-use App\Models\TransformerType;
+use App\Models\EquipmentType;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

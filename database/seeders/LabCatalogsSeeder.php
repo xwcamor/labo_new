@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\OilType;
-use App\Models\TransformerType;
+use App\Models\EquipmentType;
 use Illuminate\Database\Seeder;
 
 /**
@@ -74,7 +74,7 @@ class LabCatalogsSeeder extends Seeder
             ['id' => 19, 'code' => 'magneto',           'name' => 'Magneto',            'shape' => 'dry'],
             ['id' => 20, 'code' => 'intercambiador',    'name' => 'Intercambiador',     'shape' => 'dry'],
         ] as $i => $row) {
-            TransformerType::withTrashed()->updateOrCreate(
+            EquipmentType::withTrashed()->updateOrCreate(
                 ['id' => $row['id']],
                 $row + ['sort_order' => $i + 1, 'is_active' => $row['is_active'] ?? true]
             );

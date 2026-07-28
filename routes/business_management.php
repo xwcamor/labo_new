@@ -8,7 +8,7 @@ use App\Http\Controllers\BusinessManagement\TapChangerModelController;
 use App\Http\Controllers\BusinessManagement\TapChangerBrandController;
 use App\Http\Controllers\BusinessManagement\LaboratoryController;
 use App\Http\Controllers\BusinessManagement\TapChangerTypeController;
-use App\Http\Controllers\BusinessManagement\TransformerTypeController;
+use App\Http\Controllers\BusinessManagement\EquipmentTypeController;
 use App\Http\Controllers\BusinessManagement\ReportShareController;
 use App\Http\Controllers\BusinessManagement\ReportShareLogController;
 use App\Http\Controllers\BusinessManagement\OilTypeController;
@@ -647,75 +647,75 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     });
     }); // fin TapChangerTypes (role:super)
 
-    // ── TransformerTypes ── (tipo de trafo: catálogo interno del motor, SOLO super)
+    // ── EquipmentTypes ── (tipo de trafo: catálogo interno del motor, SOLO super)
     // Todo el módulo va dentro de un grupo role:super: el admin del workspace no
     // lo ve en el sidebar ni puede navegar por URL directa.
     Route::middleware('role:super')->group(function () {
 
     // 1) Trash + restore + force_delete (super only — defense in depth)
     Route::middleware('role:super')->group(function () {
-        Route::get('transformer_types/trash',                  [TransformerTypeController::class, 'trash'])->name('transformer_types.trash');
-        Route::post('transformer_types/bulk_restore',          [TransformerTypeController::class, 'bulkRestore'])->name('transformer_types.bulk_restore');
-        Route::post('transformer_types/{slug}/restore',        [TransformerTypeController::class, 'restore'])->name('transformer_types.restore');
-        Route::get('transformer_types/{slug}/restore',         fn () => redirect()->route('business_management.transformer_types.trash'));
-        Route::delete('transformer_types/{slug}/force_delete', [TransformerTypeController::class, 'forceDelete'])->name('transformer_types.force_delete');
+        Route::get('equipment_types/trash',                  [EquipmentTypeController::class, 'trash'])->name('equipment_types.trash');
+        Route::post('equipment_types/bulk_restore',          [EquipmentTypeController::class, 'bulkRestore'])->name('equipment_types.bulk_restore');
+        Route::post('equipment_types/{slug}/restore',        [EquipmentTypeController::class, 'restore'])->name('equipment_types.restore');
+        Route::get('equipment_types/{slug}/restore',         fn () => redirect()->route('business_management.equipment_types.trash'));
+        Route::delete('equipment_types/{slug}/force_delete', [EquipmentTypeController::class, 'forceDelete'])->name('equipment_types.force_delete');
     });
 
     // 2) Exports (gated por plan_feature por formato)
-    Route::middleware('permission:transformer_types.view')->group(function () {
+    Route::middleware('permission:equipment_types.view')->group(function () {
         Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
-            ->post('transformer_types/export_excel', [TransformerTypeController::class, 'exportExcel'])->name('transformer_types.export_excel');
+            ->post('equipment_types/export_excel', [EquipmentTypeController::class, 'exportExcel'])->name('equipment_types.export_excel');
         Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
-            ->post('transformer_types/export_pdf',   [TransformerTypeController::class, 'exportPdf'])->name('transformer_types.export_pdf');
+            ->post('equipment_types/export_pdf',   [EquipmentTypeController::class, 'exportPdf'])->name('equipment_types.export_pdf');
         Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
-            ->post('transformer_types/export_word',  [TransformerTypeController::class, 'exportWord'])->name('transformer_types.export_word');
+            ->post('equipment_types/export_word',  [EquipmentTypeController::class, 'exportWord'])->name('equipment_types.export_word');
         Route::middleware('throttle:5,1')
-            ->post('transformer_types/export_csv',   [TransformerTypeController::class, 'exportCsv'])->name('transformer_types.export_csv');
+            ->post('equipment_types/export_csv',   [EquipmentTypeController::class, 'exportCsv'])->name('equipment_types.export_csv');
     });
 
     // 3) Imports
-    Route::middleware(['permission:transformer_types.create', 'plan_feature:bulk_operations'])->group(function () {
-        Route::post('transformer_types/import',          [TransformerTypeController::class, 'import'])->name('transformer_types.import');
-        Route::get('transformer_types/import_template',  [TransformerTypeController::class, 'importTemplate'])->name('transformer_types.import_template');
+    Route::middleware(['permission:equipment_types.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('equipment_types/import',          [EquipmentTypeController::class, 'import'])->name('equipment_types.import');
+        Route::get('equipment_types/import_template',  [EquipmentTypeController::class, 'importTemplate'])->name('equipment_types.import_template');
     });
 
     // 4) Bulk operations
-    Route::middleware(['permission:transformer_types.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
-        Route::post('transformer_types/bulk_delete',     [TransformerTypeController::class, 'bulkDelete'])->name('transformer_types.bulk_delete');
-        Route::post('transformer_types/bulk_set_active', [TransformerTypeController::class, 'bulkSetActive'])->name('transformer_types.bulk_set_active');
+    Route::middleware(['permission:equipment_types.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('equipment_types/bulk_delete',     [EquipmentTypeController::class, 'bulkDelete'])->name('equipment_types.bulk_delete');
+        Route::post('equipment_types/bulk_set_active', [EquipmentTypeController::class, 'bulkSetActive'])->name('equipment_types.bulk_set_active');
     });
 
     // Undo del ultimo borrado (60s window)
-    Route::middleware('permission:transformer_types.delete')->group(function () {
-        Route::post('transformer_types/undo_last_delete', [TransformerTypeController::class, 'undoLastDelete'])->name('transformer_types.undo_last_delete');
+    Route::middleware('permission:equipment_types.delete')->group(function () {
+        Route::post('equipment_types/undo_last_delete', [EquipmentTypeController::class, 'undoLastDelete'])->name('equipment_types.undo_last_delete');
     });
 
     // Edit All
-    Route::middleware('permission:transformer_types.edit')->group(function () {
-        Route::get('transformer_types/edit_all',         [TransformerTypeController::class, 'editAll'])->name('transformer_types.edit_all');
-        Route::post('transformer_types/edit_all/update', [TransformerTypeController::class, 'editAllUpdate'])->name('transformer_types.edit_all.update');
+    Route::middleware('permission:equipment_types.edit')->group(function () {
+        Route::get('equipment_types/edit_all',         [EquipmentTypeController::class, 'editAll'])->name('equipment_types.edit_all');
+        Route::post('equipment_types/edit_all/update', [EquipmentTypeController::class, 'editAllUpdate'])->name('equipment_types.edit_all.update');
     });
 
     // 5) CRUD principal — paths estaticos PRIMERO.
-    Route::middleware('permission:transformer_types.create')->group(function () {
-        Route::get('transformer_types/create', [TransformerTypeController::class, 'create'])->name('transformer_types.create');
-        Route::post('transformer_types',       [TransformerTypeController::class, 'store'])->name('transformer_types.store');
-        Route::post('transformer_types/{transformerType}/duplicate', [TransformerTypeController::class, 'duplicate'])->name('transformer_types.duplicate');
+    Route::middleware('permission:equipment_types.create')->group(function () {
+        Route::get('equipment_types/create', [EquipmentTypeController::class, 'create'])->name('equipment_types.create');
+        Route::post('equipment_types',       [EquipmentTypeController::class, 'store'])->name('equipment_types.store');
+        Route::post('equipment_types/{equipmentType}/duplicate', [EquipmentTypeController::class, 'duplicate'])->name('equipment_types.duplicate');
     });
 
-    Route::middleware('permission:transformer_types.view')->group(function () {
-        Route::get('transformer_types',                [TransformerTypeController::class, 'index'])->name('transformer_types.index');
-        Route::get('transformer_types/{transformerType}',  [TransformerTypeController::class, 'show'])->name('transformer_types.show');
+    Route::middleware('permission:equipment_types.view')->group(function () {
+        Route::get('equipment_types',                [EquipmentTypeController::class, 'index'])->name('equipment_types.index');
+        Route::get('equipment_types/{equipmentType}',  [EquipmentTypeController::class, 'show'])->name('equipment_types.show');
     });
-    Route::middleware('permission:transformer_types.edit')->group(function () {
-        Route::get('transformer_types/{transformerType}/edit', [TransformerTypeController::class, 'edit'])->name('transformer_types.edit');
-        Route::put('transformer_types/{transformerType}',      [TransformerTypeController::class, 'update'])->name('transformer_types.update');
+    Route::middleware('permission:equipment_types.edit')->group(function () {
+        Route::get('equipment_types/{equipmentType}/edit', [EquipmentTypeController::class, 'edit'])->name('equipment_types.edit');
+        Route::put('equipment_types/{equipmentType}',      [EquipmentTypeController::class, 'update'])->name('equipment_types.update');
     });
-    Route::middleware('permission:transformer_types.delete')->group(function () {
-        Route::get('transformer_types/{transformerType}/delete',        [TransformerTypeController::class, 'delete'])->name('transformer_types.delete');
-        Route::delete('transformer_types/{transformerType}/deleteSave', [TransformerTypeController::class, 'deleteSave'])->name('transformer_types.deleteSave');
+    Route::middleware('permission:equipment_types.delete')->group(function () {
+        Route::get('equipment_types/{equipmentType}/delete',        [EquipmentTypeController::class, 'delete'])->name('equipment_types.delete');
+        Route::delete('equipment_types/{equipmentType}/deleteSave', [EquipmentTypeController::class, 'deleteSave'])->name('equipment_types.deleteSave');
     });
-    }); // fin TransformerTypes (role:super)
+    }); // fin EquipmentTypes (role:super)
 
 
     // ── Analytes ──

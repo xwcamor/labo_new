@@ -70,7 +70,7 @@ class ReportShareService
         if ($share->isFleet()) {
             // Eager-load + solo columnas necesarias: el listado lee HI cacheado
             // (fleetRow), sin N+1 ni recalcular diagnóstico.
-            $q = Transformer::with('customer:id,name', 'transformerType:id,name')
+            $q = Transformer::with('customer:id,name', 'equipmentType:id,name')
                 ->where('customer_id', $share->customer_id);
             if (!empty($share->transformer_ids)) {
                 $q->whereIn('id', $share->transformer_ids);
@@ -131,7 +131,7 @@ class ReportShareService
             'serial'    => $transformer->serial,
             'tag'       => $transformer->tag,
             'customer'  => $transformer->customer?->name,
-            'type'      => $transformer->transformerType?->name,
+            'type'      => $transformer->equipmentType?->name,
             'index'     => $transformer->health_index !== null ? (int) round($transformer->health_index) : null,
             'condition' => $condition,
             'color'     => $color,
@@ -146,14 +146,14 @@ class ReportShareService
         // oilType->code (string). Sin él, evaluate() devuelve null y fiquis sale
         // como "Sin datos" en el portal aunque tenga muestras. (cromas usa la FK
         // oil_type_id, por eso no se afectaba — de ahí el "solo sale cromas").
-        $transformer->loadMissing('customer:id,name', 'oilType:id,name,code', 'transformerType:id,name,code');
+        $transformer->loadMissing('customer:id,name', 'oilType:id,name,code', 'equipmentType:id,name,code');
         $hi = $this->hi->evaluate($transformer, persist: false)->toArray();
 
         return [
             'serial'     => $transformer->serial,
             'tag'        => $transformer->tag,
             'customer'   => $transformer->customer?->name,
-            'type'       => $transformer->transformerType?->name,
+            'type'       => $transformer->equipmentType?->name,
             'oil'        => $transformer->oilType?->name,
             'voltage_kv' => $transformer->voltage_kv,
             'power_mva'  => $transformer->power_mva,

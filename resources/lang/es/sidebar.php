@@ -20,7 +20,7 @@ return [
     // Grupo: Condiciones de diagnóstico (catálogos editables del motor)
     'group_diagnostics'  => 'Condiciones de diagnóstico',
     'oil_types'          => 'Tipos de aceite',
-    'transformer_types'  => 'Tipos de transformador',
+    'equipment_types'  => 'Tipos de transformador',
     'diagnostic_rules'   => 'Reglas de diagnóstico',
     'brands'             => 'Marcas',
     'tap_changer_types'  => 'Tipos de conmutador',

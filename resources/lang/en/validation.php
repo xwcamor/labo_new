@@ -212,7 +212,7 @@ return [
         'locale_id'                   => 'language',
         'role_id'                     => 'role',
         'brand_id'                    => 'brand',
-        'transformer_type_id'         => 'transformer type',
+        'equipment_type_id'         => 'transformer type',
         'transformer_preservation_id' => 'preservation',
         'connection_type_id'          => 'connection type',
         'customer_substation_id'      => 'substation',

@@ -5,7 +5,7 @@ namespace Tests\Feature\BusinessManagement;
 use App\Models\Comment;
 use App\Models\OilType;
 use App\Models\Transformer;
-use App\Models\TransformerType;
+use App\Models\EquipmentType;
 use App\Models\User;
 use Database\Seeders\DiagnosticCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,7 +50,7 @@ class CommentTest extends TestCase
         $this->transformer = (new Transformer())->forceFill([
             'slug' => 'tr-' . uniqid(), 'serial' => 'S1', 'tag' => 'TR',
             'oil_type_id' => OilType::where('code', 'mineral')->value('id'),
-            'transformer_type_id' => TransformerType::where('code', 'potencia')->value('id'),
+            'equipment_type_id' => EquipmentType::where('code', 'potencia')->value('id'),
             'tenant_id' => 1, 'created_by' => $this->admin->id,
         ]);
         $this->transformer->save();

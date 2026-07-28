@@ -23,7 +23,7 @@ class AuditLogController extends Controller
         'users', 'roles', 'brands', 'customers', 'transformers',
         // Catálogos de diagnóstico que el admin gestiona (laboratorio, aceites,
         // tipos de trafo y conmutador): también debe poder auditarlos.
-        'laboratories', 'oil_types', 'transformer_types',
+        'laboratories', 'oil_types', 'equipment_types',
         'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies', 'tap_changer_types',
     ];
 

@@ -20,7 +20,7 @@ return [
     // Group: Diagnostic conditions (editable engine catalogs)
     'group_diagnostics'  => 'Diagnostic conditions',
     'oil_types'          => 'Oil types',
-    'transformer_types'  => 'Transformer types',
+    'equipment_types'  => 'Transformer types',
     'diagnostic_rules'   => 'Diagnostic rules',
     'brands'             => 'Brands',
     'tap_changer_types'  => 'Tap changer types',

@@ -61,7 +61,7 @@
         <thead>
             <tr>
                 <th class="sortable" data-sort="serial">{{ __('transformers.serial') }} <span class="arrow">&#8597;</span></th>
-                <th>{{ __('transformers.transformer_type') }}</th>
+                <th>{{ __('transformers.equipment_type') }}</th>
                 <th class="sortable" data-sort="hi">{{ __('transformers.health_index') }} <span class="arrow">&#8597;</span></th>
                 <th class="sortable" data-sort="sev">{{ __('transformers.health_state') }} <span class="arrow">&#8597;</span></th>
                 <th></th>

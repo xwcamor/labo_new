@@ -9,15 +9,16 @@ use Illuminate\Support\Facades\Schema;
  *
  * Reemplaza a `create_diagnostic_catalogs_tables` de TrafoDex, que creaba
  * cuatro tablas: `oil_types`, `transformer_types`, `standards` y `tests`.
- * Las dos primeras SÍ son del laboratorio y se conservan; `standards` y
- * `tests` eran del motor de diagnóstico y se rehacen en la fase 2 con otro
- * esquema (`standards` gana `kind`, `edition` y `superseded_by_id`).
+ * Las dos primeras SÍ son del laboratorio y se conservan (la segunda ya
+ * renombrada a `equipment_types`); `standards` y `tests` eran del motor de
+ * diagnóstico y se rehacen en la fase 2 con otro esquema (`standards` gana
+ * `kind`, `edition` y `superseded_by_id`).
  *
- * PENDIENTE DE LA FASE 1: `transformer_types` pasa a llamarse
- * `equipment_types`. El laboratorio recibe muestras de 20 tipos de equipo, no
- * solo transformadores; el nombre actual se mantiene para no romper el módulo
- * heredado (controlador, servicio, jobs, exports y páginas Vue) antes de
- * tiempo. El rename se hace completo, con su migración de datos.
+ * `equipment_types`, no `transformer_types`: el laboratorio recibe muestras de
+ * 20 tipos de equipo (conmutadores, reactores, bushings, cables,
+ * interruptores, electrobombas, intercambiadores…), no solo transformadores.
+ * Llamarlo "transformador" es lo que llevó al `if tipo == 10` del sistema
+ * viejo.
  */
 return new class extends Migration {
     public function up(): void
@@ -36,7 +37,7 @@ return new class extends Migration {
             $table->softDeletes();
         });
 
-        Schema::create('transformer_types', function (Blueprint $table) {
+        Schema::create('equipment_types', function (Blueprint $table) {
             $table->id();
             $table->string('slug', 22)->nullable()->unique();
             $table->string('code', 40)->nullable()->unique();
@@ -54,7 +55,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('transformer_types');
+        Schema::dropIfExists('equipment_types');
         Schema::dropIfExists('oil_types');
     }
 };

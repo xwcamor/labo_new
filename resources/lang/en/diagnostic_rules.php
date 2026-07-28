@@ -42,7 +42,7 @@ return [
     // Norm + conditions bar per test.
     'applies_by'        => 'Applies by:',
     'cond_oil'              => 'Oil',
-    'cond_transformer_type' => 'Transformer type',
+    'cond_equipment_type' => 'Transformer type',
     'cond_voltage_class'    => 'Voltage class',
     'link_sets'             => 'Rule sets',
     'link_fiquis_thresholds' => 'Thresholds',

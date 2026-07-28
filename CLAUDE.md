@@ -43,7 +43,7 @@ Los archivos afectados: `CustomerCrudTest`, `CustomerCountSortTest`,
 `CustomerCountrySortTest`, `CustomerExportTest`, `CustomerFlatFilterTest`,
 `CustomerScopedAccessTest`, `CommentTest`, `ExportPdfTemplatesTest`,
 `ImportExportPermissionTest`, `OilTypeCrudTest`, `PresetFilterTest`,
-`RecordLockTest`, `TransformerTypeCrudTest`, `SearchTest`.
+`RecordLockTest`, `EquipmentTypeCrudTest`, `SearchTest`.
 
 > El scaffold generó `Analyte` sin pruebas, porque su master `Brand` tampoco
 > las tiene. Vale agregarle una suite a `Brand` antes de generar los módulos

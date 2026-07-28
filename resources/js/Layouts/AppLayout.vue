@@ -15,7 +15,7 @@ import enUS from 'ant-design-vue/es/locale/en_US';
 import { h } from 'vue';
 import RotatePortraitOverlay from '@/Components/Common/RotatePortraitOverlay.vue';
 import GlobalSearch from '@/Components/GlobalSearch.vue';
-import TransformerIcon from '@/Components/Transformers/TransformerIcon.vue';
+import EquipmentIcon from '@/Components/Equipment/EquipmentIcon.vue';
 import { useI18n } from '@/Plugins/i18n';
 
 const { t } = useI18n();
@@ -452,7 +452,7 @@ const selectedKey = computed(() => {
         ['customers',          '/customers'],
         ['oil_types',          '/oil_types'],
         ['brands',             '/brands'],
-        ['transformer_types',  '/transformer_types'],
+        ['equipment_types',  '/equipment_types'],
         ['tap_changer_types',  '/tap_changer_types'],
         ['tap_changer_brands',       '/tap_changer_brands'],
         ['tap_changer_models',       '/tap_changer_models'],
@@ -683,8 +683,8 @@ const menuStructure = computed(() => [
                 visible: () => hasRole('super'),
             },
             {
-                key: 'transformer_types', label: t('sidebar.transformer_types'), icon: AppstoreOutlined,
-                href: route('business_management.transformer_types.index'), inertia: true,
+                key: 'equipment_types', label: t('sidebar.equipment_types'), icon: AppstoreOutlined,
+                href: route('business_management.equipment_types.index'), inertia: true,
                 visible: () => hasRole('super'),
             },
             {

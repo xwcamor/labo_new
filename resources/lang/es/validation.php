@@ -212,7 +212,7 @@ return [
         'locale_id'                   => 'idioma',
         'role_id'                     => 'rol',
         'brand_id'                    => 'marca',
-        'transformer_type_id'         => 'tipo de transformador',
+        'equipment_type_id'         => 'tipo de transformador',
         'transformer_preservation_id' => 'preservación',
         'connection_type_id'          => 'tipo de conexión',
         'customer_substation_id'      => 'subestación',

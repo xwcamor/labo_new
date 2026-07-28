@@ -629,7 +629,7 @@ class RoleController extends Controller
     /**
      * Módulos que NO se ofrecen como permisos en el form de perfiles. Dos motivos:
      *
-     *  1. Catálogos GLOBALES super-only (oil_types/transformer_types/
+     *  1. Catálogos GLOBALES super-only (oil_types/equipment_types/
      *     tap_changer_types): sus rutas están gateadas por `role:super`, no por
      *     `permission:*`, así que asignarlos a un perfil no haría nada útil.
      *  2. GESTIÓN DE ACCESOS (users/roles): el SUPER y el ADMIN ya tienen acceso
@@ -640,7 +640,7 @@ class RoleController extends Controller
      * NOTA (futuro): si alguno se libera para gestión por tenant, basta sacarlo
      * de esta lista y reaparece solo en el form.
      */
-    protected array $superOnlyPermissionModules = ['oil_types', 'transformer_types', 'tap_changer_types', 'users', 'roles'];
+    protected array $superOnlyPermissionModules = ['oil_types', 'equipment_types', 'tap_changer_types', 'users', 'roles'];
 
     protected function assignablePermissions($user)
     {

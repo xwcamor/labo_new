@@ -45,7 +45,7 @@ class SystemModulesSeeder extends Seeder
             // reproducibles para installs frescos. firstOrCreate = idempotente.)
             ['name' => 'Transformers',     'permission_key' => 'transformers'],
             ['name' => 'OilTypes',         'permission_key' => 'oil_types'],
-            ['name' => 'TransformerTypes', 'permission_key' => 'transformer_types'],
+            ['name' => 'EquipmentTypes', 'permission_key' => 'equipment_types'],
             ['name' => 'Brands',           'permission_key' => 'brands'],
             ['name' => 'TapChangerTypes',  'permission_key' => 'tap_changer_types'],
             ['name' => 'TapChangerTechnologies', 'permission_key' => 'tap_changer_technologies'],

@@ -100,8 +100,8 @@ return [
             'days'  => 90,
         ],
         // 'equipment' se registra en la fase 1, cuando exista el modelo.
-        'transformer_types' => [
-            'model' => \App\Models\TransformerType::class,
+        'equipment_types' => [
+            'model' => \App\Models\EquipmentType::class,
             'days'  => 90,
         ],
         'brands' => [

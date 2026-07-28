@@ -7,7 +7,7 @@ use App\Models\Customer;
 use App\Models\OilType;
 use App\Models\TapChangerType;
 use App\Models\Transformer;
-use App\Models\TransformerType;
+use App\Models\EquipmentType;
 use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
@@ -26,7 +26,7 @@ class ExportPdfTemplatesTest extends TestCase
             'oil_types'         => ['business_management.oil_types.pdf.template', 'oil_types', OilType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
             'brands'            => ['business_management.brands.pdf.template', 'brands', Brand::class, ['id', 'name', 'code', 'is_active', 'created_at']],
             'tap_changer_types' => ['business_management.tap_changer_types.pdf.template', 'tap_changer_types', TapChangerType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
-            'transformer_types' => ['business_management.transformer_types.pdf.template', 'transformer_types', TransformerType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
+            'equipment_types' => ['business_management.equipment_types.pdf.template', 'equipment_types', EquipmentType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
             'transformers'      => ['business_management.transformers.pdf.template', 'transformers', Transformer::class, ['id', 'serial', 'tag', 'is_active', 'created_at']],
         ];
     }

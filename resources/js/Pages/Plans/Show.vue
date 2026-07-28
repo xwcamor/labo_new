@@ -167,9 +167,10 @@ const tenantColumns = computed(() => [
                         <div class="spec-grid">
                             <!-- El id de la base es para dar soporte. El slug NO: en los
                                  planes es el identificador que se usa para contratarlos. -->
-                            <p v-if="isSuper" class="spec-ids">
-                                <span><b>ID</b> {{ plan.id }}</span>
-                            </p>
+                            <div v-if="isSuper" class="spec-cell spec-cell--id">
+                                <span class="spec-cell__label">ID</span>
+                                <span class="spec-cell__value">{{ plan.id }}</span>
+                            </div>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('plans.slug') }}</span>
                                 <span class="spec-cell__value"><code class="muted">{{ plan.slug }}</code></span>

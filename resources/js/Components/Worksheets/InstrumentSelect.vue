@@ -19,6 +19,17 @@ const props = defineProps({
     instruments: { type: Array,   default: () => [] },
     value:       { type: [Number, String, null], default: null },
     disabled:    { type: Boolean, default: false },
+    /**
+     * Qué se ve con la celda CERRADA: 'name' muestra "Bureta PP-LA-01C-100",
+     * 'code' solo "PP-LA-01C-100".
+     *
+     * En la grilla del analista el nombre repetido en cada fila estiraba la
+     * columna hasta que la fila no entraba en la pantalla, y no aportaba nada:
+     * el nombre del instrumento ya está en el encabezado de la columna. El
+     * desplegable ABIERTO sigue mostrando nombre + código + el aviso de
+     * calibración, que es donde el analista elige.
+     */
+    display:     { type: String,  default: 'name' },
 });
 
 const emit = defineEmits(['update:value']);
@@ -34,13 +45,14 @@ const selected = computed(
 </script>
 
 <template>
-    <div class="ws-instrument">
+    <div class="ws-instrument" :class="{ 'ws-instrument--compact': display === 'code' }">
         <Select
             :value="value ?? undefined"
             :disabled="disabled"
             allow-clear
             show-search
             option-filter-prop="label"
+            :option-label-prop="display === 'code' ? 'title' : 'children'"
             size="small"
             class="ws-instrument__select"
             :class="{ 'ws-instrument__select--risky': isRisky(selected) }"
@@ -51,6 +63,7 @@ const selected = computed(
                 :key="instrument.id"
                 :value="instrument.id"
                 :label="`${instrument.name} ${instrument.code ?? ''}`"
+                :title="instrument.code || instrument.name"
             >
                 <span class="ws-instrument__opt" :class="{ 'is-risky': isRisky(instrument) }">
                     <WarningOutlined v-if="isRisky(instrument)" />
@@ -76,6 +89,9 @@ const selected = computed(
 
 <style scoped>
 .ws-instrument { display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
+/* Mostrando solo el código, 170px sobran y son 170px que le faltan al resto
+   de la fila. */
+.ws-instrument--compact { min-width: 120px; }
 .ws-instrument__select { width: 100%; }
 .ws-instrument__opt { display: inline-flex; align-items: center; gap: 6px; }
 .ws-instrument__code { color: var(--color-text-muted); font-size: 0.75rem; }

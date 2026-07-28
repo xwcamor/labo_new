@@ -18,7 +18,7 @@
  * completarlo.
  */
 import { computed } from 'vue';
-import { Select, SelectOption, Tooltip } from 'ant-design-vue';
+import { Select, SelectOption, SelectOptGroup, Tooltip } from 'ant-design-vue';
 import { InfoCircleOutlined, WarningOutlined } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -33,6 +33,37 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:value']);
+
+/**
+ * Los equipos agrupados por CLIENTE.
+ *
+ * La lista puede traer cientos de equipos de veinte empresas distintas y varias
+ * usan los mismos nombres ("TR-01", "Transformador Principal"). En plano, elegir
+ * el correcto depende de acordarse de cuál es de quién, y equivocarse carga la
+ * muestra en el transformador de otro cliente — que es exactamente lo que pasaba
+ * en el sistema anterior.
+ *
+ * Degrada solo: si el servidor no manda el cliente (una pantalla que todavía no
+ * lo pide), queda un único bloque sin encabezado, o sea la lista de siempre.
+ */
+const grupos = computed(() => {
+    const buckets = new Map();
+
+    for (const item of props.equipment) {
+        const key = item.customer_id ?? 'none';
+
+        if (!buckets.has(key)) {
+            buckets.set(key, { key, label: item.customer?.name ?? '', items: [] });
+        }
+
+        buckets.get(key).items.push(item);
+    }
+
+    return [...buckets.values()];
+});
+
+/** Con un solo bloque sin nombre el encabezado no separa nada. */
+const agrupado = computed(() => grupos.value.length > 1 || !!grupos.value[0]?.label);
 
 /**
  * Sin acentos y en minúsculas: el analista escribe "bahia" buscando "Bahía", y
@@ -113,17 +144,32 @@ const isPending = computed(() => props.applicable && !props.value);
             :placeholder="$t('worksheets.equipment_placeholder')"
             @change="emit('update:value', $event ?? null)"
         >
-            <SelectOption
-                v-for="item in equipment"
-                :key="item.id"
-                :value="item.id"
-                :label="item.name"
-            >
-                <span class="ws-equipment__opt">
-                    <span class="ws-equipment__name">{{ item.name }}</span>
-                    <span v-if="subtitle(item)" class="ws-equipment__meta">{{ subtitle(item) }}</span>
-                </span>
-            </SelectOption>
+            <template v-for="grupo in grupos" :key="grupo.key">
+                <SelectOptGroup v-if="agrupado" :label="grupo.label || $t('worksheets.equipment_no_customer')">
+                    <SelectOption
+                        v-for="item in grupo.items"
+                        :key="item.id"
+                        :value="item.id"
+                        :label="item.name"
+                    >
+                        <span class="ws-equipment__opt">
+                            <span class="ws-equipment__name">{{ item.name }}</span>
+                            <span v-if="subtitle(item)" class="ws-equipment__meta">{{ subtitle(item) }}</span>
+                        </span>
+                    </SelectOption>
+                </SelectOptGroup>
+                <SelectOption
+                    v-for="item in (agrupado ? [] : grupo.items)"
+                    :key="item.id"
+                    :value="item.id"
+                    :label="item.name"
+                >
+                    <span class="ws-equipment__opt">
+                        <span class="ws-equipment__name">{{ item.name }}</span>
+                        <span v-if="subtitle(item)" class="ws-equipment__meta">{{ subtitle(item) }}</span>
+                    </span>
+                </SelectOption>
+            </template>
         </Select>
 
         <!-- La consecuencia, escrita, debajo de la celda: que el ensayo no

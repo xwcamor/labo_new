@@ -119,6 +119,12 @@ class DatabaseSeeder extends Seeder
             // declaraba "texto" hasta para los números. Va antes de las fórmulas
             // porque una fórmula no puede leer como número una columna de texto.
             LabTestFieldTypesSeeder::class,
+            // Cuántas LECTURAS admite cada columna: Grado de Polimerización mide
+            // la masa dos veces y los tiempos de flujo del viscosímetro cuatro.
+            // En el sistema anterior ese número estaba clavado en el HTML del
+            // formulario (`2.times` / `4.times` por rango de índice), no en la
+            // base, así que la importación no tenía de dónde sacarlo.
+            LabTestReplicatesSeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
             LabAnalyteMapSeeder::class,

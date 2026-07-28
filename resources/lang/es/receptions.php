@@ -94,6 +94,8 @@ return [
     'assign_to_all_hint' => 'Lo que se marque REEMPLAZA el pedido de todas las muestras de esta entrega. Las pruebas que ya tienen trabajo hecho se conservan.',
     'tests_of_sample'  => 'Pruebas de la muestra :code',
     'tests_of_all'     => 'Pruebas para todas las muestras',
+    // Encabezado del bloque de pruebas sin grupo asignado en el catálogo.
+    'tests_no_group'   => 'Sin grupo',
     'tests_saved'      => 'Pruebas actualizadas: :added agregadas, :cancelled dadas de baja.',
     'equipment_saved'  => 'Equipo asignado.',
 

@@ -73,9 +73,10 @@ class EquipmentService
                 'auditable_id'   => $locked->id,
                 'event'          => 'force_deleted',
                 'old_values'     => [
-                    'name' => $locked->name,
-                    'code' => $locked->code,
-                    'slug' => $locked->slug,
+                    'name'   => $locked->name,
+                    'serial' => $locked->serial,
+                    'tag'    => $locked->tag,
+                    'slug'   => $locked->slug,
                 ],
                 'new_values'     => null,
                 'url'            => request()?->fullUrl(),
@@ -119,9 +120,23 @@ class EquipmentService
                 if ($i > 100) return null;
             }
 
-            $clone = new Equipment($equipment->only(['is_active', 'sort_order']));
+            // Duplicar un equipo se usa para un banco de unidades gemelas: se
+            // copia TODO menos la chapa. El clon del scaffold arrastraba
+            // `sort_order` y `code` —dos columnas que esta tabla no tiene— y
+            // dejaba fuera el cliente y las características, o sea que salía un
+            // equipo huérfano que no servía para nada.
+            $clone = new Equipment($equipment->only([
+                'customer_id', 'customer_location_id', 'customer_area_id', 'customer_substation_id',
+                'equipment_type_id', 'oil_type_id', 'brand_id', 'tap_changer_type_id',
+                'transformer_preservation_id',
+                'voltage_kv_hv', 'voltage_kv_lv', 'power_mva', 'phases', 'manufacture_year',
+                'oil_volume', 'oil_volume_unit', 'service_state', 'is_active',
+            ]));
             $clone->name       = $candidate;
-            $clone->code       = null;
+            // La serie y el tag NO se copian: son únicos por definición, y
+            // copiarlos chocaría contra el índice.
+            $clone->serial     = null;
+            $clone->tag        = null;
             $clone->created_by = auth()->id();
             $clone->save();
 

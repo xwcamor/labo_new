@@ -16,6 +16,9 @@ return [
 
     // ── Campos ────────────────────────────────────────────────────────────
     'test_definition' => 'Prueba',
+    // Encabezado del bloque de pruebas que todavía no tienen grupo asignado.
+    // Va último en el desplegable: es la excepción, no por donde se empieza.
+    'group_none'      => 'Sin grupo',
     'run_date'        => 'Fecha de ensayo',
     'analyst'         => 'Analista',
     'status'          => 'Estado',
@@ -132,6 +135,7 @@ return [
     // esté registrado.
     'equipment'                => 'Equipo',
     'equipment_hint'           => 'De dónde se tomó la muestra',
+    'equipment_no_customer' => 'Sin cliente',
     'equipment_placeholder'    => 'Buscar por nombre, serie o etiqueta',
     'equipment_missing'        => 'Sin equipo',
     'equipment_missing_help'   => 'Mientras la muestra no indique de qué equipo es, este ensayo no va a aparecer en el informe del cliente ni en la tendencia del equipo.',

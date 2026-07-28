@@ -80,6 +80,7 @@ return [
     'assign_to_all_hint' => 'What is ticked REPLACES the requested tests on every sample of this delivery. Tests that already have work done are kept.',
     'tests_of_sample' => 'Tests for sample :code',
     'tests_of_all' => 'Tests for every sample',
+    'tests_no_group' => 'Ungrouped',
     'tests_saved' => 'Tests updated: :added added, :cancelled withdrawn.',
     'equipment_saved' => 'Equipment assigned.',
     'missing' => 'Missing',

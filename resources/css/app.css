@@ -298,20 +298,13 @@ html[data-theme="dark"] .mi-export-btn.ant-btn { background: #12324f !important;
 }
 .spec-cell__value { font-size: 0.92rem; line-height: 1.45; color: var(--color-text, #32363A); word-break: break-word; overflow-wrap: anywhere; }
 
-/* Identificadores internos (el id de la base, el slug). No son información del
-   laboratorio: son para dar soporte. Iban en dos cajas del mismo tamaño que el
-   nombre de la prueba, compitiendo con lo que sí importa. Acá quedan al pie,
-   en una línea, legibles y sin robar espacio. */
-.spec-ids {
-    /* `order` alto y ancho completo: quedan al PIE de la grilla sin importar en
-       qué parte del marcado estén escritos. */
-    grid-column: 1 / -1; order: 99;
-    display: flex; flex-wrap: wrap; gap: 4px 16px;
-    margin-top: 10px; padding-top: 9px;
-    border-top: 1px solid var(--color-border, #e5e5e5);
-    font-size: 0.73rem; color: var(--color-text-muted, #8a9099);
-}
-.spec-ids span { white-space: nowrap; }
+/* Identificadores internos (el id de la base, el slug). Son cajas como todas
+   las demás —la ficha se ve pareja—, pero van AL FINAL: no son información del
+   laboratorio, son para dar soporte, y abriendo la ficha competían con el
+   nombre. `order` los manda al final de la grilla sin importar en qué parte del
+   marcado estén escritos, así que la caja no se mueve de lugar en el archivo.
+   Solo las ve el super (`v-if="isSuper"` en cada ficha). */
+.spec-cell--id { order: 99; }
 /* Una aclaración NO es un dato. Iba dentro de una caja del mismo tamaño y con
    el mismo borde que el nombre de la prueba, así que la ficha parecía traer un
    campo más de los que trae. Acá va como nota al pie del bloque. */
@@ -1285,6 +1278,21 @@ html[data-theme="dark"] .lift:hover {
 /* Campos apilados: Col a ancho completo (el layout horizontal pone label/input). */
 .sap-form .ant-col:not(.ant-form-item-label):not(.ant-form-item-control) { flex: 0 0 100% !important; max-width: 100% !important; }
 .sap-form .ant-form-item { margin-bottom: 16px; }
+/* Formulario de MUCHOS campos: una rejilla que se adapta al ancho.
+   La regla de arriba apila todo a una columna, y para un catálogo de cuatro
+   campos está bien. Un equipo tiene veinte: apilados dan una página de dos
+   pantallas y media en la que no entra ninguna sección entera. Se pide
+   explícitamente con `.form-grid` (con el Form en layout="vertical"), así que
+   ningún otro formulario cambia. Es la misma rejilla que las fichas
+   (`.spec-grid`): un solo sistema. */
+.sap-form .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0 16px;
+}
+.sap-form .form-grid .ant-form-item { margin-bottom: 14px; }
+.sap-form .form-grid__wide { grid-column: 1 / -1; }
+@media (max-width: 640px) { .sap-form .form-grid { grid-template-columns: 1fr; } }
 /* Título de subsección. */
 .sap-form .form-section-title {
     font-size: 0.95rem; font-weight: 700; color: var(--color-text-strong, #32363a); margin: 0 0 18px;

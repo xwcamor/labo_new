@@ -200,13 +200,29 @@ class TestDefinition extends Model
     }
 
     /**
+     * El cuadro de filtros del listado.
+     *
+     * `$opts['groups']` son las opciones del filtro por grupo, en el shape
+     * `[{value, label}]`. Se reciben en vez de consultarse acá porque este
+     * método lo llama también `scopeFilter` en cada consulta: cargar el catálogo
+     * para VALIDAR una cláusula sería una consulta de más en cada listado. Sin
+     * las opciones el FilterApplier deja pasar el id igual (filtrar por uno
+     * inexistente devuelve cero filas, no es un riesgo) — mismo criterio que
+     * `Customer::filterSchema` con el país.
+     *
+     * @param  array<string, mixed> $opts
      * @return array<int, array{key: string, label: string, type: string, operators: array<int, string>}>
      */
-    public static function filterSchema(): array
+    public static function filterSchema(array $opts = []): array
     {
         return [
             ['key' => 'code',               'label' => __('test_definitions.code'),               'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'name',               'label' => __('test_definitions.name'),               'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            // La familia de la prueba (Físico Químico · Cromatografías · Otros).
+            // El listado ya MOSTRABA la columna pero no se podía filtrar por
+            // ella: el cuadro de filtros que la ofrecía no lo abre ningún botón
+            // de la pantalla, así que en la práctica no existía.
+            ['key' => 'test_group_id',      'label' => __('test_definitions.group'),              'type' => 'enum',    'operators' => ['=', '!=', 'in'], 'options' => $opts['groups'] ?? []],
             ['key' => 'container',          'label' => __('test_definitions.container'),          'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'chart_unit',         'label' => __('test_definitions.chart_unit'),         'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'replicates',         'label' => __('test_definitions.replicates'),         'type' => 'number',  'operators' => ['=', '!=', '>', '<', '>=', '<=']],

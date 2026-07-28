@@ -15,6 +15,21 @@
  * saltea) y cuando la fórmula operaba sobre un campo vacío quedaba el texto
  * "NaN" guardado en la base.
  *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ LA IDENTIFICACIÓN DE LA FILA NO SE VA CON EL SCROLL                      │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * La hoja se ensancha con la plantilla: el Número Ácido tiene 9 columnas, la
+ * cromatografía 13 y el Grado de Polimerización 16. Al correr la tabla de
+ * costado para cargar la última, el analista dejaba de ver DE QUÉ MUESTRA es la
+ * fila que está tipeando, que es la forma más barata de cargar un resultado en
+ * la muestra equivocada.
+ *
+ * Por eso el tipo de fila y el Nº de muestra —las dos columnas que dicen qué es
+ * esta fila— quedan CLAVADAS a la izquierda. El Nº de muestra no está escrito
+ * acá: es la columna que la plantilla declara con `role = sample_code`, y por
+ * eso se saca del recorrido de campos y se dibuja junto al tipo, aunque en la
+ * plantilla venga en otra posición.
+ *
  * VISTA PREVIA MIENTRAS SE ESCRIBE
  * El analista necesita ver el resultado antes de guardar —es como se da cuenta
  * de que la titulación le salió mal mientras todavía tiene la muestra—, y eso
@@ -45,6 +60,7 @@ const props = defineProps({
     // Llega del servidor para no repetir ese mapa acá.
     fieldTypes:  { type: Object, default: () => ({}) },
     instruments: { type: Array,  default: () => [] },
+    instrumentsByField: { type: Object, default: () => ({}) },
     // Los equipos del workspace, para indicar de cuál es cada muestra.
     equipment:   { type: Array,  default: () => [] },
     missing:     { type: Array,  default: () => [] },
@@ -70,6 +86,40 @@ const isComputed = (field) =>
 const sampleCodeField = computed(
     () => props.fields.find((field) => field.role === 'sample_code') ?? null,
 );
+
+/**
+ * Las columnas que van en el cuerpo de la tabla: todas menos la del Nº de
+ * muestra, que se dibuja aparte y clavada a la izquierda junto al tipo de fila.
+ */
+const bodyFields = computed(
+    () => props.fields.filter((field) => field !== sampleCodeField.value),
+);
+
+/**
+ * El ancho de una columna sale de su TIPO, no de lo que mida su contenido.
+ * Un número de tres cifras no necesita el mismo lugar que una observación, y
+ * dejar que cada columna se estire sola es lo que llevaba la fila a los dos mil
+ * píxeles. Se usa como clase (`ws-col--number`), y el CSS de abajo pone el
+ * ancho.
+ */
+/**
+ * Los instrumentos que ofrece UNA columna.
+ *
+ * El catálogo del laboratorio ya trae esa relación (la bureta en la columna de
+ * la bureta, el colorímetro en la del color); la grilla la ignoraba y ofrecía
+ * los 24 instrumentos en todas las columnas, así que en la columna de la bureta
+ * se podía elegir el colorímetro. Sin relación cargada se cae al catálogo
+ * completo: es preferible ofrecer de más que dejar la columna sin opciones.
+ */
+const instrumentsFor = (field) => props.instrumentsByField?.[field.id] ?? props.instruments;
+
+const columnKind = (field) => {
+    if (isComputed(field)) return 'computed';
+
+    return ['number', 'select', 'date', 'instrument'].includes(field.type)
+        ? field.type
+        : 'text';
+};
 
 /**
  * La columna de instrumento de la FILA solo se ofrece cuando la plantilla no
@@ -126,8 +176,15 @@ const displayValue = (field, value) => {
         return (field.options ?? []).find((o) => Number(o.id) === Number(value.option_id))?.value ?? '';
     }
 
+    // El CÓDIGO, no el nombre: es lo que identifica al equipo sin ambigüedad y
+    // lo que entra en una celda de tabla. El nombre completo ("Bureta
+    // PP-LA-01C-100") repite el código y se come el ancho de la columna.
     if (storage === 'instrument_id') {
-        return props.instruments.find((i) => Number(i.id) === Number(value.instrument_id))?.name ?? '';
+        const instrument = props.instruments.find(
+            (i) => Number(i.id) === Number(value.instrument_id),
+        );
+
+        return instrument?.code || instrument?.name || '';
     }
 
     if (storage === 'value_num') {
@@ -504,6 +561,16 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                     <tr>
                         <th class="ws-th ws-th--kind">{{ $t('test_fields.type') }}</th>
 
+                        <!-- El Nº de muestra, clavado junto al tipo de fila: son
+                             las dos columnas que dicen de qué es esta fila, y
+                             tienen que seguir a la vista con la tabla corrida. -->
+                        <th v-if="sampleCodeField" class="ws-th ws-th--code">
+                            <div class="ws-th__label">
+                                {{ sampleCodeField.label }}
+                                <span v-if="sampleCodeField.is_required" class="ws-th__req">*</span>
+                            </div>
+                        </th>
+
                         <!-- El equipo va a la IZQUIERDA, junto al tipo de fila y
                              al código: es de qué se tomó la muestra, no un dato
                              medido. Si queda al final de treinta columnas, se
@@ -513,7 +580,12 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             <div class="ws-th__meta">{{ $t('worksheets.equipment_hint') }}</div>
                         </th>
 
-                        <th v-for="field in fields" :key="field.id" class="ws-th">
+                        <th
+                            v-for="field in bodyFields"
+                            :key="field.id"
+                            class="ws-th"
+                            :class="`ws-col--${columnKind(field)}`"
+                        >
                             <div class="ws-th__label">
                                 {{ field.label }}
                                 <span v-if="field.is_required" class="ws-th__req">*</span>
@@ -547,7 +619,23 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                     {{ $t(`worksheets.kind.${row.kind}`) }}
                                 </Tag>
                             </Tooltip>
-                            <div v-if="row.sample_code" class="ws-td__code">{{ row.sample_code }}</div>
+                            <!-- El código guardado se repite acá SOLO si la
+                                 plantilla no declara su columna: con la columna
+                                 a la vista sería el mismo dato dos veces. -->
+                            <div v-if="row.sample_code && !sampleCodeField" class="ws-td__code">
+                                {{ row.sample_code }}
+                            </div>
+                        </td>
+
+                        <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <WorksheetCell
+                                :field="sampleCodeField"
+                                :values="drafts[row.id]?.values?.[sampleCodeField.code] ?? {}"
+                                :stored="stored[row.id]?.[sampleCodeField.code] ?? {}"
+                                :instruments="instruments"
+                                :disabled="readonly"
+                                @update="(replicate, value) => setCell(drafts[row.id], sampleCodeField, replicate, value)"
+                            />
                         </td>
 
                         <td class="ws-td ws-td--equipment">
@@ -560,7 +648,12 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td v-for="field in fields" :key="field.id" class="ws-td">
+                        <td
+                            v-for="field in bodyFields"
+                            :key="field.id"
+                            class="ws-td"
+                            :class="`ws-col--${columnKind(field)}`"
+                        >
                             <WorksheetCell
                                 :field="field"
                                 :values="drafts[row.id]?.values?.[field.code] ?? {}"
@@ -568,17 +661,22 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                 :preview="previews[row.id]?.values?.[field.code] ?? {}"
                                 :preview-state="previews[row.id]?.status ?? 'idle'"
                                 :preview-message="previewMessage(row.id, field)"
-                                :instruments="instruments"
+                                :instruments="instrumentsFor(field)"
                                 :disabled="readonly"
                                 @update="(replicate, value) => setCell(drafts[row.id], field, replicate, value)"
                             />
                         </td>
 
-                        <td v-if="showRowInstrument" class="ws-td">
+                        <!-- `display="code"`: en la celda cerrada va SOLO el
+                             código del equipo (PP-LA-01C-100). El nombre repite
+                             el código y se come el ancho de la columna; el
+                             desplegable abierto sí lo muestra entero. -->
+                        <td v-if="showRowInstrument" class="ws-td ws-col--instrument">
                             <InstrumentSelect
                                 :instruments="instruments"
                                 :value="drafts[row.id]?.instrument_id ?? null"
                                 :disabled="readonly"
+                                display="code"
                                 @update:value="(value) => (drafts[row.id].instrument_id = value)"
                             />
                         </td>
@@ -624,6 +722,16 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             </Tooltip>
                         </td>
 
+                        <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <WorksheetCell
+                                :field="sampleCodeField"
+                                :values="newDraft.values[sampleCodeField.code] ?? {}"
+                                :stored="{}"
+                                :instruments="instruments"
+                                @update="(replicate, value) => setCell(newDraft, sampleCodeField, replicate, value)"
+                            />
+                        </td>
+
                         <td class="ws-td ws-td--equipment">
                             <EquipmentSelect
                                 :equipment="equipment"
@@ -633,7 +741,12 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td v-for="field in fields" :key="field.id" class="ws-td">
+                        <td
+                            v-for="field in bodyFields"
+                            :key="field.id"
+                            class="ws-td"
+                            :class="`ws-col--${columnKind(field)}`"
+                        >
                             <WorksheetCell
                                 :field="field"
                                 :values="newDraft.values[field.code] ?? {}"
@@ -646,10 +759,11 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td v-if="showRowInstrument" class="ws-td">
+                        <td v-if="showRowInstrument" class="ws-td ws-col--instrument">
                             <InstrumentSelect
                                 :instruments="instruments"
                                 :value="newDraft.instrument_id"
+                                display="code"
                                 @update:value="(value) => (newDraft.instrument_id = value)"
                             />
                         </td>
@@ -732,7 +846,17 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
     background: var(--color-surface);
 }
 
-.ws-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+/* El ancho de la columna del tipo de fila es un NÚMERO CONOCIDO porque de él
+   depende dónde arranca la columna del Nº de muestra, que va clavada al lado.
+   Con un ancho automático el `left` de la segunda columna fija sería una
+   adivinanza y quedaría un hueco (o una superposición) al scrollear. */
+.ws-table {
+    --ws-kind-w: 116px;
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
 
 .ws-th {
     position: sticky;
@@ -750,11 +874,40 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-th__meta  { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--color-text-muted); }
 .ws-th__tag   { font-size: 0.62rem; }
 
-/* La columna del tipo de fila queda fija: al correr la tabla de costado hay
-   que seguir sabiendo si lo que se está leyendo es una muestra o el patrón. */
-.ws-th--kind, .ws-td--kind { position: sticky; left: 0; z-index: 4; background: var(--color-surface); }
-.ws-th--kind { z-index: 5; }
+/* Las dos columnas de identificación quedan fijas: al correr la tabla de
+   costado hay que seguir sabiendo si lo que se lee es una muestra o el patrón,
+   y DE QUÉ MUESTRA es la fila. Son las únicas dos que se congelan — con más, la
+   parte que se puede correr deja de entrar en una pantalla de portátil. */
+.ws-th--kind, .ws-td--kind,
+.ws-th--code, .ws-td--code { position: sticky; z-index: 4; background: var(--color-surface); }
+.ws-th--kind, .ws-th--code { z-index: 5; }
+
+.ws-th--kind, .ws-td--kind { left: 0; width: var(--ws-kind-w); min-width: var(--ws-kind-w); }
+.ws-th--code, .ws-td--code { left: var(--ws-kind-w); width: 132px; min-width: 132px; }
+
+/* El corte entre lo que queda fijo y lo que se corre. Sin esa línea las dos
+   partes se leen como una sola tabla y el salto al scrollear desorienta. */
+.ws-th--code, .ws-td--code { border-right: 1px solid var(--color-border); }
+.ws-table:not(:has(.ws-th--code)) :is(.ws-th--kind, .ws-td--kind) {
+    border-right: 1px solid var(--color-border);
+}
+
 .ws-th--actions, .ws-td--actions { text-align: right; }
+
+/* ── Ancho por TIPO de columna ─────────────────────────────────────────────
+   Antes mandaba el contenido y la fila se iba a los dos mil píxeles: un número
+   de tres cifras ocupaba lo mismo que una observación. El ancho se declara por
+   tipo, y el rótulo largo del encabezado parte en dos líneas en vez de estirar
+   la columna entera. */
+.ws-th[class*="ws-col--"] { white-space: normal; }
+.ws-th[class*="ws-col--"] .ws-th__label { white-space: normal; overflow-wrap: anywhere; }
+
+.ws-col--number   { width: 92px;  max-width: 92px; }
+.ws-col--computed { width: 128px; max-width: 128px; }
+.ws-col--select,
+.ws-col--date     { width: 140px; max-width: 140px; }
+.ws-col--text     { width: 150px; max-width: 150px; }
+.ws-col--instrument { width: 160px; max-width: 160px; }
 
 /* El selector de equipo necesita ancho: el nombre de un equipo es largo y
    recortarlo obliga a abrir el desplegable para saber cuál está elegido. */
@@ -775,7 +928,9 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-td--actions { white-space: nowrap; }
 .ws-td--actions .ant-btn + .ant-btn { margin-left: 6px; }
 
-.ws-notes { min-width: 160px; }
+/* Las observaciones son la excepción, no la regla: se les da lo justo para
+   escribir una línea corta y no un tercio de la fila. */
+.ws-notes { min-width: 130px; width: 150px; }
 
 /* Tintes por tipo de fila. Van en rgba translúcido sobre la superficie para
    que funcionen igual en tema claro y oscuro.
@@ -787,11 +942,11 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-row--blank     .ws-td { background-color: rgba(19, 151, 168, 0.08); }
 .ws-row--new       .ws-td { background-color: var(--tint-dirty); }
 
-.ws-row .ws-td--kind { background-color: var(--color-surface); }
-.ws-row--control   .ws-td--kind { background-image: linear-gradient(rgba(114, 46, 209, 0.07), rgba(114, 46, 209, 0.07)); }
-.ws-row--duplicate .ws-td--kind { background-image: linear-gradient(rgba(212, 136, 6, 0.09), rgba(212, 136, 6, 0.09)); }
-.ws-row--blank     .ws-td--kind { background-image: linear-gradient(rgba(19, 151, 168, 0.08), rgba(19, 151, 168, 0.08)); }
-.ws-row--new       .ws-td--kind { background-image: linear-gradient(var(--tint-dirty), var(--tint-dirty)); }
+.ws-row :is(.ws-td--kind, .ws-td--code) { background-color: var(--color-surface); }
+.ws-row--control   :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(rgba(114, 46, 209, 0.07), rgba(114, 46, 209, 0.07)); }
+.ws-row--duplicate :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(rgba(212, 136, 6, 0.09), rgba(212, 136, 6, 0.09)); }
+.ws-row--blank     :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(rgba(19, 151, 168, 0.08), rgba(19, 151, 168, 0.08)); }
+.ws-row--new       :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(var(--tint-dirty), var(--tint-dirty)); }
 
 .ws-empty { padding: 24px 8px; }
 .ws-grid__foot { display: flex; gap: 8px; flex-wrap: wrap; }

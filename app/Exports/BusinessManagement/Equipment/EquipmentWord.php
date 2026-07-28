@@ -54,7 +54,8 @@ class EquipmentWord
         $this->columnDefs = [
             'id'         => ['heading' => __('equipment.id'),        'value' => fn($c) => (string) $c->id],
             'name'       => ['heading' => __('equipment.name'),      'value' => fn($c) => (string) $c->name],
-            'code'       => ['heading' => __('equipment.code'),      'value' => fn($c) => (string) $c->code],
+            'serial'     => ['heading' => __('equipment.serial'),    'value' => fn($c) => (string) $c->serial],
+            'tag'        => ['heading' => __('equipment.tag'),       'value' => fn($c) => (string) $c->tag],
             'sort_order' => ['heading' => __('equipment.sort_order'), 'value' => fn($c) => (string) ($c->sort_order ?? '')],
             'is_active'  => ['heading' => __('equipment.is_active'), 'value' => fn($c) => $c->state_text],
             'slug'       => ['heading' => 'Slug',                    'value' => fn($c) => (string) $c->slug],

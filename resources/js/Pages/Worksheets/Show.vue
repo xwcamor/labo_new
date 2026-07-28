@@ -31,6 +31,10 @@ const props = defineProps({
     fields:      { type: Array,  default: () => [] },
     fieldTypes:  { type: Object, default: () => ({}) },
     instruments: { type: Array,  default: () => [] },
+    // Qué instrumentos ofrece CADA columna. El catálogo del laboratorio ya
+    // decía qué equipo va en qué columna (la bureta en la bureta, el
+    // colorímetro en el color); sin esto la grilla ofrecía los 24 en todas.
+    instrumentsByField: { type: Object, default: () => ({}) },
     equipment:   { type: Array,  default: () => [] },
     can:         { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
@@ -151,6 +155,7 @@ const showActions = computed(
                 :fields="fields"
                 :field-types="fieldTypes"
                 :instruments="instruments"
+                :instruments-by-field="instrumentsByField"
                 :equipment="equipment"
                 :missing="missing"
                 :readonly="readonly"

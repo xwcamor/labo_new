@@ -95,15 +95,19 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                 <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><FileDoneOutlined /> {{ $t('test_definitions.section_identification') }}</template>
                     <div class="spec-grid">
-                        <!-- El id de la base y el slug NO son información del
-                             laboratorio: son para dar soporte. Iban en dos cajas del
-                             mismo tamaño que el nombre, compitiendo con lo que sí
-                             importa. `order` los manda al pie de la grilla sin
-                             depender de dónde estén escritos. -->
-                        <p v-if="isSuper" class="spec-ids">
-                            <span><b>ID</b> {{ testDefinition.id }}</span>
-                            <span><b>Slug</b> {{ testDefinition.slug }}</span>
-                        </p>
+                        <!-- El id de la base y el slug son para dar soporte, no información
+                             del laboratorio: van en caja como el resto —la ficha se ve
+                             pareja— pero AL FINAL, y solo los ve el super. El `order` de
+                             `.spec-cell--id` los manda al final de la grilla, así que la
+                             caja no tiene que moverse de lugar en el archivo. -->
+                        <div v-if="isSuper" class="spec-cell spec-cell--id">
+                            <span class="spec-cell__label">ID</span>
+                            <span class="spec-cell__value">{{ testDefinition.id }}</span>
+                        </div>
+                        <div v-if="isSuper" class="spec-cell spec-cell--id">
+                            <span class="spec-cell__label">Slug</span>
+                            <span class="spec-cell__value">{{ testDefinition.slug }}</span>
+                        </div>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('test_definitions.code') }}</span>
                             <span class="spec-cell__value"><code>{{ testDefinition.code || '—' }}</code></span>

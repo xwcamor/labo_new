@@ -526,7 +526,7 @@ const goDelete = (record) => router.visit(route('business_management.equipment.d
                         <div class="lead">
                             <div class="lead__txt">
                                 <Link :href="route('business_management.equipment.show', record.slug)" class="lead__name lead__link">{{ record.name }}</Link>
-                                <span v-if="record.code" class="lead__sub">{{ record.code }}</span>
+                                <span v-if="record.tag" class="lead__sub">{{ record.tag }}</span>
                             </div>
                         </div>
                     </template>

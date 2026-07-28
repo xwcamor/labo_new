@@ -13,6 +13,7 @@ return [
 
     // ── Fields ────────────────────────────────────────────────────────────
     'test_definition' => 'Test',
+    'group_none'      => 'Ungrouped',
     'run_date'        => 'Run date',
     'analyst'         => 'Analyst',
     'status'          => 'Status',
@@ -121,6 +122,7 @@ return [
     // on record.
     'equipment'                => 'Equipment',
     'equipment_hint'           => 'Where the sample was drawn from',
+    'equipment_no_customer' => 'No customer',
     'equipment_placeholder'    => 'Search by name, serial or tag',
     'equipment_missing'        => 'No equipment',
     'equipment_missing_help'   => 'Until the sample states which equipment it came from, this test will not appear in the customer report nor in the equipment trend.',

@@ -850,6 +850,13 @@ Route::prefix('business_management')->name('business_management.')->group(functi
 
     Route::middleware('permission:equipment.view')->group(function () {
         Route::get('equipment',                [EquipmentController::class, 'index'])->name('equipment.index');
+        // La jerarquía del cliente para los desplegables encadenados del
+        // formulario. Va ANTES de `equipment/{equipment}` o el comodín se la
+        // come. Devuelve JSON, no una página de Inertia.
+        // `{customer:id}` explícito: Customer se resuelve por slug en el resto
+        // del sistema, pero el desplegable del formulario maneja ids (es lo que
+        // se guarda en `customer_id`). Sin el `:id` la ruta devolvía 404.
+        Route::get('equipment/hierarchy/{customer:id}', [EquipmentController::class, 'hierarchy'])->name('equipment.hierarchy');
         Route::get('equipment/{equipment}',  [EquipmentController::class, 'show'])->name('equipment.show');
     });
     Route::middleware('permission:equipment.edit')->group(function () {

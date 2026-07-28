@@ -89,15 +89,19 @@ const fmt = (d) => formatDateTimeFull(d);
                 <Card :bodyStyle="{ padding: 14 }" class="info-card">
                     <template #title><TagsOutlined /> {{ $t('global.general_info') }}</template>
                     <div class="spec-grid">
-                        <!-- El id de la base y el slug NO son información del
-                             laboratorio: son para dar soporte. Iban en dos cajas del
-                             mismo tamaño que el nombre, compitiendo con lo que sí
-                             importa. `order` los manda al pie de la grilla sin
-                             depender de dónde estén escritos. -->
-                        <p v-if="isSuper" class="spec-ids">
-                            <span><b>ID</b> {{ brand.id }}</span>
-                            <span><b>Slug</b> {{ brand.slug }}</span>
-                        </p>
+                        <!-- El id de la base y el slug son para dar soporte, no información
+                             del laboratorio: van en caja como el resto —la ficha se ve
+                             pareja— pero AL FINAL, y solo los ve el super. El `order` de
+                             `.spec-cell--id` los manda al final de la grilla, así que la
+                             caja no tiene que moverse de lugar en el archivo. -->
+                        <div v-if="isSuper" class="spec-cell spec-cell--id">
+                            <span class="spec-cell__label">ID</span>
+                            <span class="spec-cell__value">{{ brand.id }}</span>
+                        </div>
+                        <div v-if="isSuper" class="spec-cell spec-cell--id">
+                            <span class="spec-cell__label">Slug</span>
+                            <span class="spec-cell__value">{{ brand.slug }}</span>
+                        </div>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('brands.name') }}</span>
                             <span class="spec-cell__value">{{ brand.name }}</span>

@@ -35,6 +35,19 @@ class Equipment extends Model
 
     protected $table = 'equipment';
 
+    /**
+     * Vocabularios cerrados.
+     *
+     * Son listas de dos y tres valores que no cambian con el cliente ni con el
+     * laboratorio: no merecen una tabla de catálogo, pero sí ser una lista
+     * cerrada. En el sistema anterior el volumen de aceite venía con la unidad
+     * escrita a mano en el mismo campo ("2500 gal", "2500 galones", "2500Gal"),
+     * y comparar dos equipos exigía adivinar.
+     */
+    public const OIL_VOLUME_UNITS = ['L', 'gal'];
+
+    public const SERVICE_STATES = ['new', 'in_service', 'out_of_service'];
+
     protected $fillable = [
         'slug', 'name', 'serial', 'tag',
         'customer_id', 'customer_location_id', 'customer_area_id', 'customer_substation_id',
@@ -120,8 +133,9 @@ class Equipment extends Model
 
     /**
      * scopeFilter — mismo patrón que Customer, sobre la tabla equipment.
-     * Soporta name (multi-tag accent-insensitive), code (substring),
-     * is_active (bool), rangos de fecha/id, filtros avanzados y favoritos.
+     * Soporta name (multi-tag accent-insensitive), serie y tag (substring),
+     * cliente / tipo de equipo / tipo de aceite, is_active (bool), rangos de
+     * fecha/id, filtros avanzados y favoritos.
      */
     public function scopeFilter($query, $request)
     {
@@ -144,9 +158,25 @@ class Equipment extends Model
             });
         });
 
-        $query->when($request->filled('code'), function ($q) use ($request, $tbl) {
-            $q->whereRaw(config('database.default') === 'pgsql' ? "{$tbl}.code LIKE ?" : "{$tbl}.code LIKE ? ESCAPE '\\'", [LikeQuery::contains((string) $request->code)]);
-        });
+        // La chapa del equipo. Reemplaza al filtro por `code` que traía el
+        // scaffold de catálogos: esa columna no existe en `equipment` (la
+        // migración la excluye a propósito), así que filtrar por ella devolvía
+        // un error de SQL en vez de un resultado vacío.
+        foreach (['serial', 'tag'] as $campo) {
+            $query->when($request->filled($campo), function ($q) use ($request, $tbl, $campo, $isPgsql) {
+                $needle = LikeQuery::contains((string) $request->input($campo));
+                $q->whereRaw(
+                    $isPgsql ? "{$tbl}.{$campo} ILIKE ?" : "{$tbl}.{$campo} LIKE ? ESCAPE '\\'",
+                    [$needle]
+                );
+            });
+        }
+
+        // Los tres ejes por los que el laboratorio busca de verdad: de quién es
+        // el equipo, qué es, y con qué aceite trabaja.
+        foreach (['customer_id', 'equipment_type_id', 'oil_type_id'] as $fk) {
+            $query->when($request->filled($fk), fn ($q) => $q->where("{$tbl}.{$fk}", (int) $request->input($fk)));
+        }
 
         $query->when($request->filled('is_active'), function ($q) use ($request, $tbl) {
             $q->where("{$tbl}.is_active", filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
@@ -190,7 +220,9 @@ class Equipment extends Model
             // Orden por workspace: nombre vía left join (nulls = global).
             $query->leftJoin('tenants', "{$tbl}.tenant_id", '=', 'tenants.id')
                   ->orderBy('tenants.name', $direction);
-        } elseif (in_array($sort, ['id', 'name', 'code', 'is_active', 'sort_order', 'created_at', 'updated_at']) && in_array($direction, ['asc', 'desc'])) {
+            // `code` y `sort_order` estaban en esta lista y no son columnas de
+            // `equipment`: ordenar por ellas devolvía un error de SQL.
+        } elseif (in_array($sort, ['id', 'name', 'serial', 'tag', 'is_active', 'created_at', 'updated_at']) && in_array($direction, ['asc', 'desc'])) {
             $query->orderBy("{$tbl}.{$sort}", $direction);
         }
 
@@ -200,11 +232,15 @@ class Equipment extends Model
     /**
      * @return array<int, array{key: string, label: string, type: string, operators: array<int, string>}>
      */
-    public static function filterSchema(): array
+    public static function filterSchema(array $opts = []): array
     {
         return [
             ['key' => 'name',       'label' => __('equipment.name'),     'type' => 'string',  'operators' => ['=', '!=', 'contains']],
-            ['key' => 'code',       'label' => __('equipment.code'),     'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'serial',     'label' => __('equipment.serial'),   'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'tag',        'label' => __('equipment.tag'),      'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'customer_id', 'label' => __('equipment.customer'), 'type' => 'enum', 'operators' => ['=', '!=', 'in'], 'options' => $opts['customers'] ?? []],
+            ['key' => 'equipment_type_id', 'label' => __('equipment.equipment_type'), 'type' => 'enum', 'operators' => ['=', '!=', 'in'], 'options' => $opts['types'] ?? []],
+            ['key' => 'oil_type_id', 'label' => __('equipment.oil_type'), 'type' => 'enum', 'operators' => ['=', '!=', 'in'], 'options' => $opts['oilTypes'] ?? []],
             ['key' => 'is_active',  'label' => __('equipment.is_active'), 'type' => 'boolean', 'operators' => ['=']],
             ['key' => 'created_at', 'label' => __('global.created_at'),   'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
             ['key' => 'updated_at', 'label' => __('global.updated_at'),   'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],

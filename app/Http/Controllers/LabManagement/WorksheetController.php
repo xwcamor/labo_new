@@ -83,7 +83,13 @@ class WorksheetController extends Controller
             'worksheets' => $query->orderBy($sort, $direction)->orderBy('id', 'desc')
                 ->paginate($perPage)->withQueryString(),
             'tests'      => TestDefinition::where('is_active', true)
-                ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name']),
+                // Con su grupo, para ofrecerlas agrupadas (Físico Químico ·
+                // Cromatografías · Otros): son 29 y en lista plana no se
+                // encuentran. `test_group_id` va en el select porque sin la
+                // clave foránea el eager-load no tiene con qué buscar y el
+                // grupo llegaría nulo en todas.
+                ->with('group:id,name,sort_order')
+                ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name', 'test_group_id']),
             'statuses'   => Worksheet::STATUSES,
             'filters'    => $request->only(['test_definition', 'status', 'from', 'to', 'sort', 'direction', 'per_page']),
         ]);
@@ -94,7 +100,13 @@ class WorksheetController extends Controller
         return Inertia::render('Worksheets/Form', [
             'worksheet' => null,
             'tests'     => TestDefinition::where('is_active', true)
-                ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name']),
+                // Con su grupo, para ofrecerlas agrupadas (Físico Químico ·
+                // Cromatografías · Otros): son 29 y en lista plana no se
+                // encuentran. `test_group_id` va en el select porque sin la
+                // clave foránea el eager-load no tiene con qué buscar y el
+                // grupo llegaría nulo en todas.
+                ->with('group:id,name,sort_order')
+                ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name', 'test_group_id']),
             'selected'  => $request->get('test'),
         ]);
     }
@@ -183,8 +195,14 @@ class WorksheetController extends Controller
                 ->orderBy('code')->get(['id', 'name', 'code', 'calibration_due_at']),
             // Los equipos del workspace, para que el analista indique de cuál
             // es cada muestra. El scope por workspace lo aplica el modelo.
+            // Con su CLIENTE: el desplegable los agrupa por empresa. Una lista
+            // plana de cientos de equipos de veinte clientes obliga a saber de
+            // memoria el nombre exacto, y es el camino por el que una muestra
+            // termina cargada en el transformador de otra empresa.
             'equipment'   => Equipment::where('is_active', true)
-                ->orderBy('name')->limit(2000)->get(['id', 'name', 'serial', 'tag']),
+                ->with('customer:id,name')
+                ->orderBy('customer_id')->orderBy('name')
+                ->limit(2000)->get(['id', 'name', 'serial', 'tag', 'customer_id']),
             'can'         => [
                 'edit'     => $worksheet->isEditable() && $this->allows('worksheets.edit'),
                 'close'    => $worksheet->isEditable() && $this->allows('worksheets.edit'),

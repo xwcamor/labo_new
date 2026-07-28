@@ -117,10 +117,19 @@ const fmt = (d) => formatDateTimeFull(d);
                         <div class="spec-grid">
                             <!-- El id de la base y el slug son para dar soporte, no
                                  información del laboratorio: van al pie de la grilla. -->
-                            <p v-if="isSuper" class="spec-ids">
-                                <span><b>ID</b> {{ user.id }}</span>
-                                <span v-if="user.slug"><b>Slug</b> {{ user.slug }}</span>
-                            </p>
+                            <!-- El id de la base y el slug son para dar soporte, no información
+                                 del laboratorio: van en caja como el resto —la ficha se ve
+                                 pareja— pero AL FINAL, y solo los ve el super. El `order` de
+                                 `.spec-cell--id` los manda al final de la grilla, así que la
+                                 caja no tiene que moverse de lugar en el archivo. -->
+                            <div v-if="isSuper" class="spec-cell spec-cell--id">
+                                <span class="spec-cell__label">ID</span>
+                                <span class="spec-cell__value">{{ user.id }}</span>
+                            </div>
+                            <div v-if="isSuperuser.slug" class="spec-cell spec-cell--id">
+                                <span class="spec-cell__label">Slug</span>
+                                <span class="spec-cell__value">{{ user.slug }}</span>
+                            </div>
                             <div class="spec-cell">
                                 <span class="spec-cell__label">{{ $t('users.name') }}</span>
                                 <span class="spec-cell__value">{{ user.name }}</span>

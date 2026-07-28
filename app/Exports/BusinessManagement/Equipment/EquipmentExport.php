@@ -51,7 +51,8 @@ class EquipmentExport implements FromCollection, WithEvents, WithTitle
         $this->columnDefs = [
             'id'         => ['heading' => __('equipment.id'),        'value' => fn($c, $i) => $c->id],
             'name'       => ['heading' => __('equipment.name'),      'value' => fn($c, $i) => $c->name],
-            'code'       => ['heading' => __('equipment.code'),      'value' => fn($c, $i) => $c->code],
+            'serial'     => ['heading' => __('equipment.serial'),    'value' => fn($c, $i) => $c->serial],
+            'tag'        => ['heading' => __('equipment.tag'),       'value' => fn($c, $i) => $c->tag],
             'sort_order' => ['heading' => __('equipment.sort_order'), 'value' => fn($c, $i) => $c->sort_order ?? ''],
             'is_active'  => ['heading' => __('equipment.is_active'), 'value' => fn($c, $i) => $c->state_text],
             'slug'       => ['heading' => 'Slug',                    'value' => fn($c, $i) => $c->slug],

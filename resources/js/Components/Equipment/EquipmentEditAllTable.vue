@@ -19,7 +19,7 @@ const draft = defineModel('draft', { type: Array, required: true });
             <tr>
                 <th class="col-id">ID</th>
                 <th class="col-name">{{ $t('equipment.table_headers.editable_name') }}</th>
-                <th class="col-cod">{{ $t('equipment.code') }}</th>
+                <th class="col-cod">{{ $t('equipment.tag') }}</th>
                 <th class="col-status">{{ $t('equipment.table_headers.editable_status') }}</th>
             </tr>
         </thead>
@@ -41,7 +41,7 @@ const draft = defineModel('draft', { type: Array, required: true });
                     />
                 </td>
                 <td class="col-cod">
-                    <code v-if="row.code">{{ row.code }}</code>
+                    <code v-if="row.tag">{{ row.tag }}</code>
                     <span v-else class="muted">—</span>
                 </td>
                 <td class="col-status">

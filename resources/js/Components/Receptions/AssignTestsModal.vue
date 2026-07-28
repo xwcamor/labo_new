@@ -16,15 +16,30 @@
  * lo conserva —un ensayo corrido tiene que seguir constando—, y por eso el
  * "aplicar a todas" no es un `update_all` masivo como el viejo botón de
  * "Forzar Pruebas".
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ AGRUPADAS, NO 29 CASILLAS SUELTAS                                        │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Las pruebas se piden por familia: al cliente que manda un aceite se le corre
+ * el físico químico completo, o la cromatografía. Una rejilla plana de 29
+ * casillas obliga a reconocerlas de a una y es donde se olvida la que faltaba.
+ * El grupo viene de `test_groups` —un dato, no una lista escrita acá— y cada
+ * encabezado marca o desmarca su familia entera.
+ *
+ * LAS CASILLAS NO VAN EN UN `CheckboxGroup`. Ant Design descarta del valor lo
+ * que no está registrado en ESE grupo, así que un `CheckboxGroup` por familia
+ * borraría lo marcado en las otras al tocar una casilla. Cada casilla se
+ * controla sola contra la misma lista.
  */
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
-    Alert, Button, Checkbox, CheckboxGroup, Input, Modal, Space,
+    Alert, Button, Checkbox, Input, Modal, Space,
 } from 'ant-design-vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
 
 import { useI18n } from '@/Plugins/i18n';
+import { groupTests, isGrouped } from '@/Utils/testGroups';
 
 const props = defineProps({
     open:      { type: Boolean, default: false },
@@ -66,9 +81,44 @@ const visible = computed(() => {
     );
 });
 
+/**
+ * Lo que se ve, por familia de ensayo. Se agrupa DESPUÉS de buscar: un grupo
+ * que quedó sin resultados no deja un encabezado colgado.
+ */
+const groups = computed(() => groupTests(visible.value, t('receptions.tests_no_group')));
+
+/** Sin grupos que separar se dibuja la rejilla de siempre, sin encabezados. */
+const showGroups = computed(() => isGrouped(groups.value));
+
 const title = computed(() => (applyAll.value
     ? t('receptions.tests_of_all')
     : t('receptions.tests_of_sample', { code: props.sample?.code ?? '' })));
+
+const isChecked = (test) => selected.value.includes(test.id);
+
+const toggle = (test, checked) => {
+    selected.value = checked
+        ? [...new Set([...selected.value, test.id])]
+        : selected.value.filter((id) => id !== test.id);
+};
+
+/**
+ * Cuántas de la familia están pedidas. Es lo que dice el encabezado y lo que
+ * decide si su casilla va marcada, a medias o vacía.
+ */
+const countOf = (group) => group.tests.filter(isChecked).length;
+
+const allOf     = (group) => group.tests.length > 0 && countOf(group) === group.tests.length;
+const someOf    = (group) => countOf(group) > 0 && !allOf(group);
+
+/** Marcar o desmarcar la familia entera, sobre lo que la búsqueda deja ver. */
+const toggleGroup = (group, checked) => {
+    const ids = group.tests.map((test) => test.id);
+
+    selected.value = checked
+        ? [...new Set([...selected.value, ...ids])]
+        : selected.value.filter((id) => !ids.includes(id));
+};
 
 const selectVisible = () => {
     const ids = visible.value.map((test) => test.id);
@@ -134,16 +184,33 @@ const submit = () => {
         </div>
 
         <div class="rc-tests__list">
-            <CheckboxGroup v-model:value="selected" class="rc-tests__group">
-                <Checkbox
-                    v-for="test in visible"
-                    :key="test.id"
-                    :value="test.id"
-                    class="rc-tests__item"
-                >
-                    {{ test.name }}
-                </Checkbox>
-            </CheckboxGroup>
+            <!-- Una sección por familia de ensayo. El encabezado no es un
+                 rótulo decorativo: su casilla marca o desmarca el grupo entero,
+                 que es como el laboratorio pide las pruebas. -->
+            <section v-for="group in groups" :key="group.key" class="rc-tests__section">
+                <header v-if="showGroups" class="rc-tests__head">
+                    <Checkbox
+                        :checked="allOf(group)"
+                        :indeterminate="someOf(group)"
+                        @change="(event) => toggleGroup(group, event.target.checked)"
+                    >
+                        <span class="rc-tests__title">{{ group.label }}</span>
+                    </Checkbox>
+                    <span class="rc-tests__count">{{ countOf(group) }}/{{ group.tests.length }}</span>
+                </header>
+
+                <div class="rc-tests__group">
+                    <Checkbox
+                        v-for="test in group.tests"
+                        :key="test.id"
+                        :checked="isChecked(test)"
+                        class="rc-tests__item"
+                        @change="(event) => toggle(test, event.target.checked)"
+                    >
+                        {{ test.name }}
+                    </Checkbox>
+                </div>
+            </section>
 
             <p v-if="visible.length === 0" class="rc-tests__empty">
                 {{ $t('global.no_results') }}
@@ -163,6 +230,28 @@ const submit = () => {
 }
 .rc-tests__search { max-width: 280px; }
 .rc-tests__list { max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+
+.rc-tests__section + .rc-tests__section { margin-top: 14px; }
+
+/* El encabezado del grupo queda a la vista mientras se recorre su familia: con
+   tres grupos y 29 pruebas, al llegar al final de una lista larga ya no se sabe
+   cuál se está mirando. */
+.rc-tests__head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 2px;
+    margin-bottom: 6px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+.rc-tests__title { font-weight: 600; color: var(--color-text-strong); }
+.rc-tests__count { font-size: 0.75rem; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
 /* Rejilla que se adapta: en móvil una columna, en escritorio dos o tres. */
 .rc-tests__group {
     display: grid;

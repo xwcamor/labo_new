@@ -112,7 +112,10 @@ class TestDefinitionController extends Controller
             // Schema de campos filtrables — alimenta el drawer "Filtros
             // avanzados" del frontend (selects de field/op + control tipado
             // del valor). Cada modulo declara el suyo en su modelo.
-            'filterSchema'   => TestDefinition::filterSchema(),
+            // El grupo va como `enum` CON sus opciones: si no, el constructor de
+            // filtros pediría el id del grupo a mano. La columna del grupo ya se
+            // mostraba en el listado y no se podía filtrar por ella.
+            'filterSchema'   => TestDefinition::filterSchema(['groups' => $this->groupOptions()]),
             // Opciones del filtro por grupo. Son tres filas: se mandan enteras
             // en vez de montar un endpoint de búsqueda.
             'groups'         => $this->groupOptions(),

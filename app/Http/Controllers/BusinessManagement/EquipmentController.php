@@ -18,7 +18,13 @@ use App\Jobs\BusinessManagement\Equipment\GenerateEquipmentExcelJob;
 use App\Jobs\BusinessManagement\Equipment\GenerateEquipmentPdfJob;
 use App\Jobs\BusinessManagement\Equipment\GenerateEquipmentWordJob;
 use App\Models\AuditLog;
+use App\Models\Brand;
+use App\Models\Customer;
 use App\Models\Equipment;
+use App\Models\EquipmentType;
+use App\Models\OilType;
+use App\Models\TapChangerType;
+use App\Models\TransformerPreservation;
 use App\Services\BusinessManagement\EquipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -99,7 +105,17 @@ class EquipmentController extends Controller
             // Schema de campos filtrables â€” alimenta el drawer "Filtros
             // avanzados" del frontend (selects de field/op + control tipado
             // del valor). Cada modulo declara el suyo en su modelo.
-            'filterSchema'   => Equipment::filterSchema(),
+            // Los filtros por cliente / tipo de equipo / tipo de aceite son
+            // desplegables: necesitan sus opciones o el constructor los muestra
+            // vacíos y no se puede filtrar por ellos.
+            'filterSchema'   => Equipment::filterSchema([
+                'customers' => Customer::orderBy('name')->get(['id', 'name'])
+                    ->map(fn ($c) => ['value' => $c->id, 'label' => $c->name])->all(),
+                'types'     => EquipmentType::orderBy('name')->get(['id', 'name'])
+                    ->map(fn ($t) => ['value' => $t->id, 'label' => $t->name])->all(),
+                'oilTypes'  => OilType::orderBy('name')->get(['id', 'name'])
+                    ->map(fn ($o) => ['value' => $o->id, 'label' => $o->name])->all(),
+            ]),
         ]);
     }
 
@@ -152,7 +168,66 @@ class EquipmentController extends Controller
     {
         return inertia('Equipment/Form', [
             'equipment'        => null,
+            ...$this->catalogos(),
         ]);
+    }
+
+    /**
+     * Lo que el formulario necesita para preguntar de quién es el equipo y qué
+     * es.
+     *
+     * El formulario generado por el scaffold no traía NADA de esto: pedía el
+     * nombre y un código que no existe como columna, y guardaba el equipo SIN
+     * CLIENTE. Un equipo sin cliente no aparece en ninguna recepción —la
+     * recepción solo ofrece los del cliente de la entrega, justamente para no
+     * colgarle la muestra de una empresa al transformador de otra—, así que
+     * quedaba inservible sin dar ningún aviso.
+     *
+     * La jerarquía (ubicación → área → subestación) NO viaja acá: son 843
+     * ubicaciones, 1940 áreas y 1368 subestaciones sumando todos los clientes.
+     * Va solo la del cliente elegido, y se pide al vuelo (`hierarchy`).
+     *
+     * @return array<string,mixed>
+     */
+    private function catalogos(): array
+    {
+        return [
+            'customers'       => Customer::orderBy('name')->get(['id', 'name']),
+            'equipmentTypes'  => EquipmentType::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'oilTypes'        => OilType::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'brands'          => Brand::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'tapChangerTypes' => TapChangerType::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'preservations'   => TransformerPreservation::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'oilVolumeUnits'  => Equipment::OIL_VOLUME_UNITS,
+            'serviceStates'   => Equipment::SERVICE_STATES,
+        ];
+    }
+
+    /**
+     * La jerarquía de UN cliente: sus ubicaciones, con sus áreas y sus
+     * subestaciones.
+     *
+     * Se pide al elegir el cliente en el formulario. Anidada en una sola
+     * respuesta y no en tres pedidos encadenados: hasta el cliente más grande
+     * tiene decenas de ubicaciones, no miles, y así los desplegables de abajo
+     * no esperan un viaje cada uno.
+     */
+    public function hierarchy(Customer $customer)
+    {
+        $ubicaciones = $customer->locations()
+            ->with(['areas:id,customer_location_id,name', 'areas.substations:id,customer_area_id,name'])
+            ->orderBy('name')
+            ->get(['id', 'customer_id', 'name']);
+
+        return response()->json($ubicaciones->map(fn ($u) => [
+            'id'    => $u->id,
+            'name'  => $u->name,
+            'areas' => $u->areas->map(fn ($a) => [
+                'id'          => $a->id,
+                'name'        => $a->name,
+                'substations' => $a->substations->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values(),
+            ])->values(),
+        ])->values());
     }
 
     public function store(StoreEquipmentRequest $request, EquipmentService $service): RedirectResponse
@@ -203,6 +278,13 @@ class EquipmentController extends Controller
 
         return inertia('Equipment/Form', [
             'equipment'        => $this->payload($equipment),
+            ...$this->catalogos(),
+            // La jerarquía del cliente que ya tiene, para que los tres
+            // desplegables encadenados abran con su valor puesto en vez de
+            // vacíos esperando un viaje al servidor.
+            'hierarchy'        => $equipment->customer_id
+                ? $this->hierarchy($equipment->customer)->getData(true)
+                : [],
         ]);
     }
 
@@ -306,7 +388,8 @@ class EquipmentController extends Controller
 
         $equipment = Equipment::query()
             ->filter($request)
-            ->select('equipment.id', 'equipment.slug', 'equipment.name', 'equipment.code', 'equipment.is_active')
+            // Sin `code`: no es una columna de esta tabla (ver la migración).
+            ->select('equipment.id', 'equipment.slug', 'equipment.name', 'equipment.serial', 'equipment.tag', 'equipment.is_active')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -406,12 +489,53 @@ class EquipmentController extends Controller
 
     protected function payload(Equipment $m, bool $withAudit = false): array
     {
+        // Las FKs van en el payload porque el formulario y la ficha las
+        // necesitan; el payload del scaffold devolvía solo nombre y estado, así
+        // que al editar un equipo cargado por el seeder se perdían el cliente y
+        // todo lo demás sin que nadie lo notara.
+        $m->loadMissing([
+            'customer:id,name', 'location:id,name', 'area:id,name', 'substation:id,name',
+            'equipmentType:id,name', 'oilType:id,name', 'brand:id,name',
+            'tapChangerType:id,name', 'preservation:id,name',
+        ]);
+
         $base = [
             'id'         => $m->id,
             'slug'       => $m->slug,
             'name'       => $m->name,
             'serial'     => $m->serial,
             'tag'        => $m->tag,
+
+            'customer_id'            => $m->customer_id,
+            'customer_location_id'   => $m->customer_location_id,
+            'customer_area_id'       => $m->customer_area_id,
+            'customer_substation_id' => $m->customer_substation_id,
+            'customer'   => $m->customer   ? ['id' => $m->customer->id,   'name' => $m->customer->name]   : null,
+            'location'   => $m->location   ? ['id' => $m->location->id,   'name' => $m->location->name]   : null,
+            'area'       => $m->area       ? ['id' => $m->area->id,       'name' => $m->area->name]       : null,
+            'substation' => $m->substation ? ['id' => $m->substation->id, 'name' => $m->substation->name] : null,
+
+            'equipment_type_id'           => $m->equipment_type_id,
+            'oil_type_id'                 => $m->oil_type_id,
+            'brand_id'                    => $m->brand_id,
+            'tap_changer_type_id'         => $m->tap_changer_type_id,
+            'transformer_preservation_id' => $m->transformer_preservation_id,
+            'equipment_type' => $m->equipmentType ? ['id' => $m->equipmentType->id, 'name' => $m->equipmentType->name] : null,
+            'oil_type'       => $m->oilType        ? ['id' => $m->oilType->id,        'name' => $m->oilType->name]        : null,
+            'brand'          => $m->brand          ? ['id' => $m->brand->id,          'name' => $m->brand->name]          : null,
+            'tap_changer_type' => $m->tapChangerType ? ['id' => $m->tapChangerType->id, 'name' => $m->tapChangerType->name] : null,
+            'preservation'   => $m->preservation   ? ['id' => $m->preservation->id,   'name' => $m->preservation->name]   : null,
+
+            'voltage_kv_hv'    => $m->voltage_kv_hv,
+            'voltage_kv_lv'    => $m->voltage_kv_lv,
+            'power_mva'        => $m->power_mva,
+            'phases'           => $m->phases,
+            'manufacture_year' => $m->manufacture_year,
+            'oil_volume'       => $m->oil_volume,
+            'oil_volume_unit'  => $m->oil_volume_unit,
+            'service_state'    => $m->service_state,
+            'external_ref'     => $m->external_ref,
+
             'is_active'  => $m->is_active,
             'tenant_id'  => $m->tenant_id,
             'is_locked'  => $m->is_locked,

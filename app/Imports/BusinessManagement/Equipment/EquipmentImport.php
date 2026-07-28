@@ -12,9 +12,16 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 /**
  * Imports Equipment from .xlsx/.csv.
  *
- * Columns:
- *   - name  (required, max 255, unico per-tenant case/accent-insensitive)
- *   - code  (optional, max 40, identificador tecnico unico per-tenant)
+ * Columnas:
+ *   - name     (obligatoria, max 255) — cómo llama el cliente al equipo
+ *   - customer (obligatoria)          — el cliente dueño, por nombre exacto
+ *   - serial   (opcional)             — número de serie de la chapa
+ *   - tag      (opcional)             — código en planta (TR-01)
+ *
+ * La columna `code` del scaffold NO existe: `equipment` no tiene esa columna.
+ * Importar por ella escribía un campo inexistente y, peor, el importador creaba
+ * los equipos SIN CLIENTE — y un equipo sin cliente no aparece en ninguna
+ * recepción, así que el lote entero quedaba invisible.
  *
  * El import NO maneja is_active: toda alta nace activa (coherente con clientes). El estado se gestiona desde la UI / bulk actions.
  *
@@ -23,10 +30,12 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
  * equipment es PER-TENANT: el import scope-a por tenant_id via el global scope de
  * BelongsToTenant (Equipment::create autorellena el tenant del actor).
  *
- * 3-layer duplicate protection (per-tenant):
- *   1. In-file: normalizado (trim+lower+iconv) catchea dupes en el mismo upload
- *   2. App: lookup case + accent insensitive contra toda la tabla
- *   3. DB: unique constraint de `slug` (auto-generado en el modelo)
+ * 3 capas contra duplicados (per-tenant):
+ *   1. En el archivo: la chapa (serie+tag) normalizada, y si no hay chapa, el
+ *      par cliente+nombre. Dos clientes SÍ pueden tener un "Transformador
+ *      Principal" cada uno; el mismo cliente, no.
+ *   2. En la aplicación: búsqueda insensible a mayúsculas y acentos.
+ *   3. En la base: el índice único parcial (tenant, serie, tag).
  *
  * Enforce `Tenant::maxRecordsPerModule()`:
  *   - Si el plan del usuario tiene limite, contamos cuantos equipment hay HOY +
@@ -53,6 +62,9 @@ class EquipmentImport implements ToCollection, WithHeadingRow
     /** Count de equipment del tenant del actor (pre-import). */
     protected int $currentCount;
 
+    /** Cliente resuelto por nombre, para no repetir la consulta por fila. */
+    protected array $clientesCache = [];
+
     public function __construct(
         protected string $mode = 'update_or_create',
         protected bool $dryRun = false,
@@ -75,9 +87,9 @@ class EquipmentImport implements ToCollection, WithHeadingRow
         DB::beginTransaction();
 
         try {
-            // Layer 1: dedup in-file por nombre y por code normalizados.
-            $seenInFileByName = [];
-            $seenInFileByCode = [];
+            // Capa 1: duplicados dentro del propio archivo. Una sola tabla:
+            // la clave es la chapa cuando la hay, y cliente+nombre cuando no.
+            $seenInFile = [];
             $newRecordsCount = 0; // contador de filas que crearian un nuevo equipment
 
             foreach ($rows as $i => $row) {
@@ -101,53 +113,42 @@ class EquipmentImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                $normNameKey = $this->normalizeKey($name);
-                if (isset($seenInFileByName[$normNameKey])) {
+                // El CLIENTE dueño del equipo. Obligatorio: un equipo sin
+                // cliente no aparece en ninguna recepción, así que importarlo
+                // sin él es cargar un lote invisible.
+                $customerId = $this->resolveCustomer($row['customer'] ?? null);
+                if ($customerId === null) {
                     $this->errors[] = [
                         'row'     => $absoluteRow,
-                        'message' => __('imports.err_duplicate_in_file', ['row' => $seenInFileByName[$normNameKey]]),
-                        'value'   => $name,
+                        'message' => __('equipment.import_customer_unknown'),
+                        'value'   => trim((string) ($row['customer'] ?? '—')),
                     ];
                     continue;
                 }
-                $seenInFileByName[$normNameKey] = $absoluteRow;
 
-                // code (opcional): identificador tecnico unico per-tenant.
-                $code = $this->normalizeCode($row['code'] ?? null);
-                if ($code !== null && mb_strlen($code) > 40) {
+                // La chapa: serie y tag.
+                $serial = $this->normalizeCode($row['serial'] ?? null);
+                $tag    = $this->normalizeCode($row['tag'] ?? null);
+
+                // Capa 1 — duplicado dentro del mismo archivo. Con chapa, la
+                // clave es la chapa; sin chapa, el par cliente+nombre (dos
+                // clientes distintos SÍ pueden repetir el nombre).
+                $claveArchivo = ($serial !== null && $tag !== null)
+                    ? 'chapa:' . mb_strtolower($serial . '|' . $tag)
+                    : 'nombre:' . $customerId . '|' . $this->normalizeKey($name);
+
+                if (isset($seenInFile[$claveArchivo])) {
                     $this->errors[] = [
                         'row'     => $absoluteRow,
-                        'message' => __('imports.err_code_too_long'),
-                        'value'   => mb_substr($code, 0, 30) . '…',
+                        'message' => __('imports.err_duplicate_in_file', ['row' => $seenInFile[$claveArchivo]]),
+                        'value'   => $serial !== null ? $serial . ' / ' . $tag : $name,
                     ];
                     continue;
                 }
-                if ($code !== null) {
-                    $codeKey = mb_strtolower($code);
-                    if (isset($seenInFileByCode[$codeKey])) {
-                        $this->errors[] = [
-                            'row'     => $absoluteRow,
-                            'message' => __('imports.err_duplicate_in_file', ['row' => $seenInFileByCode[$codeKey]]),
-                            'value'   => $code,
-                        ];
-                        continue;
-                    }
-                    $seenInFileByCode[$codeKey] = $absoluteRow;
-                }
+                $seenInFile[$claveArchivo] = $absoluteRow;
 
-                // Layer 2: DB lookup case + accent insensitive (per-tenant).
-                $existing = $this->findExistingByNameInsensitive($name);
-
-                // code unico per-tenant: si choca con OTRO registro (no el matcheado
-                // por name), se rechaza la fila.
-                if ($code !== null && $this->codeTakenByOther($code, $existing?->id)) {
-                    $this->errors[] = [
-                        'row'     => $absoluteRow,
-                        'message' => __('imports.err_code_duplicate', ['value' => $code]),
-                        'value'   => $code,
-                    ];
-                    continue;
-                }
+                // Capa 2 — contra lo que ya está cargado.
+                $existing = $this->findExisting($customerId, $name, $serial, $tag);
 
                 if ($existing) {
                     // Registro BLOQUEADO (Lockable): el import no lo pisa. Se reporta
@@ -176,11 +177,12 @@ class EquipmentImport implements ToCollection, WithHeadingRow
                         continue;
                     }
 
-                    // Solo tocar campos que cambian (evita audit logs vacios). El
-                    // import NO gestiona el estado (eso va por la UI / bulk); solo
-                    // refresca el code técnico si cambió.
+                    // Solo tocar campos que cambian (evita audit logs vacíos). El
+                    // import NO gestiona el estado (eso va por la UI / bulk).
                     $patch = [];
-                    if ($code !== null && (string) $existing->code !== $code) $patch['code'] = $code;
+                    if ($existing->name !== $name)                  $patch['name'] = $name;
+                    if ($serial !== null && $existing->serial !== $serial) $patch['serial'] = $serial;
+                    if ($tag !== null && $existing->tag !== $tag)          $patch['tag'] = $tag;
                     if (!empty($patch)) {
                         $existing->fill($patch)->save();
                     }
@@ -208,7 +210,9 @@ class EquipmentImport implements ToCollection, WithHeadingRow
                     // Las altas nacen activas. El import no importa registros inactivos (coherente con clientes/oil_types): el estado se gestiona desde la UI / bulk actions.
                     Equipment::create([
                         'name'        => $name,
-                        'code'        => $code,
+                        'customer_id' => $customerId,
+                        'serial'      => $serial,
+                        'tag'         => $tag,
                         'is_active'   => true,
                         'created_by'  => Auth::id(),
                         // tenant_id lo autorellena BelongsToTenant (tenant del actor);
@@ -258,7 +262,7 @@ class EquipmentImport implements ToCollection, WithHeadingRow
         return $name === '' ? null : $name;
     }
 
-    /** Trim → null si vacío. El code es el identificador técnico. */
+    /** Trim → null si vacío. Vale para la serie y para el tag. */
     protected function normalizeCode(mixed $value): ?string
     {
         if ($value === null) return null;
@@ -267,15 +271,61 @@ class EquipmentImport implements ToCollection, WithHeadingRow
     }
 
     /**
-     * ¿El code ya existe en OTRO registro (no $exceptId)? Case-insensitive,
-     * per-tenant (el global scope de BelongsToTenant limita al tenant del actor).
+     * El cliente, por nombre exacto (insensible a mayúsculas y acentos).
+     *
+     * No se crea al vuelo: si el nombre no coincide con ningún cliente, la fila
+     * se rechaza. Crear clientes desde el importador de equipos es cómo una
+     * empresa termina cargada tres veces con tres grafías distintas.
      */
-    protected function codeTakenByOther(string $code, ?int $exceptId): bool
+    protected function resolveCustomer(mixed $valor): ?int
     {
-        return Equipment::query()
-            ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
-            ->whereRaw('LOWER(code) = LOWER(?)', [trim($code)])
-            ->exists();
+        $nombre = trim((string) $valor);
+
+        if ($nombre === '') {
+            return null;
+        }
+
+        if (isset($this->clientesCache[$nombre])) {
+            return $this->clientesCache[$nombre];
+        }
+
+        $q = \App\Models\Customer::query();
+        DB::getDriverName() === 'pgsql'
+            ? $q->whereRaw('unaccent(LOWER(customers.name)) = unaccent(LOWER(?))', [$nombre])
+            : $q->whereRaw('LOWER(customers.name) = LOWER(?)', [$nombre]);
+
+        return $this->clientesCache[$nombre] = $q->value('id');
+    }
+
+    /**
+     * El equipo que ya está cargado, si está.
+     *
+     * Por la CHAPA primero (serie + tag), que es la identidad real y la que
+     * tiene índice único. Sin chapa se cae al par cliente + nombre: acotado al
+     * cliente, porque el nombre solo no identifica a nadie —el sistema anterior
+     * emparejaba por nombre suelto y por eso terminaba actualizando el
+     * transformador de otra empresa—.
+     */
+    protected function findExisting(int $customerId, string $name, ?string $serial, ?string $tag): ?Equipment
+    {
+        if ($serial !== null && $tag !== null) {
+            $porChapa = Equipment::query()
+                ->whereRaw('LOWER(serial) = LOWER(?)', [$serial])
+                ->whereRaw('LOWER(tag) = LOWER(?)', [$tag])
+                ->first();
+
+            if ($porChapa) {
+                return $porChapa;
+            }
+        }
+
+        $q = Equipment::query()->where('customer_id', $customerId);
+
+        DB::getDriverName() === 'pgsql'
+            ? $q->whereRaw('unaccent(LOWER(equipment.name)) = unaccent(LOWER(?))', [$name])
+            : $q->whereRaw('LOWER(equipment.name) = LOWER(?)', [$name]);
+
+        return $q->first();
     }
     /** Lowercase + strip accents (iconv) â€” mismo pattern que el DB-level layer 2. */
     protected function normalizeKey(string $name): string

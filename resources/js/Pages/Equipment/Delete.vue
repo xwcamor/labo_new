@@ -55,8 +55,8 @@ const submit = () => {
 
         <template #summary>
             <DeleteSummaryRow :label="$t('equipment.name')">{{ equipment.name }}</DeleteSummaryRow>
-            <DeleteSummaryRow v-if="equipment.code" :label="$t('equipment.code')">
-                <code>{{ equipment.code }}</code>
+            <DeleteSummaryRow v-if="equipment.serial" :label="$t('equipment.serial')">
+                <code>{{ equipment.serial }}</code>
             </DeleteSummaryRow>
             <DeleteSummaryRow :label="$t('equipment.is_active')">
                 <Tag :color="equipment.is_active ? 'success' : 'error'" :bordered="false">

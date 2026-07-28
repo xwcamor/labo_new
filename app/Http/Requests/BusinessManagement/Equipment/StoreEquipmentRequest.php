@@ -2,22 +2,42 @@
 
 namespace App\Http\Requests\BusinessManagement\Equipment;
 
+use App\Http\Requests\BusinessManagement\Equipment\Concerns\EquipmentFieldRules;
 use App\Http\Requests\Concerns\DerivesAttributesFromLang;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Concerns\DerivesCodeFromName;
-use Illuminate\Support\Facades\DB;
+
+/**
+ * Alta de un equipo.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ UN EQUIPO SE IDENTIFICA POR SERIE + TAG, NO POR NOMBRE NI POR CÓDIGO     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Este formulario venía del scaffold de catálogos (Marca, Tipo de aceite) y
+ * arrastraba dos reglas que no son de este dominio:
+ *
+ *   · Un campo CÓDIGO derivado del nombre. La tabla `equipment` no tiene esa
+ *     columna —nunca la tuvo— así que la regla consultaba `LOWER(code)` y
+ *     rompía con "no existe la columna «code»" al guardar. Un transformador se
+ *     identifica por su número de serie y su tag; un código inventado a partir
+ *     del nombre no aporta nada y no se guardaba en ningún lado.
+ *
+ *   · NOMBRE único dentro del workspace. Eso impide que dos clientes distintos
+ *     tengan cada uno su "Transformador Principal", que es lo normal: el
+ *     laboratorio atiende a muchas empresas y los nombres se repiten. El
+ *     sistema anterior tampoco lo exigía.
+ *
+ * La unicidad real es la que ya tiene el índice de la tabla —(workspace, serie,
+ * tag), sin contar los borrados— y es la misma que validaba el sistema
+ * anterior (`validates_uniqueness_of :num_tag, scope: [:num_serie]`). Acá se
+ * valida en PHP para que el analista vea el mensaje en el campo en vez de un
+ * error de base de datos.
+ */
 class StoreEquipmentRequest extends FormRequest
 {
     use DerivesAttributesFromLang;
+    use EquipmentFieldRules;
 
     protected $attributeNamespace = 'equipment';
-
-    use DerivesCodeFromName;
-
-    protected function prepareForValidation(): void
-    {
-        $this->deriveCodeFromName();
-    }
 
     public function authorize(): bool
     {
@@ -26,52 +46,6 @@ class StoreEquipmentRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            // Unicidad case + accent insensitive. equipment es PER-TENANT: el nombre
-            // es unico dentro del workspace del actor (no cross-tenant). Se filtra
-            // por tenant_id para alinear con el indice unico parcial de la tabla.
-            'name'       => [
-                'required', 'string', 'max:255',
-                function ($attribute, $value, $fail) {
-                    $isPgsql = DB::getDriverName() === 'pgsql';
-                    $needle  = trim((string) $value);
-                    $q = DB::table('equipment')
-                        ->whereNull('deleted_at')
-                        ->where('tenant_id', auth()->user()?->tenant_id);
-                    if ($isPgsql) {
-                        $q->whereRaw('unaccent(LOWER(name)) = unaccent(LOWER(?))', [$needle]);
-                    } else {
-                        $q->whereRaw('LOWER(name) = LOWER(?)', [$needle]);
-                    }
-                    if ($q->exists()) {
-                        $fail(__('equipment.name_unique'));
-                    }
-                },
-            ],
-            'code'       => [
-                'nullable', 'string', 'max:40',
-                function ($attribute, $value, $fail) {
-                    if ($value === null || $value === '') return;
-                    $exists = DB::table('equipment')
-                        ->whereNull('deleted_at')
-                        ->where('tenant_id', auth()->user()?->tenant_id)
-                        ->whereRaw('LOWER(code) = LOWER(?)', [trim((string) $value)])
-                        ->exists();
-                    if ($exists) {
-                        $fail(__('equipment.code_unique'));
-                    }
-                },
-            ],
-            'is_active'  => ['sometimes', 'boolean'],
-            'serial' => 'nullable|string|max:255',
-            'tag' => 'nullable|string|max:255',
-            'voltage_kv_hv' => 'nullable|numeric',
-            'voltage_kv_lv' => 'nullable|numeric',
-            'power_mva' => 'nullable|numeric',
-            'phases' => 'nullable|integer',
-            'manufacture_year' => 'nullable|integer',
-            'oil_volume' => 'nullable|numeric',
-            'external_ref' => 'nullable|string|max:255',
-        ];
+        return $this->equipmentRules();
     }
 }

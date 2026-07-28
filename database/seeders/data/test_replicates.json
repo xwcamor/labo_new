@@ -1,0 +1,49 @@
+{
+    "_doc": [
+        "Cuántas lecturas admite CADA columna de una prueba.",
+        "",
+        "De dónde salen estos números: NO de la base del sistema anterior, porque",
+        "allá no estaban en la base. Estaban clavados en la vista ERB del",
+        "formulario de Grado de Polimerización",
+        "(app/views/pr_management/templates/lab_details/partials/_form_new_nested_poli.html.erb):",
+        "",
+        "    if index > 1 && index < 4      ->  2.times { input }",
+        "    elsif index > 3 && index < 8   ->  4.times { input }",
+        "    elsif index > 7 && index < 15  ->  2.times { input }",
+        "    else                           ->  1 input",
+        "",
+        "O sea: el número de lecturas de cada columna era un rango de índices",
+        "escrito a mano en el HTML. Agregar una columna en el medio corría todos",
+        "los rangos y cambiaba en silencio cuántas lecturas admitían las demás.",
+        "Y las N lecturas se guardaban CONCATENADAS EN UN SOLO TEXTO separadas por",
+        "una barra ('12.5/12.7'), que la vista partía para mostrarlas",
+        "(LabSubDetail#str_two_values: name.gsub('/', '<br><br>')). Por eso el",
+        "promedio se calculaba en JavaScript: en la base no había dos números, había",
+        "una cadena.",
+        "",
+        "Acá cada lectura es su propia fila tipada en worksheet_values",
+        "(replicate_no + value_num), y este archivo solo dice cuántas admite cada",
+        "columna. El supervisor lo cambia desde el editor de columnas sin tocar",
+        "código; este archivo es el arranque de fábrica.",
+        "",
+        "El formato es: código de la prueba -> código de la columna -> lecturas."
+    ],
+
+    "grado_de_polimerizacion": {
+        "masa_g": 2,
+        "contenido_de_agua_en": 2,
+
+        "tiempo_muestra_s": 4,
+        "constante_viscosimetro_muestra": 4,
+        "tiempo_blanco": 4,
+        "constante_viscosimetro_blanco": 4,
+
+        "viscosidad_de_muestra_t": 2,
+        "viscosidad_de_solventet0": 2,
+        "concetracion_muestra_g100ml": 2,
+        "viscosidad_especifica_ns": 2,
+        "k_de_martin": 2,
+        "viscosidad_intrinseca_n": 2,
+        "grado_de_polimerizacion": 2
+    }
+}

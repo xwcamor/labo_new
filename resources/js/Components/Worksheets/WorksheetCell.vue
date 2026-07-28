@@ -14,7 +14,7 @@
  * más, es una columna calculada con su fórmula.
  */
 import { computed } from 'vue';
-import { Input, Select, SelectOption, DatePicker, Tag, Tooltip } from 'ant-design-vue';
+import { Input, Select, SelectOption, DatePicker, Tooltip } from 'ant-design-vue';
 import {
     CalculatorOutlined, LoadingOutlined, WarningOutlined,
 } from '@ant-design/icons-vue';
@@ -112,9 +112,11 @@ const computedHelp = computed(() => {
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <Tooltip :title="$t(computedHelp)">
                 <span class="ws-computed">
-                    <Tag :bordered="false" class="ws-computed__tag">
-                        <CalculatorOutlined /> {{ $t('worksheets.computed') }}
-                    </Tag>
+                    <!-- El rótulo "Calculado" vive en el ENCABEZADO de la
+                         columna, no en cada celda: repetido fila por fila le
+                         sacaba a la columna más ancho que el número mismo. Acá
+                         queda el icono, que dice lo mismo en 14 px. -->
+                    <CalculatorOutlined class="ws-computed__icon" />
                     <LoadingOutlined v-if="previewState === 'loading'" class="ws-computed__wait" />
                     <span
                         v-else
@@ -138,7 +140,7 @@ const computedHelp = computed(() => {
          borrar una opción dejaba el histórico apuntando a un id inexistente.
          Las ocultas no se ofrecen, pero la fila vieja que ya las usa las
          conserva. -->
-    <div v-else-if="field.type === 'select'" class="ws-cell">
+    <div v-else-if="field.type === 'select'" class="ws-cell ws-cell--select">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <Select
@@ -156,7 +158,7 @@ const computedHelp = computed(() => {
         </div>
     </div>
 
-    <div v-else-if="field.type === 'date'" class="ws-cell">
+    <div v-else-if="field.type === 'date'" class="ws-cell ws-cell--date">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <DatePicker
@@ -170,13 +172,19 @@ const computedHelp = computed(() => {
         </div>
     </div>
 
-    <div v-else-if="field.type === 'instrument'" class="ws-cell">
+    <!-- ── Instrumento ──────────────────────────────────────────────────────
+         `display="code"`: la celda cerrada muestra SOLO el código del equipo
+         (PP-LA-01C-100). El nombre ("Bureta PP-LA-01C-100") repite el código y
+         obliga a una columna el doble de ancha; el desplegable abierto y el
+         tooltip sí lo dicen entero, que es donde hace falta. -->
+    <div v-else-if="field.type === 'instrument'" class="ws-cell ws-cell--instrument">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <InstrumentSelect
                 :instruments="instruments"
                 :value="valueAt(r)"
                 :disabled="disabled"
+                display="code"
                 @update:value="set(r, $event)"
             />
         </div>
@@ -186,7 +194,7 @@ const computedHelp = computed(() => {
          Va como texto y no como InputNumber porque una medición admite el
          signo de censura: ">75" es "el ensayador llegó a su tope", no 75. El
          servidor separa el signo del número y guarda los dos. -->
-    <div v-else-if="field.type === 'number'" class="ws-cell">
+    <div v-else-if="field.type === 'number'" class="ws-cell ws-cell--number">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <Tooltip :title="$t('worksheets.censored.hint')">
@@ -203,7 +211,7 @@ const computedHelp = computed(() => {
         </div>
     </div>
 
-    <div v-else class="ws-cell">
+    <div v-else class="ws-cell ws-cell--text">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <Input
@@ -220,8 +228,20 @@ const computedHelp = computed(() => {
 <style scoped>
 .ws-cell { display: flex; flex-direction: column; gap: 4px; }
 .ws-cell__line { display: flex; align-items: center; gap: 6px; }
-.ws-cell__control { min-width: 130px; width: 100%; }
+
+/* ── El ancho lo pone el TIPO de dato ──────────────────────────────────────
+   Todos los controles pedían 130 px, midieran lo que midieran: nueve columnas
+   de tres cifras ocupaban lo mismo que nueve observaciones y la fila terminaba
+   más ancha que la pantalla. Ahora cada uno pide lo que su dato necesita, que
+   es lo que deja leer la hoja sin correrla de costado. */
+.ws-cell__control { min-width: 0; width: 100%; }
 .ws-cell__control--num { text-align: right; }
+
+/* Un ppm de cinco cifras entra de sobra en 68 px. */
+.ws-cell--number .ws-cell__control { min-width: 68px; }
+.ws-cell--select .ws-cell__control,
+.ws-cell--date   .ws-cell__control { min-width: 116px; }
+.ws-cell--text   .ws-cell__control { min-width: 120px; }
 
 /* El número de medición (1..N). Chico y tenue: ordena la lectura sin competir
    con el dato. */
@@ -235,7 +255,7 @@ const computedHelp = computed(() => {
 }
 
 .ws-computed { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.ws-computed__tag { font-size: 0.65rem; color: var(--color-text-muted); }
+.ws-computed__icon { color: var(--color-text-muted); font-size: 0.8rem; }
 .ws-computed__value {
     font-family: ui-monospace, Consolas, monospace;
     font-weight: 600;

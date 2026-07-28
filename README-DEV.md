@@ -59,15 +59,15 @@ para todo. Aceptable en tu máquina, **nunca en producción**.
 **Paso 1.** Conectado a cualquier base (por ejemplo `postgres`), como `postgres`:
 
 ```sql
-CREATE ROLE labo_user LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
-CREATE DATABASE labo OWNER labo_user;
+CREATE ROLE labo_app LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
+CREATE DATABASE labo OWNER labo_app;
 ```
 
 Si la base **ya existe** y la creaste con otro dueño:
 
 ```sql
-CREATE ROLE labo_user LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
-ALTER DATABASE labo OWNER TO labo_user;
+CREATE ROLE labo_app LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
+ALTER DATABASE labo OWNER TO labo_app;
 ```
 
 **Paso 2.** Ahora conectate **a la base `labo`** — en pgAdmin: seleccionala en
@@ -77,12 +77,12 @@ quedan en la base equivocada y la migración falla sin decir por qué.
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS unaccent;
-ALTER SCHEMA public OWNER TO labo_user;
-GRANT ALL ON SCHEMA public TO labo_user;
+ALTER SCHEMA public OWNER TO labo_app;
+GRANT ALL ON SCHEMA public TO labo_app;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 ```
 
-En `.env`: `DB_USERNAME=labo_user` con esa clave.
+En `.env`: `DB_USERNAME=labo_app` con esa clave.
 
 #### Por qué esos permisos y no otros
 

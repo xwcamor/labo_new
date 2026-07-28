@@ -115,17 +115,30 @@ sudo -u postgres psql
 ```
 
 ```sql
-CREATE USER baseapp WITH PASSWORD '<password-fuerte-aleatorio>';
-CREATE DATABASE baseapp OWNER baseapp;
-\c baseapp
+CREATE ROLE labo_app LOGIN PASSWORD '<password-fuerte-aleatorio>'
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE DATABASE labo OWNER labo_app;
+\c labo
 CREATE EXTENSION IF NOT EXISTS unaccent;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT ALL ON SCHEMA public TO baseapp;
-ALTER SCHEMA public OWNER TO baseapp;
+GRANT ALL ON SCHEMA public TO labo_app;
+ALTER SCHEMA public OWNER TO labo_app;
 \q
 ```
 
-> NO uses el usuario `postgres` superuser para la app. Crea uno dedicado con permisos mínimos.
+> **NO uses `postgres` para la app.** Un rol dedicado con permisos mínimos.
+
+> `CREATE USER x PASSWORD 'y'` y `CREATE ROLE x LOGIN PASSWORD 'y'` son **la
+> misma sentencia**: desde PostgreSQL 8.1 usuarios y grupos se unificaron en
+> roles, y `CREATE USER` quedó como alias que implica `LOGIN`. En esta guía se
+> usa `CREATE ROLE` en todos lados para no dar la impresión de que son cosas
+> distintas.
+
+> **Esto es el mínimo.** El setup completo —tres roles con el de solo lectura
+> para backups, `CONNECTION LIMIT`, `statement_timeout` por rol, `REVOKE
+> CONNECT ... FROM PUBLIC`, TLS y `pg_hba.conf`— está en
+> [`docs/DROPLET-POSTGRES-SECURITY.md`](docs/DROPLET-POSTGRES-SECURITY.md).
+> Si vas a poner esto en internet, seguí esa guía y no ésta.
 
 Generar password fuerte:
 ```bash
@@ -209,8 +222,8 @@ APP_URL=https://midominio.com
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_DATABASE=baseapp
-DB_USERNAME=baseapp
+DB_DATABASE=labo
+DB_USERNAME=labo
 DB_PASSWORD=<password-generado-arriba>
 
 # Mail SMTP (Mailgun, SES, Postmark, o Gmail App Password)
@@ -292,7 +305,7 @@ php artisan event:cache
 
 ### 4.1. Configurar virtualhost
 
-`/etc/nginx/sites-available/baseapp`:
+`/etc/nginx/sites-available/labo`:
 
 ```nginx
 server {
@@ -346,14 +359,14 @@ server {
     }
 
     # Logs
-    access_log /var/log/nginx/baseapp.access.log;
-    error_log /var/log/nginx/baseapp.error.log;
+    access_log /var/log/nginx/labo.access.log;
+    error_log /var/log/nginx/labo.error.log;
 }
 ```
 
 Activar:
 ```bash
-sudo ln -s /etc/nginx/sites-available/baseapp /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/labo /etc/nginx/sites-enabled/
 sudo nginx -t       # verificar syntax
 sudo systemctl reload nginx
 ```
@@ -397,10 +410,10 @@ sudo systemctl restart php8.3-fpm
 
 **Sin esto los exports/emails/automations NUNCA se procesan.**
 
-`/etc/supervisor/conf.d/baseapp-queue.conf`:
+`/etc/supervisor/conf.d/labo-queue.conf`:
 
 ```ini
-[program:baseapp-queue]
+[program:labo-queue]
 process_name=%(program_name)s_%(process_num)02d
 command=php /var/www/labo/artisan queue:work --queue=default --sleep=3 --tries=3 --max-time=3600
 autostart=true
@@ -408,7 +421,7 @@ autorestart=true
 user=deploy
 numprocs=2
 redirect_stderr=true
-stdout_logfile=/var/log/supervisor/baseapp-queue.log
+stdout_logfile=/var/log/supervisor/labo-queue.log
 stopwaitsecs=3600
 ```
 
@@ -416,13 +429,13 @@ Activar:
 ```bash
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo supervisorctl start baseapp-queue:*
+sudo supervisorctl start labo-queue:*
 
 # Ver status
-sudo supervisorctl status baseapp-queue:*
+sudo supervisorctl status labo-queue:*
 ```
 
-**Cada deploy** que toca código de Jobs: `sudo supervisorctl restart baseapp-queue:*` (o `php artisan queue:restart` que los recicla en el próximo job).
+**Cada deploy** que toca código de Jobs: `sudo supervisorctl restart labo-queue:*` (o `php artisan queue:restart` que los recicla en el próximo job).
 
 ---
 
@@ -435,10 +448,10 @@ sudo supervisorctl status baseapp-queue:*
 * * * * * cd /var/www/labo && php artisan schedule:run >> /dev/null 2>&1
 
 # 2) Backup BD diario a las 02:00 (independiente de Laravel)
-0 2 * * * pg_dump -U baseapp baseapp | gzip > /var/backups/baseapp-$(date +\%Y\%m\%d).sql.gz
+0 2 * * * pg_dump -U labo labo | gzip > /var/backups/labo-$(date +\%Y\%m\%d).sql.gz
 
 # 3) Limpieza de backups viejos (más de 14 días)
-5 2 * * * find /var/backups/baseapp-*.sql.gz -mtime +14 -delete
+5 2 * * * find /var/backups/labo-*.sql.gz -mtime +14 -delete
 ```
 
 ### Verificar que los schedules de Laravel se disparan
@@ -462,7 +475,7 @@ Detalle completo en [`docs/CRONS-AND-SETTINGS.md`](docs/CRONS-AND-SETTINGS.md).
 ### Backup manual (cuando lo necesites)
 
 ```bash
-pg_dump -U baseapp baseapp | gzip > /tmp/baseapp-manual-$(date +%Y%m%d-%H%M).sql.gz
+pg_dump -U labo labo | gzip > /tmp/labo-manual-$(date +%Y%m%d-%H%M).sql.gz
 ```
 
 ### Backup automático ya cubierto
@@ -472,7 +485,7 @@ Cron diaria 02:00 + retención 14 días (sección 6 arriba).
 ### Restaurar un backup
 
 ```bash
-gunzip < /var/backups/baseapp-20260516.sql.gz | psql -U baseapp baseapp
+gunzip < /var/backups/labo-20260516.sql.gz | psql -U labo labo
 ```
 
 > Antes de restaurar, haz un backup del estado actual por si quieres volver.
@@ -486,7 +499,7 @@ Los backups en el mismo droplet no protegen contra "se rompió el droplet". Opci
 
 Ejemplo con Spaces (cron diario):
 ```cron
-10 2 * * * s3cmd put /var/backups/baseapp-$(date +\%Y\%m\%d).sql.gz s3://mi-bucket/backups/
+10 2 * * * s3cmd put /var/backups/labo-$(date +\%Y\%m\%d).sql.gz s3://mi-bucket/backups/
 ```
 
 ---
@@ -566,14 +579,14 @@ Rotación automática (Laravel por default, 14 días).
 ### Logs nginx
 
 ```bash
-tail -f /var/log/nginx/baseapp.access.log
-tail -f /var/log/nginx/baseapp.error.log
+tail -f /var/log/nginx/labo.access.log
+tail -f /var/log/nginx/labo.error.log
 ```
 
 ### Logs supervisor (queue worker)
 
 ```bash
-tail -f /var/log/supervisor/baseapp-queue.log
+tail -f /var/log/supervisor/labo-queue.log
 ```
 
 ### Logs específicos de comandos
@@ -643,7 +656,7 @@ sudo systemctl reload php8.3-fpm
 # 9. Reciclar queue workers
 php artisan queue:restart
 # o:
-sudo supervisorctl restart baseapp-queue:*
+sudo supervisorctl restart labo-queue:*
 ```
 
 ### Automatizar con GitHub Actions
@@ -696,7 +709,7 @@ Antes de mostrar el sistema a un cliente real:
 
 ### "Exports nunca llegan"
 
-1. ¿Queue worker corriendo? `sudo supervisorctl status baseapp-queue:*`
+1. ¿Queue worker corriendo? `sudo supervisorctl status labo-queue:*`
 2. ¿Hay jobs failed? `php artisan queue:failed` — si hay, ver el error y `queue:retry all`
 3. ¿Setting `notifications.email_enabled` está en true?
 4. ¿SMTP funciona? `php artisan tinker` → `Mail::raw('test', fn($m) => $m->to('tu@email.com')->subject('test'));`
@@ -708,7 +721,7 @@ Antes de mostrar el sistema a un cliente real:
 ### "BD lenta"
 
 ```bash
-sudo -u postgres psql baseapp
+sudo -u postgres psql labo
 EXPLAIN ANALYZE SELECT ...    # query lenta
 \d+ customers                 # ver indexes de una tabla
 ```

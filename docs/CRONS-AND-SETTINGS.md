@@ -62,10 +62,10 @@ Son 3 entradas. Las dos últimas son **independientes de Laravel** — no las mu
 * * * * * cd /var/www/trafodex && php artisan schedule:run >> /dev/null 2>&1
 
 # Backup BD diario a las 02:00 (independiente de Laravel)
-0 2 * * * postgres pg_dump baseapp | gzip > /var/backups/baseapp-$(date +\%Y\%m\%d).sql.gz
+0 2 * * * postgres pg_dump labo | gzip > /var/backups/labo-$(date +\%Y\%m\%d).sql.gz
 
 # Limpieza de backups viejos (más de 14 días)
-5 2 * * * find /var/backups/baseapp-*.sql.gz -mtime +14 -delete
+5 2 * * * find /var/backups/labo-*.sql.gz -mtime +14 -delete
 ```
 
 ### B. Supervisor (queue worker)
@@ -73,8 +73,8 @@ Son 3 entradas. Las dos últimas son **independientes de Laravel** — no las mu
 No es cron, es un proceso persistente que procesa los Jobs del queue. Necesario para que los exports, emails y automations se ejecuten.
 
 ```ini
-; /etc/supervisor/conf.d/baseapp-queue.conf
-[program:baseapp-queue]
+; /etc/supervisor/conf.d/labo-queue.conf
+[program:labo-queue]
 command=php /var/www/trafodex/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
@@ -276,7 +276,7 @@ El sender de mail (`mail.from.name`, `mail.from.address`) NO se sobreescribe —
 ```bash
 php artisan queue:restart   # workers se reciclan en el próximo job
 # o en supervisor:
-supervisorctl restart baseapp-queue:*
+supervisorctl restart labo-queue:*
 ```
 
 ---
@@ -293,7 +293,7 @@ Si necesitas forzar refresh dentro de una misma request: `Setting::flushCache()`
 **Para queue workers que viven en memoria** (`queue:work`): hay que reiniciarlos para que tomen settings nuevos. En supervisor:
 
 ```bash
-supervisorctl restart baseapp-queue:*
+supervisorctl restart labo-queue:*
 ```
 
 O usar `queue:restart` que indica a los workers a reciclarse en el próximo job.
@@ -319,12 +319,12 @@ Razones técnicas:
 - Debe correr aunque Laravel esté caído (post deploy fallido).
 - Es simple, no necesita la infra de Laravel.
 
-Ejemplo de cron (ya en `crontab` o `/etc/cron.d/baseapp-backup`):
+Ejemplo de cron (ya en `crontab` o `/etc/cron.d/labo-backup`):
 
 ```cron
 # Backup diario a las 02:00, retención de 14 días
-0 2 * * * postgres pg_dump baseapp | gzip > /var/backups/baseapp-$(date +\%Y\%m\%d).sql.gz
-5 2 * * * find /var/backups/baseapp-*.sql.gz -mtime +14 -delete
+0 2 * * * postgres pg_dump labo | gzip > /var/backups/labo-$(date +\%Y\%m\%d).sql.gz
+5 2 * * * find /var/backups/labo-*.sql.gz -mtime +14 -delete
 ```
 
 En prod serio se recomienda **DigitalOcean Managed Databases** ($15/mes) que ya incluye backups automáticos + failover gestionados.

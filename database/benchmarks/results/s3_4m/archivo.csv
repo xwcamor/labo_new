@@ -1,0 +1,6 @@
+operacion,ms
+# filas por ano
+detach_particion_2016,79
+drop_tabla_2016,75
+delete_ano_2017,22841
+vacuum_despues_delete,23305

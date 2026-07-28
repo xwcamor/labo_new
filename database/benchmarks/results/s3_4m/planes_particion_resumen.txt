@@ -1,0 +1,6 @@
+--- planificacion vs ejecucion, las cuatro ---
+consulta,planif_sin_particion_ms,ejec_sin_particion_ms,planif_con_particion_ms,ejec_con_particion_ms
+q1,0.837,0.185,5.321,0.416
+q2,0.632,0.097,2.679,0.412
+q3,0.890,1.991,4.021,4.598
+q4,1.251,0.455,3.209,0.708

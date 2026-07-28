@@ -3,14 +3,20 @@
 namespace App\Http\Controllers\LabManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Equipment;
 use App\Models\Instrument;
 use App\Models\TestDefinition;
+use App\Models\TestField;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
+use App\Services\Lab\FormulaResolver;
+use App\Services\Lab\ValueCoercer;
 use App\Services\Lab\WorksheetService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
@@ -37,8 +43,10 @@ use Inertia\Inertia;
  */
 class WorksheetController extends Controller
 {
-    public function __construct(private readonly WorksheetService $service)
-    {
+    public function __construct(
+        private readonly WorksheetService $service,
+        private readonly ValueCoercer $coercer = new ValueCoercer(),
+    ) {
     }
 
     public function index(Request $request)
@@ -124,6 +132,7 @@ class WorksheetController extends Controller
             'rows' => fn ($q) => $q->orderBy('position')->orderBy('id'),
             'rows.values',
             'rows.instrument:id,name,code',
+            'rows.equipment:id,name,serial,tag',
         ]);
 
         return Inertia::render('Worksheets/Show', [
@@ -132,6 +141,10 @@ class WorksheetController extends Controller
             'fieldTypes'  => config('lab_field_types'),
             'instruments' => Instrument::where('is_active', true)
                 ->orderBy('name')->get(['id', 'name', 'code', 'calibration_due_at']),
+            // Los equipos del workspace, para que el analista indique de cuál
+            // es cada muestra. El scope por workspace lo aplica el modelo.
+            'equipment'   => Equipment::where('is_active', true)
+                ->orderBy('name')->limit(2000)->get(['id', 'name', 'serial', 'tag']),
             'can'         => [
                 'edit'     => $worksheet->isEditable() && $this->allows('worksheets.edit'),
                 'close'    => $worksheet->isEditable() && $this->allows('worksheets.edit'),
@@ -156,6 +169,10 @@ class WorksheetController extends Controller
             'sample_code'   => ['nullable', 'string', 'max:60'],
             'position'      => ['nullable', 'integer', 'min:0'],
             'instrument_id' => ['nullable', 'integer', Rule::exists('instruments', 'id')],
+            // De qué equipo del cliente es la muestra. Sin esto el resultado no
+            // se puede consultar por equipo, que es para lo único que existe la
+            // capa `results`.
+            'equipment_id'  => ['nullable', 'integer', Rule::exists('equipment', 'id')],
             'notes'         => ['nullable', 'string', 'max:2000'],
             'values'        => ['array'],
         ]);
@@ -173,6 +190,120 @@ class WorksheetController extends Controller
         );
 
         return back()->with('success', __('worksheets.row_saved'));
+    }
+
+    /**
+     * Vista previa del cálculo: qué daría la hoja con lo que hay tipeado, sin
+     * guardar absolutamente nada.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ ESTO ES UN ENDPOINT Y NO UNA FUNCIÓN DEL NAVEGADOR           │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * En el sistema Rails viejo el analista veía el resultado mientras escribía
+     * porque la fórmula era JavaScript guardado en una columna de la base e
+     * inyectado con `html_safe` en la página. El servidor no calculaba ni
+     * verificaba nada: el campo resultado tenía `readonly` (que un envío directo
+     * saltea) y cuando la fórmula operaba sobre un campo vacío quedaba el texto
+     * "NaN" guardado.
+     *
+     * Ver el número mientras se mide es una necesidad real del analista —es
+     * cómo se da cuenta de que la titulación le salió mal antes de tirar la
+     * muestra—, así que no alcanza con calcular al guardar. Lo que se corrige es
+     * QUIÉN calcula: la vista previa la resuelve el MISMO motor que el guardado
+     * (App\Services\Lab\FormulaResolver), sobre el mismo criterio de redondeo y
+     * la misma resolución por réplica. El navegador solo dibuja lo que vuelve.
+     *
+     * NO ESCRIBE NADA. Ni la fila, ni los valores, ni la hoja. Es cálculo puro:
+     * el que se guarda sigue siendo el número que produce saveRow().
+     *
+     * Respuesta:
+     *   values      { código: { nro de réplica: número|null } } solo de las
+     *               columnas calculadas.
+     *   unresolved  códigos que el motor no pudo resolver.
+     *   errors      { código: [mensajes] } de fórmulas que ni siquiera se
+     *               pudieron analizar.
+     *   cycles      fórmulas que se referencian entre sí en círculo.
+     */
+    public function preview(Request $request, Worksheet $worksheet): JsonResponse
+    {
+        // Antes de mirar el cuerpo: sobre una hoja cerrada, validada o
+        // bloqueada la respuesta no depende de lo que se mande, y calcular
+        // gastaría trabajo para algo que no se va a poder guardar.
+        if (! $worksheet->isEditable()) {
+            throw ValidationException::withMessages([
+                'worksheet' => $worksheet->locked_at !== null
+                    ? __('worksheets.errors.locked')
+                    : __('worksheets.errors.not_draft'),
+            ]);
+        }
+
+        // TOPE DE TAMAÑO: 64 KB. La plantilla más grande del laboratorio tiene
+        // del orden de 30 columnas por 6 réplicas de unos pocos caracteres cada
+        // una, o sea menos de 2 KB de cuerpo real. 64 KB deja más de un orden de
+        // magnitud de holgura para la celda de observaciones más larga y a la
+        // vez corta de raíz un cuerpo de megabytes contra un endpoint que se
+        // llama a cada tecla. Se mide el cuerpo crudo y no el arreglo ya
+        // validado porque el gasto de memoria ocurre al decodificarlo.
+        if (strlen((string) $request->getContent()) > 64 * 1024) {
+            throw ValidationException::withMessages([
+                'values' => __('worksheets.errors.preview_too_large'),
+            ]);
+        }
+
+        $data = $request->validate([
+            // 120 columnas: la prueba más ancha del laboratorio no llega a 30.
+            'values'     => ['array', 'max:120'],
+            'values.*'   => ['nullable'],
+            'values.*.*' => ['nullable'],
+        ]);
+
+        $fields = $worksheet->definition->fields()->with('options')->get();
+        $computed = $fields->filter(fn (TestField $field) => filled($field->formula));
+
+        if ($computed->isEmpty()) {
+            return response()->json(['values' => [], 'unresolved' => [], 'errors' => [], 'cycles' => []]);
+        }
+
+        $resolver = new FormulaResolver();
+        $input = $data['values'] ?? [];
+        $replicates = max(1, (int) $fields->max('replicates'));
+
+        $values = [];
+        $unresolved = [];
+        $errors = [];
+        $cycles = [];
+
+        // Réplica por réplica, igual que WorksheetService::recalculate(): la
+        // medición 3 se calcula con los datos de la medición 3. Mezclarlas daría
+        // un número distinto al que va a quedar guardado, y una vista previa que
+        // no coincide con lo guardado es peor que no tener vista previa.
+        for ($replicate = 1; $replicate <= $replicates; $replicate++) {
+            $result = $resolver->resolveWithDiagnostics(
+                $fields->all(),
+                $this->previewContext($fields, $input, $replicate),
+            );
+
+            foreach ($computed as $field) {
+                if ($replicate > max(1, (int) $field->replicates)) {
+                    continue;
+                }
+
+                $values[$field->code][$replicate] = $result['values'][$field->code] ?? null;
+            }
+
+            // Los ciclos y las fórmulas rotas dependen de la PLANTILLA, no de
+            // los datos: son los mismos en todas las réplicas.
+            $cycles = $result['cycles'];
+            $errors = $result['errors'];
+            $unresolved = array_unique(array_merge($unresolved, $result['unresolved']));
+        }
+
+        return response()->json([
+            'values'     => $values,
+            'unresolved' => array_values($unresolved),
+            'errors'     => $errors,
+            'cycles'     => $cycles,
+        ]);
     }
 
     public function destroyRow(Worksheet $worksheet, WorksheetRow $row): RedirectResponse
@@ -211,6 +342,63 @@ class WorksheetController extends Controller
         $this->service->void($worksheet, $data['void_reason']);
 
         return back()->with('success', __('worksheets.voided'));
+    }
+
+    /**
+     * El contexto de una réplica, en el mismo formato que consume el motor al
+     * guardar (WorksheetRow::valuesByFieldCode()).
+     *
+     * Las columnas calculadas no entran: su valor lo produce la fórmula y lo
+     * que venga del formulario para ellas se descarta, exactamente como en
+     * WorksheetService::writeValues().
+     *
+     * UNA COLUMNA DE VALOR ÚNICO VALE PARA TODAS LAS RÉPLICAS. El factor de la
+     * solución titulante y el peso de la muestra se cargan una vez y se aplican
+     * a las cinco mediciones de rigidez. Es el mismo respaldo que hace
+     * WorksheetRow::valuesByFieldCode() sobre la hoja guardada, y tiene que ser
+     * el mismo o la vista previa diría algo distinto de lo que va a quedar.
+     *
+     * @param  \Illuminate\Support\Collection<int,TestField> $fields
+     * @param  array<string,mixed>                           $input
+     * @return array<string,mixed>
+     */
+    private function previewContext($fields, array $input, int $replicate): array
+    {
+        $context = [];
+
+        foreach ($fields as $field) {
+            if (filled($field->formula)) {
+                continue;
+            }
+
+            $raw = $input[$field->code] ?? null;
+
+            if (is_array($raw)) {
+                // La réplica pedida si está; si no, la primera, que es el valor
+                // único de la columna.
+                $raw = $raw[$replicate] ?? $raw[(string) $replicate] ?? $raw[1] ?? $raw['1'] ?? null;
+            }
+
+            $context[$field->code] = $this->numericValueOf($field, $raw);
+        }
+
+        return $context;
+    }
+
+    /**
+     * Lo que el motor vería si ese valor YA estuviera guardado.
+     *
+     * La traducción NO se hace acá: la hace App\Services\Lab\ValueCoercer, que
+     * es la misma pieza que usa el guardado. Es a propósito. El motor no recibe
+     * lo que se tipeó sino lo que quedó en la base, y entre una cosa y la otra
+     * hay tres traducciones que cambian el número (">75" a 75, "0,5" a 0.5, y
+     * una selección leída por su texto y no por su id). Con ese criterio
+     * escrito en dos lugares, la vista previa mostraría un número mientras se
+     * escribe y otro después de guardar.
+     */
+    private function numericValueOf(TestField $field, mixed $raw): float|string|null
+    {
+        return $this->coercer->toFormulaInput($field, $raw);
     }
 
     private function allows(string $permission): bool

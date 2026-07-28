@@ -83,7 +83,6 @@ esto deja de valer: de ahí en adelante, migración nueva siempre.
 | Pieza | Dónde |
 |---|---|
 | Plantillas de ensayo | `test_groups` → `test_definitions` → `test_fields` → `test_field_options` |
-| Parámetros medibles | `analytes` (la pieza que el sistema viejo no tenía) |
 | Instrumentos con calibración | `instruments` (ISO 17025) |
 | Bancada | `worksheets` → `worksheet_rows` → `worksheet_values` |
 | Control de calidad | `qc_charts` → `qc_points` + `qc_duplicates` |
@@ -93,6 +92,10 @@ esto deja de valer: de ahí en adelante, migración nueva siempre.
 | Lector de archivos de instrumento | `app/Services/Lab/InstrumentFileParser` |
 | Flujo de la bancada | `app/Services/Lab/WorksheetService` |
 | Tipos de columna | `config/lab_field_types.php` (era una tabla; ver el doc) |
+| **Capa consultable** | `results` + `ResultMaterializer` + `lab:rebuild-results` |
+| Parámetros medibles | `analytes` (la pieza que faltaba) + `analyte_map.json` + `lab:map-analytes` |
+| Cálculo en vivo | `worksheets.preview` (lo calcula el SERVIDOR, no el navegador) |
+| Conversión de valores | `app/Services/Lab/ValueCoercer` (una sola vez, para guardado y vista previa) |
 
 Rutas en `routes/lab_management.php`, grupo propio `LabManagement`, prefijo
 `/lab_management`. Los módulos de catálogo se generaron con `make:module`; las
@@ -112,6 +115,48 @@ Todas se verifican ahora del lado del servidor, y cada una tiene su prueba:
 Y una quinta, de autorización: la pantalla de validar escondía su enlace a los
 no supervisores pero la acción verificaba el permiso de **editar**. Por eso
 `worksheets.validate` es un permiso aparte de `worksheets.edit`.
+
+### Las dos capas, y por qué NO una tabla por prueba
+
+La pregunta "¿cada prueba no debería tener su tabla?" vuelve sola, así que está
+respondida con números en
+[`docs/migracion/08-BENCHMARK-VERTICAL-VS-ANCHO.md`](docs/migracion/08-BENCHMARK-VERTICAL-VS-ANCHO.md):
+se midieron las dos formas sobre **84 millones de filas**, con índices y planes
+de ejecución.
+
+Lo que hay que saber sin abrir el documento:
+
+- Con los índices correctos, **ninguna de las dos formas rompe los 200 ms** a esa
+  escala. La consulta de tendencia da 0,32 ms en vertical.
+- Con el índice equivocado, la vertical llega a **1.895 ms** — y la ancha, a
+  1.807 ms. **El límite no lo pone la forma de la tabla, lo pone el índice.**
+- El sistema viejo TENÍA la tabla ancha (`rem_report_details`, 221 columnas) y
+  tenía **un solo índice: su clave primaria**. La forma ancha no era lo que
+  faltaba, porque ya estaba y no alcanzó.
+- La forma ancha gana en disco (7×) y en escritura (5×). La vertical gana en el
+  informe consolidado (11× con 29 pruebas) y en el costo de dar de alta la
+  prueba 30.
+
+**Los índices de `results` salen de esa medición. No los cambie sin volver a
+correr el banco de pruebas** (`database/benchmarks/`). El caso peligroso es
+`(analyte_id, measured_at)`, que parece la elección natural para el tablero de
+flota y es mil veces peor que `(tenant_id, analyte_id, equipment_id, measured_at)`.
+
+### La capa `results`
+
+`worksheet_values` es la constancia de lo que hizo el analista. `results` es su
+lectura tipada, con `equipment_id`, `analyte_id` y `measured_at` en la fila, y es
+lo que consultan el informe, las tendencias, el tablero y la API hacia TrafoDex.
+
+Se materializa **al validar la hoja** (no antes: hasta que el supervisor no
+firma, un valor no debe aparecer en el informe de un cliente) y se puede
+reconstruir entera con `php artisan lab:rebuild-results`. Si eso alguna vez deja
+de ser cierto, la capa dejó de ser derivada y hay un problema.
+
+Solo las filas de tipo **muestra** producen resultados: el patrón, el duplicado y
+el blanco son control de calidad del método, no del aceite del cliente. Y solo
+las columnas que declaran `output_analyte_id`; lo que no está declarado no
+informa nada, a propósito.
 
 ---
 

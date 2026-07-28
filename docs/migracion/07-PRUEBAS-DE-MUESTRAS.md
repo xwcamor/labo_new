@@ -57,14 +57,59 @@ Por eso hay **dos capas**, y cada una hace una sola cosa:
 | Capa | Tabla | Qué es | Para qué sirve |
 |---|---|---|---|
 | Cruda | `worksheet_values` | El dato tal como lo cargó el analista, guiado por la plantilla | Flexible: soporta cualquier prueba nueva sin tocar el esquema. Es el registro de lo que se hizo en la bancada, y es lo que audita el laboratorio |
-| Materializada | `results` (fase 5) | Una fila por parámetro medido, tipada e indexada | Es lo que consultan el informe, las tendencias y el histórico |
+| Materializada | `results` | Una fila por parámetro medido, tipada e indexada | Es lo que consultan el informe, las tendencias, el tablero y la API hacia TrafoDex |
 
 La capa cruda **nunca se pisa**. La materializada **se puede reconstruir** desde
-la cruda en cualquier momento. Si mañana cambia una fórmula, se recalcula
-`results` sin tocar lo que cargó el analista.
+la cruda en cualquier momento (`php artisan lab:rebuild-results`). Si mañana se
+corrige una fórmula, se recalcula `results` sin tocar lo que cargó el analista.
 
 Esa separación es la que permite tener las dos cosas a la vez: que el
 laboratorio agregue pruebas solo, y que el informe consulte rápido.
+
+### Qué guarda `results`, y por qué así
+
+Tres columnas hacen todo el trabajo, y van **desnormalizadas a propósito**:
+
+    equipment_id · analyte_id · measured_at
+
+Son las tres claves por las que el laboratorio pregunta siempre, y están juntas
+en un índice. Esa es la diferencia con la tabla del sistema anterior: allá, para
+saber de qué equipo y de qué fecha era una celda, había que subir tres saltos
+—valor, fila, hoja— y de la fila al informe por un texto interpolado en SQL.
+Ninguna consulta útil se resolvía sin recorrer media base.
+
+El valor va tipado (`numeric`, no texto), con la censura separada del número
+(`>75` es una cota, no una medición), y con el **veredicto contra la norma
+congelado**: el estado, los dos límites que se aplicaron y de qué norma salieron.
+Un ensayo de 2019 tiene que seguir diciendo lo que decía en 2019; si el veredicto
+se recalculara al abrir el informe, un cambio de límite reescribiría la historia
+en silencio y un certificado ya emitido dejaría de coincidir con la pantalla.
+
+**Solo las muestras producen resultados.** El patrón control, el duplicado y el
+blanco son control de calidad del laboratorio: miden si el método está midiendo
+bien, no el aceite del cliente. Van a `qc_points` y `qc_duplicates`, y mezclarlos
+contaminaría la tendencia de un equipo con lecturas que no son suyas.
+
+**Y solo las columnas que declaran a qué parámetro alimentan.** Lo que no está
+declarado no informa nada, a propósito: adivinar manda el dato equivocado al
+certificado. El enlace columna → parámetro vive en
+`database/seeders/data/analyte_map.json` y se aplica con
+`php artisan lab:map-analytes`.
+
+### Sobre "vertical contra horizontal"
+
+La objeción de que una tabla vertical se vuelve inestable al crecer es
+razonable y viene de una experiencia real con el sistema anterior. Conviene ser
+preciso sobre qué lo hacía lento, porque de eso depende el remedio: el valor era
+**texto** (ningún índice sirve para comparar sobre una columna así), el vínculo
+con la muestra era **por texto interpolado en SQL**, y las vistas tenían **N+1
+masivo** —el propio sistema paginaba de cinco en cinco para disimularlo—. La
+forma vertical era el cuarto factor, no el primero.
+
+La comparación medida entre esta forma y una tabla ancha por prueba, con volumen
+real, índices y planes de ejecución, está en
+[`08-BENCHMARK-VERTICAL-VS-ANCHO.md`](08-BENCHMARK-VERTICAL-VS-ANCHO.md).
+Si esos números dicen otra cosa, mandan los números.
 
 ---
 

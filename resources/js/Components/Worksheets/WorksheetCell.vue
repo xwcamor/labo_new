@@ -15,8 +15,11 @@
  */
 import { computed } from 'vue';
 import { Input, Select, SelectOption, DatePicker, Tag, Tooltip } from 'ant-design-vue';
-import { CalculatorOutlined } from '@ant-design/icons-vue';
+import {
+    CalculatorOutlined, LoadingOutlined, WarningOutlined,
+} from '@ant-design/icons-vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
+import { numText } from '@/Pages/Worksheets/config/format';
 
 const props = defineProps({
     field:       { type: Object, required: true },
@@ -25,6 +28,14 @@ const props = defineProps({
     // Lo que devolvió el SERVIDOR para esta celda, ya resuelto. Es lo que se
     // muestra en las columnas calculadas: el navegador no recalcula nada.
     stored:      { type: Object, default: () => ({}) },
+    // La vista previa que devolvió el servidor para lo que hay tipeado y
+    // todavía sin guardar: { nro de réplica: número|null }. Sale del MISMO
+    // motor que el guardado; acá no se calcula nada, se dibuja.
+    preview:     { type: Object, default: () => ({}) },
+    /** 'idle' | 'loading' | 'ready' | 'failed'. */
+    previewState: { type: String, default: 'idle' },
+    /** Ciclo, fórmula rota o servidor inalcanzable, ya traducido. */
+    previewMessage: { type: String, default: '' },
     instruments: { type: Array,  default: () => [] },
     disabled:    { type: Boolean, default: false },
 });
@@ -56,6 +67,38 @@ const storedAt = (replicate) => {
 
     return (text === null || text === undefined || text === '') ? '—' : text;
 };
+
+/**
+ * Qué muestra la celda calculada.
+ *
+ * Mientras la respuesta está en camino NO se deja el número anterior: ya no
+ * corresponde a lo que hay tipeado y se leería como si fuera el actual. Si la
+ * consulta falló, la celda queda vacía con el aviso — el navegador no rellena
+ * ese hueco con una cuenta propia, que es exactamente lo que hacía el sistema
+ * viejo y el motivo de todo este cambio.
+ */
+const previewAt = (replicate) => {
+    if (props.previewState !== 'ready') return null;
+
+    const value = props.preview?.[replicate];
+
+    return (value === null || value === undefined) ? '—' : numText(value);
+};
+
+const shownAt = (replicate) => {
+    if (props.previewState === 'loading' || props.previewState === 'failed') return '—';
+    if (props.previewState === 'ready') return previewAt(replicate);
+
+    return storedAt(replicate);
+};
+
+/** El texto de ayuda dice de dónde salió el número que se está viendo. */
+const computedHelp = computed(() => {
+    if (props.previewState === 'loading') return 'worksheets.preview_calculating';
+    if (props.previewState === 'ready')   return 'worksheets.preview_hint';
+
+    return 'worksheets.computed_help';
+});
 </script>
 
 <template>
@@ -67,13 +110,25 @@ const storedAt = (replicate) => {
     <div v-if="isComputed" class="ws-cell ws-cell--computed">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
-            <Tooltip :title="$t('worksheets.computed_help')">
+            <Tooltip :title="$t(computedHelp)">
                 <span class="ws-computed">
                     <Tag :bordered="false" class="ws-computed__tag">
                         <CalculatorOutlined /> {{ $t('worksheets.computed') }}
                     </Tag>
-                    <span class="ws-computed__value">{{ storedAt(r) }}</span>
+                    <LoadingOutlined v-if="previewState === 'loading'" class="ws-computed__wait" />
+                    <span
+                        v-else
+                        class="ws-computed__value"
+                        :class="{ 'ws-computed__value--preview': previewState === 'ready' }"
+                    >{{ shownAt(r) }}</span>
                 </span>
+            </Tooltip>
+
+            <!-- Un ciclo, una fórmula rota o el servidor caído se dicen en la
+                 celda. El sistema viejo dejaba el hueco en blanco (o el texto
+                 "NaN") y el analista se enteraba semanas después. -->
+            <Tooltip v-if="previewMessage" :title="previewMessage">
+                <WarningOutlined class="ws-computed__warn" />
             </Tooltip>
         </div>
     </div>
@@ -186,4 +241,15 @@ const storedAt = (replicate) => {
     font-weight: 600;
     color: var(--color-text);
 }
+
+/* La vista previa se distingue de lo guardado: es el número que va a quedar,
+   pero todavía no quedó. El subrayado punteado lo marca sin cambiar el número
+   de lugar ni de tamaño, que haría saltar la fila a cada tecla. */
+.ws-computed__value--preview {
+    color: var(--color-text-muted);
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.ws-computed__wait { color: var(--color-text-muted); font-size: 0.8rem; }
+.ws-computed__warn { color: var(--color-warning, #f59e0b); font-size: 0.85rem; }
 </style>

@@ -50,6 +50,7 @@ class WorksheetRow extends Model
 
     protected $fillable = [
         'worksheet_id', 'kind', 'sample_code', 'sample_id', 'sample_test_id',
+        'equipment_id',
         'position', 'instrument_id', 'instrument_file_id', 'notes', 'legacy_id',
     ];
 
@@ -57,6 +58,25 @@ class WorksheetRow extends Model
         'position'   => 'integer',
         'legacy_id'  => 'integer',
     ];
+
+    /**
+     * De qué equipo del cliente es la muestra de esta fila.
+     *
+     * Sin esto, el resultado no se puede consultar por equipo, que es la única
+     * pregunta para la que existe la capa `results`. En el destino final el
+     * equipo viene de la MUESTRA (fase 3); mientras tanto la fila lo apunta
+     * directamente. Ver el docblock de la migración que agregó la columna.
+     */
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_id');
+    }
+
+    /** Los resultados que produjo esta fila al validarse la hoja. */
+    public function results(): HasMany
+    {
+        return $this->hasMany(Result::class, 'worksheet_row_id');
+    }
 
     // ── Relaciones ───────────────────────────────────────────────────────
 
@@ -144,6 +164,12 @@ class WorksheetRow extends Model
      * fórmula contra una de ellas al azar, que es justamente el comportamiento
      * dependiente del orden que el resolver existe para eliminar.
      *
+     * LAS COLUMNAS DE VALOR ÚNICO VALEN PARA TODAS LAS RÉPLICAS. El factor de
+     * la solución titulante y el peso de la muestra se cargan una sola vez y se
+     * aplican a las cinco mediciones de rigidez; no son un dato distinto por
+     * medición. Sin este respaldo, la réplica 2 veía ese factor en nulo y su
+     * resultado salía vacío: la primera medición calculaba y las demás no.
+     *
      * @return array<string,mixed>
      */
     public function valuesByFieldCode(int $replicate = 1): array
@@ -153,16 +179,31 @@ class WorksheetRow extends Model
             : $this->values()->with('field')->get();
 
         $map = [];
+        $respaldo = [];
 
         foreach ($values as $value) {
-            if ((int) $value->replicate_no !== $replicate) {
-                continue;
-            }
             $code = $value->field?->code;
             if (! is_string($code) || $code === '') {
                 continue;
             }
-            $map[$code] = $value->resolved;
+
+            $suya = (int) $value->replicate_no;
+
+            if ($suya === $replicate) {
+                $map[$code] = $value->resolved;
+                continue;
+            }
+
+            // La réplica 1 es el respaldo de las demás, y solo ella: si una
+            // columna tiene tres mediciones cargadas, la réplica 2 usa la 2, no
+            // la 1. El respaldo cubre el caso de la columna de valor único.
+            if ($suya === 1) {
+                $respaldo[$code] = $value->resolved;
+            }
+        }
+
+        foreach ($respaldo as $code => $valor) {
+            $map[$code] ??= $valor;
         }
 
         return $map;

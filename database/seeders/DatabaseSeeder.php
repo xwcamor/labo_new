@@ -91,6 +91,11 @@ class DatabaseSeeder extends Seeder
             TransformerPreservationsSeeder::class,
             LabCatalogsSeeder::class,
 
+            // Los parámetros medibles: la pieza que el sistema viejo no tenía y
+            // sin la cual el informe no puede consultar por parámetro. La lista
+            // sale de las columnas de resultado de las 29 pruebas reales.
+            LabAnalytesSeeder::class,
+
             // Fase 2: acá van los cuadros de límites del laboratorio (standards, analytes,
             // test_methods) y los cuadros de límites (spec_sets + spec_limits),
             // desde su JSON de fábrica. Los seeders del motor de diagnóstico de

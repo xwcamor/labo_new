@@ -1,0 +1,164 @@
+===== q1_particionado =====
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Append (actual rows=20 loops=1)
+   Buffers: shared hit=10
+   InitPlan 2 (returns $1)
+     ->  Result (actual rows=1 loops=1)
+           Buffers: shared hit=6
+           InitPlan 1 (returns $0)
+             ->  Limit (actual rows=1 loops=1)
+                   Buffers: shared hit=6
+                   ->  Append (actual rows=1 loops=1)
+                         Buffers: shared hit=6
+                         ->  Index Only Scan using results_vp_2026_equipment_id_measured_at_idx on results_vp_2026 results_vp_11 (actual rows=0 loops=1)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                               Buffers: shared hit=2
+                         ->  Index Only Scan using results_vp_2025_equipment_id_measured_at_idx on results_vp_2025 results_vp_10 (actual rows=1 loops=1)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                               Buffers: shared hit=4
+                         ->  Index Only Scan using results_vp_2024_equipment_id_measured_at_idx on results_vp_2024 results_vp_9 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2023_equipment_id_measured_at_idx on results_vp_2023 results_vp_8 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2022_equipment_id_measured_at_idx on results_vp_2022 results_vp_7 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2021_equipment_id_measured_at_idx on results_vp_2021 results_vp_6 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2020_equipment_id_measured_at_idx on results_vp_2020 results_vp_5 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2019_equipment_id_measured_at_idx on results_vp_2019 results_vp_4 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2018_equipment_id_measured_at_idx on results_vp_2018 results_vp_3 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2017_equipment_id_measured_at_idx on results_vp_2017 results_vp_2 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+                         ->  Index Only Scan using results_vp_2016_equipment_id_measured_at_idx on results_vp_2016 results_vp_1 (never executed)
+                               Index Cond: ((equipment_id = 177777) AND (measured_at IS NOT NULL))
+                               Heap Fetches: 0
+   ->  Index Scan using results_vp_2016_equipment_id_measured_at_idx on results_vp_2016 r_1 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2017_equipment_id_measured_at_idx on results_vp_2017 r_2 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2018_equipment_id_measured_at_idx on results_vp_2018 r_3 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2019_equipment_id_measured_at_idx on results_vp_2019 r_4 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2020_equipment_id_measured_at_idx on results_vp_2020 r_5 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2021_equipment_id_measured_at_idx on results_vp_2021 r_6 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2022_equipment_id_measured_at_idx on results_vp_2022 r_7 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2023_equipment_id_measured_at_idx on results_vp_2023 r_8 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2024_equipment_id_measured_at_idx on results_vp_2024 r_9 (never executed)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+   ->  Index Scan using results_vp_2025_equipment_id_measured_at_idx on results_vp_2025 r_10 (actual rows=20 loops=1)
+         Index Cond: ((equipment_id = 177777) AND (measured_at = $1))
+         Buffers: shared hit=4
+   ->  Seq Scan on results_vp_2026 r_11 (never executed)
+         Filter: ((equipment_id = 177777) AND (measured_at = $1))
+ Planning:
+   Buffers: shared hit=1547
+ Planning Time: 6.775 ms
+ Execution Time: 0.688 ms
+(72 rows)===== q2_particionado =====
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Sort (actual rows=9 loops=1)
+   Sort Key: r.measured_at
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=32
+   ->  Append (actual rows=9 loops=1)
+         Buffers: shared hit=29
+         ->  Index Scan Backward using results_vp_2021_equipment_id_analyte_id_measured_at_idx on results_vp_2021 r_1 (actual rows=1 loops=1)
+               Index Cond: ((equipment_id = 177777) AND (analyte_id = 10) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=5
+         ->  Index Scan Backward using results_vp_2022_equipment_id_analyte_id_measured_at_idx on results_vp_2022 r_2 (actual rows=2 loops=1)
+               Index Cond: ((equipment_id = 177777) AND (analyte_id = 10) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=6
+         ->  Index Scan Backward using results_vp_2023_equipment_id_analyte_id_measured_at_idx on results_vp_2023 r_3 (actual rows=2 loops=1)
+               Index Cond: ((equipment_id = 177777) AND (analyte_id = 10) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=6
+         ->  Index Scan Backward using results_vp_2024_equipment_id_analyte_id_measured_at_idx on results_vp_2024 r_4 (actual rows=2 loops=1)
+               Index Cond: ((equipment_id = 177777) AND (analyte_id = 10) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=6
+         ->  Index Scan Backward using results_vp_2025_equipment_id_analyte_id_measured_at_idx on results_vp_2025 r_5 (actual rows=2 loops=1)
+               Index Cond: ((equipment_id = 177777) AND (analyte_id = 10) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=6
+         ->  Seq Scan on results_vp_2026 r_6 (actual rows=0 loops=1)
+               Filter: ((measured_at >= '2021-07-28'::date) AND (equipment_id = 177777) AND (analyte_id = 10))
+ Planning:
+   Buffers: shared hit=882
+ Planning Time: 2.638 ms
+ Execution Time: 0.412 ms
+(27 rows)===== q3_particionado =====
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   Buffers: shared hit=102
+   ->  Unique (actual rows=500 loops=1)
+         Buffers: shared hit=102
+         ->  Merge Append (actual rows=10000 loops=1)
+               Sort Key: r.equipment_id, r.measured_at DESC
+               Buffers: shared hit=102
+               ->  Index Only Scan using results_vp_2016_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2016 r_1 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2017_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2017 r_2 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2018_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2018 r_3 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2019_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2019 r_4 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2020_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2020 r_5 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2021_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2021 r_6 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2022_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2022 r_7 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2023_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2023 r_8 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2024_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2024 r_9 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2025_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2025 r_10 (actual rows=1000 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=10
+               ->  Index Only Scan using results_vp_2026_tenant_id_analyte_id_equipment_id_measured__idx on results_vp_2026 r_11 (actual rows=0 loops=1)
+                     Index Cond: ((tenant_id = 356) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=1391
+ Planning Time: 4.071 ms
+ Execution Time: 3.747 ms
+(55 rows)

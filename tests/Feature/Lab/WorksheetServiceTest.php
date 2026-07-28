@@ -369,6 +369,34 @@ class WorksheetServiceTest extends TestCase
         $this->assertSame('>75', $value->display);
     }
 
+    public function test_un_atributo_opcional_se_puede_vaciar(): void
+    {
+        // Con el operador `??`, mandar el campo en nulo dejaba el valor
+        // anterior: la pantalla podía ofrecer un botón de limpiar que no
+        // limpiaba nada. "No vino la clave" y "vino en nulo" son cosas
+        // distintas.
+        $worksheet = $this->makeWorksheet();
+        $row = $this->service->saveRow($worksheet, [
+            'kind'  => WorksheetRow::KIND_CONTROL,
+            'notes' => 'Patrón del lote A',
+        ], ['peso_aceite' => '20']);
+
+        $this->assertSame('Patrón del lote A', $row->notes);
+
+        // Sin la clave: se conserva.
+        $row = $this->service->saveRow($worksheet, [
+            'kind' => WorksheetRow::KIND_CONTROL,
+        ], ['peso_aceite' => '20'], $row);
+        $this->assertSame('Patrón del lote A', $row->notes);
+
+        // Con la clave en nulo: se borra.
+        $row = $this->service->saveRow($worksheet, [
+            'kind'  => WorksheetRow::KIND_CONTROL,
+            'notes' => null,
+        ], ['peso_aceite' => '20'], $row);
+        $this->assertNull($row->notes);
+    }
+
     public function test_anular_no_borra_y_saca_los_puntos_de_la_carta(): void
     {
         $chart = QcChart::create([

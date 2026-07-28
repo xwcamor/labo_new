@@ -1,0 +1,32 @@
+===== q3g_vertical =====
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   Buffers: shared hit=92225 read=19733
+   ->  Result (actual rows=200000 loops=1)
+         Buffers: shared hit=92225 read=19733
+         ->  Unique (actual rows=200000 loops=1)
+               Buffers: shared hit=92225 read=19733
+               ->  Index Only Scan using ix_v_an_eq_date on results_v r (actual rows=4000000 loops=1)
+                     Index Cond: (analyte_id = 10)
+                     Heap Fetches: 3
+                     Buffers: shared hit=92225 read=19733
+ Planning:
+   Buffers: shared hit=199 read=9
+ Planning Time: 0.819 ms
+ Execution Time: 691.483 ms
+(14 rows)===== q3g_ancho =====
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   Buffers: shared hit=8000 read=15332
+   ->  Unique (actual rows=200000 loops=1)
+         Buffers: shared hit=8000 read=15332
+         ->  Index Only Scan using ix_w_cro_eq_date_inc on w_analisis_cromatografico w (actual rows=4000000 loops=1)
+               Heap Fetches: 15
+               Buffers: shared hit=8000 read=15332
+ Planning:
+   Buffers: shared hit=149 read=34
+ Planning Time: 1.022 ms
+ Execution Time: 611.529 ms
+(11 rows)

@@ -1,0 +1,25 @@
+# Cuatro corridas independientes (REPS=7 cada una). La primera medicion de
+# q4 dio 5,255 ms con un maximo de 19,8: con once particiones la varianza sube
+# y una sola corrida no describe nada. El informe usa la MEDIANA de las cuatro.
+corrida,consulta,mediana_ms,min_ms,max_ms
+1,q1_particionado,1.755,1.361,2.029
+1,q2_particionado,0.612,0.516,0.897
+1,q3_particionado,3.686,3.428,4.092
+1,q4_particionado,5.255,1.418,19.839
+2,q1_particionado,1.429,1.245,1.790
+2,q2_particionado,0.667,0.613,0.696
+2,q3_particionado,3.949,3.408,4.326
+2,q4_particionado,0.816,0.720,0.996
+3,q1_particionado,1.696,1.338,2.699
+3,q2_particionado,0.808,0.544,1.065
+3,q3_particionado,4.737,4.497,5.976
+3,q4_particionado,1.437,1.212,2.915
+4,q1_particionado,1.503,1.340,3.772
+4,q2_particionado,0.670,0.583,0.974
+4,q3_particionado,3.462,3.093,3.836
+4,q4_particionado,1.364,0.848,1.933
+# medianas usadas en el informe
+mediana,q1_particionado,1.60,,
+mediana,q2_particionado,0.67,,
+mediana,q3_particionado,3.82,,
+mediana,q4_particionado,1.36,,

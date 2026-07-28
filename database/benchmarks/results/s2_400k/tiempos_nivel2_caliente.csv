@@ -1,0 +1,10 @@
+consulta,mediana_ms,min_ms,max_ms,sentencias
+q1_vertical,0.451,0.368,0.476,1
+q1_ancho,0.959,0.7,1.172,4
+q2_vertical,0.262,0.231,0.36,1
+q2_ancho,0.249,0.176,0.395,1
+q3_vertical,1.791,1.702,2.016,1
+q3_ancho,1.394,1.328,1.503,1
+q4_vertical,0.531,0.489,0.79,1
+q4_ancho_crudo,1.377,0.863,1.452,4
+q4_ancho_union,0.9,0.806,1.165,1

@@ -44,6 +44,8 @@ class WorksheetService
         private readonly FormulaResolver $resolver = new FormulaResolver(),
         private readonly WestgardEvaluator $westgard = new WestgardEvaluator(),
         private readonly RepeatabilityEvaluator $repeatability = new RepeatabilityEvaluator(),
+        private readonly ResultMaterializer $materializer = new ResultMaterializer(),
+        private readonly ValueCoercer $coercer = new ValueCoercer(),
     ) {
     }
 
@@ -79,8 +81,17 @@ class WorksheetService
                 'kind'          => $kind,
                 'sample_code'   => $this->sampleCodeFrom($attributes, $input, $fields, $kind),
                 'position'      => $attributes['position'] ?? $row->position ?? $this->nextPosition($worksheet),
-                'instrument_id' => $attributes['instrument_id'] ?? $row->instrument_id,
-                'notes'         => $attributes['notes'] ?? $row->notes,
+
+                // Estos tres se resuelven con array_key_exists y NO con `??`.
+                // La diferencia importa: con `??`, mandar el campo en nulo
+                // dejaba el valor anterior, así que la pantalla podía ofrecer
+                // un botón de limpiar que no limpiaba nada. Acá "no vino la
+                // clave" significa no tocar, y "vino en nulo" significa borrar.
+                'instrument_id' => $this->resolve($attributes, 'instrument_id', $row->instrument_id),
+                // De qué equipo del cliente es esta muestra. Es lo que después
+                // permite consultar el resultado por equipo.
+                'equipment_id'  => $this->resolve($attributes, 'equipment_id', $row->equipment_id),
+                'notes'         => $this->resolve($attributes, 'notes', $row->notes),
             ])->save();
 
             $this->writeValues($row, $fields, $input);
@@ -213,6 +224,12 @@ class WorksheetService
             // revisó no debería mover los límites de nada.
             $this->materializeQc($worksheet);
 
+            // Y por el mismo motivo, recién acá los resultados de las muestras
+            // pasan a la capa consultable: hasta que el supervisor no firma, un
+            // valor no debería aparecer en el informe de un cliente ni mover
+            // una tendencia.
+            $this->materializer->forWorksheet($worksheet);
+
             return $worksheet;
         });
     }
@@ -236,9 +253,16 @@ class WorksheetService
             'void_reason' => $reason,
         ])->save();
 
-        // Los puntos de una hoja anulada salen de la carta, pero quedan
-        // guardados con su motivo: el laboratorio tiene que poder mostrar que
-        // los descartó y por qué, no que nunca existieron.
+        // Los resultados SÍ se retiran de la capa consultable: un ensayo
+        // anulado no puede seguir apareciendo en el informe de un cliente ni
+        // moviendo la tendencia de un equipo. La hoja y sus valores crudos
+        // quedan intactos con su motivo, así que la constancia no se pierde y
+        // el resultado se puede reconstruir si la anulación fue un error.
+        $this->materializer->clearWorksheet($worksheet);
+
+        // Los puntos de la carta de control, en cambio, se marcan y NO se
+        // borran: el laboratorio tiene que poder mostrar que detectó un patrón
+        // fuera de control y por qué lo descartó, no que nunca existió.
         QcPoint::whereIn('worksheet_row_id', $worksheet->rows()->pluck('id'))
             ->update([
                 'is_excluded'      => true,
@@ -251,6 +275,20 @@ class WorksheetService
     // ─────────────────────────────────────────────────────────────────────
     // Interno
     // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Un atributo opcional que SÍ se puede vaciar.
+     *
+     * Si la clave no viene, se conserva lo que había. Si viene en nulo, se
+     * borra. Con el operador `??` las dos cosas eran indistinguibles y no había
+     * forma de desasignar un equipo mal elegido.
+     *
+     * @param array<string,mixed> $attributes
+     */
+    private function resolve(array $attributes, string $key, mixed $current): mixed
+    {
+        return array_key_exists($key, $attributes) ? $attributes[$key] : $current;
+    }
 
     /** @throws ValidationException */
     private function assertEditable(Worksheet $worksheet): void
@@ -343,6 +381,11 @@ class WorksheetService
     /**
      * Reparte el valor en la columna que le corresponde según el tipo.
      *
+     * La traducción vive en ValueCoercer y NO acá, porque la vista previa del
+     * cálculo en vivo tiene que anticipar exactamente lo que este guardado va a
+     * producir. Con el criterio escrito en dos lugares, la pantalla mostraría
+     * un número mientras se escribe y otro después de guardar.
+     *
      * Es la corrección directa del sistema viejo, que guardaba TODO —números,
      * fechas e incluso el id de la opción elegida— en una única columna de
      * texto llamada `name`.
@@ -351,65 +394,7 @@ class WorksheetService
      */
     private function typedValue(TestField $field, mixed $value): array
     {
-        $blank = [
-            'value_num'     => null,
-            'value_text'    => null,
-            'option_id'     => null,
-            'instrument_id' => null,
-            'qualifier'     => null,
-        ];
-
-        if ($value === null || $value === '') {
-            return $blank;
-        }
-
-        $types = config('lab_field_types', []);
-        $storage = $types[$field->type]['storage'] ?? 'value_text';
-
-        if ($storage === 'option_id') {
-            return array_merge($blank, ['option_id' => (int) $value]);
-        }
-
-        if ($storage === 'instrument_id') {
-            return array_merge($blank, ['instrument_id' => (int) $value]);
-        }
-
-        if ($storage === 'value_num') {
-            [$number, $qualifier] = $this->readCensored((string) $value);
-
-            return array_merge($blank, [
-                'value_num' => $number,
-                'qualifier' => $qualifier,
-                // Sin número legible se conserva el texto tal como se escribió,
-                // en vez de descartarlo: perder lo que cargó el analista es
-                // peor que guardar algo que después hay que corregir.
-                'value_text' => $number === null ? (string) $value : null,
-            ]);
-        }
-
-        return array_merge($blank, ['value_text' => (string) $value]);
-    }
-
-    /**
-     * Separa el número de su signo de censura: ">75" es "al menos 75", no 75.
-     *
-     * @return array{0:?float,1:?string}
-     */
-    private function readCensored(string $value): array
-    {
-        $value = trim($value);
-        $qualifier = null;
-
-        if (preg_match('/^(>=|<=|>|<)\s*/', $value, $m)) {
-            $qualifier = str_starts_with($m[1], '>')
-                ? WorksheetValue::QUALIFIER_GT
-                : WorksheetValue::QUALIFIER_LT;
-            $value = trim(substr($value, strlen($m[0])));
-        }
-
-        $value = str_replace(',', '.', $value);
-
-        return [is_numeric($value) ? (float) $value : null, $qualifier];
+        return $this->coercer->toColumns($field, $value);
     }
 
     /**

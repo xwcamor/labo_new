@@ -1,0 +1,56 @@
+===== q1_vertical =====
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Index Scan using ix_v_eq_date on results_v r (actual rows=20 loops=1)
+   Index Cond: ((equipment_id = 1777) AND (measured_at = $1))
+   Buffers: shared hit=27
+   InitPlan 2 (returns $1)
+     ->  Result (actual rows=1 loops=1)
+           Buffers: shared hit=4
+           InitPlan 1 (returns $0)
+             ->  Limit (actual rows=1 loops=1)
+                   Buffers: shared hit=4
+                   ->  Index Only Scan using ix_v_eq_date on results_v (actual rows=1 loops=1)
+                         Index Cond: ((equipment_id = 1777) AND (measured_at IS NOT NULL))
+                         Heap Fetches: 0
+                         Buffers: shared hit=4
+ Planning:
+   Buffers: shared hit=206
+ Planning Time: 0.816 ms
+ Execution Time: 0.318 ms
+(17 rows)===== q3_vertical =====
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   Buffers: shared hit=53
+   ->  Result (actual rows=500 loops=1)
+         Buffers: shared hit=53
+         ->  Unique (actual rows=500 loops=1)
+               Buffers: shared hit=53
+               ->  Index Only Scan using ix_v_tn_an_eq_date on results_v r (actual rows=10000 loops=1)
+                     Index Cond: ((tenant_id = 4) AND (analyte_id = 10))
+                     Heap Fetches: 0
+                     Buffers: shared hit=53
+ Planning:
+   Buffers: shared hit=188
+ Planning Time: 0.826 ms
+ Execution Time: 1.748 ms
+(14 rows)===== q4_vertical =====
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
+ Sort (actual rows=180 loops=1)
+   Sort Key: measured_at, test_definition_id, analyte_id
+   Sort Method: quicksort  Memory: 33kB
+   Buffers: shared hit=189
+   ->  Bitmap Heap Scan on results_v r (actual rows=180 loops=1)
+         Recheck Cond: ((equipment_id = 1777) AND (measured_at >= '2021-07-28'::date))
+         Heap Blocks: exact=180
+         Buffers: shared hit=183
+         ->  Bitmap Index Scan on ix_v_eq_date (actual rows=180 loops=1)
+               Index Cond: ((equipment_id = 1777) AND (measured_at >= '2021-07-28'::date))
+               Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=197
+ Planning Time: 0.931 ms
+ Execution Time: 1.577 ms
+(15 rows)

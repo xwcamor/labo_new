@@ -1,0 +1,38 @@
+          relname          |   tabla    | indices |  total  
+---------------------------+------------+---------+---------
+ results_v                 | 6188 MB    | 12 GB   | 18 GB
+ w_analisis_cromatografico | 569 MB     | 567 MB  | 1135 MB
+ w_contenido_de_agua       | 396 MB     | 163 MB  | 559 MB
+ w_numero_acido            | 375 MB     | 154 MB  | 529 MB
+ samples                   | 230 MB     | 119 MB  | 349 MB
+ w_grado_de_polimerizacion | 77 MB      | 21 MB   | 97 MB
+ w_extra_18                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_13                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_4                 | 992 kB     | 432 kB  | 1424 kB
+ w_extra_6                 | 992 kB     | 432 kB  | 1424 kB
+ w_extra_8                 | 992 kB     | 432 kB  | 1424 kB
+ w_extra_25                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_11                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_1                 | 992 kB     | 432 kB  | 1424 kB
+ w_extra_20                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_15                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_22                | 992 kB     | 432 kB  | 1424 kB
+ w_extra_26                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_7                 | 984 kB     | 432 kB  | 1416 kB
+ w_extra_23                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_19                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_3                 | 984 kB     | 432 kB  | 1416 kB
+ w_extra_21                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_17                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_14                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_24                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_12                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_5                 | 984 kB     | 432 kB  | 1416 kB
+ w_extra_2                 | 984 kB     | 432 kB  | 1416 kB
+ w_extra_9                 | 984 kB     | 432 kB  | 1416 kB
+ w_extra_16                | 984 kB     | 432 kB  | 1416 kB
+ w_extra_10                | 984 kB     | 432 kB  | 1416 kB
+ analytes                  | 8192 bytes | 16 kB   | 24 kB
+ test_mix                  | 8192 bytes | 16 kB   | 24 kB
+(34 rows)
+

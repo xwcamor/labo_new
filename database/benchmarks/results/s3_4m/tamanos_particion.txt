@@ -1,0 +1,5 @@
+               objeto               |  tabla  | indices | total | total_bytes | particiones 
+------------------------------------+---------+---------+-------+-------------+-------------
+ results_vp (todas las particiones) | 6187 MB | 8975 MB | 15 GB | 15898247168 |          11
+(1 row)
+

@@ -31,11 +31,12 @@ const props = defineProps({
     fields:      { type: Array,  default: () => [] },
     fieldTypes:  { type: Object, default: () => ({}) },
     instruments: { type: Array,  default: () => [] },
+    equipment:   { type: Array,  default: () => [] },
     can:         { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
 });
 
-const { t } = useI18n();
+const { t, tc } = useI18n();
 const page = usePage();
 
 const readonly = computed(() => !props.can.edit);
@@ -62,6 +63,32 @@ const readonlyReason = computed(() => {
 const missingMessage = computed(() => (props.missing.length === 0 ? '' : t(
     'worksheets.errors.missing_prerequisites',
     { kinds: props.missing.map((kind) => t(`worksheets.kind.${kind}`)).join(', ') },
+)));
+
+/**
+ * Cuántas muestras GUARDADAS todavía no dicen de qué equipo son.
+ *
+ * Se cuenta sobre lo que hay en la base y no sobre lo que está tipeado en la
+ * grilla, porque es lo guardado —y solo eso— lo que `ResultMaterializer` va a
+ * leer al validar la hoja: una selección sin guardar no evita que el ensayo
+ * quede fuera del informe, así que tampoco debe bajar el contador.
+ */
+const samplesWithoutEquipment = computed(
+    () => (props.worksheet.rows ?? []).filter(
+        (row) => row.kind === 'sample' && !row.equipment_id,
+    ).length,
+);
+
+/**
+ * El aviso dice la CONSECUENCIA, no el estado. En el sistema viejo el enlace
+ * entre la muestra y el equipo se resolvía por texto y, cuando fallaba, el
+ * resultado desaparecía del informe del cliente sin que nadie se enterara. No
+ * se bloquea la hoja —el analista a veces carga la bancada antes de que el
+ * ingreso de la muestra esté registrado—, se avisa.
+ */
+const equipmentWarning = computed(() => (samplesWithoutEquipment.value === 0 ? '' : tc(
+    'worksheets.equipment_missing_count',
+    samplesWithoutEquipment.value,
 )));
 
 /** Lo que rebotó del servidor (obligatorios que faltan, hoja no editable…). */
@@ -124,10 +151,22 @@ const showActions = computed(
                 :fields="fields"
                 :field-types="fieldTypes"
                 :instruments="instruments"
+                :equipment="equipment"
                 :missing="missing"
                 :readonly="readonly"
             />
         </Card>
+
+        <!-- Pegado a la barra de acciones, que es donde está "Cerrar hoja": el
+             recuento tiene que leerse justo antes de cerrar, no arriba de todo
+             donde ya nadie mira. Es ámbar y no rojo porque no impide cerrar. -->
+        <Alert
+            v-if="equipmentWarning"
+            type="warning"
+            show-icon
+            class="ws-alert ws-alert--equipment"
+            :message="equipmentWarning"
+        />
 
         <WorksheetActionsBar v-if="showActions" :worksheet="worksheet" :can="can" />
     </div>
@@ -135,5 +174,8 @@ const showActions = computed(
 
 <style scoped>
 .ws-alert { margin-bottom: 12px; }
+/* Sin separación con la franja de acciones: el aviso y el botón "Cerrar hoja"
+   se leen como una sola cosa. */
+.ws-alert--equipment { margin: 12px 0 0; }
 .ws-sub { color: var(--color-text-muted); font-size: 0.8125rem; }
 </style>

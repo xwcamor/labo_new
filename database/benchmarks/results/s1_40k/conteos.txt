@@ -1,0 +1,10 @@
+             t             |   c    
+---------------------------+--------
+ samples                   |  40000
+ results_v                 | 839251
+ w_analisis_cromatografico |  40000
+ w_grado_de_polimerizacion |   4801
+ w_numero_acido            |  36005
+ w_contenido_de_agua       |  38003
+(6 rows)
+

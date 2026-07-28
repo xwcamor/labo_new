@@ -14,8 +14,16 @@
  * inyectado en la página, el campo tenía `readonly` (que un envío directo
  * saltea) y cuando la fórmula operaba sobre un campo vacío quedaba el texto
  * "NaN" guardado en la base.
+ *
+ * VISTA PREVIA MIENTRAS SE ESCRIBE
+ * El analista necesita ver el resultado antes de guardar —es como se da cuenta
+ * de que la titulación le salió mal mientras todavía tiene la muestra—, y eso
+ * es lo que el sistema viejo resolvía con JavaScript en la página. Acá se
+ * resuelve preguntándole al servidor: la grilla manda lo tipeado a
+ * `worksheets.preview`, que corre EL MISMO motor que el guardado y no escribe
+ * nada. Este componente no tiene ni una fórmula: manda datos y dibuja números.
  */
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
     Button, Dropdown, Menu, MenuItem, Input, Modal, Tag, Tooltip, Empty,
@@ -26,6 +34,7 @@ import {
 
 import WorksheetCell from '@/Components/Worksheets/WorksheetCell.vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
+import EquipmentSelect from '@/Components/Worksheets/EquipmentSelect.vue';
 import { useI18n } from '@/Plugins/i18n';
 import { censoredText, kindColor } from '@/Pages/Worksheets/config/format';
 
@@ -36,6 +45,8 @@ const props = defineProps({
     // Llega del servidor para no repetir ese mapa acá.
     fieldTypes:  { type: Object, default: () => ({}) },
     instruments: { type: Array,  default: () => [] },
+    // Los equipos del workspace, para indicar de cuál es cada muestra.
+    equipment:   { type: Array,  default: () => [] },
     missing:     { type: Array,  default: () => [] },
     readonly:    { type: Boolean, default: false },
 });
@@ -69,6 +80,13 @@ const sampleCodeField = computed(
 const showRowInstrument = computed(
     () => !props.fields.some((field) => field.type === 'instrument'),
 );
+
+/**
+ * Solo una muestra proviene de un equipo del cliente. El patrón control, el
+ * duplicado y el blanco de reactivos son controles del método: no hay equipo
+ * del que hayan salido, y `ResultMaterializer` ni siquiera los mira.
+ */
+const equipmentApplies = (kind) => kind === 'sample';
 
 const replicatesOf = (field) => Math.max(1, Number(field.replicates ?? 1));
 
@@ -169,6 +187,7 @@ const buildDraft = (row = null) => {
         kind:          row?.kind ?? defaultKind(),
         position:      row?.position ?? null,
         instrument_id: row?.instrument_id ?? null,
+        equipment_id:  row?.equipment_id ?? null,
         notes:         row?.notes ?? '',
         values,
     };
@@ -208,6 +227,121 @@ const lastSaved = ref(null);
 /** ¿La fila tiene cambios sin guardar? Es lo que habilita su botón de guardar. */
 const isDirty = (id) => JSON.stringify(drafts.value[id]) !== baselines.value[id];
 
+// ── Vista previa del cálculo ─────────────────────────────────────────────
+
+/**
+ * Estado de la vista previa POR FILA: `{ status, values, errors, cycles }`.
+ * `status` es 'loading' | 'ready' | 'failed'; sin entrada, la celda muestra lo
+ * que hay guardado. La clave es el id de la fila, o 'new' para la que se está
+ * agregando.
+ */
+const previews = ref({});
+
+/**
+ * 400 ms de silencio antes de preguntar. Es la pausa que hace cualquiera al
+ * terminar de tipear un número, y basta para que una medición de seis dígitos
+ * salga en una sola petición en vez de en seis.
+ */
+const PREVIEW_DELAY = 400;
+
+const timers   = {};
+const inflight = {};
+
+const previewKey = (draft) => draft.row_id ?? 'new';
+
+/** ¿Hay algo que previsualizar? Sin columnas calculadas no se pregunta nada. */
+const hasComputed = computed(() => props.fields.some(isComputed));
+
+const setPreview = (key, patch) => {
+    previews.value = {
+        ...previews.value,
+        [key]: { ...(previews.value[key] ?? {}), ...patch },
+    };
+};
+
+const askPreview = async (key, draft) => {
+    // Si el analista siguió tecleando, la respuesta que viene en camino ya no
+    // corresponde a lo que hay en pantalla: se cancela en vez de dejar que
+    // llegue tarde y pise el resultado de la petición nueva.
+    inflight[key]?.abort();
+
+    const controller = new AbortController();
+    inflight[key] = controller;
+
+    try {
+        const { data } = await window.axios.post(
+            route('lab_management.worksheets.preview', props.worksheet.slug),
+            { values: draft.values },
+            { signal: controller.signal },
+        );
+
+        setPreview(key, {
+            status: 'ready',
+            values: data?.values ?? {},
+            errors: data?.errors ?? {},
+            cycles: data?.cycles ?? [],
+        });
+    } catch (error) {
+        // La abortó una petición más nueva: esa es la que manda, no hay nada
+        // que informar.
+        if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') return;
+
+        // Sin servidor la celda queda VACÍA con el aviso. Calcularla acá sería
+        // volver exactamente al sistema viejo.
+        setPreview(key, { status: 'failed', values: {}, errors: {}, cycles: [] });
+    } finally {
+        if (inflight[key] === controller) inflight[key] = null;
+    }
+};
+
+const schedulePreview = (draft) => {
+    if (props.readonly || !hasComputed.value) return;
+
+    const key = previewKey(draft);
+
+    // El estado pasa a "calculando" apenas cambia el dato, no cuando sale la
+    // petición: un número viejo que ya no corresponde a lo que hay en pantalla
+    // se lee como si fuera el actual, y eso es peor que una celda en blanco.
+    setPreview(key, { status: 'loading' });
+
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(() => askPreview(key, draft), PREVIEW_DELAY);
+};
+
+/**
+ * Qué informar en la celda calculada de esta columna. Un ciclo o una fórmula
+ * rota son problemas de la PLANTILLA y hay que decirlos donde se ven, no
+ * dejar la celda muda.
+ */
+const previewMessage = (key, field) => {
+    const preview = previews.value[key];
+    if (!preview) return '';
+
+    const cycle = (preview.cycles ?? []).find((path) => path.includes(field.code));
+    if (cycle) return t('worksheets.formula_cycle', { path: cycle.join(' → ') });
+
+    if ((preview.errors ?? {})[field.code]) {
+        return t('worksheets.formula_error', { field: field.label });
+    }
+
+    return preview.status === 'failed' ? t('worksheets.preview_failed') : '';
+};
+
+const forgetPreview = (key) => {
+    clearTimeout(timers[key]);
+    inflight[key]?.abort();
+    inflight[key] = null;
+
+    const next = { ...previews.value };
+    delete next[key];
+    previews.value = next;
+};
+
+onBeforeUnmount(() => {
+    Object.keys(timers).forEach((key) => clearTimeout(timers[key]));
+    Object.values(inflight).forEach((controller) => controller?.abort());
+});
+
 /**
  * Los borradores se rearman con lo que devuelve el servidor después de cada
  * guardado: así la fila muestra el calculado recién resuelto y no el que quedó
@@ -233,6 +367,12 @@ const sync = () => {
         nextDrafts[row.id] = keepLocal ? drafts.value[row.id] : fresh;
         nextBase[row.id]   = JSON.stringify(fresh);
         nextStored[row.id] = buildStored(row);
+
+        // La vista previa de una fila que se acaba de recargar del servidor ya
+        // no hace falta: lo guardado ES el cálculo. La de una fila que el
+        // analista tiene a medio cargar se conserva, porque su borrador no
+        // cambió y el número sigue siendo el que corresponde.
+        if (!keepLocal) forgetPreview(row.id);
     }
 
     drafts.value    = nextDrafts;
@@ -245,6 +385,13 @@ watch(() => props.worksheet, sync, { immediate: true });
 
 const setCell = (draft, field, replicate, value) => {
     draft.values[field.code][replicate] = value === '' ? null : value;
+
+    // Se pregunta ante CUALQUIER cambio de celda y no solo ante los campos que
+    // la fórmula usa: saber cuáles son exigiría leer la fórmula en el
+    // navegador, que es justo lo que este cambio saca de acá. Una consulta de
+    // más no cuesta nada; una celda que no se entera de que su dato cambió
+    // muestra un número que ya no corresponde.
+    schedulePreview(draft);
 };
 
 /** El código de muestra que declara la plantilla, tal como quedó en el borrador. */
@@ -276,6 +423,14 @@ const payloadOf = (draft) => {
         body.sample_code = sampleCodeOf(draft);
     }
 
+    // El equipo viaja solo en las filas de muestra, por el mismo motivo que el
+    // código: el patrón, el duplicado y el blanco no provienen de un equipo del
+    // cliente. En las demás la clave se omite en vez de mandar null, que sobre
+    // una fila ya guardada no la borraría igual.
+    if (draft.kind === 'sample' && draft.equipment_id) {
+        body.equipment_id = draft.equipment_id;
+    }
+
     return body;
 };
 
@@ -288,7 +443,11 @@ const save = (draft) => {
         payloadOf(draft),
         {
             preserveScroll: true,
-            onSuccess: () => { if (!draft.row_id) newDraft.value = null; },
+            onSuccess: () => {
+                if (draft.row_id) return;
+                forgetPreview('new');
+                newDraft.value = null;
+            },
             onFinish:  () => { savingId.value = null; },
         },
     );
@@ -308,8 +467,20 @@ const remove = (row) => {
     });
 };
 
-const startRow = (kind) => { newDraft.value = buildDraft({ kind }); };
-const cancelRow = () => { newDraft.value = null; };
+const startRow = (kind) => {
+    forgetPreview('new');
+    newDraft.value = buildDraft({ kind });
+
+    // La fila nueva puede arrancar con valores arrastrados de la anterior
+    // (columnas constantes) o con el valor por omisión de la columna: ya hay
+    // algo que calcular sin que el analista haya tocado una tecla.
+    schedulePreview(newDraft.value);
+};
+
+const cancelRow = () => {
+    forgetPreview('new');
+    newDraft.value = null;
+};
 
 /**
  * Por qué no se puede agregar una muestra todavía. El sistema viejo se
@@ -332,6 +503,15 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                 <thead>
                     <tr>
                         <th class="ws-th ws-th--kind">{{ $t('test_fields.type') }}</th>
+
+                        <!-- El equipo va a la IZQUIERDA, junto al tipo de fila y
+                             al código: es de qué se tomó la muestra, no un dato
+                             medido. Si queda al final de treinta columnas, se
+                             carga cuando alguien se acuerda. -->
+                        <th class="ws-th ws-th--equipment">
+                            <div class="ws-th__label">{{ $t('worksheets.equipment') }}</div>
+                            <div class="ws-th__meta">{{ $t('worksheets.equipment_hint') }}</div>
+                        </th>
 
                         <th v-for="field in fields" :key="field.id" class="ws-th">
                             <div class="ws-th__label">
@@ -370,11 +550,24 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             <div v-if="row.sample_code" class="ws-td__code">{{ row.sample_code }}</div>
                         </td>
 
+                        <td class="ws-td ws-td--equipment">
+                            <EquipmentSelect
+                                :equipment="equipment"
+                                :value="drafts[row.id]?.equipment_id ?? null"
+                                :applicable="equipmentApplies(row.kind)"
+                                :disabled="readonly"
+                                @update:value="(value) => (drafts[row.id].equipment_id = value)"
+                            />
+                        </td>
+
                         <td v-for="field in fields" :key="field.id" class="ws-td">
                             <WorksheetCell
                                 :field="field"
                                 :values="drafts[row.id]?.values?.[field.code] ?? {}"
                                 :stored="stored[row.id]?.[field.code] ?? {}"
+                                :preview="previews[row.id]?.values?.[field.code] ?? {}"
+                                :preview-state="previews[row.id]?.status ?? 'idle'"
+                                :preview-message="previewMessage(row.id, field)"
                                 :instruments="instruments"
                                 :disabled="readonly"
                                 @update="(replicate, value) => setCell(drafts[row.id], field, replicate, value)"
@@ -431,11 +624,23 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             </Tooltip>
                         </td>
 
+                        <td class="ws-td ws-td--equipment">
+                            <EquipmentSelect
+                                :equipment="equipment"
+                                :value="newDraft.equipment_id"
+                                :applicable="equipmentApplies(newDraft.kind)"
+                                @update:value="(value) => (newDraft.equipment_id = value)"
+                            />
+                        </td>
+
                         <td v-for="field in fields" :key="field.id" class="ws-td">
                             <WorksheetCell
                                 :field="field"
                                 :values="newDraft.values[field.code] ?? {}"
                                 :stored="{}"
+                                :preview="previews.new?.values?.[field.code] ?? {}"
+                                :preview-state="previews.new?.status ?? 'idle'"
+                                :preview-message="previewMessage('new', field)"
                                 :instruments="instruments"
                                 @update="(replicate, value) => setCell(newDraft, field, replicate, value)"
                             />
@@ -550,6 +755,11 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-th--kind, .ws-td--kind { position: sticky; left: 0; z-index: 4; background: var(--color-surface); }
 .ws-th--kind { z-index: 5; }
 .ws-th--actions, .ws-td--actions { text-align: right; }
+
+/* El selector de equipo necesita ancho: el nombre de un equipo es largo y
+   recortarlo obliga a abrir el desplegable para saber cuál está elegido. */
+.ws-th--equipment, .ws-td--equipment { min-width: 200px; }
+.ws-th--equipment .ws-th__meta { white-space: normal; max-width: 220px; }
 
 .ws-td {
     padding: 8px 10px;

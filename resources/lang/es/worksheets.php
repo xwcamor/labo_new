@@ -86,6 +86,7 @@ return [
         'missing_prerequisites' => 'Esta prueba exige cargar primero: :kinds. No se admiten muestras hasta entonces.',
         'already_voided'        => 'La hoja ya está anulada. El motivo original no se reemplaza.',
         'void_reason_required'  => 'Indique el motivo de la anulación.',
+        'preview_too_large'     => 'Los datos enviados para el cálculo son demasiados. Guarde la fila y vuelva a intentarlo.',
     ],
 
     // ── Cálculo ───────────────────────────────────────────────────────────
@@ -93,6 +94,12 @@ return [
     'computed_help'   => 'Este valor lo calcula el servidor con la fórmula de la columna. No se escribe a mano.',
     'formula_cycle'   => 'Las fórmulas de esta prueba se referencian entre sí en círculo (:path). Corrija la plantilla.',
     'formula_error'   => 'La fórmula de :field no se pudo evaluar.',
+
+    // Vista previa: el resultado que da la fórmula con lo que hay tipeado,
+    // calculado por el servidor y todavía sin guardar.
+    'preview_calculating' => 'Calculando…',
+    'preview_hint'        => 'Vista previa calculada por el servidor con lo que hay cargado. Queda firme al guardar la fila.',
+    'preview_failed'      => 'No se pudo consultar el cálculo al servidor. El valor se resuelve igual al guardar la fila.',
 
     // ── Valores censurados ────────────────────────────────────────────────
     'censored' => [
@@ -108,6 +115,20 @@ return [
     'closed'      => 'Hoja cerrada. Queda a la espera de la validación del supervisor.',
     'validated'   => 'Hoja validada. Los patrones ya alimentan la carta de control.',
     'voided'      => 'Hoja anulada.',
+
+    // ── Equipo del que se tomó la muestra ─────────────────────────────────
+    // Sin este enlace el resultado no se escribe: no se puede consultar por
+    // equipo y no llega al informe del cliente. Se avisa, no se obliga: el
+    // analista a veces carga la bancada antes de que el ingreso de la muestra
+    // esté registrado.
+    'equipment'                => 'Equipo',
+    'equipment_hint'           => 'De dónde se tomó la muestra',
+    'equipment_placeholder'    => 'Buscar por nombre, serie o etiqueta',
+    'equipment_missing'        => 'Sin equipo',
+    'equipment_missing_help'   => 'Mientras la muestra no indique de qué equipo es, este ensayo no va a aparecer en el informe del cliente ni en la tendencia del equipo.',
+    'equipment_missing_count'  => '{0} Todas las muestras indican su equipo.|{1} 1 muestra sin equipo: ese ensayo no va a aparecer en el informe del cliente.|[2,*] :count muestras sin equipo: esos ensayos no van a aparecer en el informe del cliente.',
+    'equipment_na_short'       => 'No aplica',
+    'equipment_not_applicable' => 'El patrón control, el duplicado y el blanco de reactivos son controles del método, no muestras de un cliente: no provienen de un equipo.',
 
     'kind_label'     => 'Tipo de fila',
     'instrument'     => 'Instrumento',

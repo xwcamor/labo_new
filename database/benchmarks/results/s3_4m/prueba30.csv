@@ -1,0 +1,6 @@
+pruebas_dadas_de_alta,ramas_union,mediana_ms,min_ms,max_ms,longitud_sql_caracteres
+4,4,1.108,0.909,1.633,2233
+10,10,2.14,2.058,2.446,3913
+20,20,4.62,4.362,5.038,6727
+30,30,6.817,6.089,8.079,9547
+q4_vertical_referencia,0.616,0.535,0.73,1

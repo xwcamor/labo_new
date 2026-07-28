@@ -78,6 +78,7 @@ return [
         'missing_prerequisites' => 'This test requires entering first: :kinds. No samples are accepted until then.',
         'already_voided'        => 'The worksheet is already voided. The original reason is not replaced.',
         'void_reason_required'  => 'State the reason for voiding.',
+        'preview_too_large'     => 'Too much data was sent for calculation. Save the row and try again.',
     ],
 
     // ── Calculation ───────────────────────────────────────────────────────
@@ -85,6 +86,12 @@ return [
     'computed_help'   => 'This value is calculated on the server from the column formula. It is not typed in.',
     'formula_cycle'   => 'The formulas of this test reference each other in a circle (:path). Fix the template.',
     'formula_error'   => 'The formula for :field could not be evaluated.',
+
+    // Preview: what the formula gives for the values currently typed in,
+    // calculated by the server and not saved yet.
+    'preview_calculating' => 'Calculating…',
+    'preview_hint'        => 'Preview calculated by the server from the values entered. It becomes final when the row is saved.',
+    'preview_failed'      => 'The server could not be reached for the calculation. The value is resolved anyway when the row is saved.',
 
     // ── Censored values ───────────────────────────────────────────────────
     'censored' => [
@@ -100,6 +107,20 @@ return [
     'closed'      => 'Worksheet closed. Awaiting supervisor validation.',
     'validated'   => 'Worksheet validated. Controls now feed the control chart.',
     'voided'      => 'Worksheet voided.',
+
+    // ── Equipment the sample was drawn from ───────────────────────────────
+    // Without this link the result is not written: it cannot be queried by
+    // equipment and never reaches the customer report. It warns, it does not
+    // block: the analyst sometimes fills the bench before the sample intake is
+    // on record.
+    'equipment'                => 'Equipment',
+    'equipment_hint'           => 'Where the sample was drawn from',
+    'equipment_placeholder'    => 'Search by name, serial or tag',
+    'equipment_missing'        => 'No equipment',
+    'equipment_missing_help'   => 'Until the sample states which equipment it came from, this test will not appear in the customer report nor in the equipment trend.',
+    'equipment_missing_count'  => '{0} Every sample states its equipment.|{1} 1 sample without equipment: that test will not appear in the customer report.|[2,*] :count samples without equipment: those tests will not appear in the customer report.',
+    'equipment_na_short'       => 'Not applicable',
+    'equipment_not_applicable' => 'The control standard, the duplicate and the reagent blank are method controls, not customer samples: they do not come from any equipment.',
 
     'kind_label'     => 'Row kind',
     'instrument'     => 'Instrument',

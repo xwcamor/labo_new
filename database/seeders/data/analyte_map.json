@@ -1,0 +1,72 @@
+{
+  "_doc": [
+    "Qué COLUMNA de qué PRUEBA alimenta qué PARÁMETRO.",
+    "",
+    "Es el dato que el sistema Rails viejo no declaraba en ningún lado: allá el",
+    "informe tomaba 'la última columna por posición' y asumía que era el",
+    "resultado, y por eso su README avisaba en mayúsculas que la columna de",
+    "resultado tenía que ser siempre la última. Acá está escrito, es editable, y",
+    "reordenar el cuadro no cambia nada.",
+    "",
+    "La clave es 'codigo_de_prueba.codigo_de_columna' y el valor es el código del",
+    "parámetro. Lo que no está en esta lista queda SIN declarar a propósito: ver",
+    "la sección 'pendientes' al final.",
+    "",
+    "Después de editar esto: php artisan lab:map-analytes && php artisan lab:rebuild-results"
+  ],
+
+  "map": {
+    "analisis_cromatografico.hidrogeno_h2_ppm":   "h2",
+    "analisis_cromatografico.oxigeno_o2_ppm":     "o2",
+    "analisis_cromatografico.nitrogeno_n2_ppm":   "n2",
+    "analisis_cromatografico.metano_ch4_ppm":     "ch4",
+    "analisis_cromatografico.mcarbono_co_ppm":    "co",
+    "analisis_cromatografico.dcarbono_co2_ppm":   "co2",
+    "analisis_cromatografico.etileno_c2h4_ppm":   "c2h4",
+    "analisis_cromatografico.etano_c2h6_ppm":     "c2h6",
+    "analisis_cromatografico.acetileno_c2h2_ppm": "c2h2",
+    "analisis_cromatografico.total_de_gases_combustibles": "tdcg",
+    "analisis_cromatografico.total":              "tgas",
+
+    "numero_acido.resultado_mgkohg_aceite":       "acid",
+    "rigidez_dielectrica.resultado_kv":           "rig",
+    "rigidez_dielectrica_electrodos_planos.resultado_kv": "rig_ep",
+    "contenido_de_agua.resultado_ppm":            "wat",
+    "factor_de_potencia_25o.resultado":           "fp25",
+    "factor_de_potencia_90o.resultado":           "fp90",
+    "factor_de_potencia_100o.resultado":          "fp100",
+    "resistividad_volumetrica_25o.resultado_ocm": "rho25",
+    "resistividad_volumetrica_100o.resultado_ocm":"rho100",
+    "densidad_relativa.resultado":                "dens",
+    "viscocidad.resultado_mm2s":                  "visc",
+    "color.resultado":                            "color",
+    "inflamacion.resultado":                      "flash",
+    "fluidez.resultado":                          "pour",
+
+    "grado_de_polimerizacion.grado_de_polimerizacion": "dp",
+    "grado_de_polimerizacion.contenido_de_agua_en":    "hum_papel",
+    "furanos.grado_de_polimerizacion":                 "dp",
+
+    "pcb.contenido_total_de_pcbs":  "pcb",
+    "inhibidor.resultado":          "inhibitor",
+    "dbds.resultado":               "dbds",
+    "pasivador.resultado":          "passivator",
+    "sedimentos.total_de_sedimentos": "sediments",
+    "azufre_1275b.resultado":         "s1275b",
+    "azufre_62535_48_horas.resultado":"s62535_48",
+    "azufre_62535_72_horas.resultado":"s62535_72"
+  },
+
+  "pendientes": {
+    "_doc": [
+      "Columnas que NO se declaran hasta que el laboratorio las confirme.",
+      "Adivinar acá manda el dato equivocado al informe, así que se prefiere que",
+      "la prueba no informe nada antes que informar algo inventado."
+    ],
+    "tension_interfacial": "La columna 'Tensión Interfacial Aceite (mN/m)' parece el resultado, pero la prueba trae además una 'Tensión Corregida Agua' y hay que confirmar cuál de las dos es la que va al informe.",
+    "particulas": "Diez rangos de tamaño, todos resultados. Hay que crear un parámetro por rango y decidir cómo se informa el conteo.",
+    "metales_en_aceite": "Diez elementos, todos resultados. Hay que crear un parámetro por elemento.",
+    "condicion_visual": "Resultado cualitativo (aspecto). Definir si se informa como texto o con una escala.",
+    "furanos": "La única columna de resultado detectada es el grado de polimerización, no los furanos en sí. Falta declarar los cinco furanos (2-FAL, 5-HMF, 2-ACF, 5-MEF, 2-FOL) como columnas y como parámetros."
+  }
+}

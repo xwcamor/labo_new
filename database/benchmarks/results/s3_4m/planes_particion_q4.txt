@@ -1,0 +1,6 @@
+Consulta 4 sobre la forma particionada, planificacion contra ejecucion.
+Segunda lectura del plan (la primera paga la carga del catalogo de las once
+particiones y da 34 ms de planificacion, que no es representativo).
+
+ Planning Time: 3.209 ms
+ Execution Time: 0.708 ms

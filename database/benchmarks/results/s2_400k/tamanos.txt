@@ -1,0 +1,12 @@
+          relname          |   filas   |   tabla    | indices |  total   | total_bytes 
+---------------------------+-----------+------------+---------+----------+-------------
+ results_v                 | 8,392,186 | 619 MB     | 490 MB  | 1109 MB  |  1162928128
+ w_analisis_cromatografico | 400,000   | 57 MB      | 29 MB   | 86 MB    |    90267648
+ w_contenido_de_agua       | 379,999   | 40 MB      | 16 MB   | 56 MB    |    58671104
+ w_numero_acido            | 360,000   | 38 MB      | 15 MB   | 53 MB    |    55582720
+ samples                   | 400,000   | 23 MB      | 12 MB   | 35 MB    |    36651008
+ w_grado_de_polimerizacion | 48,002    | 7872 kB    | 2144 kB | 10016 kB |    10256384
+ test_mix                  | 4         | 8192 bytes | 16 kB   | 24 kB    |       24576
+ analytes                  | 34        | 8192 bytes | 16 kB   | 24 kB    |       24576
+(8 rows)
+

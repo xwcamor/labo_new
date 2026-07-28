@@ -1,0 +1,15 @@
+===== union de 4 ramas =====
+ Planning Time: 1.593 ms
+ Execution Time: 0.568 ms
+===== union de 10 ramas =====
+ Planning Time: 2.818 ms
+ Execution Time: 1.394 ms
+===== union de 20 ramas =====
+ Planning Time: 5.761 ms
+ Execution Time: 2.953 ms
+===== union de 30 ramas =====
+ Planning Time: 8.137 ms
+ Execution Time: 4.201 ms
+===== consulta 4 vertical (no cambia con la cantidad de pruebas) =====
+ Planning Time: 0.704 ms
+ Execution Time: 1.022 ms

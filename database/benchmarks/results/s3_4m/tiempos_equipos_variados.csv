@@ -1,0 +1,7 @@
+consulta,mediana_ms_por_pasada,min_ms,max_ms,sentencias_por_pasada
+q1_vertical,0.422,0.422,0.422,1
+q1_ancho,0.929,0.929,0.929,4
+q2_vertical,0.294,0.294,0.294,1
+q2_ancho,0.236,0.236,0.236,1
+q4_vertical,0.622,0.622,0.622,1
+q4_ancho_union,1.002,1.002,1.002,1

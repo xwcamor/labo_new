@@ -224,6 +224,17 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('worksheets/{worksheet}/rows',        [WorksheetController::class, 'saveRow'])->name('worksheets.rows.save');
         Route::delete('worksheets/{worksheet}/rows/{row}', [WorksheetController::class, 'destroyRow'])->name('worksheets.rows.destroy');
         Route::post('worksheets/{worksheet}/close',       [WorksheetController::class, 'close'])->name('worksheets.close');
+        // Vista previa del cálculo mientras el analista escribe. NO guarda nada.
+        //
+        // El límite es 120 por minuto y por usuario. La grilla espera 400 ms de
+        // silencio antes de preguntar y cancela la petición anterior si el
+        // analista sigue tecleando, así que una carga normal manda del orden de
+        // una petición por celda terminada: 120 cubre con holgura la tanda más
+        // rápida y deja igual un techo para lo que no sea la pantalla. Va acá y
+        // no en el controlador porque el gasto que se quiere evitar es el de
+        // atender la petición, no el de calcularla.
+        Route::middleware('throttle:120,1')
+            ->post('worksheets/{worksheet}/preview',      [WorksheetController::class, 'preview'])->name('worksheets.preview');
         // Lectura del archivo crudo del instrumento. Devuelve lo interpretado
         // para que el analista lo confirme; NO escribe en la hoja por su cuenta.
         Route::post('worksheets/{worksheet}/instrument_file', [InstrumentFileController::class, 'store'])->name('worksheets.instrument_file');

@@ -1,41 +1,41 @@
 <?php
 
 return [
-    'singular'      => 'Marca',
-    'plural'        => 'Marcas',
-    'record'        => 'marca',
-    'records'       => 'marcas',
-    'new'           => 'Crear marca',
+    'singular'      => 'Parámetro',
+    'plural'        => 'Parámetros',
+    'record'        => 'parámetro',
+    'records'       => 'parámetros',
+    'new'           => 'Crear parámetro',
     'id'            => 'N°',
 
-    'index_title'    => 'Marcas',
-    'index_subtitle' => 'Catálogo global de marcas usados en el diagnóstico.',
-    'create_title'   => 'Crear marca',
-    'create_subtitle'=> 'Completa los datos para crear un nuevo marca.',
-    'edit_title'     => 'Editar marca',
-    'delete_title'   => 'Eliminar marca',
-    'show_title'     => 'Marca — Información',
-    'trash_title'    => 'Papelera de marcas',
-    'form_create_hint' => 'Completa los datos para crear un nuevo marca.',
-    'empty_hint'      => 'Crea el primer marca o importa un lote desde Excel para empezar.',
-    'name_placeholder' => 'Ej: Acme, Globex, Contoso',
+    'index_title'    => 'Parámetros',
+    'index_subtitle' => 'Lo que el laboratorio mide. Cada columna de resultado de una prueba alimenta uno de estos.',
+    'create_title'   => 'Crear parámetro',
+    'create_subtitle'=> 'Completa los datos para crear un nuevo parámetro.',
+    'edit_title'     => 'Editar parámetro',
+    'delete_title'   => 'Eliminar parámetro',
+    'show_title'     => 'Parámetro — Información',
+    'trash_title'    => 'Papelera de parámetros',
+    'form_create_hint' => 'Completa los datos para crear un nuevo parámetro.',
+    'empty_hint'      => 'Crea el primer parámetro o importa un lote desde Excel para empezar.',
+    'name_placeholder' => 'Ej: Hidrógeno H2, Número ácido, Rigidez dieléctrica',
 
     'name'      => 'Nombre',
-    'name_help' => 'Nombre del marca (ej: Acme, Globex, Contoso).',
+    'name_help' => 'Nombre con el que el parámetro se informa al cliente (ej: Acetileno C2H2).',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, vegetal_soya).',
+    'code_help' => 'Identificador interno con el que lo nombran las pruebas y las tendencias (ej: h2, acid, rig). No se repite.',
     'sort_order' => 'Orden',
     'is_active' => 'Estado',
-    'is_active_help' => 'Si está inactivo, el marca no aparecerá en los selectores de otros módulos.',
+    'is_active_help' => 'Si está inactivo, el parámetro no se puede enlazar a nuevas columnas de resultado. Lo ya medido no se toca.',
     'filter_name' => 'Nombre',
 
     'edit_hint'   => 'Modificar este registro',
     'delete_hint' => 'Eliminar (queda en papelera)',
     'restore_hint'=> 'Volverá a estar disponible en el listado principal.',
 
-    'created' => 'Marca creado.',
-    'saved'   => 'Marca actualizado.',
-    'deleted' => 'Marca eliminado.',
+    'created' => 'Parámetro creado.',
+    'saved'   => 'Parámetro actualizado.',
+    'deleted' => 'Parámetro eliminado.',
 
     'delete_about'                 => 'Va a eliminar ":name". Quedará en papelera.',
     'deleted_description_required' => 'Indica el motivo del borrado.',
@@ -43,28 +43,28 @@ return [
     'deleted_description_max'      => 'El motivo no puede superar los 1000 caracteres.',
 
     // Export
-    'export_filename'           => 'exportacion_marcas',
-    'import_template_filename'  => 'plantilla-marcas.xlsx',
-    'export_title'              => 'Reporte de Marcas',
+    'export_filename'           => 'exportacion_parámetros',
+    'import_template_filename'  => 'plantilla-parámetros.xlsx',
+    'export_title'              => 'Reporte de Parámetros',
     'export_limit_exceeded'     => 'El export en :format excede el límite (:count filas vs :limit máximo). Usa CSV para datasets grandes (sin límite).',
     'export_format_limit_hint'  => 'Máximo :limit filas para este formato. Usa CSV para datasets grandes.',
     'export_no_limit_hint'      => 'Sin límite — recomendado para datasets grandes.',
 
     // Validation
     'name_required'            => 'El campo nombre es obligatorio.',
-    'name_unique'              => 'Este marca ya existe.',
-    'code_unique'              => 'Ya existe un marca con este código.',
+    'name_unique'              => 'Este parámetro ya existe.',
+    'code_unique'              => 'Ya existe un parámetro con este código.',
     'name_duplicate_in_batch'  => 'Nombre duplicado dentro del mismo batch.',
     'is_active_required'       => 'El campo estado es obligatorio.',
     'import_super_blocked'     => 'Un super sin workspace asignado no puede importar (el match por nombre podría actualizar registros de otro workspace).',
 
     // Edit All
-    'edit_all_title'    => 'Marcas — Editar Todo',
-    'edit_all_subtitle' => 'Edita nombre y estado de muchos marcas a la vez. Click "Guardar todo" para confirmar, "Cancelar" para descartar.',
+    'edit_all_title'    => 'Parámetros — Editar Todo',
+    'edit_all_subtitle' => 'Edita nombre y estado de muchos parámetros a la vez. Click "Guardar todo" para confirmar, "Cancelar" para descartar.',
     'edit_all_changes'  => '{0} Sin cambios|{1} 1 cambio pendiente|[2,*] :count cambios pendientes',
     'edit_all_save_all' => 'Guardar todo',
     'edit_all_discard'  => 'Descartar cambios',
-    'edit_all_no_results' => 'No hay marcas que coincidan con el filtro.',
+    'edit_all_no_results' => 'No hay parámetros que coincidan con el filtro.',
 
     'table_headers' => [
         'editable_name'   => 'Nombre (editable)',
@@ -73,8 +73,8 @@ return [
 
     // Onboarding tour
     'tour' => [
-        'step1_title' => 'Bienvenido a Marcas',
-        'step1_body'  => 'Este es el catálogo de marcas. Te mostramos los puntos clave en menos de 1 minuto.',
+        'step1_title' => 'Bienvenido a Parámetros',
+        'step1_body'  => 'Este es el catálogo de parámetros. Te mostramos los puntos clave en menos de 1 minuto.',
         'step2_title' => 'Filtros',
         'step2_body'  => 'Busca y filtra por nombre, código, estado y fechas. Los filtros activos aparecen como chips arriba de la tabla.',
         'step3_title' => 'Vistas guardadas',

@@ -9,7 +9,7 @@ return [
     'id'            => 'No.',
 
     'index_title'    => 'Analytes',
-    'index_subtitle' => 'Global catalog of analytes used in diagnostics.',
+    'index_subtitle' => 'What the laboratory measures. Every result column of a test feeds one of these.',
     'create_title'   => 'Create analyte',
     'create_subtitle'=> 'Fill in the data to create a new analyte.',
     'edit_title'     => 'Edit analyte',
@@ -18,10 +18,10 @@ return [
     'trash_title'    => 'Analytes trash',
     'form_create_hint' => 'Fill in the data to create a new analyte.',
     'empty_hint'      => 'Create your first analyte or import a batch from Excel.',
-    'name_placeholder' => 'E.g.: Acme, Globex, Contoso',
+    'name_placeholder' => 'E.g.: Hydrogen H2, Acid number, Dielectric strength',
 
     'name'      => 'Name',
-    'name_help' => 'Analyte name (e.g. Acme, Globex, Contoso).',
+    'name_help' => 'Name the analyte is reported under (e.g. Acetylene C2H2).',
     'code'      => 'Code',
     'code_help' => 'Internal technical identifier (e.g. mineral, silicone, vegetable_soy).',
     'sort_order' => 'Order',

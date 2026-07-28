@@ -36,8 +36,8 @@ return [
     'mail_otp_expires'     => 'The code expires in 10 minutes.',
 
     // Public portal
-    'portal_title'   => 'Diagnostic report',
-    'portal_footer'  => 'Transformer diagnostic report.',
+    'portal_title'   => 'Reports portal',
+    'portal_footer'  => 'Test and diagnostic reports.',
     'gate_title'     => 'Report access',
     'gate_intro'     => 'To view the report, we will send a code to :email.',
     'gate_send'      => 'Send code',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\Sample;
 use App\Models\Transformer;
 
 /**
@@ -41,9 +42,21 @@ class ReportVerifyController extends Controller
                 ->first();
         }
 
-        $transformer = $log
-            ? Transformer::withTrashed()->with('tenant:id,name')->find($log->auditable_id)
-            : null;
+        // El mismo portal verifica DOS productos distintos: el informe de
+        // diagnóstico de un transformador y el informe de ensayo de una muestra
+        // del laboratorio. El registro de auditoría dice cuál es; sin mirarlo,
+        // el código de una muestra buscaba un transformador con ese id y
+        // mostraba los datos de otro equipo o ninguno.
+        $transformer = null;
+        $sample = null;
+
+        if ($log?->auditable_type === Sample::class) {
+            $sample = Sample::withTrashed()
+                ->with(['tenant:id,name', 'equipment:id,name,serial,tag'])
+                ->find($log->auditable_id);
+        } elseif ($log) {
+            $transformer = Transformer::withTrashed()->with('tenant:id,name')->find($log->auditable_id);
+        }
 
         return view('share.verify-report', [
             'queried'     => $raw !== '',
@@ -51,6 +64,7 @@ class ReportVerifyController extends Controller
             'code'        => $formatted ?? ($raw !== '' ? strtoupper($raw) : null),
             'log'         => $log,
             'transformer' => $transformer,
+            'sample'      => $sample,
         ]);
     }
 }

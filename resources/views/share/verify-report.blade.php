@@ -1,5 +1,10 @@
 @extends('share.layout')
-@section('title', __('transformers.report.verify_title'))
+{{-- Las claves de esta pantalla vivían en el espacio `transformers`, que en
+     este sistema NO EXISTE: el portal mostraba las claves crudas
+     ("transformers.report.verify_title") a cualquiera que abriera un código.
+     Era código heredado que nadie había ejercitado; ahora que el laboratorio
+     emite informes con QR, sí se usa. Los textos son suyos: van en `reports`. --}}
+@section('title', __('reports.verify_title'))
 @section('content')
 @php
     $nv = $log?->new_values ?? [];
@@ -19,31 +24,47 @@
 <div class="card" style="text-align:center;">
     @if ($found)
         <div style="font-size:44px; line-height:1; margin-bottom:10px; color:#1D7044;">&#10003;</div>
-        <h1 class="h1">{{ __('transformers.report.verify_ok') }}</h1>
-        <p class="sub">{{ __('transformers.report.verify_ok_sub') }}</p>
+        <h1 class="h1">{{ __('reports.verify_ok') }}</h1>
+        <p class="sub">{{ __('reports.verify_ok_sub') }}</p>
 
         <table class="list" style="text-align:left; margin-top:10px;">
-            <tr><th>{{ __('transformers.report.verify_code') }}</th><td><code>{{ $code }}</code></td></tr>
-            <tr><th>{{ __('transformers.report.code') }}</th><td>{{ $nv['report_code'] ?? '—' }}</td></tr>
-            <tr><th>{{ __('transformers.report.verify_issued_at') }}</th><td>{{ $log->created_at->format('d-m-Y H:i') }}</td></tr>
-            <tr><th>{{ __('transformers.report.verify_issued_by') }}</th><td>{{ $transformer?->tenant?->name ?? '—' }}</td></tr>
-            <tr><th>{{ __('transformers.serial') }}</th><td>{{ $transformer?->serial ?: ($transformer?->tag ?? '—') }}</td></tr>
-            <tr><th>{{ __('transformers.report.health_index') }}</th><td>{{ isset($nv['health_index']) && $nv['health_index'] !== null ? $nv['health_index'] . ' %' : '—' }}</td></tr>
+            <tr><th>{{ __('reports.verify_code') }}</th><td><code>{{ $code }}</code></td></tr>
+            {{-- El informe de diagnóstico lleva su propio código correlativo; el
+                 de ensayo se identifica por el número de muestra, que ya está
+                 más abajo. Sin esto la fila salía con una raya para todos los
+                 informes del laboratorio. --}}
+            @if (!empty($nv['report_code']))
+                <tr><th>{{ __('reports.code') }}</th><td>{{ $nv['report_code'] }}</td></tr>
+            @endif
+            <tr><th>{{ __('reports.verify_issued_at') }}</th><td>{{ $log->created_at->format('d-m-Y H:i') }}</td></tr>
+            <tr><th>{{ __('reports.verify_issued_by') }}</th><td>{{ ($sample ?? $transformer)?->tenant?->name ?? '—' }}</td></tr>
+            @if (!empty($sample))
+                {{-- Informe de ensayo del laboratorio. Se muestra lo mínimo que
+                     prueba autenticidad: qué muestra y de qué equipo. Los
+                     RESULTADOS no se publican acá — el portal confirma que el
+                     papel salió del sistema, no reemplaza al informe. --}}
+                <tr><th>{{ __('reports.verify_sample') }}</th><td>{{ $nv['sample'] ?? $sample->code }}</td></tr>
+                <tr><th>{{ __('reports.verify_equipment') }}</th><td>{{ $sample->equipment?->name ?? '—' }}</td></tr>
+                <tr><th>{{ __('reports.verify_sections') }}</th><td>{{ $nv['sections'] ?? '—' }}</td></tr>
+            @else
+                <tr><th>{{ __('reports.verify_serial') }}</th><td>{{ $transformer?->serial ?: ($transformer?->tag ?? '—') }}</td></tr>
+                <tr><th>{{ __('reports.health_index') }}</th><td>{{ isset($nv['health_index']) && $nv['health_index'] !== null ? $nv['health_index'] . ' %' : '—' }}</td></tr>
+            @endif
             {{-- Firmantes REALES del informe (cargo + nombre), tal como salieron. --}}
             @forelse ($nv['signers'] ?? [] as $s)
                 <tr><th>{{ $s['title'] ?? '—' }}</th><td>{{ $s['name'] ?: '—' }}@if (!empty($s['auto_signed'])) <span style="color:#1D7044;">&#10003;</span>@endif</td></tr>
             @empty
-                @if (!empty($nv['approver']))<tr><th>{{ __('transformers.report.verify_signers') }}</th><td>{{ $nv['approver'] }}</td></tr>@endif
+                @if (!empty($nv['approver']))<tr><th>{{ __('reports.verify_signers') }}</th><td>{{ $nv['approver'] }}</td></tr>@endif
             @endforelse
         </table>
-        <p class="sub" style="margin-top:16px;">{{ __('transformers.report.verify_match_hint') }}</p>
+        <p class="sub" style="margin-top:16px;">{{ __('reports.verify_match_hint') }}</p>
     @elseif ($queried)
         <div style="font-size:44px; line-height:1; margin-bottom:10px; color:#C8281D;">&#10007;</div>
-        <h1 class="h1">{{ __('transformers.report.verify_fail') }}</h1>
-        <p class="sub">{{ __('transformers.report.verify_fail_sub', ['code' => $code ?? '']) }}</p>
+        <h1 class="h1">{{ __('reports.verify_fail') }}</h1>
+        <p class="sub">{{ __('reports.verify_fail_sub', ['code' => $code ?? '']) }}</p>
     @else
-        <h1 class="h1">{{ __('transformers.report.verify_title') }}</h1>
-        <p class="sub">{{ __('transformers.report.verify_form_hint') }}</p>
+        <h1 class="h1">{{ __('reports.verify_title') }}</h1>
+        <p class="sub">{{ __('reports.verify_form_hint') }}</p>
     @endif
 
     {{-- Buscador manual: para quien tiene el informe impreso y tipea el código. --}}
@@ -52,8 +73,8 @@
             <input type="text" name="code" class="input" maxlength="14" style="letter-spacing:2px;"
                    placeholder="XXXX-XXXX-XXXX" value="" autocomplete="off">
         </div>
-        <button type="submit" class="btn">{{ __('transformers.report.verify_form_btn') }}</button>
+        <button type="submit" class="btn">{{ __('reports.verify_form_btn') }}</button>
     </form>
 </div>
-<p class="foot">{{ __('transformers.report.verify_foot') }}</p>
+<p class="foot">{{ __('reports.verify_foot') }}</p>
 @endsection

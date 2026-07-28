@@ -36,8 +36,11 @@ return [
     'mail_otp_expires'     => 'El código vence en 10 minutos.',
 
     // Portal público
-    'portal_title'   => 'Reporte de diagnóstico',
-    'portal_footer'  => 'Reporte de diagnóstico de transformadores.',
+    // El portal público sirve a los DOS productos (el informe de ensayo del
+    // laboratorio y el de diagnóstico de transformadores), así que el pie no
+    // puede nombrar solo a uno.
+    'portal_title'   => 'Portal de informes',
+    'portal_footer'  => 'Informes de ensayo y de diagnóstico.',
     'gate_title'     => 'Acceso al reporte',
     'gate_intro'     => 'Para ver el reporte, te enviaremos un código a :email.',
     'gate_send'      => 'Enviar código',

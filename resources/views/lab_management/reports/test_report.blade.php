@@ -75,11 +75,49 @@
         .notes { margin-top: 12px; border-left: 3px solid #E9A23B; background: #FDF6EC; padding: 7px 10px; font-size: 7.5pt; }
         .notes p { margin: 0 0 3px 0; }
 
+        .letterhead { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .letterhead__logo { width: 45%; vertical-align: middle; }
+        .letterhead__logo img { max-height: 46px; }
+        .letterhead__name { font-size: 12pt; font-weight: bold; color: #354A5F; }
+        .letterhead__addr { text-align: right; font-size: 7.5pt; color: #6A6D70; vertical-align: middle; }
+
+        .signatures { width: 100%; border-collapse: collapse; margin-top: 26px; }
+        .signatures td { vertical-align: top; padding: 0 8px; text-align: center; }
+        .sign__line { border-top: 1px solid #32363A; margin-bottom: 4px; }
+        .sign__rel { font-size: 7pt; color: #6A6D70; text-transform: uppercase; }
+        .sign__name { font-size: 8.5pt; font-weight: bold; }
+        .sign__title { font-size: 7.5pt; color: #6A6D70; }
+        .qr { width: 90px; }
+        .qr img { width: 74px; height: 74px; }
+        .qr__hint { font-size: 6pt; color: #6A6D70; line-height: 1.3; }
+
         .foot { margin-top: 16px; border-top: 1px solid #d9dde3; padding-top: 6px; font-size: 7pt; color: #6A6D70; }
         .empty { border: 1px solid #d9dde3; padding: 14px; text-align: center; color: #6A6D70; }
+
+        /* Numeración de página.
+           DomPDF resuelve `counter(page)` / `counter(pages)` dentro de `content`
+           SIN necesidad de habilitar PHP embebido en el HTML (que es una puerta
+           que no vale la pena abrir para poner un número). Va en el margen
+           inferior de `@page` —por eso el margen de abajo es más grande que el
+           de arriba—, así ninguna fila de tabla se le monta encima. */
+        .pagenum {
+            position: fixed; bottom: -26px; left: 0; right: 0;
+            text-align: center; font-size: 7pt; color: #6A6D70;
+        }
+        .pagenum:after { content: counter(page) " / " counter(pages); }
+        .pagenum__code {
+            position: fixed; bottom: -26px; right: 0;
+            font-size: 7pt; color: #6A6D70;
+        }
     </style>
 </head>
 <body>
+
+{{-- El número de página y el código de verificación se repiten en TODAS las
+     páginas: una hoja suelta de un informe de seis páginas tiene que poder
+     identificarse sola. --}}
+<div class="pagenum"></div>
+<div class="pagenum__code">{{ $verifyCode }}</div>
 
 @php
     // OJO: no escribir las directivas de bloque de PHP dentro de un comentario
@@ -92,10 +130,29 @@
     $o     = fn ($v) => ($v === null || $v === '') ? '—' : $v;
 @endphp
 
+<table class="letterhead">
+    <tr>
+        <td class="letterhead__logo">
+            @if ($letterhead['logo'])
+                <img src="{{ $letterhead['logo'] }}" alt="">
+            @else
+                <span class="letterhead__name">{{ $letterhead['name'] ?? '' }}</span>
+            @endif
+        </td>
+        <td class="letterhead__addr">
+            @if ($letterhead['logo'] && $letterhead['name'])
+                <strong>{{ $letterhead['name'] }}</strong><br>
+            @endif
+            {{ $letterhead['address'] }}
+        </td>
+    </tr>
+</table>
+
 <div class="band">
     <div class="band__meta">
         <strong>{{ $sample['code'] }}</strong><br>
-        {{ __('reports.emitted') }} {{ $generatedAt->format('d-m-Y H:i') }}
+        {{ __('reports.emitted') }} {{ $generatedAt->format('d-m-Y H:i') }}<br>
+        {{ __('reports.verify_code') }} {{ $verifyCode }}
     </div>
     <p class="band__title">{{ __('reports.title') }}</p>
     <p class="band__sub">{{ __('reports.subtitle') }}</p>
@@ -195,10 +252,39 @@
     </div>
 @endif
 
+{{-- Las firmas van DESPUÉS de los resultados y de las notas: firmar es dar
+     por bueno lo que está arriba. --}}
+<table class="signatures">
+    <tr>
+        @forelse ($signers as $signer)
+            <td>
+                <div class="sign__line"></div>
+                <div class="sign__rel">{{ __('reports.relation.' . $signer->relation, [], null) }}</div>
+                <div class="sign__name">{{ $signer->user?->name ?? $signer->name }}</div>
+                <div class="sign__title">{{ $signer->title }}</div>
+            </td>
+        @empty
+            {{-- Sin firmantes cargados el informe no inventa ninguno: deja el
+                 espacio para firmar a mano y lo dice. --}}
+            <td>
+                <div class="sign__line"></div>
+                <div class="sign__rel">{{ __('reports.no_signers') }}</div>
+            </td>
+        @endforelse
+        <td class="qr">
+            <img src="{{ $verifyQr }}" alt="">
+            <div class="qr__hint">{{ __('reports.verify_hint') }}</div>
+        </td>
+    </tr>
+</table>
+
 <div class="foot">
     {{ __('reports.footer_legend') }}<br>
     {{ __('reports.footer_accreditation') }}<br>
     {{ __('reports.generated_by', ['name' => $generatedBy ?? '—']) }}
+    @if ($letterhead['disclaimer'])
+        <br>{{ $letterhead['disclaimer'] }}
+    @endif
 </div>
 
 </body>

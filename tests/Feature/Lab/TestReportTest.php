@@ -12,6 +12,11 @@ use App\Models\TestDefinition;
 use App\Models\TestField;
 use App\Models\User;
 use App\Services\Lab\TestReportPayload;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter;
+use Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect;
+use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -38,12 +43,30 @@ class TestReportTest extends TestCase
     {
         parent::setUp();
 
+        // Sin el redirector de idioma: `route()` genera la URL sin el prefijo
+        // /es y el middleware la manda a /en antes de llegar al controlador.
+        // Es la misma exclusión que usan las pruebas de Clientes.
+        $this->withoutMiddleware([
+            LaravelLocalizationRedirectFilter::class,
+            LocaleSessionRedirect::class,
+        ]);
+
         $this->seedParentRows();
         $this->payload = new TestReportPayload();
 
-        $this->actingAs(User::factory()->create([
+        // La ruta del informe está gateada por `receptions.view`: quien puede
+        // ver la entrega puede imprimir su informe.
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        Permission::firstOrCreate(['name' => 'receptions.view', 'guard_name' => 'web']);
+        $rol = Role::create(['name' => 'lab_' . Str::random(6), 'guard_name' => 'web', 'description' => 'Prueba']);
+        $rol->syncPermissions(Permission::where('name', 'receptions.view')->get());
+
+        $usuario = User::factory()->create([
             'country_id' => 1, 'locale_id' => 1, 'tenant_id' => 1,
-        ]));
+        ]);
+        $usuario->assignRole($rol);
+
+        $this->actingAs($usuario);
 
         $this->prueba = TestDefinition::create([
             'slug' => Str::random(22), 'code' => 'acidez', 'name' => 'Número Ácido',
@@ -158,7 +181,60 @@ class TestReportTest extends TestCase
         $this->assertSame('out_of_spec', $fila['status']);
     }
 
+
+    // ─── La emisión ──────────────────────────────────────────────────────
+
+    public function test_emitir_deja_constancia_con_su_codigo_de_verificacion(): void
+    {
+        // El código impreso solo prueba algo si existe del lado del sistema.
+        // Acá se comprueba las dos mitades: que se emite y que el portal
+        // público lo encuentra.
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $this->get(route('lab_management.samples.report', $muestra))->assertOk();
+
+        $log = \App\Models\AuditLog::where('event', 'report_generated')
+            ->where('auditable_id', $muestra->id)
+            ->latest('id')->first();
+
+        $this->assertNotNull($log);
+        $codigo = $log->new_values['verify_code'] ?? null;
+        $this->assertMatchesRegularExpression('/^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/', (string) $codigo);
+
+        $this->get(route('report.verify', $codigo))
+            ->assertOk()
+            ->assertSee($muestra->code);
+    }
+
+    public function test_un_codigo_inventado_no_verifica(): void
+    {
+        $this->get(route('report.verify', 'AAAA-BBBB-CCCC'))
+            ->assertOk()
+            ->assertSee(__('reports.verify_fail'));
+    }
+
+    public function test_dos_emisiones_dan_codigos_distintos(): void
+    {
+        // Cada papel que sale es rastreable por separado: si el cliente reclama
+        // sobre "el informe que me mandaron", el código dice cuál de todos es.
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $this->get(route('lab_management.samples.report', $muestra))->assertOk();
+        $this->travel(1)->seconds();
+        $this->get(route('lab_management.samples.report', $muestra))->assertOk();
+
+        $codigos = \App\Models\AuditLog::where('event', 'report_generated')
+            ->where('auditable_id', $muestra->id)
+            ->get()->pluck('new_values.verify_code');
+
+        $this->assertCount(2, $codigos);
+        $this->assertCount(2, $codigos->unique());
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
+
 
     private function muestraCon(string $estado): Sample
     {

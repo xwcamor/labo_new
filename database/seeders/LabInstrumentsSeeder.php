@@ -74,6 +74,7 @@ class LabInstrumentsSeeder extends Seeder
 
         $creados = 0;
         $columnas = 0;
+        $enlaces = 0;
         $sinNombre = [];
 
         foreach ($this->columnasConCodigos() as $clave => $columna) {
@@ -91,20 +92,31 @@ class LabInstrumentsSeeder extends Seeder
                 continue;
             }
 
+            $ids = [];
+
             foreach ($codigos as $codigo) {
                 $creados += $this->registrar($codigo, $nombres[$clave], $detalle[$codigo] ?? []);
+                $ids[] = $this->idDe($codigo);
             }
 
             if ($columna->type !== 'instrument') {
                 $columna->update(['type' => 'instrument']);
                 $columnas++;
             }
+
+            // Y —esto es lo que antes se tiraba— queda registrado QUÉ equipos
+            // ofrece esta columna. Sin eso la grilla ofrecía todos los del
+            // laboratorio en todas las columnas, y en la columna "Bureta" del
+            // Número Ácido aparecía el Colorímetro.
+            $columna->instruments()->syncWithoutDetaching(array_filter($ids));
+            $enlaces += count(array_filter($ids));
         }
 
         $total = Instrument::withoutGlobalScopes()->count();
         $this->command?->info(
             "Instrumentos: {$creados} dados de alta ({$total} en total), "
-            . "{$columnas} columnas pasadas a selección de equipo."
+            . "{$columnas} columnas pasadas a selección de equipo, "
+            . "{$enlaces} enlaces columna → equipo."
         );
 
         foreach ($sinNombre as $clave => $codigos) {
@@ -192,6 +204,15 @@ class LabInstrumentsSeeder extends Seeder
      *
      * @param array<string,mixed> $detalle
      */
+    /** El id del equipo con ese código, dentro del workspace. */
+    private function idDe(string $codigo): ?int
+    {
+        return Instrument::withoutGlobalScopes()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('code', $codigo)
+            ->value('id');
+    }
+
     private function registrar(string $codigo, string $nombre, array $detalle): int
     {
         $existente = Instrument::withoutGlobalScopes()

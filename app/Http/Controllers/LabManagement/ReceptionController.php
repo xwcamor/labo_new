@@ -145,8 +145,13 @@ class ReceptionController extends Controller
             // UNA consulta para el avance de todas las muestras.
             'progress'  => $this->progress->receptionBreakdown($reception->id),
             'missing'   => $reception->missingData(),
+            // Con su grupo (Físico Químico · Cromatografías · Otros): el cuadro
+            // de pedido las ofrece agrupadas, y son 29. `test_group_id` va en
+            // el select porque sin la clave foránea el eager-load no tiene con
+            // qué buscar y el grupo llegaría nulo en todas.
             'tests'     => TestDefinition::where('is_active', true)
-                ->orderBy('sort_order')->get(['id', 'code', 'name']),
+                ->with('group:id,name,sort_order')
+                ->orderBy('sort_order')->get(['id', 'code', 'name', 'test_group_id']),
             'equipment' => $reception->customer_id
                 ? Equipment::where('customer_id', $reception->customer_id)
                     ->orderBy('name')->get(['id', 'name', 'tag', 'serial'])

@@ -15,7 +15,7 @@
 import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
-    Button, Card, DatePicker, Select, SelectOption, Space, Tag, Tooltip,
+    Button, Card, DatePicker, Select, SelectOptGroup, SelectOption, Space, Tag, Tooltip,
 } from 'ant-design-vue';
 import {
     ClearOutlined, ExperimentOutlined, InfoCircleOutlined, PlusOutlined,
@@ -26,6 +26,7 @@ import ResponsiveTable from '@/Components/Common/ResponsiveTable.vue';
 import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
+import { groupTests, isGrouped } from '@/Utils/testGroups';
 import { plainDate } from './config/format';
 import { worksheetsTableColumns } from './config/columns';
 
@@ -42,6 +43,17 @@ const { t } = useI18n();
 const { can } = useAuth();
 
 const columns = computed(() => worksheetsTableColumns(t));
+
+/**
+ * Las pruebas del filtro, por grupo (Físico Químico · Cromatografías · Otros).
+ * Son 29 en una lista plana: sin los encabezados hay que leerlas todas para
+ * encontrar una. El orden de los grupos y el de las pruebas dentro de cada uno
+ * salen del dato, no de una lista escrita acá.
+ */
+const testGroups = computed(() => groupTests(props.tests, t('worksheets.group_none')));
+
+/** Sin grupos que separar se dibuja la lista de siempre, sin encabezados. */
+const showGroups = computed(() => isGrouped(testGroups.value));
 
 // ── Filtros ──────────────────────────────────────────────────────────────
 const testFilter   = ref(props.filters.test_definition ?? null);
@@ -144,9 +156,32 @@ const onTableChange = (page, _filters, sorter) => {
                     style="min-width: 220px"
                     :placeholder="$t('worksheets.test_definition')"
                 >
-                    <SelectOption v-for="test in tests" :key="test.slug" :value="test.slug" :label="test.name">
-                        {{ test.name }}
-                    </SelectOption>
+                    <!-- Agrupadas por familia de ensayo. La búsqueda sigue
+                         filtrando por el nombre de la prueba: el encabezado
+                         ordena la lectura, no obliga a elegir grupo primero. -->
+                    <template v-if="showGroups">
+                        <SelectOptGroup v-for="group in testGroups" :key="group.key" :label="group.label">
+                            <SelectOption
+                                v-for="test in group.tests"
+                                :key="test.slug"
+                                :value="test.slug"
+                                :label="test.name"
+                            >
+                                {{ test.name }}
+                            </SelectOption>
+                        </SelectOptGroup>
+                    </template>
+
+                    <template v-else>
+                        <SelectOption
+                            v-for="test in tests"
+                            :key="test.slug"
+                            :value="test.slug"
+                            :label="test.name"
+                        >
+                            {{ test.name }}
+                        </SelectOption>
+                    </template>
                 </Select>
 
                 <Select

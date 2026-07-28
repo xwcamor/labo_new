@@ -54,6 +54,11 @@ class SetupProjectCommand extends Command
         Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
         $this->info(Artisan::output());
 
+        // Una vista ancha por prueba, generada desde su propia definición. Es
+        // la tabla por prueba que el laboratorio pide para leer y exportar, sin
+        // el costo de tenerla como tabla física (ver el comando).
+        Artisan::call('lab:build-views');
+
         $this->verifyBaseData();
         $this->resumenDelLaboratorio();
 

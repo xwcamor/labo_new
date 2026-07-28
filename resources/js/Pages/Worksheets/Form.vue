@@ -9,13 +9,16 @@
 import { computed } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import {
-    Alert, DatePicker, Form, FormItem, Input, InputNumber, Select, SelectOption, Textarea,
+    Alert, DatePicker, Form, FormItem, Input, InputNumber, Select, SelectOptGroup,
+    SelectOption, Textarea,
 } from 'ant-design-vue';
 import { ExperimentOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import FormFooter from '@/Components/Common/FormFooter.vue';
+import { useI18n } from '@/Plugins/i18n';
+import { groupTests, isGrouped } from '@/Utils/testGroups';
 
 defineOptions({ layout: AppLayout });
 
@@ -27,6 +30,17 @@ const props = defineProps({
 });
 
 const page = usePage();
+const { t } = useI18n();
+
+/**
+ * Las pruebas por grupo (Físico Químico · Cromatografías · Otros). Es la misma
+ * agrupación que ofrece el filtro del listado: elegir la prueba de la hoja y
+ * filtrar por prueba no pueden mostrar dos listas distintas.
+ */
+const testGroups = computed(() => groupTests(props.tests, t('worksheets.group_none')));
+
+/** Sin grupos que separar se dibuja la lista de siempre, sin encabezados. */
+const showGroups = computed(() => isGrouped(testGroups.value));
 
 /** El `test` de la dirección puede venir como slug o como id. */
 const preselected = computed(() => {
@@ -102,9 +116,27 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
                         option-filter-prop="label"
                         :placeholder="$t('worksheets.test_definition')"
                     >
-                        <SelectOption v-for="test in tests" :key="test.id" :value="test.id" :label="test.name">
-                            {{ test.name }}
-                        </SelectOption>
+                        <!-- Agrupadas por familia de ensayo: son 29 y en una
+                             lista plana hay que leerlas todas para encontrar
+                             una. La búsqueda sigue siendo por nombre. -->
+                        <template v-if="showGroups">
+                            <SelectOptGroup v-for="group in testGroups" :key="group.key" :label="group.label">
+                                <SelectOption
+                                    v-for="test in group.tests"
+                                    :key="test.id"
+                                    :value="test.id"
+                                    :label="test.name"
+                                >
+                                    {{ test.name }}
+                                </SelectOption>
+                            </SelectOptGroup>
+                        </template>
+
+                        <template v-else>
+                            <SelectOption v-for="test in tests" :key="test.id" :value="test.id" :label="test.name">
+                                {{ test.name }}
+                            </SelectOption>
+                        </template>
                     </Select>
                 </FormItem>
 

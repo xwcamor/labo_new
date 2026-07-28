@@ -123,10 +123,45 @@ class WorksheetController extends Controller
             ->with('success', __('worksheets.created'));
     }
 
+    /**
+     * Qué equipos ofrece cada columna de equipo de esta prueba.
+     *
+     * La columna sin equipos declarados no aparece en el mapa, y la pantalla cae
+     * a la lista completa. Declarar "ninguno" y "todos" con la misma ausencia
+     * sería ambiguo, pero acá no lo es: una columna de equipo SIEMPRE tiene que
+     * ofrecer algo, o el analista no puede registrar con qué midió.
+     *
+     * @return array<int,\Illuminate\Support\Collection>
+     */
+    private function instrumentsByField(Worksheet $worksheet): array
+    {
+        $salida = [];
+
+        foreach ($worksheet->definition->fields as $field) {
+            if ($field->type !== 'instrument') {
+                continue;
+            }
+
+            $propios = $field->instruments;
+
+            if ($propios->isNotEmpty()) {
+                $salida[$field->id] = $propios->map(fn ($i) => $i->only([
+                    'id', 'name', 'code', 'calibration_due_at',
+                ]))->values();
+            }
+        }
+
+        return $salida;
+    }
+
     public function show(Worksheet $worksheet)
     {
         $worksheet->load([
             'definition.fields.options',
+            // Qué equipos ofrece CADA columna. Sin esto la grilla ofrecía todos
+            // los del laboratorio en todas las columnas de equipo, y en la
+            // columna "Bureta" del Número Ácido aparecía el Colorímetro.
+            'definition.fields.instruments:id,name,code,calibration_due_at',
             'analyst:id,name',
             'validator:id,name',
             'rows' => fn ($q) => $q->orderBy('position')->orderBy('id'),
@@ -139,8 +174,13 @@ class WorksheetController extends Controller
             'worksheet'   => $worksheet,
             'fields'      => $worksheet->definition->fields,
             'fieldTypes'  => config('lab_field_types'),
+            // Los equipos que cada columna ofrece, indexados por columna. La
+            // columna que no declara ninguno cae a la lista completa: es lo
+            // correcto para las que el sistema anterior dejó como texto libre,
+            // porque ofrecer de más es mejor que no ofrecer nada.
+            'instrumentsByField' => $this->instrumentsByField($worksheet),
             'instruments' => Instrument::where('is_active', true)
-                ->orderBy('name')->get(['id', 'name', 'code', 'calibration_due_at']),
+                ->orderBy('code')->get(['id', 'name', 'code', 'calibration_due_at']),
             // Los equipos del workspace, para que el analista indique de cuál
             // es cada muestra. El scope por workspace lo aplica el modelo.
             'equipment'   => Equipment::where('is_active', true)

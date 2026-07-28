@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -124,6 +125,24 @@ class TestField extends Model
     public function definition(): BelongsTo
     {
         return $this->belongsTo(TestDefinition::class, 'test_definition_id');
+    }
+
+    /**
+     * Los instrumentos que ESTA columna ofrece.
+     *
+     * Sin esto la grilla ofrecía todos los equipos del laboratorio en todas las
+     * columnas de equipo, y en la columna "Bureta" del Número Ácido aparecía el
+     * Colorímetro. El dato existía en la plantilla del sistema anterior —cada
+     * columna declaraba sus códigos— y se estaba descartando al importar.
+     *
+     * Vacío significa "cualquiera": es lo correcto para las columnas de equipo
+     * que el sistema anterior dejó como texto libre y no declaran nada.
+     */
+    public function instruments(): BelongsToMany
+    {
+        return $this->belongsToMany(Instrument::class, 'test_field_instrument')
+            ->withPivot(['is_default', 'sort_order'])
+            ->orderBy('instruments.code');
     }
 
     public function options(): HasMany

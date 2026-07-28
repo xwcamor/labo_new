@@ -87,12 +87,68 @@ class TestReportController extends Controller
                 'name'       => $tenant?->name,
                 'address'    => $tenant?->address,
                 'logo'       => $this->logo($tenant?->logo),
+                // El sello del organismo que acredita al laboratorio (el ANAB
+                // del informe anterior) y el párrafo con su número de
+                // certificado. Los dos son DATOS del workspace, no archivos con
+                // nombre fijo ni texto dentro de la plantilla: el número vence,
+                // el alcance cambia, y otro laboratorio se acredita con otro
+                // organismo. Si están vacíos no se dibuja nada — un laboratorio
+                // sin acreditar NO puede emitir un papel que insinúe que sí.
+                'accreditation_logo' => $this->logo($tenant?->accreditation_logo),
+                'accreditation_note' => $tenant?->accreditation_note,
                 'disclaimer' => $tenant?->report_disclaimer,
             ],
             'signers'     => $firmantes,
         ])->setPaper('a4');
 
+        $this->numerarPaginas($pdf);
+
         return $pdf->stream('informe-' . $sample->code . '.pdf');
+    }
+
+    /**
+     * "Página 3 de 5" al pie de cada hoja.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ NO SALE DEL CSS COMO EL RESTO DEL PIE                        │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * DomPDF resuelve `counter(page)` pero devuelve **0** en `counter(pages)`,
+     * así que el papel salía "3 / 0". En un informe de ensayo eso es peor que no
+     * numerar: quien recibe tres hojas sueltas no puede saber si le faltan, y el
+     * informe se reparte justamente así (una página por ensayo). El lienzo sí
+     * conoce el total —sustituye `{PAGE_NUM}` y `{PAGE_COUNT}` al cerrar el
+     * documento— y es el mismo camino que ya usa el pie del informe de
+     * transformadores.
+     *
+     * Va DESPUÉS de `render()` a propósito: antes de renderizar todavía no hay
+     * lienzo sobre el que dibujar.
+     */
+    private function numerarPaginas(\Barryvdh\DomPDF\PDF $pdf): void
+    {
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fuente = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
+        $texto  = __('reports.page_of', ['num' => '{PAGE_NUM}', 'total' => '{PAGE_COUNT}']);
+
+        // Centrado sobre el ancho de A4 en puntos (595.28). El ancho del texto
+        // se mide con los marcadores puestos, que son más largos que el número
+        // final; se usa el del texto ya resuelto con dos dígitos para que el
+        // centro no se corra en informes de más de nueve páginas.
+        $ancho = $dompdf->getFontMetrics()->getTextWidth(
+            __('reports.page_of', ['num' => '00', 'total' => '00']),
+            $fuente,
+            6.5,
+        );
+
+        $dompdf->getCanvas()->page_text(
+            (595.28 - $ancho) / 2,
+            812.0,
+            $texto,
+            $fuente,
+            6.5,
+            [0.33, 0.33, 0.33],
+        );
     }
 
     /**

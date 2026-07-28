@@ -54,7 +54,10 @@ class InstrumentController extends Controller
 
         // instruments es per-tenant (BelongsToTenant lo scopea solo) — eager-load creator.
         // El super ve cross-tenant: carga el tenant para mostrarlo en el drawer.
-        $with = ['creator:id,name,email'];
+        // Para QUÉ prueba sirve cada instrumento. El catálogo del laboratorio
+        // ya traía esa relación y el módulo la ignoraba: mostraba 24 equipos en
+        // una lista plana donde no se veía para qué es ninguno.
+        $with = ['creator:id,name,email', 'fields:id,test_definition_id,label', 'fields.definition:id,code,name,sort_order'];
         if ($isSuper) {
             $with[] = 'tenant:id,name';
         }
@@ -66,6 +69,16 @@ class InstrumentController extends Controller
             ->filter($request)
             ->paginate($perPage)
             ->withQueryString();
+
+        // Las pruebas de cada instrumento, ya resueltas del lado del servidor:
+        // la tabla no tiene por qué recorrer columnas para saberlo.
+        $instruments->getCollection()->transform(function (Instrument $i) {
+            $i->setAttribute('tests', $i->testsUsingIt()->map(fn ($t) => [
+                'id' => $t->id, 'name' => $t->name,
+            ])->values());
+
+            return $i;
+        });
 
         $totalUnfiltered = Instrument::count();
 

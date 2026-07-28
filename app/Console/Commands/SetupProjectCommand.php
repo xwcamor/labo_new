@@ -54,6 +54,12 @@ class SetupProjectCommand extends Command
         Artisan::call('migrate:fresh', ['--force' => true, '--seed' => true]);
         $this->info(Artisan::output());
 
+        // El enlace public/storage. Sin él NINGUNA imagen subida se ve: ni el
+        // logo del membrete, ni el sello de acreditación, ni las fotos de
+        // perfil. Falla en silencio —un 403 y un recuadro vacío—, así que es
+        // exactamente el tipo de paso que no puede quedar en un README.
+        Artisan::call('storage:link');
+
         // Una vista ancha por prueba, generada desde su propia definición. Es
         // la tabla por prueba que el laboratorio pide para leer y exportar, sin
         // el costo de tenerla como tabla física (ver el comando).

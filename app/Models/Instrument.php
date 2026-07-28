@@ -69,6 +69,44 @@ class Instrument extends Model
         return 'slug';
     }
 
+    /**
+     * En qué COLUMNAS de qué pruebas se ofrece este instrumento.
+     *
+     * Es la contracara de `TestField::instruments()`. El catálogo del
+     * laboratorio ya traía esa relación —la bureta se ofrece en la columna de
+     * la bureta, el colorímetro en la del color— y sin ella el módulo era una
+     * lista plana de 24 equipos en la que no se veía para qué sirve cada uno.
+     */
+    public function fields(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(TestField::class, 'test_field_instrument')
+            ->withPivot(['is_default', 'sort_order'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Las PRUEBAS en las que participa, sin repetir.
+     *
+     * Es lo que se muestra en el listado: al analista le importa "esto es de
+     * Número Ácido", no en cuál de sus seis columnas está enganchado.
+     *
+     * Se deriva de `fields` en vez de ser una relación propia porque el salto
+     * pasa por la tabla pivote (instrumento → columna → prueba) y una relación
+     * de Eloquent que atraviesa un pivote hacia el padre del otro lado no
+     * existe sin una consulta a mano. Con 24 instrumentos no vale la pena.
+     *
+     * @return \Illuminate\Support\Collection<int,TestDefinition>
+     */
+    public function testsUsingIt(): \Illuminate\Support\Collection
+    {
+        return $this->fields
+            ->map(fn (TestField $f) => $f->definition)
+            ->filter()
+            ->unique('id')
+            ->sortBy('sort_order')
+            ->values();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by')->withTrashed();

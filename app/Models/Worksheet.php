@@ -87,7 +87,11 @@ class Worksheet extends Model
     protected $fillable = [
         'slug', 'test_definition_id', 'run_date', 'analyst_id',
         'status', 'validated_by', 'validated_at', 'void_reason',
-        'ambient_temp_c', 'ambient_humidity', 'notes', 'legacy_id',
+        // `sample_temp_c` es la temperatura de LA MUESTRA al ensayarla, que no
+        // es la del laboratorio: el aceite entra frío del transporte y el
+        // ensayo espera a que se estabilice. Va impresa en las condiciones de
+        // ensayo del informe, así que tiene que poder cargarse.
+        'ambient_temp_c', 'ambient_humidity', 'sample_temp_c', 'notes', 'legacy_id',
         'tenant_id', 'created_by', 'deleted_by', 'deleted_description',
     ];
 
@@ -102,6 +106,7 @@ class Worksheet extends Model
         'validated_at'     => 'datetime',
         'ambient_temp_c'   => 'float',
         'ambient_humidity' => 'float',
+        'sample_temp_c'    => 'float',
         'legacy_id'        => 'integer',
     ];
 

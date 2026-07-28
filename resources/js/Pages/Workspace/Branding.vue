@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { Card, Input, Textarea, Button, Form, FormItem, Alert, Select, SelectOption, Tag, Switch } from 'ant-design-vue';
-import { BankOutlined, PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, CameraOutlined, ShopOutlined } from '@ant-design/icons-vue';
+import { BankOutlined, PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, CameraOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -50,6 +50,38 @@ const moveSigner = (i, dir) => {
 
 const submit = () => form.put(route('workspace.update'), { preserveScroll: true });
 
+// ── Sello de acreditación ────────────────────────────────────────────────
+// Va aparte del logo de la empresa porque son dos cosas distintas: el logo
+// identifica al laboratorio y el sello dice quién lo acredita. El número de
+// certificado vence, así que el laboratorio tiene que poder cambiarlo —o
+// sacarlo— el mismo día, sin esperar a un programador.
+const accInput = ref(null);
+const accUrl = ref(props.workspace.accreditation_logo_url);
+const accNote = ref(props.workspace.accreditation_note ?? '');
+
+const onAccPicked = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    router.post(route('workspace.accreditation.update'), {
+        accreditation_logo: file,
+        accreditation_note: accNote.value,
+    }, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: (page) => { accUrl.value = page.props.workspace?.accreditation_logo_url ?? accUrl.value; },
+    });
+    e.target.value = '';
+};
+
+const saveAccNote = () => router.post(route('workspace.accreditation.update'), {
+    accreditation_note: accNote.value,
+}, { preserveScroll: true });
+
+const removeAcc = () => router.post(route('workspace.accreditation.update'), {
+    remove_logo: true,
+    accreditation_note: accNote.value,
+}, { preserveScroll: true, onSuccess: () => { accUrl.value = null; } });
+
 // ── Logo del workspace: clic en el logo/título → file picker → sube. ──
 const logoInput = ref(null);
 const logoVersion = ref(0);
@@ -82,6 +114,7 @@ const onLogoPicked = (e) => {
         </SectionHeader>
 
         <input ref="logoInput" type="file" accept="image/png,image/jpeg,image/webp" style="display:none" @change="onLogoPicked">
+        <input ref="accInput" type="file" accept="image/png,image/jpeg,image/webp" style="display:none" @change="onAccPicked">
 
         <Card class="form-card" :bodyStyle="{ padding: '24px 28px' }">
             <Alert
@@ -108,6 +141,35 @@ const onLogoPicked = (e) => {
                             <p class="ws-hint">{{ t('tenants.logo_help') }}</p>
                         </div>
                     </div>
+                </FormItem>
+
+                <!-- ── Sello de acreditación del informe ────────────────── -->
+                <FormItem :label="t('tenants.accreditation_label')" :tooltip="t('tenants.accreditation_help')">
+                    <div class="ws-logo-row">
+                        <div class="ws-logo-box" @click="accInput?.click()">
+                            <img v-if="accUrl" :src="accUrl" class="ws-logo-box__img" alt="">
+                            <SafetyCertificateOutlined v-else class="ws-logo-box__ph" />
+                        </div>
+                        <div class="ws-logo-meta">
+                            <Button @click="accInput?.click()">
+                                <CameraOutlined /> {{ accUrl ? t('tenants.accreditation_change') : t('tenants.accreditation_upload') }}
+                            </Button>
+                            <Button v-if="accUrl" danger type="text" @click="removeAcc">
+                                {{ t('tenants.accreditation_remove') }}
+                            </Button>
+                            <p class="ws-hint">{{ t('tenants.accreditation_logo_help') }}</p>
+                        </div>
+                    </div>
+                    <Textarea
+                        v-model:value="accNote"
+                        :rows="3"
+                        :maxlength="2000"
+                        showCount
+                        class="ws-acc-note"
+                        :placeholder="t('tenants.accreditation_note_placeholder')"
+                        @blur="saveAccNote"
+                    />
+                    <p class="ws-hint">{{ t('tenants.accreditation_note_help') }}</p>
                 </FormItem>
 
                 <FormItem
@@ -207,6 +269,7 @@ const onLogoPicked = (e) => {
 <style scoped>
 .form-card { border-radius: 6px; }
 .ws-saved { margin-bottom: 16px; }
+.ws-acc-note { margin-top: 10px; }
 .ws-hint { color: var(--color-text-muted, #6A6D70); font-size: 0.8rem; margin: 0 0 10px; }
 .ws-toggle { display: flex; align-items: flex-start; gap: 12px; }
 .ws-toggle .ws-hint { margin: 0; flex: 1; }

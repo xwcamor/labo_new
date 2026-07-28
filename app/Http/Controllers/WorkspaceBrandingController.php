@@ -30,6 +30,14 @@ class WorkspaceBrandingController extends Controller
                 'logo_url'          => $tenant->logo_url,
                 'address'           => $tenant->address,
                 'report_disclaimer' => $tenant->report_disclaimer,
+                // El sello de acreditación y su número de certificado. Se
+                // muestran para que el admin VEA qué va a salir impreso: el
+                // número vence y nadie se acuerda de mirarlo hasta que un
+                // cliente lo reclama.
+                'accreditation_logo_url' => $tenant->accreditation_logo
+                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($tenant->accreditation_logo)
+                    : null,
+                'accreditation_note' => $tenant->accreditation_note,
                 'require_report_approval' => (bool) $tenant->require_report_approval,
                 'notify_approval_by_email' => (bool) $tenant->notify_approval_by_email,
             ],
@@ -113,6 +121,51 @@ class WorkspaceBrandingController extends Controller
         ]);
 
         $service->update($tenant, [], $request->file('logo'));
+
+        return back()->with('success', __('global.updated_success'));
+    }
+
+    /**
+     * El sello del organismo que acredita al laboratorio y el párrafo con su
+     * número de certificado.
+     *
+     * Van juntos a propósito: el sello sin el número no dice nada verificable,
+     * y el número sin el sello no se corresponde con el formato acreditado. Se
+     * pueden vaciar los dos —un laboratorio que perdió la acreditación tiene
+     * que poder sacarlos del informe el mismo día, sin esperar a un
+     * programador—.
+     */
+    public function updateAccreditation(Request $request)
+    {
+        $tenant = $request->user()->tenant;
+        abort_unless($tenant !== null, 404);
+
+        $maxKb = \App\Models\Setting::getInt('uploads.tenant_logo_max_mb', 2) * 1024;
+
+        $datos = $request->validate([
+            'accreditation_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $maxKb],
+            'accreditation_note' => ['nullable', 'string', 'max:2000'],
+            'remove_logo'        => ['nullable', 'boolean'],
+        ]);
+
+        $cambios = ['accreditation_note' => $datos['accreditation_note'] ?? null];
+
+        if ($request->boolean('remove_logo')) {
+            if ($tenant->accreditation_logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($tenant->accreditation_logo);
+            }
+            $cambios['accreditation_logo'] = null;
+        } elseif ($request->hasFile('accreditation_logo')) {
+            // El anterior se borra: el disco no acumula sellos vencidos, que es
+            // justamente lo que no puede quedar dando vueltas.
+            if ($tenant->accreditation_logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($tenant->accreditation_logo);
+            }
+            $cambios['accreditation_logo'] = $request->file('accreditation_logo')
+                ->store('branding', 'public');
+        }
+
+        $tenant->update($cambios);
 
         return back()->with('success', __('global.updated_success'));
     }

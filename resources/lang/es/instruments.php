@@ -50,6 +50,9 @@ return [
 
     'sort_order' => 'Orden',
     'sort_order_help' => 'Posición del equipo en los selectores. Menor primero.',
+    'tests'      => 'Prueba',
+    'tests_none' => 'Sin prueba asignada',
+    'tests_help' => 'En qué pruebas se ofrece este instrumento. Sale de las columnas de la plantilla: la bancada solo ofrece los instrumentos de cada columna.',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el instrumento no aparecerá para elegir en las hojas de trabajo.',
     'filter_name' => 'Nombre o código',

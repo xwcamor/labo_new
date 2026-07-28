@@ -50,6 +50,9 @@ return [
 
     'sort_order' => 'Order',
     'sort_order_help' => 'Position in selectors. Lower comes first.',
+    'tests'      => 'Test',
+    'tests_none' => 'No test assigned',
+    'tests_help' => 'Which tests offer this instrument. It comes from the template columns: the bench only offers each column its own instruments.',
     'is_active' => 'Status',
     'is_active_help' => 'If inactive, the instrument will not be offered on worksheets.',
     'filter_name' => 'Name or code',

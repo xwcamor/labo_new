@@ -540,6 +540,22 @@ const goDelete = (record) => router.visit(route('business_management.instruments
                         </div>
                     </template>
 
+                    <!-- Para qué prueba sirve. Con varias, se muestran las dos
+                         primeras y el resto se cuenta: un instrumento del
+                         factor de potencia entra en tres columnas y la lista
+                         completa rompía el ancho de la fila. -->
+                    <template v-else-if="column.key === 'tests'">
+                        <Space v-if="record.tests?.length" :size="4" wrap>
+                            <Tag v-for="t in record.tests.slice(0, 2)" :key="t.id" color="blue" :bordered="false">
+                                {{ t.name }}
+                            </Tag>
+                            <Tooltip v-if="record.tests.length > 2" :title="record.tests.slice(2).map(x => x.name).join(', ')">
+                                <Tag :bordered="false">+{{ record.tests.length - 2 }}</Tag>
+                            </Tooltip>
+                        </Space>
+                        <span v-else class="muted">{{ $t('instruments.tests_none') }}</span>
+                    </template>
+
                     <template v-else-if="column.key === 'calibration'">
                         <Space :size="6" wrap>
                             <Tag :color="calibrationTagColor(record.calibration_status)" :bordered="false">

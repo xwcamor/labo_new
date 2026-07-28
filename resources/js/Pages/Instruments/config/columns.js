@@ -1,4 +1,4 @@
-import { ApartmentOutlined, CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons-vue';
+import { ApartmentOutlined, CalendarOutlined, EnvironmentOutlined, ExperimentOutlined } from '@ant-design/icons-vue';
 
 /**
  * Columnas de la tabla principal de Instrumentos.
@@ -16,6 +16,10 @@ export const instrumentsTableColumns = (t, { isSuper = false, isMobile = false }
     { title: '★',                      dataIndex: 'is_favorite', key: 'favorite',   width: 52,  align: 'center', alwaysVisible: true, mobile: { role: 'pin' } },
     // Celda principal "rica": nombre + código y marca/modelo como subtítulo.
     { title: t('instruments.name'),     dataIndex: 'name',        key: 'name',       sorter: (a, b) => (a.name || '').localeCompare(b.name || ''), alwaysVisible: true, mobile: { role: 'title' } },
+    // PARA QUÉ SIRVE. Es la pregunta que el módulo no contestaba: la relación
+    // columna-instrumento ya estaba en los datos del laboratorio y la pantalla
+    // la ignoraba, así que 24 equipos se veían como una lista plana.
+    { title: t('instruments.tests'), dataIndex: 'tests', key: 'tests', width: 240, alwaysVisible: true, mobile: { role: 'meta', icon: ExperimentOutlined } },
     { title: t('instruments.calibration_status'), dataIndex: 'calibration_due_at', key: 'calibration', width: 200, sorter: true, mobile: { role: 'status' } },
     { title: t('instruments.calibration_due_at'), dataIndex: 'calibration_due_at', key: 'due_at',     width: 140, sorter: true, mobile: { role: 'meta', icon: CalendarOutlined }, defaultHidden: true },
     { title: t('instruments.serial'),    dataIndex: 'serial',      key: 'serial',     width: 150, defaultHidden: true },

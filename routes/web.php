@@ -71,6 +71,9 @@ Route::group(
                 Route::get('workspace', [\App\Http\Controllers\WorkspaceBrandingController::class, 'edit'])->name('workspace.edit');
                 Route::put('workspace', [\App\Http\Controllers\WorkspaceBrandingController::class, 'update'])->name('workspace.update');
                 Route::post('workspace/logo', [\App\Http\Controllers\WorkspaceBrandingController::class, 'updateLogo'])->name('workspace.logo.update');
+                // El sello de acreditación y su número de certificado: son datos
+                // que vencen, así que el laboratorio los cambia sin programador.
+                Route::post('workspace/accreditation', [\App\Http\Controllers\WorkspaceBrandingController::class, 'updateAccreditation'])->name('workspace.accreditation.update');
             });
         });
 

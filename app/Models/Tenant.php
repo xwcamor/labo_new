@@ -26,6 +26,8 @@ class Tenant extends Model
     protected $fillable = [
         'name',
         'logo',
+        'accreditation_logo',
+        'accreditation_note',
         'address',
         'report_disclaimer',
         'report_approver',

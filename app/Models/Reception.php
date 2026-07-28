@@ -53,6 +53,9 @@ class Reception extends Model
     ];
 
     protected $table = 'receptions';
+
+    // `$guarded = []` cubre también las dos columnas de cabecera del informe
+    // —`contact_info` y `end_user`—: no hay `$fillable` que ampliar.
     protected $guarded = [];
 
     protected $attributes = ['status' => self::STATUS_DRAFT];

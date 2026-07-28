@@ -55,11 +55,27 @@ class Sample extends Model
 
     protected $attributes = ['status' => self::STATUS_PENDING];
 
+    /**
+     * Las cuatro condiciones de campo se castean a float, y lo que importa del
+     * casteo es que el NULO siga siendo nulo hasta la vista: el informe imprime
+     * raya cuando no se midió. El sistema anterior las guardaba como texto y
+     * las imprimía con `to_f.round(2)`, así que un campo vacío salía "0.00" y
+     * quedaba indistinguible de una medición real de cero. En un informe de
+     * ensayo eso es un dato inventado.
+     *
+     * `$guarded = []` ya deja mass-assignables las columnas de cabecera nuevas
+     * (`report_number`, `description`, `sampling_reason` y estas cuatro): no
+     * hace falta agregarlas a ningún `$fillable`.
+     */
     protected $casts = [
         'year'       => 'integer',
         'number'     => 'integer',
         'sampled_at' => 'date',
         'is_urgent'  => 'boolean',
+        'oil_temp_c'        => 'float',
+        'equipment_temp_c'  => 'float',
+        'ambient_temp_c'    => 'float',
+        'relative_humidity' => 'float',
     ];
 
     public function getRouteKeyName(): string

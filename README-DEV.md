@@ -263,8 +263,17 @@ npm run build
 
 ### Migraciones
 
-> **Mientras dure la fase 1 (Pruebas de Muestras): si actualiza el repositorio
-> y algo falla por una columna que no existe, corra `php artisan migrate:fresh --seed`.**
+> **Mientras dure la fase 1 (Pruebas de Muestras): si al actualizar el
+> repositorio `php artisan migrate` falla con "Duplicate table" o con una
+> columna que no existe, corra primero:**
+>
+> ```powershell
+> php artisan lab:doctor          # informa qué encontró, no toca nada
+> php artisan lab:doctor --fix    # lo repara conservando el resto de los datos
+> php artisan migrate
+> ```
+>
+> La alternativa, que borra toda la base local, es `php artisan migrate:fresh --seed`.
 > Las migraciones de esa fase se están editando en su lugar, porque todavía no
 > hay ningún despliegue y agregar una columna a una migración sin publicar es
 > más limpio que arrastrar una migración de alteración por cada ajuste. Desde

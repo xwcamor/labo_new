@@ -38,6 +38,25 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // Durante la fase 1 las migraciones se editan EN SU LUGAR, porque
+        // todavía no hay despliegue. `analytes` se creaba en su propia
+        // migración (generada por make:module) y pasó a crearse acá, con otra
+        // forma. Quien ya había migrado antes de ese cambio se queda con la
+        // tabla vieja y con el registro de una migración que ya no existe, y
+        // sin este aviso lo único que ve es "Duplicate table", que no dice qué
+        // hacer.
+        if (Schema::hasTable('analytes')) {
+            throw new RuntimeException(
+                "La tabla 'analytes' ya existe, creada por una migración que se fusionó con esta.\n"
+                . "Su base quedó a mitad de camino. Corra:\n\n"
+                . "    php artisan lab:doctor          (informa qué encontró)\n"
+                . "    php artisan lab:doctor --fix    (lo repara conservando el resto de los datos)\n"
+                . "    php artisan migrate\n\n"
+                . "O, si no le importa perder la base local:\n\n"
+                . "    php artisan migrate:fresh --seed\n"
+            );
+        }
+
         // ── Grupos: Físico Químico · Cromatografía · Otros ───────────────
         Schema::create('test_groups', function (Blueprint $table) {
             $table->id();

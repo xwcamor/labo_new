@@ -1,6 +1,6 @@
 # Droplet de PostgreSQL blindado (Digital Ocean) — guía completa
 
-**Qué es esto**: cómo montar PostgreSQL 16 en Digital Ocean para TRAFODEX de
+**Qué es esto**: cómo montar PostgreSQL 16 en Digital Ocean para TR LAB de
 modo que la base de datos **no sea alcanzable desde internet**, solo desde
 (a) los droplets de la aplicación por red privada y (b) tu laptop por túnel SSH.
 
@@ -97,7 +97,7 @@ incidente en un mal rato en vez de una pérdida total:
 
 - **El rol de la app no es superusuario.** En Postgres, un superusuario puede
   ejecutar comandos del sistema operativo con `COPY ... TO PROGRAM`: robar esa
-  credencial equivale a tener shell en el droplet. Con `trafodex_app` (sin
+  credencial equivale a tener shell en el droplet. Con `labo_app` (sin
   `SUPERUSER`, sin `CREATEROLE`, sin `CREATEDB`), quien la consiga puede dañar
   **esa** base y nada más — no crea usuarios, no lee otras bases, no ejecuta nada.
 - **El backup decide el resultado final.** Si te vuelven a cifrar la BD y tienes
@@ -167,8 +167,8 @@ comparten VPC y el tráfico sale a internet):
 
 | Droplet | Rol | Tamaño inicial |
 |---|---|---|
-| `trafodex-app` | Nginx + PHP-FPM + colas | 2 GB / 1 vCPU |
-| `trafodex-db` | PostgreSQL 16 | 2 GB / 1 vCPU (la BD quiere RAM antes que CPU) |
+| `labo-app` | Nginx + PHP-FPM + colas | 2 GB / 1 vCPU |
+| `labo-db` | PostgreSQL 16 | 2 GB / 1 vCPU (la BD quiere RAM antes que CPU) |
 
 Al crear cada uno:
 
@@ -176,7 +176,7 @@ Al crear cada uno:
 - **Autenticación**: **SSH keys**, nunca contraseña. Si DO te ofrece "password",
   no lo uses: el 90 % de los droplets comprometidos son por SSH con contraseña.
 - **VPC Network**: la misma red privada para los dos (DO crea una por región;
-  conviene crear una propia, ej. `vpc-trafodex`).
+  conviene crear una propia, ej. `vpc-labo`).
 - **Monitoring**: activado (gratis, da alertas de CPU/disco/RAM).
 - **Backups**: activados en los dos (+20 % del costo). No reemplazan `pg_dump`,
   se suman.
@@ -185,8 +185,8 @@ Apunta las **IPs privadas** (pestaña Networking del droplet, `10.x.x.x`). Las
 vas a usar en todo el resto de la guía. En los ejemplos:
 
 ```
-trafodex-app   privada 10.10.0.2    pública 203.0.113.10
-trafodex-db    privada 10.10.0.3    pública 203.0.113.11
+labo-app   privada 10.10.0.2    pública 203.0.113.10
+labo-db    privada 10.10.0.3    pública 203.0.113.11
 ```
 
 ### 2.1 Nombre interno para la BD (no uses la IP pelada)
@@ -194,7 +194,7 @@ trafodex-db    privada 10.10.0.3    pública 203.0.113.11
 En **cada app droplet**, agrega a `/etc/hosts`:
 
 ```
-10.10.0.3   db.trafodex.internal
+10.10.0.3   db.labo.internal
 ```
 
 Suena cosmético y no lo es: el certificado TLS se emite para ese nombre y así
@@ -207,17 +207,17 @@ en `/etc/hosts` y no el `.env` de cada máquina.
 Crea dos firewalls en el panel (Networking → Firewalls). Filtran **antes** de
 que el paquete toque el droplet, así que valen aunque UFW se configure mal:
 
-**Firewall `fw-db`** (aplicado a `trafodex-db`):
+**Firewall `fw-db`** (aplicado a `labo-db`):
 
 | Dirección | Protocolo | Puerto | Origen/Destino |
 |---|---|---|---|
 | Inbound | TCP | 5432 | **solo** `10.10.0.2` (cada app droplet, uno por uno) |
-| Inbound | TCP | 22 | tu IP fija si la tienes, o el droplet `trafodex-app` como salto |
+| Inbound | TCP | 22 | tu IP fija si la tienes, o el droplet `labo-app` como salto |
 | Outbound | TCP/UDP | all | all (para `apt` y NTP) |
 
 Nada más. Ni 80, ni 443, ni ICMP desde cualquier lado.
 
-**Firewall `fw-app`** (aplicado a `trafodex-app`): inbound 22 (tu IP o todas si
+**Firewall `fw-app`** (aplicado a `labo-app`): inbound 22 (tu IP o todas si
 usas fail2ban), 80 y 443. Nunca 5432.
 
 > Si dejas SSH del droplet de BD cerrado al mundo y entras siempre por salto
@@ -359,14 +359,14 @@ cd /var/lib/postgresql/16/main   # fuera del alcance de cualquier proceso web
 
 # 1) CA propia, 10 anios
 openssl req -new -x509 -days 3650 -nodes -newkey rsa:4096 \
-  -keyout ca.key -out ca.crt -subj "/CN=TRAFODEX Postgres CA"
+  -keyout ca.key -out ca.crt -subj "/CN=TR LAB Postgres CA"
 
 # 2) Certificado del servidor, emitido para el nombre interno
 openssl req -new -nodes -newkey rsa:4096 -keyout server.key -out server.csr \
-  -subj "/CN=db.trafodex.internal"
+  -subj "/CN=db.labo.internal"
 openssl x509 -req -in server.csr -days 1825 \
   -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt \
-  -extfile <(printf "subjectAltName=DNS:db.trafodex.internal,IP:10.10.0.3")
+  -extfile <(printf "subjectAltName=DNS:db.labo.internal,IP:10.10.0.3")
 
 chown postgres:postgres server.key server.crt ca.crt
 chmod 600 server.key            # Postgres NO arranca si la llave es legible por otros
@@ -382,7 +382,7 @@ obvio.
 
 ### 5.2 Drop-in de configuración
 
-`/etc/postgresql/16/main/conf.d/99-trafodex.conf`:
+`/etc/postgresql/16/main/conf.d/99-labo.conf`:
 
 ```ini
 # --- Red: la BD NO escucha en la IP publica ---
@@ -437,11 +437,11 @@ local     all        all                                scram-sha-256
 
 # Tunel SSH de tu laptop: llega como loopback DENTRO del droplet.
 # Solo el rol de lectura, y con TLS igual.
-hostssl   trafodex   trafodex_ro       127.0.0.1/32     scram-sha-256
-hostssl   trafodex   trafodex_ro       ::1/128          scram-sha-256
+hostssl   labo   labo_ro       127.0.0.1/32     scram-sha-256
+hostssl   labo   labo_ro       ::1/128          scram-sha-256
 
 # App droplets: por IP privada, uno por uno. NUNCA una /16 completa.
-hostssl   trafodex   trafodex_app      10.10.0.2/32     scram-sha-256
+hostssl   labo   labo_app      10.10.0.2/32     scram-sha-256
 
 # Cierre explicito: cualquier otra cosa se rechaza.
 host      all        all               0.0.0.0/0        reject
@@ -481,12 +481,12 @@ archivo se vea bien.
 
 ```bash
 sudo -u postgres psql <<'SQL'
-CREATE DATABASE trafodex ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8' TEMPLATE template0;
+CREATE DATABASE labo ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8' TEMPLATE template0;
 SQL
 
 # unaccent es OBLIGATORIA en este proyecto (busquedas sin acentos ni mayusculas).
 # Requiere superusuario, asi que se instala UNA vez como postgres, no desde la app.
-sudo -u postgres psql -d trafodex -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+sudo -u postgres psql -d labo -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
 ```
 
 Que la extensión la instale `postgres` y no el rol de la app es justamente el
@@ -500,39 +500,39 @@ migración pide una extensión nueva, se instala a mano así, una vez.
 Tres roles con propósitos separados. Nunca uses `postgres` en el `.env`.
 
 ```bash
-sudo -u postgres psql -d trafodex
+sudo -u postgres psql -d labo
 ```
 
 ```sql
 -- 1) Rol de la aplicacion: dueno del schema (necesita DDL para las migraciones)
-CREATE ROLE trafodex_app LOGIN PASSWORD 'GENERADA-LARGA-ALEATORIA'
+CREATE ROLE labo_app LOGIN PASSWORD 'GENERADA-LARGA-ALEATORIA'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
   CONNECTION LIMIT 40;
 
 -- 2) Rol de solo lectura: para tu laptop y para pg_dump
-CREATE ROLE trafodex_ro LOGIN PASSWORD 'OTRA-DISTINTA'
+CREATE ROLE labo_ro LOGIN PASSWORD 'OTRA-DISTINTA'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
   CONNECTION LIMIT 5;
 
 -- 3) Quitar el acceso por defecto de PUBLIC
-REVOKE ALL ON DATABASE trafodex FROM PUBLIC;
+REVOKE ALL ON DATABASE labo FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE CONNECT ON DATABASE trafodex FROM PUBLIC;
+REVOKE CONNECT ON DATABASE labo FROM PUBLIC;
 
 -- 4) Permisos de la app: dueno del schema public de ESTA base
-GRANT CONNECT ON DATABASE trafodex TO trafodex_app;
-ALTER SCHEMA public OWNER TO trafodex_app;
-GRANT ALL ON SCHEMA public TO trafodex_app;
+GRANT CONNECT ON DATABASE labo TO labo_app;
+ALTER SCHEMA public OWNER TO labo_app;
+GRANT ALL ON SCHEMA public TO labo_app;
 
 -- 5) Permisos de lectura: pg_read_all_data cubre las tablas FUTURAS solo
-GRANT CONNECT ON DATABASE trafodex TO trafodex_ro;
-GRANT USAGE ON SCHEMA public TO trafodex_ro;
-GRANT pg_read_all_data TO trafodex_ro;
+GRANT CONNECT ON DATABASE labo TO labo_ro;
+GRANT USAGE ON SCHEMA public TO labo_ro;
+GRANT pg_read_all_data TO labo_ro;
 
 -- 6) Frenos por rol: una consulta tuya no puede tumbar la app
-ALTER ROLE trafodex_ro SET statement_timeout = '30s';
-ALTER ROLE trafodex_app SET statement_timeout = '60s';
-ALTER ROLE trafodex_app SET idle_in_transaction_session_timeout = '60s';
+ALTER ROLE labo_ro SET statement_timeout = '30s';
+ALTER ROLE labo_app SET statement_timeout = '60s';
+ALTER ROLE labo_app SET idle_in_transaction_session_timeout = '60s';
 ```
 
 Notas que ahorran horas de depuración:
@@ -581,7 +581,7 @@ al de BD. El droplet de BD queda **sin un solo puerto abierto a internet**.
 Deja el túnel abierto en una ventana y conéctate en otra:
 
 ```powershell
-psql "host=localhost port=6543 dbname=trafodex user=trafodex_ro sslmode=require"
+psql "host=localhost port=6543 dbname=labo user=labo_ro sslmode=require"
 ```
 
 ### 8.3 pgAdmin / DBeaver / TablePlus
@@ -592,8 +592,8 @@ Configura la conexión contra el túnel, no contra el droplet:
 |---|---|
 | Host | `localhost` |
 | Puerto | `6543` |
-| Base | `trafodex` |
-| Usuario | `trafodex_ro` |
+| Base | `labo` |
+| Usuario | `labo_ro` |
 | SSL mode | `require` |
 
 DBeaver y pgAdmin además saben abrir el túnel SSH ellos mismos (pestaña "SSH" /
@@ -601,15 +601,15 @@ DBeaver y pgAdmin además saben abrir el túnel SSH ellos mismos (pestaña "SSH"
 que mantener la ventana abierta a mano.
 
 Sobre `verify-full` desde la laptop: el certificado se emitió para
-`db.trafodex.internal`, y por el túnel te conectas a `localhost`, así que la
+`db.labo.internal`, y por el túnel te conectas a `localhost`, así que la
 verificación de nombre falla por diseño. Con `require` alcanza: el tramo de red
 real ya va cifrado y autenticado por SSH. Si quieres `verify-full` igual, agrega
-`127.0.0.1 db.trafodex.internal` al `hosts` de Windows, copia `ca.crt` y usa
-`host=db.trafodex.internal sslrootcert=C:\ruta\ca.crt`.
+`127.0.0.1 db.labo.internal` al `hosts` de Windows, copia `ca.crt` y usa
+`host=db.labo.internal sslrootcert=C:\ruta\ca.crt`.
 
 ### 8.4 Por qué solo lectura desde la laptop
 
-`trafodex_ro` no puede escribir. Es a propósito: consultar la producción es
+`labo_ro` no puede escribir. Es a propósito: consultar la producción es
 rutina y un `UPDATE` sin `WHERE` a mano no tiene vuelta. Cuando necesites
 escribir (una corrección puntual), entra por SSH al droplet y usa el socket
 local con el rol de la app, con la intención explícita y un backup fresco.
@@ -632,21 +632,21 @@ local con el rol de la app, con la intención explícita y un backup fresco.
 
 ```env
 DB_CONNECTION=pgsql
-DB_HOST=db.trafodex.internal      # el nombre de /etc/hosts, no la IP
+DB_HOST=db.labo.internal      # el nombre de /etc/hosts, no la IP
 DB_PORT=5432
-DB_DATABASE=trafodex
-DB_USERNAME=trafodex_app
+DB_DATABASE=labo
+DB_USERNAME=labo_app
 DB_PASSWORD=la-generada-en-la-seccion-7
 DB_SSLMODE=verify-full
-DB_SSLROOTCERT=/etc/ssl/trafodex/ca.crt
+DB_SSLROOTCERT=/etc/ssl/labo/ca.crt
 ```
 
 Copia `ca.crt` del droplet de BD a cada app droplet:
 
 ```bash
-install -d -m 755 /etc/ssl/trafodex
+install -d -m 755 /etc/ssl/labo
 # scp del ca.crt desde el droplet de BD, luego:
-chmod 644 /etc/ssl/trafodex/ca.crt
+chmod 644 /etc/ssl/labo/ca.crt
 ```
 
 ### 9.2 Cambio necesario en `config/database.php`
@@ -679,7 +679,7 @@ protege de un intermediario que se haga pasar por la BD. En producción,
 
 > Si tu versión de Laravel no mapeara `sslrootcert` a la DSN de PDO, el camino
 > equivalente y garantizado es `DB_URL`:
-> `DB_URL=pgsql://trafodex_app:PASS@db.trafodex.internal:5432/trafodex?sslmode=verify-full&sslrootcert=/etc/ssl/trafodex/ca.crt`.
+> `DB_URL=pgsql://labo_app:PASS@db.labo.internal:5432/labo?sslmode=verify-full&sslrootcert=/etc/ssl/labo/ca.crt`.
 > Con `DB_URL` puesto, Laravel ignora los `DB_HOST`/`DB_*` sueltos. En cualquier
 > caso, no lo des por hecho: confírmalo con la consulta de 9.3.
 
@@ -730,7 +730,7 @@ Quién está conectado ahora mismo:
 SELECT usename, client_addr, application_name, state,
        now() - state_change AS duracion
 FROM pg_stat_activity
-WHERE datname = 'trafodex';
+WHERE datname = 'labo';
 ```
 
 Si aparece un `client_addr` que no es de tus app droplets ni loopback, tienes un
@@ -766,7 +766,7 @@ bantime  = 1h
 `pgaudit` (`apt install postgresql-16-pgaudit`) registra cada `SELECT` con su
 texto. Es lo que pide una auditoría formal, y en un droplet chico genera mucho
 volumen: déjalo para cuando alguien lo exija por escrito. Ojo: los informes de
-TRAFODEX contienen datos de clientes, así que el día que un cliente pregunte
+TR LAB contienen datos de clientes, así que el día que un cliente pregunte
 "quién vio mis datos", esto es la respuesta — junto con el audit log que la app
 ya lleva a nivel aplicación.
 
@@ -788,28 +788,28 @@ desde tu laptop) está en **11.1**; la prueba de restore, en **11.2**.
 Un snapshot **no** te salva de un `DELETE` con `WHERE` mal escrito descubierto
 tres días después: por eso el `pg_dump` con retención.
 
-`/usr/local/bin/trafodex-backup.sh`:
+`/usr/local/bin/labo-backup.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEST=/var/backups/trafodex
+DEST=/var/backups/labo
 STAMP=$(date +%F-%H%M)
-RECIPIENT=backup@trafodex          # llave GPG publica; la privada NO vive aqui
+RECIPIENT=backup@labo          # llave GPG publica; la privada NO vive aqui
 
 mkdir -p "$DEST"
 # -Fc = formato custom (comprimido, restaurable con pg_restore selectivo)
-sudo -u postgres pg_dump -Fc trafodex \
+sudo -u postgres pg_dump -Fc labo \
   | gpg --encrypt --recipient "$RECIPIENT" --trust-model always \
-  > "$DEST/trafodex-$STAMP.dump.gpg"
+  > "$DEST/labo-$STAMP.dump.gpg"
 
 find "$DEST" -name '*.dump.gpg' -mtime +7 -delete
 ```
 
 ```bash
-chmod 700 /usr/local/bin/trafodex-backup.sh
-crontab -e   # 15 3 * * * /usr/local/bin/trafodex-backup.sh >> /var/log/trafodex-backup.log 2>&1
+chmod 700 /usr/local/bin/labo-backup.sh
+crontab -e   # 15 3 * * * /usr/local/bin/labo-backup.sh >> /var/log/labo-backup.log 2>&1
 ```
 
 Puntos que la gente omite y luego lamenta:
@@ -846,7 +846,7 @@ Puntos que la gente omite y luego lamenta:
 ### 11.1 Dónde dejar la copia de fuera del droplet
 
 Tamaño real a mover: los dumps del sistema viejo que trae el repo pesan **4.3 MB
-en SQL plano**, así que un `pg_dump -Fc` completo de TRAFODEX ronda los **10-20 MB
+en SQL plano**, así que un `pg_dump -Fc` completo de TR LAB ronda los **10-20 MB
 comprimido**, y crece con el audit log y las muestras nuevas. Un dump diario de
 20 MB con 30 días de retención = **600 MB**. Cualquier plan gratuito alcanza de
 sobra; el criterio de elección NO es el espacio, es **si el droplet puede borrar
@@ -877,7 +877,7 @@ llave que **escribe pero no borra**. Aunque tomen el droplet con root y lean el
 script, no pueden destruir el histórico — que es exactamente lo que falló en el
 incidente del [Anexo A](#anexo-a--el-ataque-que-esta-guía-previene-caso-real-del-dueño).
 
-1. Crea un bucket **privado**, ej. `trafodex-backups`.
+1. Crea un bucket **privado**, ej. `labo-backups`.
 2. En "Application Keys", crea una llave **restringida a ese bucket** y marca
    solo `listFiles` + `writeFiles`. **Sin `deleteFiles`.** Guarda el `keyID` y el
    `applicationKey` (se muestra una sola vez).
@@ -894,24 +894,24 @@ rclone config    # n) new remote -> tipo "b2" -> account = keyID, key = applicat
 chmod 600 /root/.config/rclone/rclone.conf
 ```
 
-Agrega al final de `/usr/local/bin/trafodex-backup.sh`:
+Agrega al final de `/usr/local/bin/labo-backup.sh`:
 
 ```bash
 # Sube la copia cifrada. Sin deleteFiles en la llave, un atacante con root
 # puede subir basura pero NO borrar los backups anteriores.
-rclone copy "$DEST/trafodex-$STAMP.dump.gpg" b2:trafodex-backups/db/ --no-traverse
+rclone copy "$DEST/labo-$STAMP.dump.gpg" b2:labo-backups/db/ --no-traverse
 
 # Los archivos de la app (logos, imports, fotos de perfil) NO estan en el dump:
 # el disco es 'local'. Van aparte, y cambian poco.
-tar -czf - -C /var/www/trafodex/storage/app . \
+tar -czf - -C /var/www/labo/storage/app . \
   | gpg --encrypt --recipient "$RECIPIENT" --trust-model always \
-  | rclone rcat "b2:trafodex-backups/storage/storage-$STAMP.tar.gz.gpg"
+  | rclone rcat "b2:labo-backups/storage/storage-$STAMP.tar.gz.gpg"
 ```
 
 Verifica que llegó, sin necesidad de permisos de borrado:
 
 ```bash
-rclone ls b2:trafodex-backups/db/ | tail -5
+rclone ls b2:labo-backups/db/ | tail -5
 ```
 
 #### FTP de name.com (secundaria)
@@ -946,9 +946,9 @@ chmod 600 /root/.netrc
 ```
 
 ```bash
-# Al final de trafodex-backup.sh. --ssl-reqd aborta si el servidor no da TLS.
+# Al final de labo-backup.sh. --ssl-reqd aborta si el servidor no da TLS.
 curl --netrc --ssl-reqd --ftp-create-dirs \
-     -T "$DEST/trafodex-$STAMP.dump.gpg" \
+     -T "$DEST/labo-$STAMP.dump.gpg" \
      "ftp://ftp.tudominio.com/backups/"
 ```
 
@@ -966,7 +966,7 @@ El droplet no necesita credencial de tu laptop, y tu laptop no expone nada:
 
 ```powershell
 # PowerShell. Baja el ultimo dump para probar el restore
-scp deploy@203.0.113.11:/var/backups/trafodex/trafodex-*.dump.gpg D:\backups\trafodex\
+scp deploy@203.0.113.11:/var/backups/labo/labo-*.dump.gpg D:\backups\labo\
 ```
 
 ### 11.2 Prueba de restore (mensual, no negociable)
@@ -974,11 +974,11 @@ scp deploy@203.0.113.11:/var/backups/trafodex/trafodex-*.dump.gpg D:\backups\tra
 Un backup no verificado no es un backup, es una esperanza. En tu PC:
 
 ```bash
-gpg --decrypt trafodex-2026-07-27-0315.dump.gpg > t.dump
-createdb trafodex_restore_test
-pg_restore -d trafodex_restore_test --no-owner --role=$USER t.dump
-psql -d trafodex_restore_test -c "SELECT count(*) FROM transformers;"
-dropdb trafodex_restore_test
+gpg --decrypt labo-2026-07-27-0315.dump.gpg > t.dump
+createdb labo_restore_test
+pg_restore -d labo_restore_test --no-owner --role=$USER t.dump
+psql -d labo_restore_test -c "SELECT count(*) FROM equipment;"
+dropdb labo_restore_test
 ```
 
 Si el `count` cuadra con producción, el backup sirve. Bájalo **desde B2**, no del
@@ -996,7 +996,7 @@ Desde **tu laptop**, contra la IP pública del droplet de BD:
 nmap -Pn -p 5432 203.0.113.11
 
 # 2) Conexion directa: debe fallar por timeout, no por contrasena
-psql "host=203.0.113.11 port=5432 dbname=trafodex user=trafodex_app sslmode=require"
+psql "host=203.0.113.11 port=5432 dbname=labo user=labo_app sslmode=require"
 ```
 
 Si el segundo comando pide contraseña, **el puerto está expuesto**: para y revisa
@@ -1006,23 +1006,23 @@ Desde el **app droplet**:
 
 ```bash
 # 3) Debe conectar y reportar ssl = t
-psql "host=db.trafodex.internal dbname=trafodex user=trafodex_app \
-      sslmode=verify-full sslrootcert=/etc/ssl/trafodex/ca.crt" \
+psql "host=db.labo.internal dbname=labo user=labo_app \
+      sslmode=verify-full sslrootcert=/etc/ssl/labo/ca.crt" \
      -c "SELECT ssl, version FROM pg_stat_ssl WHERE pid = pg_backend_pid();"
 
 # 4) Sin TLS debe ser RECHAZADO (por hostssl)
-psql "host=db.trafodex.internal dbname=trafodex user=trafodex_app sslmode=disable"
+psql "host=db.labo.internal dbname=labo user=labo_app sslmode=disable"
 
 # 5) El rol de la app no debe poder escalar
 psql ... -c "CREATE ROLE intruso LOGIN;"     # esperado: permission denied
-psql ... -c "SELECT rolsuper FROM pg_roles WHERE rolname = 'trafodex_app';"  # f
+psql ... -c "SELECT rolsuper FROM pg_roles WHERE rolname = 'labo_app';"  # f
 ```
 
 Desde **otro droplet** de la misma VPC que NO esté autorizado:
 
 ```bash
 # 6) Debe fallar. Si conecta, el filtro por IP no esta puesto
-psql "host=10.10.0.3 dbname=trafodex user=trafodex_app sslmode=require"
+psql "host=10.10.0.3 dbname=labo user=labo_app sslmode=require"
 ```
 
 Lista final, para firmar el go-live:
@@ -1036,9 +1036,9 @@ Lista final, para firmar el go-live:
 - [ ] SSH: solo llave, sin root, `sshd -t` limpio, fail2ban activo.
 - [ ] `.env` del app droplet con `chmod 600` y `DB_SSLMODE=verify-full`.
 - [ ] La app reporta `ssl = true` en `pg_stat_ssl` (verificado, no supuesto).
-- [ ] `trafodex_app` no es superusuario y no puede crear roles ni bases.
-- [ ] `trafodex_ro` solo lee y solo entra por loopback (túnel).
-- [ ] `unaccent` instalada en `trafodex`.
+- [ ] `labo_app` no es superusuario y no puede crear roles ni bases.
+- [ ] `labo_ro` solo lee y solo entra por loopback (túnel).
+- [ ] `unaccent` instalada en `labo`.
 - [ ] `pg_dump` cifrado en cron, fuera del droplet, **con restore probado**.
 - [ ] El droplet **no** puede borrar sus propios backups (pull, o llave de solo
       escritura + versionado; sin token de la API de DO con permiso de escritura).
@@ -1064,10 +1064,10 @@ camino más probable a tu BD no es el 5432, es un `.env` legible por web.
 | `connection timed out` | UFW o Cloud Firewall | `ufw status`; revisar reglas del panel |
 | `no pg_hba.conf entry for host` | falta la línea del droplet, o quedó debajo de un `reject` | orden del archivo; `pg_hba_file_rules` |
 | `no encryption` / `SSL required` | el cliente fue sin TLS contra `hostssl` | `sslmode=verify-full` en el `.env` |
-| `SSL error: certificate verify failed` | `ca.crt` mal copiado o `DB_HOST` distinto del CN | `sslrootcert`; usar `db.trafodex.internal` |
+| `SSL error: certificate verify failed` | `ca.crt` mal copiado o `DB_HOST` distinto del CN | `sslrootcert`; usar `db.labo.internal` |
 | `password authentication failed` con la contraseña correcta | rol creado antes de `password_encryption` | `ALTER ROLE ... PASSWORD '...'` otra vez |
 | Postgres no arranca tras poner TLS | `server.key` con permisos abiertos | `chmod 600` + `chown postgres` |
-| `permission denied for schema public` | falta `ALTER SCHEMA public OWNER TO trafodex_app` | sección 7 |
+| `permission denied for schema public` | falta `ALTER SCHEMA public OWNER TO labo_app` | sección 7 |
 | Migraciones fallan con `permission denied` | rol de app sin DDL | la app es dueña del schema, no solo-lectura |
 | `too many connections` | workers de cola × app droplets > `max_connections` | subir el límite o `pgbouncer` |
 

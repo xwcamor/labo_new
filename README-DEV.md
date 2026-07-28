@@ -38,19 +38,73 @@ npm install
 
 ### 1.3. Crear la base de datos
 
+Hay dos caminos. El rápido sirve para probar; el segundo es el que conviene
+dejar hecho, porque es el mismo que vas a necesitar en producción.
+
+#### Opción A — rápido, conectando como `postgres`
+
 ```sql
--- En psql
 CREATE DATABASE labo;
 ```
 
 Con **pgAdmin**: clic derecho en *Databases* → *Create* → *Database…* → nombre
-`labo` → *Save*. Nada más.
+`labo` → *Save*.
 
-> La extensión `unaccent` y la función `unaccent_immutable` **las crea la
-> migración** `2025_09_18_080000_enable_unaccent_extension.php`. No hace falta
-> correr `CREATE EXTENSION` a mano (aunque hacerlo tampoco molesta: es
-> idempotente). Sí hace falta que el usuario de la conexión tenga permiso para
-> crear extensiones — con `postgres` alcanza.
+En `.env` usás `DB_USERNAME=postgres` con tu clave. Funciona, pero la app corre
+como superusuario de la base: cualquier fallo de la aplicación tiene permisos
+para todo. Aceptable en tu máquina, **nunca en producción**.
+
+#### Opción B — usuario dedicado (recomendado)
+
+**Paso 1.** Conectado a cualquier base (por ejemplo `postgres`), como `postgres`:
+
+```sql
+CREATE ROLE labo_user LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
+CREATE DATABASE labo OWNER labo_user;
+```
+
+Si la base **ya existe** y la creaste con otro dueño:
+
+```sql
+CREATE ROLE labo_user LOGIN PASSWORD 'una-clave-larga-y-aleatoria';
+ALTER DATABASE labo OWNER TO labo_user;
+```
+
+**Paso 2.** Ahora conectate **a la base `labo`** — en pgAdmin: seleccionala en
+el árbol y recién ahí abrí *Query Tool*, o en psql `\c labo`. Este paso es el
+que se hace mal seguido: si lo corrés apuntando a `postgres`, los permisos
+quedan en la base equivocada y la migración falla sin decir por qué.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS unaccent;
+ALTER SCHEMA public OWNER TO labo_user;
+GRANT ALL ON SCHEMA public TO labo_user;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+```
+
+En `.env`: `DB_USERNAME=labo_user` con esa clave.
+
+#### Por qué esos permisos y no otros
+
+La migración `2025_09_18_080000_enable_unaccent_extension.php` hace dos cosas,
+y cada una pide algo distinto:
+
+| Sentencia | Qué necesita |
+|---|---|
+| `CREATE EXTENSION IF NOT EXISTS unaccent` | `unaccent` es una extensión *trusted* desde PostgreSQL 13, así que alcanza con `CREATE` sobre la base. Si tu servidor es anterior, instalala vos como `postgres` (paso 2) y la migración la saltea por el `IF NOT EXISTS`. |
+| `CREATE OR REPLACE FUNCTION unaccent_immutable(text)` | `CREATE` sobre el esquema `public` — de ahí el `ALTER SCHEMA public OWNER`. |
+
+`REVOKE ALL ON SCHEMA public FROM PUBLIC` saca el permiso de escritura que
+cualquier rol tenía por defecto. En PostgreSQL 15 y posteriores ya viene así de
+fábrica, o sea que es redundante pero inofensivo; en versiones anteriores sí
+hace falta.
+
+> Correr `CREATE EXTENSION` a mano no molesta aunque después la migración lo
+> repita: es idempotente.
+>
+> **Producción es otra cosa.** Dos roles (uno de aplicación y uno de solo
+> lectura), TLS, `pg_hba.conf` y backups cifrados están en
+> [`docs/DROPLET-POSTGRES-SECURITY.md`](docs/DROPLET-POSTGRES-SECURITY.md).
 
 ### 1.4. Configurar `.env`
 

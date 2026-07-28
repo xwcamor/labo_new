@@ -1,0 +1,167 @@
+{
+    "_doc": [
+        "Las frases del ANÁLISIS DE RESULTADOS del informe.",
+        "",
+        "De dónde salen: de las ~1134 líneas de ERB del sistema anterior",
+        "(app/views/im_management/rem_reports/partials/_form_add_details_*_default_values.html.erb).",
+        "Allá el texto estaba clavado en la vista, con condicionales anidados por",
+        "tipo de aceite × tipo de equipo × cuántos parámetros salieron fuera de",
+        "norma. Cambiar una coma exigía un programador, y el texto quedaba fuera",
+        "del control del laboratorio, que es quien firma el informe.",
+        "",
+        "CÓMO SE ELIGE UNA PLANTILLA. El motor busca la primera que case con:",
+        "  · family        — la familia del informe (fisicoquimico, cromas…)",
+        "  · oil_types     — códigos de aceite a los que aplica; [] = todos",
+        "  · equipment_types — tipos de equipo; [] = todos",
+        "  · case          — 'none' (nada fuera de norma) · 'one' · 'many'",
+        "Lo más específico gana, igual que en los cuadros de límites. Si no casa",
+        "ninguna, no se inventa texto: el párrafo queda vacío y el analista lo",
+        "escribe. Un motor que rellena con una frase genérica es peor que uno que",
+        "se calla, porque el informe sale firmado igual.",
+        "",
+        "MARCADORES disponibles en el cuerpo:",
+        "  {ok}      — lista de los parámetros medidos que están dentro de norma",
+        "  {failed}  — lista de los que están fuera",
+        "  {norm}    — la norma del criterio aplicado (sale del resultado)",
+        "  {count}   — cuántos están fuera",
+        "Las listas se arman con los nombres reales de los parámetros medidos en",
+        "ESA muestra: no se nombra un ensayo que no se corrió.",
+        "",
+        "El texto generado se guarda en `sample_diagnoses` y el analista lo edita.",
+        "Volver a diagnosticar NO pisa lo editado salvo que se pida expresamente."
+    ],
+
+    "templates": [
+        {
+            "family": "fisicoquimico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}."
+        },
+        {
+            "family": "fisicoquimico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• La cantidad de {failed} está fuera del valor sugerido por la Norma {norm}."
+        },
+        {
+            "family": "fisicoquimico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• Las cantidades de {failed} están fuera de los valores sugeridos por la Norma {norm}."
+        },
+
+        {
+            "family": "analisis_cromatografico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• No se evidencia actividad de falla incipiente en la muestra analizada."
+        },
+        {
+            "family": "analisis_cromatografico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• La concentración de {failed} excede el valor típico indicado por la Norma {norm}. Se recomienda repetir el ensayo para confirmar la tendencia."
+        },
+        {
+            "family": "analisis_cromatografico",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• Las concentraciones de {failed} exceden los valores típicos indicados por la Norma {norm}. Se recomienda repetir el ensayo y evaluar la tendencia respecto de muestras anteriores."
+        },
+
+        {
+            "family": "furanos",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• El contenido de {ok} se encuentra dentro de los valores esperados para el aislamiento sólido."
+        },
+        {
+            "family": "furanos",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• El contenido de {failed} excede el valor esperado, lo que sugiere degradación del aislamiento sólido."
+        },
+        {
+            "family": "furanos",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• Los contenidos de {failed} exceden los valores esperados, lo que sugiere degradación del aislamiento sólido."
+        },
+
+        {
+            "family": "pcb",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• El contenido de PCB se encuentra por debajo del límite establecido. La muestra NO se clasifica como contaminada."
+        },
+        {
+            "family": "pcb",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
+        },
+        {
+            "family": "pcb",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
+        },
+
+        {
+            "family": "azufre_corrosivo",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• El ensayo de azufre corrosivo resulta NO CORROSIVO según la Norma {norm}."
+        },
+        {
+            "family": "azufre_corrosivo",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• El ensayo de azufre corrosivo resulta CORROSIVO según la Norma {norm}. Se recomienda evaluar el tratamiento o el reemplazo del aceite."
+        },
+        {
+            "family": "azufre_corrosivo",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• El ensayo de azufre corrosivo resulta CORROSIVO según la Norma {norm}. Se recomienda evaluar el tratamiento o el reemplazo del aceite."
+        },
+
+        {
+            "family": "grado_de_polimerizacion",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "none",
+            "body": "• El grado de polimerización del papel aislante se encuentra dentro del rango esperado para el equipo."
+        },
+        {
+            "family": "grado_de_polimerizacion",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "one",
+            "body": "• El grado de polimerización del papel aislante está por debajo del valor esperado, lo que indica envejecimiento del aislamiento sólido."
+        },
+        {
+            "family": "grado_de_polimerizacion",
+            "oil_types": [],
+            "equipment_types": [],
+            "case": "many",
+            "body": "• El grado de polimerización del papel aislante está por debajo del valor esperado, lo que indica envejecimiento del aislamiento sólido."
+        }
+    ]
+}

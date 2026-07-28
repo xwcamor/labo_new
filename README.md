@@ -1,4 +1,4 @@
-# TR LAB — sistema de laboratorio de análisis de aceite dieléctrico
+# LaboRep — sistema de laboratorio de análisis de aceite dieléctrico
 
 Migración del sistema Rails de 2019 (`xwcamor/labo_old`) a Laravel, construido
 sobre el núcleo multi-empresa de TrafoDex.
@@ -7,8 +7,9 @@ El laboratorio recibe muestras de aceite, las ensaya y emite un informe contra
 un criterio de aceptación normativo. **No diagnostica el equipo**: eso es de
 TrafoDex, y se le envía por API (fase 7).
 
-> **Estado real (2026-07-28)**: fases 0 y 1 cerradas. La aplicación arranca,
-> compila y corre. Suite: **566 pasan · 30 fallan · 19 se saltean**. Las 30 que
+> **Estado real (2026-07-28)**: recepción, bancada, control de calidad,
+> límites por norma e informe de ensayo funcionando de punta a punta.
+> Suite: **811 pasan · 30 fallan · 19 se saltean**. Las 30 que
 > fallan son pruebas de núcleo que arman su escenario con el modelo
 > `Transformer` de TrafoDex, ya eliminado; se recablean a `Equipment`.
 >

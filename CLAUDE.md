@@ -1,4 +1,4 @@
-# TR LAB — sistema de laboratorio de análisis de aceite dieléctrico
+# LaboRep — sistema de laboratorio de análisis de aceite dieléctrico
 
 > Migración del sistema Rails de 2019 (`xwcamor/labo_old`) a Laravel, sobre el
 > núcleo de TrafoDex (`xwcamor/trafodex`).

@@ -21,45 +21,366 @@
     "",
     "Después de editar esto: php artisan db:seed --class=LabStandardsSeeder"
   ],
-
   "normas": [
-    { "code": "ASTM D3612", "kind": "method", "issuer": "ASTM", "name": "Gases disueltos en aceite aislante por cromatografía de gases", "literal": ["ASTM 3612 - Método C"] },
-    { "code": "ASTM D1275", "kind": "method", "issuer": "ASTM", "name": "Azufre corrosivo en aceites aislantes", "literal": ["ASTM 1275"] },
-    { "code": "IEC 62535",  "kind": "method", "issuer": "IEC",  "name": "Azufre corrosivo potencialmente corrosivo en aceite", "literal": ["IEC 62535"] },
-    { "code": "ASTM D1500", "kind": "method", "issuer": "ASTM", "name": "Color ASTM de productos derivados del petróleo", "literal": ["ASTM D1500"] },
-    { "code": "ASTM D1524", "kind": "method", "issuer": "ASTM", "name": "Examen visual de aceite aislante usado en el campo", "literal": ["ASTM D1524"] },
-    { "code": "ASTM D1533", "kind": "method", "issuer": "ASTM", "name": "Agua en aceite aislante por titulación Karl Fischer", "literal": ["ASTM D1533"] },
-    { "code": "IEC 62697",  "kind": "method", "issuer": "IEC",  "name": "Determinación de DBDS en aceite aislante", "literal": ["IEC 62697"] },
-    { "code": "ASTM D4052", "kind": "method", "issuer": "ASTM", "name": "Densidad y densidad relativa por densímetro digital", "literal": ["ASTM D4052"] },
-    { "code": "ASTM D1298", "kind": "method", "issuer": "ASTM", "name": "Densidad relativa por hidrómetro", "literal": ["ASTM D1298"] },
-    { "code": "ASTM D7777", "kind": "method", "issuer": "ASTM", "name": "Densidad y densidad relativa por densímetro portátil", "literal": ["ASTM D7777"] },
-    { "code": "ASTM D924",  "kind": "method", "issuer": "ASTM", "name": "Factor de disipación y permitividad relativa", "literal": ["ASTM D924"] },
-    { "code": "IEC 60247",  "kind": "method", "issuer": "IEC",  "name": "Resistividad, permitividad y factor de disipación", "literal": ["IEC 60247", "IEC60247"] },
-    { "code": "ASTM D97",   "kind": "method", "issuer": "ASTM", "name": "Punto de fluidez de productos derivados del petróleo", "literal": ["ASTM D97"] },
-    { "code": "ASTM D5837", "kind": "method", "issuer": "ASTM", "name": "Compuestos furánicos en aceite aislante por HPLC", "literal": ["ASTM D5837"] },
-    { "code": "ASTM D4243", "kind": "method", "issuer": "ASTM", "name": "Grado de polimerización del papel aislante", "literal": ["ASTM D4243"] },
-    { "code": "ASTM D92",   "kind": "method", "issuer": "ASTM", "name": "Punto de inflamación en copa abierta Cleveland", "literal": ["ASTM D92"] },
-    { "code": "ASTM D93",   "kind": "method", "issuer": "ASTM", "name": "Punto de inflamación en copa cerrada Pensky-Martens", "literal": ["ASTM D93"] },
-    { "code": "ASTM D2668", "kind": "method", "issuer": "ASTM", "name": "Inhibidor de oxidación en aceite aislante", "literal": ["ASTM D2668"] },
-    { "code": "IEC 60666",  "kind": "method", "issuer": "IEC",  "name": "Detección y determinación de aditivos en aceite aislante", "literal": ["IEC 60666-10"] },
-    { "code": "ASTM D7151", "kind": "method", "issuer": "ASTM", "name": "Elementos en aceite aislante por espectrometría", "literal": ["ASTM D7151"] },
-    { "code": "ASTM D974",  "kind": "method", "issuer": "ASTM", "name": "Número ácido por titulación colorimétrica", "literal": ["ASTM D974"] },
-    { "code": "IEC 62021",  "kind": "method", "issuer": "IEC",  "name": "Determinación de la acidez", "literal": ["IEC 62021"] },
-    { "code": "ASTM D6786", "kind": "method", "issuer": "ASTM", "name": "Conteo de partículas en aceite aislante", "literal": ["ASTM D6786"] },
-    { "code": "ASTM D4059", "kind": "method", "issuer": "ASTM", "name": "Bifenilos policlorados en aceite aislante", "literal": ["ASTM D4059"] },
-    { "code": "ASTM D1169", "kind": "method", "issuer": "ASTM", "name": "Resistividad volumétrica de líquidos aislantes", "literal": ["ASTM D1169"] },
-    { "code": "ASTM D1816", "kind": "method", "issuer": "ASTM", "name": "Tensión de ruptura dieléctrica con electrodos semiesféricos", "literal": ["ASTM D1816"] },
-    { "code": "IEC 60156",  "kind": "method", "issuer": "IEC",  "name": "Tensión de ruptura a frecuencia industrial", "literal": ["IEC 60156"] },
-    { "code": "ASTM D877",  "kind": "method", "issuer": "ASTM", "name": "Tensión de ruptura dieléctrica con electrodos planos", "literal": ["ASTM D877"] },
-    { "code": "ASTM D1698", "kind": "method", "issuer": "ASTM", "name": "Sedimentos y lodos solubles en aceite aislante en servicio", "literal": ["ASTM D1698"] },
-    { "code": "ASTM D971",  "kind": "method", "issuer": "ASTM", "name": "Tensión interfacial por el método del anillo", "literal": ["ASTM D971"] },
-    { "code": "ASTM D445",  "kind": "method", "issuer": "ASTM", "name": "Viscosidad cinemática de líquidos transparentes", "literal": ["ASTM D445"] },
-
-    { "code": "IEEE C57.106", "kind": "acceptance", "issuer": "IEEE", "name": "Guía para la aceptación y mantenimiento de aceite aislante en equipos" },
-    { "code": "IEC 60422",    "kind": "acceptance", "issuer": "IEC",  "name": "Aceites minerales aislantes en equipos eléctricos: supervisión y mantenimiento" },
-    { "code": "IEEE C57.104", "kind": "acceptance", "issuer": "IEEE", "name": "Guía para la interpretación de gases generados en transformadores" }
+    {
+      "code": "ASTM D3612",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Gases disueltos en aceite aislante por cromatografía de gases",
+      "literal": [
+        "ASTM 3612 - Método C"
+      ]
+    },
+    {
+      "code": "ASTM D1275",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Azufre corrosivo en aceites aislantes",
+      "literal": [
+        "ASTM 1275"
+      ]
+    },
+    {
+      "code": "IEC 62535",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Azufre corrosivo potencialmente corrosivo en aceite",
+      "literal": [
+        "IEC 62535"
+      ]
+    },
+    {
+      "code": "ASTM D1500",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Color ASTM de productos derivados del petróleo",
+      "literal": [
+        "ASTM D1500"
+      ]
+    },
+    {
+      "code": "ASTM D1524",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Examen visual de aceite aislante usado en el campo",
+      "literal": [
+        "ASTM D1524"
+      ]
+    },
+    {
+      "code": "ASTM D1533",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Agua en aceite aislante por titulación Karl Fischer",
+      "literal": [
+        "ASTM D1533"
+      ]
+    },
+    {
+      "code": "IEC 62697",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Determinación de DBDS en aceite aislante",
+      "literal": [
+        "IEC 62697"
+      ]
+    },
+    {
+      "code": "ASTM D4052",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Densidad y densidad relativa por densímetro digital",
+      "literal": [
+        "ASTM D4052"
+      ]
+    },
+    {
+      "code": "ASTM D1298",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Densidad relativa por hidrómetro",
+      "literal": [
+        "ASTM D1298"
+      ]
+    },
+    {
+      "code": "ASTM D7777",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Densidad y densidad relativa por densímetro portátil",
+      "literal": [
+        "ASTM D7777"
+      ]
+    },
+    {
+      "code": "ASTM D924",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Factor de disipación y permitividad relativa",
+      "literal": [
+        "ASTM D924"
+      ]
+    },
+    {
+      "code": "IEC 60247",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Resistividad, permitividad y factor de disipación",
+      "literal": [
+        "IEC 60247",
+        "IEC60247"
+      ]
+    },
+    {
+      "code": "ASTM D97",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Punto de fluidez de productos derivados del petróleo",
+      "literal": [
+        "ASTM D97"
+      ]
+    },
+    {
+      "code": "ASTM D5837",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Compuestos furánicos en aceite aislante por HPLC",
+      "literal": [
+        "ASTM D5837"
+      ]
+    },
+    {
+      "code": "ASTM D4243",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Grado de polimerización del papel aislante",
+      "literal": [
+        "ASTM D4243"
+      ]
+    },
+    {
+      "code": "ASTM D92",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Punto de inflamación en copa abierta Cleveland",
+      "literal": [
+        "ASTM D92"
+      ]
+    },
+    {
+      "code": "ASTM D93",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Punto de inflamación en copa cerrada Pensky-Martens",
+      "literal": [
+        "ASTM D93"
+      ]
+    },
+    {
+      "code": "ASTM D2668",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Inhibidor de oxidación en aceite aislante",
+      "literal": [
+        "ASTM D2668"
+      ]
+    },
+    {
+      "code": "IEC 60666",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Detección y determinación de aditivos en aceite aislante",
+      "literal": [
+        "IEC 60666-10"
+      ]
+    },
+    {
+      "code": "ASTM D7151",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Elementos en aceite aislante por espectrometría",
+      "literal": [
+        "ASTM D7151"
+      ]
+    },
+    {
+      "code": "ASTM D974",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Número ácido por titulación colorimétrica",
+      "literal": [
+        "ASTM D974"
+      ]
+    },
+    {
+      "code": "IEC 62021",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Determinación de la acidez",
+      "literal": [
+        "IEC 62021"
+      ]
+    },
+    {
+      "code": "ASTM D6786",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Conteo de partículas en aceite aislante",
+      "literal": [
+        "ASTM D6786"
+      ]
+    },
+    {
+      "code": "ASTM D4059",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Bifenilos policlorados en aceite aislante",
+      "literal": [
+        "ASTM D4059"
+      ]
+    },
+    {
+      "code": "ASTM D1169",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Resistividad volumétrica de líquidos aislantes",
+      "literal": [
+        "ASTM D1169"
+      ]
+    },
+    {
+      "code": "ASTM D1816",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Tensión de ruptura dieléctrica con electrodos semiesféricos",
+      "literal": [
+        "ASTM D1816"
+      ]
+    },
+    {
+      "code": "IEC 60156",
+      "kind": "method",
+      "issuer": "IEC",
+      "name": "Tensión de ruptura a frecuencia industrial",
+      "literal": [
+        "IEC 60156"
+      ]
+    },
+    {
+      "code": "ASTM D877",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Tensión de ruptura dieléctrica con electrodos planos",
+      "literal": [
+        "ASTM D877"
+      ]
+    },
+    {
+      "code": "ASTM D1698",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Sedimentos y lodos solubles en aceite aislante en servicio",
+      "literal": [
+        "ASTM D1698"
+      ]
+    },
+    {
+      "code": "ASTM D971",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Tensión interfacial por el método del anillo",
+      "literal": [
+        "ASTM D971"
+      ]
+    },
+    {
+      "code": "ASTM D445",
+      "kind": "method",
+      "issuer": "ASTM",
+      "name": "Viscosidad cinemática de líquidos transparentes",
+      "literal": [
+        "ASTM D445"
+      ]
+    },
+    {
+      "code": "IEEE C57.106",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la aceptación y mantenimiento de aceite aislante en equipos"
+    },
+    {
+      "code": "IEC 60422",
+      "kind": "acceptance",
+      "issuer": "IEC",
+      "name": "Aceites minerales aislantes en equipos eléctricos: supervisión y mantenimiento"
+    },
+    {
+      "code": "IEEE C57.104",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la interpretación de gases generados en transformadores"
+    },
+    {
+      "code": "IEEE C57.106-2015",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la aceptación y mantenimiento de aceite mineral aislante en equipos",
+      "literal": [
+        "IEEE C57.106-2015"
+      ],
+      "nota": "Es la edición que citan los cuadros de límites y el texto del análisis del informe. El catálogo ya traía 'IEEE C57.106' sin edición: son la misma norma y el laboratorio tiene que decidir con cuál se queda, porque el informe imprime la que diga el cuadro."
+    },
+    {
+      "code": "IEC 60599-2022",
+      "kind": "acceptance",
+      "issuer": "IEC",
+      "name": "Equipos eléctricos en servicio: interpretación del análisis de gases disueltos y libres",
+      "literal": [
+        "IEC 60599-2022",
+        "IEC 60599"
+      ]
+    },
+    {
+      "code": "IEEE Std C57.155-2014",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la interpretación de gases en aceites de ésteres naturales y sintéticos",
+      "literal": [
+        "IEEE Std C57.155-2014",
+        "IEEE C57.155"
+      ]
+    },
+    {
+      "code": "IEEE Std C57.146-2005",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la interpretación de gases en transformadores llenos con éster natural",
+      "literal": [
+        "IEEE Std C57.146-2005",
+        "IEEE C57.146"
+      ]
+    },
+    {
+      "code": "IEEE C57.111-1989(R2009)",
+      "kind": "acceptance",
+      "issuer": "IEEE",
+      "name": "Guía para la aceptación de aceite de silicona aislante y su mantenimiento",
+      "literal": [
+        "IEEE C57.111-1989(R2009)",
+        "IEEE C57.111"
+      ]
+    },
+    {
+      "code": "IEC 610203-2025",
+      "kind": "acceptance",
+      "issuer": "IEC",
+      "name": "Ésteres orgánicos sintéticos para fines eléctricos",
+      "literal": [
+        "IEC 610203-2025"
+      ],
+      "nota": "ERRATA PROBABLE del sistema anterior: no existe una IEC 610203. Lo más parecido es IEC 61203 (ésteres orgánicos sintéticos). Se conserva el código tal como lo citaba el cuadro para no cambiar en silencio lo que dice un informe; hay que confirmarlo con el laboratorio."
+    }
   ],
-
   "erratas": {
     "_doc": [
       "Textos de las opciones del sistema anterior que no coinciden con el",
@@ -72,7 +393,6 @@
     "ASTM 1275": "El código es ASTM D1275.",
     "IEC60247": "Sin espacio. La misma norma aparece también como 'IEC 60247' en otra prueba: dos escrituras del mismo documento."
   },
-
   "metodos": {
     "_doc": [
       "Cómo se mide cada parámetro. Existe para deshacer una duplicación del",
@@ -85,31 +405,149 @@
       "electrodos se midieron los históricos de rigidez."
     ],
     "lista": [
-      { "code": "rig_d1816_2mm", "analyte": "rig",    "standard": "ASTM D1816", "label": "ASTM D1816 · 2.0 mm", "conditions": { "gap_mm": 2.0 } },
-      { "code": "rig_d1816_1mm", "analyte": "rig",    "standard": "ASTM D1816", "label": "ASTM D1816 · 1.0 mm", "conditions": { "gap_mm": 1.0 } },
-      { "code": "rig_iec60156",  "analyte": "rig",    "standard": "IEC 60156",  "label": "IEC 60156 · 2.5 mm",  "conditions": { "gap_mm": 2.5 } },
-      { "code": "rig_d877",      "analyte": "rig_ep", "standard": "ASTM D877",  "label": "ASTM D877 · 2.54 mm", "conditions": { "gap_mm": 2.54 } },
-
-      { "code": "fp_d924_25",  "analyte": "fp25",  "standard": "ASTM D924", "label": "ASTM D924 · 25 °C",  "conditions": { "temp_c": 25 } },
-      { "code": "fp_d924_90",  "analyte": "fp90",  "standard": "ASTM D924", "label": "ASTM D924 · 90 °C",  "conditions": { "temp_c": 90 } },
-      { "code": "fp_d924_100", "analyte": "fp100", "standard": "ASTM D924", "label": "ASTM D924 · 100 °C", "conditions": { "temp_c": 100 } },
-
-      { "code": "rho_d1169_25",  "analyte": "rho25",  "standard": "ASTM D1169", "label": "ASTM D1169 · 25 °C",  "conditions": { "temp_c": 25 } },
-      { "code": "rho_d1169_100", "analyte": "rho100", "standard": "ASTM D1169", "label": "ASTM D1169 · 100 °C", "conditions": { "temp_c": 100 } },
-
-      { "code": "acid_d974",    "analyte": "acid",  "standard": "ASTM D974",  "label": "ASTM D974" },
-      { "code": "wat_d1533",    "analyte": "wat",   "standard": "ASTM D1533", "label": "ASTM D1533" },
-      { "code": "ift_d971",     "analyte": "ift",   "standard": "ASTM D971",  "label": "ASTM D971" },
-      { "code": "color_d1500",  "analyte": "color", "standard": "ASTM D1500", "label": "ASTM D1500" },
-      { "code": "visc_d445",    "analyte": "visc",  "standard": "ASTM D445",  "label": "ASTM D445" },
-      { "code": "flash_d92",    "analyte": "flash", "standard": "ASTM D92",   "label": "ASTM D92 · copa abierta" },
-      { "code": "flash_d93",    "analyte": "flash", "standard": "ASTM D93",   "label": "ASTM D93 · copa cerrada" },
-      { "code": "pour_d97",     "analyte": "pour",  "standard": "ASTM D97",   "label": "ASTM D97" },
-      { "code": "dens_d4052",   "analyte": "dens",  "standard": "ASTM D4052", "label": "ASTM D4052" },
-      { "code": "dga_d3612",    "analyte": "tdcg",  "standard": "ASTM D3612", "label": "ASTM D3612 · Método C" }
+      {
+        "code": "rig_d1816_2mm",
+        "analyte": "rig",
+        "standard": "ASTM D1816",
+        "label": "ASTM D1816 · 2.0 mm",
+        "conditions": {
+          "gap_mm": 2.0
+        }
+      },
+      {
+        "code": "rig_d1816_1mm",
+        "analyte": "rig",
+        "standard": "ASTM D1816",
+        "label": "ASTM D1816 · 1.0 mm",
+        "conditions": {
+          "gap_mm": 1.0
+        }
+      },
+      {
+        "code": "rig_iec60156",
+        "analyte": "rig",
+        "standard": "IEC 60156",
+        "label": "IEC 60156 · 2.5 mm",
+        "conditions": {
+          "gap_mm": 2.5
+        }
+      },
+      {
+        "code": "rig_d877",
+        "analyte": "rig_ep",
+        "standard": "ASTM D877",
+        "label": "ASTM D877 · 2.54 mm",
+        "conditions": {
+          "gap_mm": 2.54
+        }
+      },
+      {
+        "code": "fp_d924_25",
+        "analyte": "fp25",
+        "standard": "ASTM D924",
+        "label": "ASTM D924 · 25 °C",
+        "conditions": {
+          "temp_c": 25
+        }
+      },
+      {
+        "code": "fp_d924_90",
+        "analyte": "fp90",
+        "standard": "ASTM D924",
+        "label": "ASTM D924 · 90 °C",
+        "conditions": {
+          "temp_c": 90
+        }
+      },
+      {
+        "code": "fp_d924_100",
+        "analyte": "fp100",
+        "standard": "ASTM D924",
+        "label": "ASTM D924 · 100 °C",
+        "conditions": {
+          "temp_c": 100
+        }
+      },
+      {
+        "code": "rho_d1169_25",
+        "analyte": "rho25",
+        "standard": "ASTM D1169",
+        "label": "ASTM D1169 · 25 °C",
+        "conditions": {
+          "temp_c": 25
+        }
+      },
+      {
+        "code": "rho_d1169_100",
+        "analyte": "rho100",
+        "standard": "ASTM D1169",
+        "label": "ASTM D1169 · 100 °C",
+        "conditions": {
+          "temp_c": 100
+        }
+      },
+      {
+        "code": "acid_d974",
+        "analyte": "acid",
+        "standard": "ASTM D974",
+        "label": "ASTM D974"
+      },
+      {
+        "code": "wat_d1533",
+        "analyte": "wat",
+        "standard": "ASTM D1533",
+        "label": "ASTM D1533"
+      },
+      {
+        "code": "ift_d971",
+        "analyte": "ift",
+        "standard": "ASTM D971",
+        "label": "ASTM D971"
+      },
+      {
+        "code": "color_d1500",
+        "analyte": "color",
+        "standard": "ASTM D1500",
+        "label": "ASTM D1500"
+      },
+      {
+        "code": "visc_d445",
+        "analyte": "visc",
+        "standard": "ASTM D445",
+        "label": "ASTM D445"
+      },
+      {
+        "code": "flash_d92",
+        "analyte": "flash",
+        "standard": "ASTM D92",
+        "label": "ASTM D92 · copa abierta"
+      },
+      {
+        "code": "flash_d93",
+        "analyte": "flash",
+        "standard": "ASTM D93",
+        "label": "ASTM D93 · copa cerrada"
+      },
+      {
+        "code": "pour_d97",
+        "analyte": "pour",
+        "standard": "ASTM D97",
+        "label": "ASTM D97"
+      },
+      {
+        "code": "dens_d4052",
+        "analyte": "dens",
+        "standard": "ASTM D4052",
+        "label": "ASTM D4052"
+      },
+      {
+        "code": "dga_d3612",
+        "analyte": "tdcg",
+        "standard": "ASTM D3612",
+        "label": "ASTM D3612 · Método C"
+      }
     ]
   },
-
   "pendientes": {
     "_doc": [
       "Lo que falta confirmar con el laboratorio antes de dar por cerrado esto."

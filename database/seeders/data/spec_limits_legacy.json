@@ -113,7 +113,10 @@
       "resultado": "Los valores de los 24 cuadros comunes COINCIDEN en los dos archivos. Toda la divergencia entre las copias está en las CONDICIONES y en la asignación de normas.",
       "aporte": "9 anomalías nuevas, y la causa exacta del límite de acetileno de \"De voltaje\".",
       "fecha": "2026-07-28"
-    }
+    },
+    "notas": [
+      "norma_aceptacion se asignó por grupo (cromas -> IEEE C57.104, fiqui -> IEEE C57.106). El sistema anterior no la guardaba por cuadro: el informe la elegía por informe (rem_report_detail.fiq_norm) y el texto del análisis la traía escrita a mano. Es editable desde la pantalla."
+    ]
   },
   "anomalias": [
     {

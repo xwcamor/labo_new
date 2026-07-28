@@ -13,15 +13,9 @@ return [
     // Grupo: Negocio (operación)
     'group_business'     => 'Negocio',
     'customers'          => 'Clientes',
-    'transformers'       => 'Transformadores',
-    'comparison_gases'    => 'Gases por grupo',
-    'comparison_patrones' => 'Patrones por grupo',
 
-    // Grupo: Condiciones de diagnóstico (catálogos editables del motor)
-    'group_diagnostics'  => 'Condiciones de diagnóstico',
     'oil_types'          => 'Tipos de aceite',
     'equipment_types'  => 'Tipos de transformador',
-    'diagnostic_rules'   => 'Reglas de diagnóstico',
     'brands'             => 'Marcas',
     'tap_changer_types'  => 'Tipos de conmutador',
     'laboratories'       => 'Laboratorios',
@@ -55,9 +49,6 @@ return [
     'locales'            => 'Locales',
     'settings'           => 'Ajustes',
 
-    // Tools (solo-super)
-    'group_tools'        => 'Herramientas',
-    'tools_duval'        => 'Cálculo Duval',
 
     // Tooltips
     'coming_soon'        => 'Próximamente',

@@ -13,15 +13,9 @@ return [
     // Group: Business (operations)
     'group_business'     => 'Business',
     'customers'          => 'Customers',
-    'transformers'       => 'Transformers',
-    'comparison_gases'    => 'Gases by group',
-    'comparison_patrones' => 'Patterns by group',
 
-    // Group: Diagnostic conditions (editable engine catalogs)
-    'group_diagnostics'  => 'Diagnostic conditions',
     'oil_types'          => 'Oil types',
     'equipment_types'  => 'Transformer types',
-    'diagnostic_rules'   => 'Diagnostic rules',
     'brands'             => 'Brands',
     'tap_changer_types'  => 'Tap changer types',
     'laboratories'       => 'Laboratories',
@@ -55,9 +49,6 @@ return [
     'locales'            => 'Locales',
     'settings'           => 'Settings',
 
-    // Tools (super only)
-    'group_tools'        => 'Tools',
-    'tools_duval'        => 'Duval calculator',
 
     // Tooltips
     'coming_soon'        => 'Coming soon',

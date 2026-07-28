@@ -5,7 +5,6 @@ import { onMounted, onBeforeUnmount } from 'vue';
  *
  * Usage:
  *   useKeyboardShortcuts({
- *       'ctrl+n': () => router.visit(route('regions.create')),
  *       'esc':    () => modalOpen.value = false,
  *       'ctrl+k': () => searchInput.value?.focus(),
  *   });

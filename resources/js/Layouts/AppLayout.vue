@@ -654,13 +654,6 @@ const menuStructure = computed(() => [
                 href: route('business_management.customers.index'), inertia: true,
                 visible: () => can('customers.view'),
             },
-            {
-                // Historial de enlaces compartidos, cruzando clientes. Premium
-                // (misma feature de plan que el botón de compartir).
-                key: 'report_shares', label: t('sidebar.report_shares'), icon: ShareAltOutlined,
-                href: route('business_management.report_shares_log.index'), inertia: true,
-                visible: () => can('transformers.view') && canUsePlanFeature('report_sharing'),
-            },
         ],
     },
 

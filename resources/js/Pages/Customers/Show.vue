@@ -12,7 +12,6 @@ import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
-import ShareModal from '@/Components/Sharing/ShareModal.vue';
 import CustomerHierarchyTree from '@/Components/Customers/CustomerHierarchyTree.vue';
 import CustomerOrgChart from '@/Components/Customers/CustomerOrgChart.vue';
 import CustomerStructureTable from '@/Components/Customers/CustomerStructureTable.vue';
@@ -103,12 +102,8 @@ const fmt = (d) => formatDateTimeFull(d);
             </template>
             <template #actions>
                 <Space :size="8">
-                    <Tooltip v-if="!isDeleted && can('transformers.view') && totals.transformers > 0" :title="$t('comparison.compare_fleet_help')">
-                        <Link :href="route('business_management.comparison.patrones', { customer: customer.id })">
-                            <Button><template #icon><BarChartOutlined /></template><span class="btn-txt">{{ $t('comparison.compare_fleet') }}</span></Button>
-                        </Link>
-                    </Tooltip>
-                    <ShareModal v-if="!isDeleted" scope-type="fleet" :scope-id="customer.id" />
+                    <!-- Fase 6: acá vuelve "compartir informes", cuando la pila de
+                         ReportShare deje de estar tipada a Transformer. -->
                     <EntityShowActions
                         module="customers"
                         route-prefix="business_management"

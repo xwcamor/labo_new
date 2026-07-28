@@ -65,7 +65,7 @@ const cards = computed(() => {
                 <Link
                     v-for="t in card.transformers"
                     :key="t.id"
-                    :href="route('business_management.transformers.show', t.slug)"
+                    :href="route('business_management.equipment.show', t.slug)"
                     class="cc-chip"
                 >
                     <ThunderboltFilled class="cc-chip__icon" />

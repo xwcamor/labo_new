@@ -53,7 +53,7 @@ const searchFlat = computed(() => {
     navMatches.value.forEach((i) => out.push({ type: 'nav', href: i.href, label: i.label }));
     remote.value.transformers.forEach((tr) => out.push({
         type: 'transformer',
-        href: route('business_management.transformers.show', tr.slug),
+        href: route('business_management.equipment.show', tr.slug),
         label: tr.serial || tr.tag,
         sub: [tr.customer, tr.brand].filter(Boolean).join(' · '),
         color: tr.color, condition: tr.condition,

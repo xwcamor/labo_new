@@ -61,7 +61,7 @@ const healthColor = (hi) => {
             <!-- Transformador: hoja con link al detalle -->
             <template v-if="node.type === 'transformer'">
                 <Link
-                    :href="route('business_management.transformers.show', node.slug)"
+                    :href="route('business_management.equipment.show', node.slug)"
                     class="hnode__name hnode__name--link"
                 >
                     {{ node.name }}

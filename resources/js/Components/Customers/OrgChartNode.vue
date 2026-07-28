@@ -40,7 +40,7 @@ const healthColor = (hi) => {
         >
             <component :is="ICONS[node.type] ?? AppstoreFilled" class="org-box__icon" />
             <template v-if="node.type === 'transformer'">
-                <Link :href="route('business_management.transformers.show', node.slug)" class="org-box__name org-box__name--link">
+                <Link :href="route('business_management.equipment.show', node.slug)" class="org-box__name org-box__name--link">
                     {{ node.name }}
                 </Link>
                 <span class="org-box__health" :style="{ background: healthColor(node.health_index) }"></span>

@@ -69,7 +69,7 @@ const rows = computed(() => {
                     <td>{{ r.area }}</td>
                     <td>{{ r.substation }}</td>
                     <td>
-                        <Link v-if="r.trafo" :href="route('business_management.transformers.show', r.trafo.slug)" class="st-link">
+                        <Link v-if="r.trafo" :href="route('business_management.equipment.show', r.trafo.slug)" class="st-link">
                             {{ r.trafo.name }}
                         </Link>
                         <span v-else class="st-muted">—</span>

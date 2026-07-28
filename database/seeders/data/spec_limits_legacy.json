@@ -1,0 +1,1943 @@
+{
+  "_meta": {
+    "que_es": "Los 25 cuadros de valores de orientación del sistema Rails viejo, extraídos del código.",
+    "extraido_de": "labo_old app/models/rem_report_detail.rb (métodos set_orientation_*_values)",
+    "metodo": "extracción programática de los bloques RemReportDetail.update(); los valores NO se transcribieron a mano",
+    "fecha": "2026-07-28",
+    "estado": "SIN VALIDAR por el laboratorio — ver anomalias[] y docs/migracion/03-NORMAS-Y-LIMITES.md §7",
+    "aceites": {
+      "1": "Mineral",
+      "2": "?",
+      "3": "?",
+      "4": "Silicona",
+      "5": "Vegetal/Soya",
+      "6": "Girasol",
+      "7": "Midel/Éster sintético",
+      "8": "?",
+      "9": "?"
+    },
+    "equipos": {
+      "1": "Potencia",
+      "2": "Distribución",
+      "3": "Horno",
+      "4": "De corriente",
+      "5": "De voltaje",
+      "6": "Instrumento",
+      "7": "Bushing",
+      "8": "Cables",
+      "9": "Interruptor",
+      "10": "Conmutador",
+      "11": "Reactor",
+      "12": "Termovacío",
+      "13": "Transformador"
+    },
+    "gases": {
+      "cro": "h2",
+      "cro2": "o2",
+      "cro3": "n2",
+      "cro4": "ch4",
+      "cro5": "co",
+      "cro6": "co2",
+      "cro7": "c2h4",
+      "cro8": "c2h6",
+      "cro9": "c2h2"
+    }
+  },
+  "anomalias": [
+    {
+      "id": "DIVERGENCIA-1",
+      "gravedad": "alta",
+      "grupo": "cromas",
+      "que": "Los límites de cromas cambian según si el informe se guardó una o dos veces.",
+      "detalle": "Al CREAR (rem_report_detail.rb:447) la condición es tipo ∈ {1,2,3,4,5,13}; al ACTUALIZAR (rem_report.rb:517) es tipo < 10 o 13. Los tipos 6 (instrumento), 7 (bushing) y 8 (cables) con aceite mineral caen al else en la creación (todo \"-\") y reciben sus valores reales en el primer reguardado.",
+      "inocuo_en": "tipo 9 (interruptor): su cuadro es todo \"-\" de todos modos",
+      "decision": "El cuadro por tipo es el correcto: existe y tiene valores. La creación estaba incompleta."
+    },
+    {
+      "id": "DIVERGENCIA-2",
+      "gravedad": "media",
+      "grupo": "ambos",
+      "que": "Los aceites 6 (girasol) y 9 no reciben norma al crear el informe.",
+      "detalle": "save_default_values cubre aceites {1,2,3,8}, {4}, {7}, {5}; refresh_orientation_fiqui_values cubre {1,2,3,8}, {4}, {7}, {5,6,9}. Un informe de girasol recién creado imprime \"-\" como norma; guardado dos veces imprime IEC 610203-2025."
+    },
+    {
+      "id": "C2H2-VOLTAJE",
+      "gravedad": "baja",
+      "grupo": "cromas",
+      "que": "En \"De voltaje · Mineral\" el acetileno dice \"16\", sin \"máximo\".",
+      "detalle": "El parser del sistema viejo lo lee igual como número, pero el informe imprime \"16\" pelado. Confirmar si es 16 máximo."
+    },
+    {
+      "id": "HORNO-REVISAR",
+      "gravedad": "media",
+      "grupo": "cromas",
+      "que": "El propio código marca el cuadro de horno mineral con \"#####REVISAR **\"."
+    },
+    {
+      "id": "ACEITES-SIN-CUADRO",
+      "gravedad": "alta",
+      "grupo": "ambos",
+      "que": "Los aceites 2, 3, 8 y 9 reciben norma pero no tienen cuadro de límites propio.",
+      "detalle": "Se les asigna la norma de mineral (o de vegetal para el 9) pero ninguna rama de tipo de aceite los captura, así que caen al else y salen todos \"-\". Hay que decidir si son alias o fluidos distintos."
+    },
+    {
+      "id": "ESTER-SINTETICO",
+      "gravedad": "media",
+      "grupo": "fiquis",
+      "que": "El aceite 7 se trata de dos formas contradictorias.",
+      "detalle": "En fiquis comparte cuadro con el vegetal (oil == 5 or 7); en cromas tiene cuadro propio (\"Midel\"). Uno de los dos está mal."
+    },
+    {
+      "id": "IEC-610203",
+      "gravedad": "media",
+      "grupo": "ambos",
+      "que": "\"IEC 610203-2025\" no es un número de norma IEC válido.",
+      "detalle": "Probablemente IEC 61203 o IEC 62770. Se está imprimiendo en informes firmados."
+    },
+    {
+      "id": "RIG-GAP",
+      "gravedad": "alta",
+      "grupo": "fiquis",
+      "que": "Los límites de rigidez no registran la separación de electrodos.",
+      "detalle": "rig (40/47/50 kV) y rigep (\"electrodos planos\") se tratan como parámetros distintos. D877 es 2.54 mm fijo; D1816 admite 1.0 o 2.0 mm y los kV no son comparables. Sin el gap no se puede saber contra qué norma se juzgó."
+    }
+  ],
+  "cuadros": [
+    {
+      "grupo": "cromas",
+      "label": "Conmutador",
+      "origen": "app/models/rem_report_detail.rb:404",
+      "condicion": {
+        "equipment_type": [
+          10
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "nota": "Sin criterio: todos los gases en \"-\"",
+      "norma_aceptacion": null
+    },
+    {
+      "grupo": "cromas",
+      "label": "Reactor · Mineral",
+      "origen": "app/models/rem_report_detail.rb:420",
+      "condicion": {
+        "equipment_type": [
+          11
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 130.0,
+          "display": "130 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 600.0,
+          "display": "600 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 14000.0,
+          "display": "14000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 280.0,
+          "display": "280 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 90.0,
+          "display": "90 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 20.0,
+          "display": "20 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Reactor · otros aceites",
+      "origen": "app/models/rem_report_detail.rb:432",
+      "condicion": {
+        "equipment_type": [
+          11
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "nota": "Sin criterio",
+      "norma_aceptacion": null
+    },
+    {
+      "grupo": "cromas",
+      "label": "Distribución · Mineral",
+      "origen": "app/models/rem_report_detail.rb:458",
+      "condicion": {
+        "equipment_type": [
+          2
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 100.0,
+          "display": "100 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 50.0,
+          "display": "50 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 200.0,
+          "display": "200 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 5000.0,
+          "display": "5000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 50.0,
+          "display": "50 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 50.0,
+          "display": "50 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Potencia · Mineral",
+      "origen": "app/models/rem_report_detail.rb:471",
+      "condicion": {
+        "equipment_type": [
+          1
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 130.0,
+          "display": "130 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 600.0,
+          "display": "600 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 14000.0,
+          "display": "14000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 280.0,
+          "display": "280 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 90.0,
+          "display": "90 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 20.0,
+          "display": "20 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Horno · Mineral",
+      "origen": "app/models/rem_report_detail.rb:485",
+      "condicion": {
+        "equipment_type": [
+          3
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 200.0,
+          "display": "200 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 800.0,
+          "display": "800 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 6000.0,
+          "display": "6000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 200.0,
+          "display": "200 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "nota": "El código lo marca \"#####REVISAR **\" — verificar con el laboratorio",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "De corriente · Mineral",
+      "origen": "app/models/rem_report_detail.rb:499",
+      "condicion": {
+        "equipment_type": [
+          4
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 300.0,
+          "display": "300 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 120.0,
+          "display": "120 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 1100.0,
+          "display": "1100 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 4000.0,
+          "display": "4000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 40.0,
+          "display": "40 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 130.0,
+          "display": "130 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "De voltaje · Mineral",
+      "origen": "app/models/rem_report_detail.rb:513",
+      "condicion": {
+        "equipment_type": [
+          5
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 1000.0,
+          "display": "1000 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 16.0,
+          "display": "16",
+          "REVISAR": "el valor no trae \"máximo\"/\"mínimo\"; se asume máximo por el resto del cuadro"
+        }
+      ],
+      "nota": "c2h2 = \"16\" sin la palabra \"máximo\" — verificar",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Instrumento · Mineral",
+      "origen": "app/models/rem_report_detail.rb:527",
+      "condicion": {
+        "equipment_type": [
+          6
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 300.0,
+          "display": "300 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 300.0,
+          "display": "300 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 900.0,
+          "display": "900 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 10.0,
+          "display": "10 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 50.0,
+          "display": "50 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2 - máximo"
+        }
+      ],
+      "nota": "DIVERGENCIA-1: inalcanzable al crear el informe",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Bushing · Mineral",
+      "origen": "app/models/rem_report_detail.rb:540",
+      "condicion": {
+        "equipment_type": [
+          7
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 392.0,
+          "display": "392 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 216.0,
+          "display": "216 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 927.0,
+          "display": "927 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 11578.0,
+          "display": "11578 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 70.0,
+          "display": "70 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 121.0,
+          "display": "121 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5 - máximo"
+        }
+      ],
+      "nota": "DIVERGENCIA-1: inalcanzable al crear el informe",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Cables · Mineral",
+      "origen": "app/models/rem_report_detail.rb:553",
+      "condicion": {
+        "equipment_type": [
+          8
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 500.0,
+          "display": "500 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 100.0,
+          "display": "100 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 500.0,
+          "display": "500 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 20.0,
+          "display": "20 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 25.0,
+          "display": "25 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 10.0,
+          "display": "10 - máximo"
+        }
+      ],
+      "nota": "DIVERGENCIA-1: inalcanzable al crear el informe",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Interruptor · Mineral",
+      "origen": "app/models/rem_report_detail.rb:566",
+      "condicion": {
+        "equipment_type": [
+          9
+        ],
+        "oil_type": [
+          1
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "nota": "Sin criterio. DIVERGENCIA-1, pero inocua: el cuadro es todo \"-\"",
+      "norma_aceptacion": "IEC 60599-2022"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Silicona",
+      "origen": "app/models/rem_report_detail.rb:595",
+      "condicion": {
+        "oil_type": [
+          4
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 200.0,
+          "display": "200 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 100.0,
+          "display": "100 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 3000.0,
+          "display": "3000 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": "<=",
+          "value": 30000.0,
+          "display": "30000 - máximo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 1.0,
+          "display": "1 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEEE Std C57.146-2005"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Midel",
+      "origen": "app/models/rem_report_detail.rb:610",
+      "condicion": {
+        "oil_type": [
+          7
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 64.0,
+          "display": "64 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 104.0,
+          "display": "104 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 1344.0,
+          "display": "1344 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 124.0,
+          "display": "124 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 13.0,
+          "display": "13 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEEE Std C57.155-2014"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Vegetal soya",
+      "origen": "app/models/rem_report_detail.rb:625",
+      "condicion": {
+        "oil_type": [
+          5
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 112.0,
+          "display": "112 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 20.0,
+          "display": "20 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 161.0,
+          "display": "161 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 18.0,
+          "display": "18 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 232.0,
+          "display": "232 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 1.0,
+          "display": "1 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEEE Std C57.155-2014"
+    },
+    {
+      "grupo": "cromas",
+      "label": "Vegetal girasol",
+      "origen": "app/models/rem_report_detail.rb:640",
+      "condicion": {
+        "oil_type": [
+          6
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "h2",
+          "operator": "<=",
+          "value": 35.0,
+          "display": "35 - máximo"
+        },
+        {
+          "analyte": "o2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "n2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ch4",
+          "operator": "<=",
+          "value": 25.0,
+          "display": "25 - máximo"
+        },
+        {
+          "analyte": "co",
+          "operator": "<=",
+          "value": 497.0,
+          "display": "497 - máximo"
+        },
+        {
+          "analyte": "co2",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "c2h4",
+          "operator": "<=",
+          "value": 16.0,
+          "display": "16 - máximo"
+        },
+        {
+          "analyte": "c2h6",
+          "operator": "<=",
+          "value": 58.0,
+          "display": "58 - máximo"
+        },
+        {
+          "analyte": "c2h2",
+          "operator": "<=",
+          "value": 0.0,
+          "display": "0 - máximo"
+        }
+      ],
+      "norma_aceptacion": "IEEE Std C57.155-2014"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Conmutador · ≤69 kV",
+      "origen": "app/models/rem_report_detail.rb:199",
+      "condicion": {
+        "equipment_type": [
+          10
+        ],
+        "voltage_to": 69
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.2,
+          "display": "0.20 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 35.0,
+          "display": "35.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 30.0,
+          "display": "30.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2.0 - máximo"
+        },
+        {
+          "analyte": "con",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": null
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Conmutador · >69 kV",
+      "origen": "app/models/rem_report_detail.rb:214",
+      "condicion": {
+        "equipment_type": [
+          10
+        ],
+        "voltage_from": 69
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.2,
+          "display": "0.20 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 45.0,
+          "display": "45.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 25.0,
+          "display": "25.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2.0 - máximo"
+        },
+        {
+          "analyte": "con",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "nota": "El comentario dice \"< 69\" pero la rama es el else de <=69",
+      "norma_aceptacion": null
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Mineral · ≤69 kV",
+      "origen": "app/models/rem_report_detail.rb:236",
+      "condicion": {
+        "oil_type": [
+          1
+        ],
+        "voltage_to": 69
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.2,
+          "display": "0.20 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": "<=",
+          "value": 0.5,
+          "display": "0.50 - máximo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5.0 - máximo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 40.0,
+          "display": "40.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 35.0,
+          "display": "35.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Brillante y Claro",
+          "display": "Brillante y Claro"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEEE C57.106-2015"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Mineral · 69-230 kV",
+      "origen": "app/models/rem_report_detail.rb:251",
+      "condicion": {
+        "oil_type": [
+          1
+        ],
+        "voltage_from": 69,
+        "voltage_to": 230
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.15,
+          "display": "0.15 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": "<=",
+          "value": 0.5,
+          "display": "0.50 - máximo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5.0 - máximo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 47.0,
+          "display": "47.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 30.0,
+          "display": "30.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 25.0,
+          "display": "25.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Brillante y Claro",
+          "display": "Brillante y Claro"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEEE C57.106-2015"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Mineral · ≥230 kV",
+      "origen": "app/models/rem_report_detail.rb:266",
+      "condicion": {
+        "oil_type": [
+          1
+        ],
+        "voltage_from": 230
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.1,
+          "display": "0.10 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": "<=",
+          "value": 0.5,
+          "display": "0.50 - máximo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": "<=",
+          "value": 5.0,
+          "display": "5.0 - máximo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 50.0,
+          "display": "50.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 32.0,
+          "display": "32.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 20.0,
+          "display": "20.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Brillante y Claro",
+          "display": "Brillante y Claro"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEEE C57.106-2015"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Silicona",
+      "origen": "app/models/rem_report_detail.rb:284",
+      "condicion": {
+        "oil_type": [
+          4
+        ]
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.2,
+          "display": "0.20 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": "<=",
+          "value": 0.2,
+          "display": "0.20 - máximo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": ">=",
+          "value": 25.0,
+          "display": "25.0 - mínimo"
+        },
+        {
+          "analyte": "ten",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 100.0,
+          "display": "100 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Claro y libre de partículas",
+          "display": "Claro y libre de partículas"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEEE C57.111-1989(R2009)"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Éster · ≤72.5 kV",
+      "origen": "app/models/rem_report_detail.rb:302",
+      "condicion": {
+        "oil_type": [
+          5,
+          7
+        ],
+        "voltage_to": 72.5
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.5,
+          "display": "0.50 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": "<=",
+          "value": 0.15,
+          "display": "0.15 - máximo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 40.0,
+          "display": "40.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 22.0,
+          "display": "22.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 200.0,
+          "display": "200.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2.0 - máximo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Claro libre de sedimentos",
+          "display": "Claro libre de sedimentos"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEC 610203-2025"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Éster · 72.5-170 kV",
+      "origen": "app/models/rem_report_detail.rb:317",
+      "condicion": {
+        "oil_type": [
+          5,
+          7
+        ],
+        "voltage_from": 72.5,
+        "voltage_to": 170
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.5,
+          "display": "0.50 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": "<=",
+          "value": 0.15,
+          "display": "0.15 - máximo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 50.0,
+          "display": "50.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 22.0,
+          "display": "22.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 150.0,
+          "display": "150.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2.0 - máximo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Claro libre de sedimentos",
+          "display": "Claro libre de sedimentos"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEC 610203-2025"
+    },
+    {
+      "grupo": "fiquis",
+      "label": "Éster · ≥170 kV",
+      "origen": "app/models/rem_report_detail.rb:332",
+      "condicion": {
+        "oil_type": [
+          5,
+          7
+        ],
+        "voltage_from": 170
+      },
+      "limites": [
+        {
+          "analyte": "acid",
+          "operator": "<=",
+          "value": 0.15,
+          "display": "0.15 - máximo"
+        },
+        {
+          "analyte": "pot@25",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "pot@90",
+          "operator": "<=",
+          "value": 0.15,
+          "display": "0.15 - máximo"
+        },
+        {
+          "analyte": "pot@100",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "rig_d1816",
+          "operator": ">=",
+          "value": 60.0,
+          "display": "60.0 - mínimo"
+        },
+        {
+          "analyte": "rig_d877",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        },
+        {
+          "analyte": "ten",
+          "operator": ">=",
+          "value": 22.0,
+          "display": "22.0 - mínimo"
+        },
+        {
+          "analyte": "wat",
+          "operator": "<=",
+          "value": 100.0,
+          "display": "100.0 - máximo"
+        },
+        {
+          "analyte": "col",
+          "operator": "<=",
+          "value": 2.0,
+          "display": "2.0 - máximo"
+        },
+        {
+          "analyte": "con",
+          "operator": "text",
+          "text_value": "Claro libre de sedimentos",
+          "display": "Claro libre de sedimentos"
+        },
+        {
+          "analyte": "den",
+          "operator": null,
+          "display": "-",
+          "nota": "sin criterio en el sistema viejo"
+        }
+      ],
+      "norma_aceptacion": "IEC 610203-2025"
+    }
+  ]
+}

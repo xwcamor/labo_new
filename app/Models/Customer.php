@@ -68,9 +68,11 @@ class Customer extends Model
         return $this->hasManyThrough(CustomerArea::class, CustomerLocation::class);
     }
 
-    // Fase 1: acá va equipment() — los equipos del cliente por FK directa,
-    // para los conteos del listado. Reemplaza a la relación transformers()
-    // que traía TrafoDex.
+    /** Equipos del cliente (FK directa customer_id) — para conteos. */
+    public function equipment(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
 
     protected static function booted(): void
     {
@@ -150,8 +152,8 @@ class Customer extends Model
             match ($request->customer_group) {
                 'active'     => $q->where("{$tbl}.is_active", true),
                 'inactive'   => $q->where("{$tbl}.is_active", false),
-                // Fase 1: 'with_eq' / 'without_eq' cuando exista la relación
-                // equipment(). Declararlos antes rompería en tiempo de ejecución.
+                'with_eq'    => $q->has('equipment'),
+                'without_eq' => $q->doesntHave('equipment'),
                 default      => null,
             };
         });

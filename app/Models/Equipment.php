@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Models;
+
+use App\Support\LikeQuery;
+use App\Traits\Auditable;
+use App\Traits\BelongsToTenantOrGlobal;
+use App\Traits\HasFavorites;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+
+/**
+ * Equipment — el equipo del que el laboratorio toma la muestra.
+ *
+ * NO es `Transformer`: el laboratorio recibe muestras de 20 tipos de equipo
+ * (conmutadores, reactores, bushings, cables, interruptores, electrobombas,
+ * intercambiadores…). Llamarlo "transformador" es lo que llevó al
+ * `if tipo == 10` del sistema viejo.
+ *
+ * NO tiene campos de diagnóstico. El índice de salud, Duval y la condición
+ * IEEE son de TrafoDex; acá solo se evalúa contra el criterio de aceptación.
+ *
+ * `equipment_type_id` + `oil_type_id` + la banda de tensión son los tres ejes
+ * con los que la fase 2 resuelve el cuadro de límites aplicable.
+ */
+class Equipment extends Model
+{
+    use HasFactory, SoftDeletes, Auditable, BelongsToTenantOrGlobal, HasFavorites, \App\Traits\Lockable;
+
+    protected string $auditModule = 'equipment';
+
+    protected $table = 'equipment';
+
+    protected $fillable = [
+        'slug', 'name', 'serial', 'tag',
+        'customer_id', 'customer_location_id', 'customer_area_id', 'customer_substation_id',
+        'equipment_type_id', 'oil_type_id', 'brand_id', 'tap_changer_type_id',
+        'transformer_preservation_id',
+        'voltage_kv_hv', 'voltage_kv_lv', 'power_mva', 'phases', 'manufacture_year',
+        'oil_volume', 'oil_volume_unit', 'service_state',
+        'external_ref', 'is_active', 'tenant_id',
+        'created_by', 'deleted_by', 'deleted_description',
+    ];
+
+    protected $casts = [
+        'is_active'  => 'boolean',
+        'voltage_kv_hv' => 'decimal:2',
+        'voltage_kv_lv' => 'decimal:2',
+        'power_mva' => 'decimal:2',
+        'phases' => 'integer',
+        'manufacture_year' => 'integer',
+        'oil_volume' => 'decimal:2',
+    ];
+
+    /**
+     * Banda de tensión del equipo, en kV. Es lo que la fase 2 usa para elegir
+     * el cuadro de límites (mineral ≤69 / 69-230 / ≥230, etc.).
+     *
+     * En el sistema viejo esto se recalculaba en cinco lugares distintos con
+     * `num_ten.split('/').map(&:to_f).max`, sobre un string. Acá es una sola
+     * función sobre columnas numéricas.
+     */
+    public function getVoltageClassAttribute(): ?float
+    {
+        $values = array_filter([$this->voltage_kv_hv, $this->voltage_kv_lv], fn ($v) => $v !== null);
+        return empty($values) ? null : (float) max($values);
+    }
+
+    // ── Dónde está ──────────────────────────────────────────────────────
+    public function customer(): BelongsTo            { return $this->belongsTo(Customer::class); }
+    public function location(): BelongsTo            { return $this->belongsTo(CustomerLocation::class, 'customer_location_id'); }
+    public function area(): BelongsTo                { return $this->belongsTo(CustomerArea::class, 'customer_area_id'); }
+    public function substation(): BelongsTo          { return $this->belongsTo(CustomerSubstation::class, 'customer_substation_id'); }
+
+    // ── Qué es (ejes del cuadro de límites + metadatos) ─────────────────
+    public function equipmentType(): BelongsTo       { return $this->belongsTo(EquipmentType::class); }
+    public function oilType(): BelongsTo             { return $this->belongsTo(OilType::class); }
+    public function brand(): BelongsTo               { return $this->belongsTo(Brand::class); }
+    public function tapChangerType(): BelongsTo      { return $this->belongsTo(TapChangerType::class); }
+    public function preservation(): BelongsTo        { return $this->belongsTo(TransformerPreservation::class, 'transformer_preservation_id'); }
+
+    // Fase 3: samples() — las muestras tomadas de este equipo.
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->slug)) {
+                do {
+                    $slug = Str::random(22);
+                } while (static::withTrashed()->where('slug', $slug)->exists());
+                $model->slug = $slug;
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
+    }
+
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by')->withTrashed();
+    }
+
+    /** Texto traducido del estado — consumido por exports (CSV/Excel/PDF/Word). */
+    public function getStateTextAttribute(): string
+    {
+        return $this->is_active ? __('global.active') : __('global.inactive');
+    }
+
+    /**
+     * scopeFilter — mismo patrón que Customer, sobre la tabla equipment.
+     * Soporta name (multi-tag accent-insensitive), code (substring),
+     * is_active (bool), rangos de fecha/id, filtros avanzados y favoritos.
+     */
+    public function scopeFilter($query, $request)
+    {
+        $isPgsql = config('database.default') === 'pgsql';
+        $tbl = 'equipment';
+
+        $query->when($request->filled('name'), function ($q) use ($request, $isPgsql, $tbl) {
+            $names = is_array($request->name) ? $request->name : [$request->name];
+            $names = array_filter($names, fn ($n) => $n !== '');
+            if (empty($names)) return;
+            $q->where(function ($qq) use ($names, $isPgsql, $tbl) {
+                foreach ($names as $name) {
+                    $needle = LikeQuery::contains((string) $name);
+                    if ($isPgsql) {
+                        $qq->orWhereRaw("unaccent(lower({$tbl}.name)) LIKE unaccent(lower(?))", [$needle]);
+                    } else {
+                        $qq->orWhereRaw("{$tbl}.name LIKE ? ESCAPE '\\'", [$needle]);
+                    }
+                }
+            });
+        });
+
+        $query->when($request->filled('code'), function ($q) use ($request, $tbl) {
+            $q->whereRaw(config('database.default') === 'pgsql' ? "{$tbl}.code LIKE ?" : "{$tbl}.code LIKE ? ESCAPE '\\'", [LikeQuery::contains((string) $request->code)]);
+        });
+
+        $query->when($request->filled('is_active'), function ($q) use ($request, $tbl) {
+            $q->where("{$tbl}.is_active", filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        });
+
+        $query->when($request->filled('created_from'), fn ($q) => $q->where("{$tbl}.created_at", '>=', $request->created_from . ' 00:00:00'));
+        $query->when($request->filled('created_to'),   fn ($q) => $q->where("{$tbl}.created_at", '<=', $request->created_to . ' 23:59:59'));
+        $query->when($request->filled('updated_from'), fn ($q) => $q->where("{$tbl}.updated_at", '>=', $request->updated_from . ' 00:00:00'));
+        $query->when($request->filled('updated_to'),   fn ($q) => $q->where("{$tbl}.updated_at", '<=', $request->updated_to . ' 23:59:59'));
+        $query->when($request->filled('id_from'), fn ($q) => $q->where("{$tbl}.id", '>=', (int) $request->id_from));
+        $query->when($request->filled('id_to'),   fn ($q) => $q->where("{$tbl}.id", '<=', (int) $request->id_to));
+
+        $advanced = $request->input('advanced_where');
+        if (is_string($advanced)) {
+            $advanced = json_decode($advanced, true) ?: null;
+        }
+        if (is_array($advanced) && !empty($advanced)) {
+            \App\Services\Automations\Support\FilterApplier::apply(
+                $query,
+                ['where' => $advanced],
+                static::filterSchema()
+            );
+        }
+
+        if ($request->filled('only_favorites') && filter_var($request->only_favorites, FILTER_VALIDATE_BOOLEAN)) {
+            $userId = auth()->id();
+            if ($userId) {
+                $query->whereExists(function ($q) use ($userId, $tbl) {
+                    $q->select(\DB::raw(1))
+                      ->from('user_favorites')
+                      ->whereColumn('user_favorites.favoritable_id', "{$tbl}.id")
+                      ->where('user_favorites.favoritable_type', static::class)
+                      ->where('user_favorites.user_id', $userId);
+                });
+            }
+        }
+
+        $sort = $request->get('sort', 'id');
+        $direction = $request->get('direction', 'desc');
+        if ($sort === 'tenant' && in_array($direction, ['asc', 'desc'])) {
+            // Orden por workspace: nombre vía left join (nulls = global).
+            $query->leftJoin('tenants', "{$tbl}.tenant_id", '=', 'tenants.id')
+                  ->orderBy('tenants.name', $direction);
+        } elseif (in_array($sort, ['id', 'name', 'code', 'is_active', 'sort_order', 'created_at', 'updated_at']) && in_array($direction, ['asc', 'desc'])) {
+            $query->orderBy("{$tbl}.{$sort}", $direction);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array<int, array{key: string, label: string, type: string, operators: array<int, string>}>
+     */
+    public static function filterSchema(): array
+    {
+        return [
+            ['key' => 'name',       'label' => __('equipment.name'),     'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'code',       'label' => __('equipment.code'),     'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'is_active',  'label' => __('equipment.is_active'), 'type' => 'boolean', 'operators' => ['=']],
+            ['key' => 'created_at', 'label' => __('global.created_at'),   'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
+            ['key' => 'updated_at', 'label' => __('global.updated_at'),   'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
+        ];
+    }
+}

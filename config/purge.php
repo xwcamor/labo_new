@@ -132,6 +132,10 @@ return [
             'model' => \App\Models\Analyte::class,
             'days'  => 90,
         ],
+        'equipment' => [
+            'model' => \App\Models\Equipment::class,
+            'days'  => 90,
+        ],
         // Suma modulos nuevos aqui:
         // 'patients' => [...],
         // 'doctors'  => [...],

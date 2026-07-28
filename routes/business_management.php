@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\EquipmentController;
 use App\Http\Controllers\BusinessManagement\AnalyteController;
 use App\Http\Controllers\BusinessManagement\BrandController;
 use App\Http\Controllers\BusinessManagement\TapChangerTechnologyController;
@@ -789,5 +790,79 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('analytes/{analyte}/lock',   [AnalyteController::class, 'lock'])->name('analytes.lock');
         Route::post('analytes/{analyte}/unlock', [AnalyteController::class, 'unlock'])->name('analytes.unlock');
+    });
+
+
+    // ── Equipment ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('equipment/trash',                  [EquipmentController::class, 'trash'])->name('equipment.trash');
+        Route::post('equipment/bulk_restore',          [EquipmentController::class, 'bulkRestore'])->name('equipment.bulk_restore');
+        Route::post('equipment/{slug}/restore',        [EquipmentController::class, 'restore'])->name('equipment.restore');
+        Route::get('equipment/{slug}/restore',         fn () => redirect()->route('business_management.equipment.trash'));
+        Route::delete('equipment/{slug}/force_delete', [EquipmentController::class, 'forceDelete'])->name('equipment.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:equipment.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('equipment/export_excel', [EquipmentController::class, 'exportExcel'])->name('equipment.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('equipment/export_pdf',   [EquipmentController::class, 'exportPdf'])->name('equipment.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('equipment/export_word',  [EquipmentController::class, 'exportWord'])->name('equipment.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('equipment/export_csv',   [EquipmentController::class, 'exportCsv'])->name('equipment.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:equipment.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('equipment/import',          [EquipmentController::class, 'import'])->name('equipment.import');
+        Route::get('equipment/import_template',  [EquipmentController::class, 'importTemplate'])->name('equipment.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:equipment.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('equipment/bulk_delete',     [EquipmentController::class, 'bulkDelete'])->name('equipment.bulk_delete');
+        Route::post('equipment/bulk_set_active', [EquipmentController::class, 'bulkSetActive'])->name('equipment.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:equipment.delete')->group(function () {
+        Route::post('equipment/undo_last_delete', [EquipmentController::class, 'undoLastDelete'])->name('equipment.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:equipment.edit')->group(function () {
+        Route::get('equipment/edit_all',         [EquipmentController::class, 'editAll'])->name('equipment.edit_all');
+        Route::post('equipment/edit_all/update', [EquipmentController::class, 'editAllUpdate'])->name('equipment.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:equipment.create')->group(function () {
+        Route::get('equipment/create', [EquipmentController::class, 'create'])->name('equipment.create');
+        Route::post('equipment',       [EquipmentController::class, 'store'])->name('equipment.store');
+        Route::post('equipment/{equipment}/duplicate', [EquipmentController::class, 'duplicate'])->name('equipment.duplicate');
+    });
+
+    Route::middleware('permission:equipment.view')->group(function () {
+        Route::get('equipment',                [EquipmentController::class, 'index'])->name('equipment.index');
+        Route::get('equipment/{equipment}',  [EquipmentController::class, 'show'])->name('equipment.show');
+    });
+    Route::middleware('permission:equipment.edit')->group(function () {
+        Route::get('equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
+        Route::put('equipment/{equipment}',      [EquipmentController::class, 'update'])->name('equipment.update');
+    });
+    Route::middleware('permission:equipment.delete')->group(function () {
+        Route::get('equipment/{equipment}/delete',        [EquipmentController::class, 'delete'])->name('equipment.delete');
+        Route::delete('equipment/{equipment}/deleteSave', [EquipmentController::class, 'deleteSave'])->name('equipment.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('equipment/{equipment}/lock',   [EquipmentController::class, 'lock'])->name('equipment.lock');
+        Route::post('equipment/{equipment}/unlock', [EquipmentController::class, 'unlock'])->name('equipment.unlock');
     });
 });

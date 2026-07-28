@@ -100,6 +100,10 @@ return [
             'model'      => \App\Models\Analyte::class,
             'show_route' => 'business_management.analytes.show',
         ],
+        'equipment' => [
+            'model'      => \App\Models\Equipment::class,
+            'show_route' => 'business_management.equipment.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

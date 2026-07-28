@@ -43,11 +43,11 @@ return [
     'user'      => 'No podemos encontrar un usuario con esa dirección de correo electrónico.',
 
     // Login page UI
-    'tagline'                  => 'Diagnóstico del estado de tus transformadores',
-    'feature_tests'            => 'Cromatografía, fisicoquímico, furanos y factor de potencia',
-    'feature_health'           => 'Índice de salud según normas IEC e IEEE',
-    'feature_methods'          => 'Duval, Rogers y Doernenburg para localizar fallas',
-    'feature_reports'          => 'Informes PDF verificables con código y QR',
+    'tagline'                  => 'Laboratorio de análisis de aceite dieléctrico',
+    'feature_tests'            => 'Cromatografía, fisicoquímico, furanos y azufre corrosivo',
+    'feature_health'           => 'Cartas de control y reglas de Westgard en cada corrida',
+    'feature_methods'          => 'El cálculo lo hace el servidor: la fórmula es dato, no código',
+    'feature_reports'          => 'Trazabilidad ISO 17025: equipo, calibración y analista',
     'signin_subtitle'          => 'Ingresa tus credenciales para continuar',
     'verify_report'            => 'Verificación de informes',
     'email'                    => 'Correo electrónico',

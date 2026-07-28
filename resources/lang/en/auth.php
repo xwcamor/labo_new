@@ -43,11 +43,11 @@ return [
     'user'      => "We can't find a user with that email address.",
 
     // Login page UI
-    'tagline'                  => 'Transformer health diagnostics',
-    'feature_tests'            => 'Chromatography, physicochemical, furans and power factor',
-    'feature_health'           => 'Health index per IEC and IEEE standards',
-    'feature_methods'          => 'Duval, Rogers and Doernenburg fault location',
-    'feature_reports'          => 'Verifiable PDF reports with code and QR',
+    'tagline'                  => 'Dielectric oil analysis laboratory',
+    'feature_tests'            => 'Chromatography, physicochemical, furans and corrosive sulfur',
+    'feature_health'           => 'Control charts and Westgard rules on every run',
+    'feature_methods'          => 'The server does the maths: the formula is data, not code',
+    'feature_reports'          => 'ISO 17025 traceability: instrument, calibration and analyst',
     'signin_subtitle'          => 'Enter your credentials to continue',
     'verify_report'            => 'Report verification',
     'email'                    => 'Email',

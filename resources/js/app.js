@@ -57,6 +57,43 @@ const endNavigating = () => {
 };
 router.on('finish', endNavigating);
 
+// ─── Que el navegador deje de adivinar qué es cada campo ────────────────────
+// Chrome no lee nuestras etiquetas como las lee una persona: las clasifica con
+// su propio adivinador. En el formulario de Instrumento conviven "Código",
+// "Número de serie" y "Vence el", y esas tres juntas tienen la forma de una
+// tarjeta —número, código, vencimiento—, así que ofrece autocompletar con los
+// MÉTODOS DE PAGO guardados. El sistema no tiene ni un campo de pago ahí; la
+// lista es del navegador y los datos nunca salen de él.
+//
+// Se arregla declarando lo que el campo ES en vez de dejar que lo adivine.
+// Como el problema lo tiene cualquier formulario con etiquetas parecidas
+// (Equipo también lleva "Número de serie"), se hace UNA vez para toda la app
+// en lugar de repetirlo en los veinticinco formularios.
+//
+// Lo que YA declara su autocomplete no se toca: el ingreso quiere que el
+// navegador ofrezca el usuario y la contraseña guardados, y ahí sí corresponde.
+const apagarAdivinanzaDelNavegador = () => {
+    document.querySelectorAll('form:not([autocomplete])')
+        .forEach((f) => f.setAttribute('autocomplete', 'off'));
+    document.querySelectorAll('input:not([autocomplete]), textarea:not([autocomplete])')
+        .forEach((i) => i.setAttribute('autocomplete', 'off'));
+};
+
+// Se corre en cada navegación y también cuando aparece contenido nuevo sin
+// navegar: los formularios que viven dentro de un modal o un panel lateral se
+// montan después, y sin el observador quedarían afuera.
+// Con retardo y no por cuadro: la grilla de la bancada re-renderiza mientras
+// el analista escribe, y recorrer el documento en cada tecla se nota.
+let pendiente = null;
+const programar = () => {
+    if (pendiente) return;
+    pendiente = setTimeout(() => { pendiente = null; apagarAdivinanzaDelNavegador(); }, 250);
+};
+
+router.on('finish', programar);
+document.addEventListener('DOMContentLoaded', programar);
+new MutationObserver(programar).observe(document.documentElement, { childList: true, subtree: true });
+
 // Bloqueo global del menú contextual (click derecho).
 // El usuario pidió desactivar el right-click en toda la app. Los inputs
 // editables (Input/Textarea) NO se bloquean: el usuario debe poder usar

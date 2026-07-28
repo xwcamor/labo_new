@@ -5,7 +5,7 @@ import { Input, Checkbox, Button, Alert, Select, SelectOption } from 'ant-design
 import {
     MailOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined,
     SafetyOutlined, GoogleOutlined,
-    ExperimentOutlined, HeartOutlined, NodeIndexOutlined, SafetyCertificateOutlined,
+    ExperimentOutlined, LineChartOutlined, FunctionOutlined, SafetyCertificateOutlined,
 } from '@ant-design/icons-vue';
 
 import AuthLayout from '@/Layouts/AuthLayout.vue';
@@ -45,34 +45,28 @@ const submit = () => {
     });
 };
 
-// Sin parallax: el hero tiene efectos eléctricos animados (CSS/SVG).
+// Sin parallax: el hero es la bancada del laboratorio, animada en CSS/SVG.
 
-// ─── Flota: 4 índices de salud animados en el hero ────────────────────────
-// Cada anillo cuenta 0 → su valor (solo número, language-neutral) y su arco se
-// llena en su color de semáforo: representa el estado de salud de la flota.
-const FCIRC = 94.25; // 2π·15
-const FLEET = [
-    { cx: 222, cy: 48, color: '#3FBF6F', target: 92 }, // muy bueno
-    { cx: 258, cy: 48, color: '#9BD64A', target: 76 }, // bueno
-    { cx: 222, cy: 92, color: '#F0A23C', target: 54 }, // medio
-    { cx: 258, cy: 92, color: '#F2554A', target: 28 }, // crítico
-];
-const fleetPct = ref(FLEET.map(() => 0));
-const fleetDash = (i) => `${(fleetPct.value[i] / 100 * FCIRC).toFixed(1)} ${FCIRC}`;
+// ─── La lectura de la bureta ──────────────────────────────────────────────
+// Es el único número del hero y no es decorativo: es el volumen gastado de una
+// titulación de Número Ácido. Cuenta hasta 1.15 mL, que con el factor del KOH y
+// la masa de aceite del ensayo da 0.309 mgKOH/g — la misma cuenta que hace el
+// servidor cuando el analista carga la hoja.
+const BURETA_ML = 1.15;
+const buretaMl = ref(0);
 
 onMounted(() => {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) { fleetPct.value = FLEET.map((f) => f.target); return; }
-    FLEET.forEach((f, i) => {
-        const t0 = performance.now(), dur = 1400, delay = i * 180;
-        const step = (now) => {
-            const p = Math.min(1, Math.max(0, (now - t0 - delay) / dur));
-            fleetPct.value[i] = f.target * (1 - Math.pow(1 - p, 3)); // ease-out cúbico
-            if (p < 1) requestAnimationFrame(step);
-            else fleetPct.value[i] = f.target;
-        };
-        requestAnimationFrame(step);
-    });
+    if (reduce) { buretaMl.value = BURETA_ML; return; }
+
+    const t0 = performance.now(), dur = 2200;
+    const step = (now) => {
+        const p = Math.min(1, Math.max(0, (now - t0) / dur));
+        buretaMl.value = BURETA_ML * (1 - Math.pow(1 - p, 3)); // ease-out cúbico
+        if (p < 1) requestAnimationFrame(step);
+        else buretaMl.value = BURETA_ML;
+    };
+    requestAnimationFrame(step);
 });
 
 // ─── Locale switch ─────────────────────────────────────────────────────────
@@ -113,97 +107,137 @@ const disclosureHtml = computed(() => {
                 <h2 class="login-brand__title">{{ effectiveAppName }}</h2>
                 <p class="login-brand__tagline">{{ $t('auth.tagline') }}</p>
 
-                <!-- Hero on-brand: transformador con efectos eléctricos animados. -->
+                <!-- Hero: la bancada del laboratorio. Tres cosas, que son las
+                     tres que hace el sistema: la titulacion (Numero Acido), el
+                     cromatograma (Analisis Cromatografico) y la carta de
+                     control que vigila que el metodo este midiendo bien. -->
                 <div class="login-brand__hero">
                     <svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <defs>
-                            <linearGradient id="tr-tank" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="lab-glass" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="rgba(255,255,255,0.17)" />
                                 <stop offset="100%" stop-color="rgba(255,255,255,0.05)" />
                             </linearGradient>
-                            <linearGradient id="tr-arc" x1="0" y1="0" x2="1" y2="1">
+                            <linearGradient id="lab-oil" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="rgba(240,162,60,0.55)" />
+                                <stop offset="100%" stop-color="rgba(226,120,30,0.65)" />
+                            </linearGradient>
+                            <linearGradient id="lab-trace" x1="0" y1="0" x2="1" y2="0">
                                 <stop offset="0%" stop-color="#7BD389" />
                                 <stop offset="100%" stop-color="#4DB6E8" />
                             </linearGradient>
-                            <filter id="tr-glow" x="-60%" y="-60%" width="220%" height="220%">
+                            <filter id="lab-glow" x="-60%" y="-60%" width="220%" height="220%">
                                 <feGaussianBlur stdDeviation="2.2" result="b" />
                                 <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                             </filter>
                         </defs>
 
-                        <!-- Radiadores (aletas de refrigeración) -->
-                        <g stroke="rgba(255,255,255,0.22)" stroke-width="3" stroke-linecap="round">
-                            <line x1="50" y1="104" x2="50" y2="150" />
-                            <line x1="56" y1="104" x2="56" y2="150" />
-                            <line x1="62" y1="104" x2="62" y2="150" />
-                            <line x1="188" y1="104" x2="188" y2="150" />
-                            <line x1="194" y1="104" x2="194" y2="150" />
-                            <line x1="200" y1="104" x2="200" y2="150" />
+                        <!-- ── Titulacion: bureta, gota y matraz ───────────────── -->
+                        <!-- Soporte universal -->
+                        <g fill="rgba(255,255,255,0.16)">
+                            <rect x="18" y="14" width="4" height="170" rx="2" />
+                            <rect x="8" y="182" width="42" height="5" rx="2.5" />
+                            <rect x="22" y="34" width="26" height="4" rx="2" />
                         </g>
 
-                        <!-- Boquillas (bushings) -->
-                        <rect x="83" y="62" width="10" height="28" rx="4" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.25)" />
-                        <rect x="115" y="56" width="10" height="34" rx="4" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.25)" />
-                        <rect x="147" y="62" width="10" height="28" rx="4" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.25)" />
-                        <circle class="term" cx="88" cy="60" r="4.5" fill="#7fe0ff" filter="url(#tr-glow)" />
-                        <circle class="term term-b" cx="120" cy="54" r="4.5" fill="#7fe0ff" filter="url(#tr-glow)" />
-                        <circle class="term term-c" cx="152" cy="60" r="4.5" fill="#7fe0ff" filter="url(#tr-glow)" />
-                        <g stroke="rgba(255,255,255,0.30)" stroke-width="1">
-                            <line x1="82" y1="72" x2="94" y2="72" /><line x1="82" y1="80" x2="94" y2="80" />
-                            <line x1="114" y1="66" x2="126" y2="66" /><line x1="114" y1="74" x2="126" y2="74" /><line x1="114" y1="82" x2="126" y2="82" />
-                            <line x1="146" y1="72" x2="158" y2="72" /><line x1="146" y1="80" x2="158" y2="80" />
+                        <!-- Bureta -->
+                        <rect x="44" y="16" width="11" height="98" rx="4"
+                              fill="url(#lab-glass)" stroke="rgba(255,255,255,0.22)" stroke-width="1.1" />
+                        <rect x="46" y="38" width="7" height="74" rx="2" fill="rgba(159,225,255,0.35)" />
+                        <g stroke="rgba(255,255,255,0.30)" stroke-width="1" stroke-linecap="round">
+                            <line x1="44" y1="28" x2="50" y2="28" /><line x1="44" y1="40" x2="50" y2="40" />
+                            <line x1="44" y1="52" x2="50" y2="52" /><line x1="44" y1="64" x2="50" y2="64" />
+                            <line x1="44" y1="76" x2="50" y2="76" /><line x1="44" y1="88" x2="50" y2="88" />
+                            <line x1="44" y1="100" x2="50" y2="100" />
+                        </g>
+                        <!-- Llave de paso -->
+                        <rect x="45" y="114" width="9" height="7" rx="2" fill="rgba(255,255,255,0.24)" />
+                        <line x1="54" y1="117" x2="61" y2="117" stroke="rgba(255,255,255,0.30)" stroke-width="2.5" stroke-linecap="round" />
+                        <path d="M49.5,121 L49.5,127" stroke="rgba(255,255,255,0.22)" stroke-width="2" stroke-linecap="round" />
+
+                        <!-- La gota que cae -->
+                        <circle class="drop" cx="49.5" cy="130" r="2.6" fill="#9fe1ff" filter="url(#lab-glow)" />
+
+                        <!-- Matraz Erlenmeyer -->
+                        <rect x="45" y="140" width="9" height="9" rx="2" fill="url(#lab-glass)" stroke="rgba(255,255,255,0.22)" />
+                        <path d="M45,149 L54,149 L68,180 Q68,184 64,184 L35,184 Q31,184 31,180 Z"
+                              fill="url(#lab-glass)" stroke="rgba(255,255,255,0.22)" stroke-width="1.1" stroke-linejoin="round" />
+                        <path d="M40,168 L59,168 L66,181 Q66,183.5 63,183.5 L36,183.5 Q33,183.5 33,181 Z"
+                              fill="url(#lab-oil)" />
+                        <!-- Lectura de la bureta: el volumen gastado -->
+                        <text x="49" y="197" text-anchor="middle" font-size="9" font-weight="600"
+                              fill="rgba(255,255,255,0.78)"
+                              font-family="-apple-system,Segoe UI,Roboto,sans-serif">{{ buretaMl.toFixed(2) }} mL</text>
+
+                        <!-- ── Carta de control (arriba a la derecha) ──────────── -->
+                        <rect x="88" y="16" width="184" height="74" rx="8"
+                              fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.14)" />
+                        <!-- Limites de control (3s) y de alerta (2s) -->
+                        <g stroke-dasharray="3 3" stroke-width="1">
+                            <line x1="96" y1="28" x2="264" y2="28" stroke="rgba(242,85,74,0.55)" />
+                            <line x1="96" y1="78" x2="264" y2="78" stroke="rgba(242,85,74,0.55)" />
+                            <line x1="96" y1="38" x2="264" y2="38" stroke="rgba(240,162,60,0.55)" />
+                            <line x1="96" y1="68" x2="264" y2="68" stroke="rgba(240,162,60,0.55)" />
+                        </g>
+                        <!-- Linea central -->
+                        <line x1="96" y1="53" x2="264" y2="53" stroke="rgba(255,255,255,0.38)" stroke-width="1.2" />
+                        <!-- La serie del patron -->
+                        <polyline class="qcline" points="104,57 128,49 152,55 176,34 200,56 224,50 248,58"
+                                  fill="none" stroke="rgba(159,225,255,0.55)" stroke-width="1.4" stroke-linejoin="round" />
+                        <g filter="url(#lab-glow)">
+                            <circle class="qcp" cx="104" cy="57" r="3" fill="#7BD389" />
+                            <circle class="qcp qcp-2" cx="128" cy="49" r="3" fill="#7BD389" />
+                            <circle class="qcp qcp-3" cx="152" cy="55" r="3" fill="#7BD389" />
+                            <!-- El que se pasa de la linea de alerta: ambar, no verde -->
+                            <circle class="qcp qcp-4" cx="176" cy="34" r="3.4" fill="#F0A23C" />
+                            <circle class="qcp qcp-5" cx="200" cy="56" r="3" fill="#7BD389" />
+                            <circle class="qcp qcp-6" cx="224" cy="50" r="3" fill="#7BD389" />
+                            <circle class="qcp qcp-7" cx="248" cy="58" r="3" fill="#7BD389" />
                         </g>
 
-                        <!-- Arcos eléctricos entre boquillas (crepitan) -->
-                        <g stroke="#cdeeff" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round" filter="url(#tr-glow)">
-                            <path class="arcA" d="M88,60 L96,52 L103,61 L112,50 L120,54" />
-                            <path class="arcA2" d="M88,60 L95,56 L105,49 L113,58 L120,54" />
-                            <path class="arcB" d="M120,54 L129,49 L135,61 L145,50 L152,60" />
-                            <path class="arcB2" d="M120,54 L128,58 L138,49 L146,57 L152,60" />
+                        <!-- ── Cromatograma (abajo a la derecha) ───────────────── -->
+                        <rect x="88" y="104" width="184" height="72" rx="8"
+                              fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.14)" />
+                        <line x1="96" y1="166" x2="264" y2="166" stroke="rgba(255,255,255,0.28)" stroke-width="1" />
+                        <g stroke="rgba(255,255,255,0.18)" stroke-width="1">
+                            <line x1="118" y1="166" x2="118" y2="169" /><line x1="148" y1="166" x2="148" y2="169" />
+                            <line x1="178" y1="166" x2="178" y2="169" /><line x1="208" y1="166" x2="208" y2="169" />
+                            <line x1="238" y1="166" x2="238" y2="169" />
+                        </g>
+                        <!-- Los picos: H2, CH4, CO, C2H4, C2H6, C2H2 -->
+                        <path class="chroma"
+                              d="M96,166 L110,166 L114,146 L118,166 L134,166 L139,124 L144,166 L162,166
+                                 L166,152 L170,166 L186,166 L191,132 L196,166 L212,166 L216,150 L220,166
+                                 L234,166 L239,140 L244,166 L264,166"
+                              fill="none" stroke="url(#lab-trace)" stroke-width="1.8"
+                              stroke-linejoin="round" stroke-linecap="round" filter="url(#lab-glow)" />
+                        <g font-size="6" fill="rgba(255,255,255,0.45)"
+                           font-family="-apple-system,Segoe UI,Roboto,sans-serif" text-anchor="middle">
+                            <text x="139" y="119">CH4</text>
+                            <text x="191" y="127">C2H4</text>
                         </g>
 
-                        <!-- Tanque -->
-                        <rect x="58" y="88" width="134" height="78" rx="12" fill="url(#tr-tank)" stroke="rgba(255,255,255,0.20)" stroke-width="1.2" />
-                        <!-- Placa de datos -->
-                        <rect x="74" y="104" width="50" height="32" rx="5" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.16)" />
-                        <rect x="80" y="110" width="32" height="3" rx="1.5" fill="rgba(255,255,255,0.40)" />
-                        <rect x="80" y="118" width="38" height="2.5" rx="1.2" fill="rgba(255,255,255,0.22)" />
-                        <rect x="80" y="126" width="24" height="2.5" rx="1.2" fill="rgba(255,255,255,0.18)" />
-                        <circle cx="158" cy="150" r="6" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2" />
+                        <!-- ── Viales de muestra ───────────────────────────────── -->
+                        <g>
+                            <rect x="96" y="182" width="11" height="6" rx="2" fill="rgba(255,255,255,0.22)" />
+                            <rect x="96" y="186" width="11" height="14" rx="2" fill="url(#lab-glass)" stroke="rgba(255,255,255,0.18)" />
+                            <rect x="97.5" y="192" width="8" height="8" rx="1.5" fill="url(#lab-oil)" />
 
-                        <!-- Corriente entrando por las boquillas (flujo animado) -->
-                        <g stroke="#9fe1ff" stroke-width="2" stroke-linecap="round" filter="url(#tr-glow)">
-                            <line class="flow" x1="88" y1="64" x2="88" y2="100" />
-                            <line class="flow flow-b" x1="120" y1="58" x2="120" y2="100" />
-                            <line class="flow flow-c" x1="152" y1="64" x2="152" y2="100" />
-                        </g>
+                            <rect x="114" y="182" width="11" height="6" rx="2" fill="rgba(255,255,255,0.22)" />
+                            <rect x="114" y="186" width="11" height="14" rx="2" fill="url(#lab-glass)" stroke="rgba(255,255,255,0.18)" />
+                            <rect x="115.5" y="190" width="8" height="10" rx="1.5" fill="url(#lab-oil)" />
 
-                        <!-- Base + ruedas -->
-                        <rect x="70" y="166" width="110" height="5" rx="2.5" fill="rgba(255,255,255,0.16)" />
-                        <circle cx="88" cy="176" r="4" fill="rgba(255,255,255,0.20)" />
-                        <circle cx="162" cy="176" r="4" fill="rgba(255,255,255,0.20)" />
-
-                        <!-- Burbujas de gases disueltos -->
-                        <g fill="#4DB6E8">
-                            <circle class="bub" cx="150" cy="98" r="3" />
-                            <circle class="bub bub-b" cx="160" cy="86" r="2.3" />
-                            <circle class="bub bub-c" cx="168" cy="77" r="1.8" />
-                        </g>
-
-                        <!-- Flota: 4 índices de salud (semáforo), se llenan al cargar -->
-                        <g v-for="(f, i) in FLEET" :key="i" :transform="`translate(${f.cx},${f.cy})`">
-                            <circle r="15" fill="rgba(28,40,52,0.65)" />
-                            <circle r="15" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4" />
-                            <circle class="gArc" r="15" fill="none" :stroke="f.color" stroke-width="4" stroke-linecap="round" :stroke-dasharray="fleetDash(i)" transform="rotate(-90)" />
-                            <text x="0" y="3.5" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="-apple-system,Segoe UI,Roboto,sans-serif">{{ Math.round(fleetPct[i]) }}</text>
+                            <rect x="132" y="182" width="11" height="6" rx="2" fill="rgba(255,255,255,0.22)" />
+                            <rect x="132" y="186" width="11" height="14" rx="2" fill="url(#lab-glass)" stroke="rgba(255,255,255,0.18)" />
+                            <rect x="133.5" y="194" width="8" height="6" rx="1.5" fill="url(#lab-oil)" />
                         </g>
                     </svg>
                 </div>
 
                 <ul class="login-brand__features">
                     <li><ExperimentOutlined /><span>{{ $t('auth.feature_tests') }}</span></li>
-                    <li><HeartOutlined /><span>{{ $t('auth.feature_health') }}</span></li>
-                    <li><NodeIndexOutlined /><span>{{ $t('auth.feature_methods') }}</span></li>
+                    <li><LineChartOutlined /><span>{{ $t('auth.feature_health') }}</span></li>
+                    <li><FunctionOutlined /><span>{{ $t('auth.feature_methods') }}</span></li>
                     <li><SafetyCertificateOutlined /><span>{{ $t('auth.feature_reports') }}</span></li>
                 </ul>
             </div>
@@ -433,27 +467,31 @@ const disclosureHtml = computed(() => {
 }
 
 /* ── Efectos eléctricos del hero (transformador animado) ── */
-@keyframes hero-flickA { 0%,18%,22%,100%{opacity:.12} 20%,54%,58%{opacity:1} 56%{opacity:.4} }
-@keyframes hero-flickB { 0%,48%,52%,100%{opacity:.12} 50%,84%,88%{opacity:1} 86%{opacity:.4} }
-@keyframes hero-pulseT { 0%,100%{opacity:.5} 50%{opacity:1} }
-@keyframes hero-flow   { to{stroke-dashoffset:-24} }
-@keyframes hero-rise   { 0%{transform:translateY(0);opacity:0} 15%{opacity:.9} 100%{transform:translateY(-18px);opacity:0} }
-@keyframes hero-gfill  { from{stroke-dashoffset:137.2} to{stroke-dashoffset:0} }
-@keyframes hero-gglow  { 0%,100%{opacity:.82} 50%{opacity:1} }
-.login-brand__hero :deep(.arcA)  { animation: hero-flickA 1.7s infinite; }
-.login-brand__hero :deep(.arcA2) { animation: hero-flickA 1.7s infinite .35s; }
-.login-brand__hero :deep(.arcB)  { animation: hero-flickB 2s infinite; }
-.login-brand__hero :deep(.arcB2) { animation: hero-flickB 2s infinite .45s; }
-.login-brand__hero :deep(.term)   { animation: hero-pulseT 1.8s ease-in-out infinite; }
-.login-brand__hero :deep(.term-b) { animation-delay: .6s; }
-.login-brand__hero :deep(.term-c) { animation-delay: 1.2s; }
-.login-brand__hero :deep(.flow)   { stroke-dasharray: 3 9; animation: hero-flow 1.1s linear infinite; }
-.login-brand__hero :deep(.flow-b) { animation-delay: .3s; }
-.login-brand__hero :deep(.flow-c) { animation-delay: .6s; }
-.login-brand__hero :deep(.bub)    { animation: hero-rise 3.2s ease-in infinite; }
-.login-brand__hero :deep(.bub-b)  { animation-delay: 1.1s; }
-.login-brand__hero :deep(.bub-c)  { animation-delay: 2.1s; }
-.login-brand__hero :deep(.gArc)   { animation: hero-gglow 2.6s ease-in-out 1.5s infinite; }
+/* La gota cae de la bureta al matraz y desaparece al tocar el liquido. */
+@keyframes lab-drop {
+    0%       { transform: translateY(0);    opacity: 0; }
+    8%       { opacity: .95; }
+    70%      { transform: translateY(34px); opacity: .95; }
+    78%,100% { transform: translateY(36px); opacity: 0; }
+}
+/* El cromatograma se dibuja de izquierda a derecha, como sale del equipo. */
+@keyframes lab-trace { from { stroke-dashoffset: 620; } to { stroke-dashoffset: 0; } }
+/* Cada punto del patron aparece cuando le toca su corrida. */
+@keyframes lab-point { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
+@keyframes lab-line  { from { stroke-dashoffset: 520; } to { stroke-dashoffset: 0; } }
+/* El punto que se paso de la linea de alerta late: es el que hay que mirar. */
+@keyframes lab-alert { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+
+.login-brand__hero :deep(.drop)   { animation: lab-drop 2.4s cubic-bezier(.55,0,.85,.4) infinite; }
+.login-brand__hero :deep(.chroma) { stroke-dasharray: 620; animation: lab-trace 2.8s ease-out .3s both; }
+.login-brand__hero :deep(.qcline) { stroke-dasharray: 520; animation: lab-line 2.2s ease-out .4s both; }
+.login-brand__hero :deep(.qcp)    { transform-box: fill-box; transform-origin: center; animation: lab-point .5s ease-out .5s both; }
+.login-brand__hero :deep(.qcp-2)  { animation-delay: .72s; }
+.login-brand__hero :deep(.qcp-3)  { animation-delay: .94s; }
+.login-brand__hero :deep(.qcp-4)  { animation: lab-point .5s ease-out 1.16s both, lab-alert 1.8s ease-in-out 1.9s infinite; }
+.login-brand__hero :deep(.qcp-5)  { animation-delay: 1.38s; }
+.login-brand__hero :deep(.qcp-6)  { animation-delay: 1.60s; }
+.login-brand__hero :deep(.qcp-7)  { animation-delay: 1.82s; }
 @media (prefers-reduced-motion: reduce) {
     .login-brand__hero :deep(*) { animation: none !important; }
 }

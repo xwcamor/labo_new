@@ -263,6 +263,14 @@ npm run build
 
 ### Migraciones
 
+> **Mientras dure la fase 1 (Pruebas de Muestras): si actualiza el repositorio
+> y algo falla por una columna que no existe, corra `php artisan migrate:fresh --seed`.**
+> Las migraciones de esa fase se están editando en su lugar, porque todavía no
+> hay ningún despliegue y agregar una columna a una migración sin publicar es
+> más limpio que arrastrar una migración de alteración por cada ajuste. Desde
+> el primer despliegue real esto deja de valer: de ahí en adelante, migración
+> nueva siempre.
+
 ```powershell
 # Aplicar migraciones nuevas
 php artisan migrate

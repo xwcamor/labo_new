@@ -104,6 +104,18 @@ return [
             'model'      => \App\Models\Equipment::class,
             'show_route' => 'business_management.equipment.show',
         ],
+        'instruments' => [
+            'model'      => \App\Models\Instrument::class,
+            'show_route' => 'business_management.instruments.show',
+        ],
+        'test_groups' => [
+            'model'      => \App\Models\TestGroup::class,
+            'show_route' => 'lab_management.test_groups.show',
+        ],
+        'test_definitions' => [
+            'model'      => \App\Models\TestDefinition::class,
+            'show_route' => 'lab_management.test_definitions.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

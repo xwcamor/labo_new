@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -41,7 +42,7 @@ return new class extends Migration {
         Schema::create('test_groups', function (Blueprint $table) {
             $table->id();
             $table->string('slug', 22)->unique();
-            $table->string('code', 40)->unique();
+            $table->string('code', 40);
             $table->string('name', 100);
             $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
@@ -50,6 +51,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->text('deleted_description')->nullable();
+            // Lockable: bloqueo de registros (lock()/unlock()).
+            $table->timestamp('locked_at')->nullable()->index();
+            $table->unsignedBigInteger('locked_by')->nullable();
+            $table->string('lock_scope', 10)->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });
@@ -61,7 +67,7 @@ return new class extends Migration {
         Schema::create('analytes', function (Blueprint $table) {
             $table->id();
             $table->string('slug', 22)->unique();
-            $table->string('code', 60)->unique();          // acid, rig, h2, ch4…
+            $table->string('code', 60);                    // acid, rig, h2, ch4…
             $table->string('name', 150);
             $table->string('unit', 30)->nullable();
             $table->unsignedTinyInteger('decimals')->default(2);
@@ -75,6 +81,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->text('deleted_description')->nullable();
+            // Lockable: bloqueo de registros (lock()/unlock()).
+            $table->timestamp('locked_at')->nullable()->index();
+            $table->unsignedBigInteger('locked_by')->nullable();
+            $table->string('lock_scope', 10)->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });
@@ -83,15 +94,39 @@ return new class extends Migration {
         Schema::create('test_definitions', function (Blueprint $table) {
             $table->id();
             $table->string('slug', 22)->unique();
-            $table->string('code', 60)->unique();
+            $table->string('code', 60);
             $table->string('name', 150);
             $table->foreignId('test_group_id')->nullable()
                 ->constrained('test_groups')->nullOnDelete();
             $table->text('description')->nullable();
             $table->string('container', 100)->nullable();   // envase requerido
             $table->string('chart_unit', 40)->nullable();   // rótulo del eje en tendencias
+
+            // ── Qué exige la hoja antes de aceptar muestras ──────────────
+            // El sistema viejo tenía esta regla METIDA EN LA VISTA: mientras
+            // no hubiera al menos un Patrón y un Duplicado cargados, el select
+            // de tipo de fila solo ofrecía esas dos opciones. Como vivía en el
+            // HTML, un POST directo la salteaba. Acá son dos banderas y las
+            // valida el servidor.
             $table->boolean('has_control')->default(false); // corre con patrón
+            $table->boolean('requires_control')->default(false);
+            $table->boolean('requires_duplicate')->default(false);
+
+            // En el viejo `is_grouped` significaba "no usa patrón ni duplicado"
+            // y así estaba rotulado en el editor. Se conserva por trazabilidad
+            // de la importación, pero quien manda son las dos banderas de arriba.
             $table->boolean('is_grouped')->default(false);
+
+            // Cuántas veces se repite la medición sobre la MISMA muestra.
+            // La rigidez dieléctrica se mide 5 o 6 veces y se promedia. El
+            // sistema viejo lo resolvía con una columna por medición
+            // ("Medición 1".."Medición 6") o, peor, concatenando los valores
+            // con "/" dentro de un solo campo de texto — así funciona hoy el
+            // Grado de Polimerización, y por eso existe `str_two_values`, que
+            // hace `gsub('/', '<br><br>')` para volver a separarlos al mostrar.
+            // Acá la repetición es un número y cada réplica es su propia fila
+            // de valor (ver worksheet_values.replicate_no).
+            $table->unsignedTinyInteger('replicates')->default(1);
             $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             // Trazabilidad de la importación: id en el sistema Rails viejo.
@@ -103,6 +138,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->text('deleted_description')->nullable();
+            // Lockable: bloqueo de registros (lock()/unlock()).
+            $table->timestamp('locked_at')->nullable()->index();
+            $table->unsignedBigInteger('locked_by')->nullable();
+            $table->string('lock_scope', 10)->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });
@@ -117,8 +157,43 @@ return new class extends Migration {
             $table->string('label', 200);
             $table->integer('sort_order')->default(0);
 
-            // text | number | select | date | computed | standard | instrument
+            // text | number | select | date | computed | instrument
             $table->string('type', 20)->default('text');
+
+            // ┌────────────────────────────────────────────────────────────┐
+            // │ EL ROL DE LA COLUMNA — lo que el viejo deducía por POSICIÓN │
+            // └────────────────────────────────────────────────────────────┘
+            // El sistema Rails tenía tres supuestos posicionales, los tres sin
+            // declarar en ningún lado y los tres frágiles:
+            //
+            //   num_pos == 1        es el "Nº de Muestra"
+            //                       (JS copiaba #col1 a lab_details.num_test)
+            //   num_pos == 2        es la "Norma"
+            //                       (LabDetail#norma_y_flag lo asume)
+            //   la ÚLTIMA columna   es el "Resultado"
+            //                       (tendences_controller: .order(num_pos).last)
+            //
+            // De ahí el aviso en mayúsculas del README del sistema viejo: "LA
+            // COLUMNA RESULTADO SIEMPRE ES LA ÚLTIMA". Insertar una columna en
+            // el medio o reordenar el cuadro rompía el enlace con la muestra,
+            // la norma del informe y el gráfico de tendencias, en silencio.
+            //
+            // Acá el rol se DECLARA:
+            //   none         columna común de la bancada
+            //   sample_code  el código de la muestra (enlaza la fila con ella)
+            //   standard     la norma con la que se ensayó
+            //   result       un resultado (además lleva output_analyte_id)
+            //   temperature  temperatura del ensayo (condición, no resultado)
+            //   observation  observación del analista
+            //
+            // Ordenar las columnas pasa a ser cosmético, que es lo que debería
+            // haber sido siempre.
+            $table->string('role', 20)->default('none')->index();
+
+            // Cuántas réplicas admite ESTA columna. Normalmente hereda el
+            // `replicates` de la prueba; se deja por campo porque en una misma
+            // hoja conviven la medición repetida y el promedio calculado.
+            $table->unsignedTinyInteger('replicates')->default(1);
 
             $table->string('unit', 30)->nullable();
             $table->unsignedTinyInteger('decimals')->nullable();
@@ -141,6 +216,12 @@ return new class extends Migration {
                 ->constrained('analytes')->nullOnDelete();
 
             $table->unsignedInteger('legacy_id')->nullable()->unique();
+
+            // Sin columnas de candado: el candado se pone sobre la PRUEBA, no
+            // sobre cada una de sus columnas. Bloquear una columna suelta
+            // dejaría la plantilla a medio congelar, que es peor que no
+            // bloquearla. (El scaffold las inyecta por costumbre; acá sobran.)
+
             $table->timestamps();
             $table->softDeletes();
 
@@ -160,10 +241,36 @@ return new class extends Migration {
             // marca si el método está dentro del alcance acreditado.
             $table->string('accreditation_flag', 60)->nullable();
             $table->unsignedInteger('legacy_id')->nullable()->unique();
+
             $table->timestamps();
 
             $table->index(['test_field_id', 'sort_order'], 'test_field_options_order_idx');
         });
+
+        // ── El código es único POR WORKSPACE, no en todo el sistema ──────
+        // Con un único global, el primer laboratorio que se dé de alta se
+        // queda con los códigos obvios: nadie más podría tener un grupo
+        // `fisico_quimico` ni una prueba `acid`. Y como estas tablas admiten
+        // filas globales de fábrica (tenant_id nulo), el índice tiene que
+        // tratar el nulo como un valor más, cosa que un UNIQUE común de SQL no
+        // hace: dos filas con NULL no se consideran iguales.
+        //
+        // Por eso el índice va sobre COALESCE(tenant_id, 0) y se escribe a
+        // mano; y se limita a las filas vivas, para que un borrado lógico no
+        // bloquee el alta de un código que se dio de baja.
+        $driver = DB::getDriverName();
+        foreach ([
+            ['test_groups', 'test_groups_code_unique_active'],
+            ['analytes', 'analytes_code_unique_active'],
+            ['test_definitions', 'test_definitions_code_unique_active'],
+        ] as [$table, $indexName]) {
+            if (in_array($driver, ['pgsql', 'sqlite'], true)) {
+                DB::statement(
+                    "CREATE UNIQUE INDEX {$indexName} ON {$table} " .
+                    "(COALESCE(tenant_id, 0), LOWER(code)) WHERE deleted_at IS NULL"
+                );
+            }
+        }
     }
 
     public function down(): void

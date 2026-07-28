@@ -33,6 +33,10 @@ Route::group(
             require __DIR__.'/system_management.php';
             require __DIR__.'/user_management.php';
             require __DIR__.'/business_management.php';
+            // Pruebas de Muestras: plantillas de ensayo, bancada y control de
+            // calidad. Es el corazón del laboratorio y por eso tiene su propio
+            // grupo, separado de clientes/equipos.
+            require __DIR__.'/lab_management.php';
             require __DIR__.'/dashboard_management.php';
             require __DIR__.'/automation_management.php';
             require __DIR__.'/communication.php';

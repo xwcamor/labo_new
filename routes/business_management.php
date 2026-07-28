@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\InstrumentController;
 use App\Http\Controllers\BusinessManagement\EquipmentController;
 use App\Http\Controllers\BusinessManagement\AnalyteController;
 use App\Http\Controllers\BusinessManagement\BrandController;
@@ -864,5 +865,79 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('equipment/{equipment}/lock',   [EquipmentController::class, 'lock'])->name('equipment.lock');
         Route::post('equipment/{equipment}/unlock', [EquipmentController::class, 'unlock'])->name('equipment.unlock');
+    });
+
+
+    // ── Instruments ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('instruments/trash',                  [InstrumentController::class, 'trash'])->name('instruments.trash');
+        Route::post('instruments/bulk_restore',          [InstrumentController::class, 'bulkRestore'])->name('instruments.bulk_restore');
+        Route::post('instruments/{slug}/restore',        [InstrumentController::class, 'restore'])->name('instruments.restore');
+        Route::get('instruments/{slug}/restore',         fn () => redirect()->route('business_management.instruments.trash'));
+        Route::delete('instruments/{slug}/force_delete', [InstrumentController::class, 'forceDelete'])->name('instruments.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:instruments.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('instruments/export_excel', [InstrumentController::class, 'exportExcel'])->name('instruments.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('instruments/export_pdf',   [InstrumentController::class, 'exportPdf'])->name('instruments.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('instruments/export_word',  [InstrumentController::class, 'exportWord'])->name('instruments.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('instruments/export_csv',   [InstrumentController::class, 'exportCsv'])->name('instruments.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:instruments.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('instruments/import',          [InstrumentController::class, 'import'])->name('instruments.import');
+        Route::get('instruments/import_template',  [InstrumentController::class, 'importTemplate'])->name('instruments.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:instruments.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('instruments/bulk_delete',     [InstrumentController::class, 'bulkDelete'])->name('instruments.bulk_delete');
+        Route::post('instruments/bulk_set_active', [InstrumentController::class, 'bulkSetActive'])->name('instruments.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:instruments.delete')->group(function () {
+        Route::post('instruments/undo_last_delete', [InstrumentController::class, 'undoLastDelete'])->name('instruments.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:instruments.edit')->group(function () {
+        Route::get('instruments/edit_all',         [InstrumentController::class, 'editAll'])->name('instruments.edit_all');
+        Route::post('instruments/edit_all/update', [InstrumentController::class, 'editAllUpdate'])->name('instruments.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:instruments.create')->group(function () {
+        Route::get('instruments/create', [InstrumentController::class, 'create'])->name('instruments.create');
+        Route::post('instruments',       [InstrumentController::class, 'store'])->name('instruments.store');
+        Route::post('instruments/{instrument}/duplicate', [InstrumentController::class, 'duplicate'])->name('instruments.duplicate');
+    });
+
+    Route::middleware('permission:instruments.view')->group(function () {
+        Route::get('instruments',                [InstrumentController::class, 'index'])->name('instruments.index');
+        Route::get('instruments/{instrument}',  [InstrumentController::class, 'show'])->name('instruments.show');
+    });
+    Route::middleware('permission:instruments.edit')->group(function () {
+        Route::get('instruments/{instrument}/edit', [InstrumentController::class, 'edit'])->name('instruments.edit');
+        Route::put('instruments/{instrument}',      [InstrumentController::class, 'update'])->name('instruments.update');
+    });
+    Route::middleware('permission:instruments.delete')->group(function () {
+        Route::get('instruments/{instrument}/delete',        [InstrumentController::class, 'delete'])->name('instruments.delete');
+        Route::delete('instruments/{instrument}/deleteSave', [InstrumentController::class, 'deleteSave'])->name('instruments.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('instruments/{instrument}/lock',   [InstrumentController::class, 'lock'])->name('instruments.lock');
+        Route::post('instruments/{instrument}/unlock', [InstrumentController::class, 'unlock'])->name('instruments.unlock');
     });
 });

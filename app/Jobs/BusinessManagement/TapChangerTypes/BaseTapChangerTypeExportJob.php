@@ -160,9 +160,12 @@ abstract class BaseTapChangerTypeExportJob implements ShouldQueue
         $scope = $this->options['scope'] ?? 'filtered';
         $columns = $this->options['columns'] ?? ['creator'];
 
-        $base = TapChangerType::query()->withoutGlobalScope('tenant');
+        $base = TapChangerType::query();
 
-        // tap_changer_types es catálogo global (sin tenant), no filtramos por tenant_id.
+        // `tap_changer_types` NO tiene columna tenant_id: es un catálogo verdaderamente
+        // global, gobernado por `role:super` en las rutas. No hay nada que
+        // filtrar por workspace acá.
+
 
         if (in_array('creator', $columns)) {
             $base->with('creator:id,name');

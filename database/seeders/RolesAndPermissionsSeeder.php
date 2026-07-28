@@ -42,7 +42,18 @@ class RolesAndPermissionsSeeder extends Seeder
         // habilita los comentarios POR MUESTRA — para que un cargador de muestras
         // pueda comentar SU muestra sin firmar la nota del especialista. Ver/borrar
         // siguen compartiendo comments.view/comments.delete (no se separaron).
-        foreach (['comments.view', 'comments.create', 'comments.delete', 'transformers.samples', 'diagnosis_notes.create'] as $perm) {
+        // `worksheets.validate` es un permiso APARTE de `worksheets.edit`, y no
+        // está en las acciones canónicas porque no es un CRUD: es la firma del
+        // supervisor sobre el ensayo. Tenerlo separado corrige un agujero real
+        // del sistema Rails viejo, donde la pantalla de validar escondía su
+        // enlace a los no supervisores pero la acción verificaba el permiso de
+        // EDITAR, así que cualquiera que pudiera editar podía validar
+        // escribiendo la dirección a mano.
+        foreach ([
+            'comments.view', 'comments.create', 'comments.delete',
+            'transformers.samples', 'diagnosis_notes.create',
+            'worksheets.validate',
+        ] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
@@ -104,9 +115,17 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Módulos de DATOS de negocio (excluye oil_types/equipment_types/
         // tap_changer_types: son globales super-only y no se ofrecen a perfiles).
-        $bizModules = ['customers', 'transformers', 'brands', 'laboratories',
+        $bizModules = ['customers', 'equipment', 'brands', 'laboratories',
             'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies'];
         $noDelete   = ['view', 'show', 'create', 'edit', 'export', 'import']; // todo salvo delete
+
+        // Plantillas de ensayo: lo que define CÓMO se mide. Cambiar una fórmula
+        // o un límite acá cambia todos los ensayos que se corran después, así
+        // que es del supervisor, no del analista.
+        $labTemplateModules = ['test_groups', 'test_definitions', 'analytes', 'instruments'];
+
+        // Bancada y control de calidad: lo que se hace todos los días.
+        $labBenchModules = ['worksheets', 'qc_charts'];
 
         // Soporte (editor): crea/edita cualquier dato de negocio, NO elimina.
         // Incluye diagnosis_notes.create: es un rol de especialista, sí firma la
@@ -122,26 +141,63 @@ class RolesAndPermissionsSeeder extends Seeder
         $fullParts[] = ['transformers.samples', 'comments.view', 'comments.create', 'comments.delete', 'diagnosis_notes.create'];
         $fullPerms   = array_merge(...$fullParts);
 
+        // ── Perfiles del laboratorio ─────────────────────────────────────
+        // El sistema Rails viejo tenía los cuatro CRUD de plantillas detrás de
+        // UN SOLO permiso indistinto (el 14): quien podía ver la configuración
+        // de una prueba podía también borrarla. Y la pantalla de validar la
+        // hoja verificaba el permiso de EDITAR en vez del de validar, así que
+        // el botón estaba escondido para el analista pero la dirección seguía
+        // siendo accesible. Acá cada acción es su permiso y el reparto entre
+        // analista y supervisor es explícito.
+
+        // El analista corre los ensayos: carga hojas de trabajo y ve las
+        // plantillas para saber qué columnas llenar. NO las edita, y NO valida
+        // (validar la hoja es del supervisor).
+        $analystPerms = array_merge(
+            $pick('worksheets', ['view', 'show', 'create', 'edit', 'export']),
+            $pick('qc_charts', ['view', 'show']),
+            $pick('equipment', ['view', 'show']),
+            $pick('customers', ['view', 'show']),
+            ...array_map(fn ($m) => $pick($m, ['view', 'show']), $labTemplateModules),
+        );
+
+        // El supervisor define cómo se mide y responde por la calidad: mantiene
+        // las plantillas, fija los límites de las cartas de control y valida.
+        $supervisorPerms = array_merge(
+            $pick('equipment', ['view', 'show', 'export']),
+            $pick('customers', ['view', 'show', 'export']),
+            ['worksheets.validate'],
+            ...array_map(fn ($m) => $all($m), array_merge($labTemplateModules, $labBenchModules)),
+        );
+
         // Reglas de diagnóstico y logs del sistema NO hace falta excluirlos: sus
         // menús son hasRole(super|admin), así que un perfil CUSTOM nunca los ve.
         $profiles = [
             'Empresa (solo lectura)' => [
-                'desc'  => 'Solo lectura: ve el dashboard y los transformadores con sus diagnósticos. No crea, edita ni elimina nada.',
-                'perms' => array_merge($pick('transformers', ['view', 'show', 'export']), ['comments.view']),
+                'desc'  => 'Solo lectura: ve el tablero y los equipos con sus diagnósticos. No crea, edita ni elimina nada.',
+                'perms' => array_merge($pick('equipment', ['view', 'show', 'export']), ['comments.view']),
             ],
             'Empresa (carga de muestras)' => [
-                'desc'  => 'Ve el dashboard y los transformadores; no edita ni elimina trafos, pero carga muestras de ensayo y comenta SUS muestras. Lee la nota del diagnosticador pero NO la escribe (eso es del especialista).',
+                'desc'  => 'Ve el tablero y los equipos; no edita ni elimina equipos, pero carga muestras de ensayo y comenta SUS muestras. Lee la nota del diagnosticador pero NO la escribe (eso es del especialista).',
                 // comments.view + comments.create (comentar SUS muestras), pero SIN
                 // diagnosis_notes.create: la "Nota del diagnosticador" la firma el
                 // especialista, no quien carga muestras.
-                'perms' => array_merge($pick('transformers', ['view', 'show', 'export']), ['transformers.samples', 'comments.view', 'comments.create']),
+                'perms' => array_merge($pick('equipment', ['view', 'show', 'export']), ['transformers.samples', 'comments.view', 'comments.create']),
+            ],
+            'Analista de laboratorio' => [
+                'desc'  => 'Corre los ensayos: crea y carga hojas de trabajo y consulta las plantillas y las cartas de control. No modifica las plantillas ni valida las hojas: eso es del supervisor.',
+                'perms' => $analystPerms,
+            ],
+            'Supervisor de laboratorio' => [
+                'desc'  => 'Define cómo se mide y responde por la calidad analítica: mantiene las pruebas, sus columnas y fórmulas, los instrumentos y los límites de las cartas de control, y valida las hojas de trabajo.',
+                'perms' => $supervisorPerms,
             ],
             'Soporte (editor)' => [
-                'desc'  => 'Crea y edita cualquier dato (clientes, transformadores, catálogos) pero NO elimina. Sin reglas de diagnóstico ni logs.',
+                'desc'  => 'Crea y edita cualquier dato (clientes, equipos, catálogos) pero NO elimina. Sin reglas de diagnóstico ni logs.',
                 'perms' => $editorPerms,
             ],
             'Soporte (editor full)' => [
-                'desc'  => 'Gestión completa de los datos de negocio: crea, edita y elimina clientes, transformadores y catálogos. No gestiona accesos (usuarios/perfiles) ni ve reglas de diagnóstico o logs.',
+                'desc'  => 'Gestión completa de los datos de negocio: crea, edita y elimina clientes, equipos y catálogos. No gestiona accesos (usuarios/perfiles) ni ve reglas de diagnóstico o logs.',
                 'perms' => $fullPerms,
             ],
         ];

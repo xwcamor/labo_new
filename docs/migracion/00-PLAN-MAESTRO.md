@@ -9,6 +9,11 @@
 > - [`03-NORMAS-Y-LIMITES.md`](03-NORMAS-Y-LIMITES.md) — normas y límites como datos
 > - [`04-INTEGRACION-TRAFODEX.md`](04-INTEGRACION-TRAFODEX.md) — la API
 > - [`05-REUSO-DEL-CORE.md`](05-REUSO-DEL-CORE.md) — qué se copia de TRAFODEX y qué no
+> - [`06-TRAFODEX-LO-QUE-DEBE-CONSTRUIR.md`](06-TRAFODEX-LO-QUE-DEBE-CONSTRUIR.md) — el otro lado de la integración
+> - [`07-PRUEBAS-DE-MUESTRAS.md`](07-PRUEBAS-DE-MUESTRAS.md) — el diseño del módulo central, y por qué NO una tabla por prueba
+>
+> Y la lectura del sistema viejo, con archivo y línea de cada hallazgo:
+> [`../origen-ruby/AUDITORIA-PRUEBAS-DE-MUESTRAS.md`](../origen-ruby/AUDITORIA-PRUEBAS-DE-MUESTRAS.md)
 
 ---
 

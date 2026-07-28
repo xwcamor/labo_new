@@ -65,6 +65,11 @@ import {
     LineChartOutlined,
     BarChartOutlined,
     ShareAltOutlined,
+    FolderOpenOutlined,
+    ProfileOutlined,
+    ToolOutlined,
+    FundOutlined,
+    DotChartOutlined,
 } from '@ant-design/icons-vue';
 
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
@@ -653,6 +658,62 @@ const menuStructure = computed(() => [
                 key: 'customers', label: t('sidebar.customers'), icon: TeamOutlined,
                 href: route('business_management.customers.index'), inertia: true,
                 visible: () => can('customers.view'),
+            },
+            {
+                key: 'equipment', label: t('sidebar.equipment'), icon: AppstoreOutlined,
+                href: route('business_management.equipment.index'), inertia: true,
+                visible: () => can('equipment.view'),
+            },
+        ],
+    },
+
+    // ── Grupo: Pruebas de Muestras ──────────────────────────────────────
+    // El corazón del laboratorio. Tres capas, y el orden del menú es el orden
+    // en que se usan: primero se define CÓMO se mide (las plantillas), después
+    // se mide (la bancada), y en paralelo se controla que se esté midiendo bien
+    // (el control de calidad).
+    //
+    // En el sistema Rails viejo esto eran dos menús desconectados: los cuatro
+    // CRUD de plantillas vivían escondidos bajo "Ajustes Adicionales", y las
+    // hojas de trabajo colgaban de un submenú POR CADA prueba, así que el menú
+    // crecía con el catálogo. Acá la prueba es un registro y sus hojas se
+    // filtran, no se repiten como opciones de menú.
+    {
+        kind: 'group',
+        key: 'group-lab', title: t('sidebar.group_lab'),
+        items: [
+            // ── Bancada ──
+            {
+                key: 'worksheets', label: t('sidebar.worksheets'), icon: ProfileOutlined,
+                href: route('lab_management.worksheets.index'), inertia: true,
+                visible: () => can('worksheets.view'),
+            },
+            // ── Control de calidad analítica ──
+            {
+                key: 'qc_charts', label: t('sidebar.qc_charts'), icon: DotChartOutlined,
+                href: route('lab_management.qc_charts.index'), inertia: true,
+                visible: () => can('qc_charts.view'),
+            },
+            // ── Plantillas de ensayo ──
+            {
+                key: 'test_definitions', label: t('sidebar.test_definitions'), icon: FileDoneOutlined,
+                href: route('lab_management.test_definitions.index'), inertia: true,
+                visible: () => can('test_definitions.view'),
+            },
+            {
+                key: 'test_groups', label: t('sidebar.test_groups'), icon: FolderOpenOutlined,
+                href: route('lab_management.test_groups.index'), inertia: true,
+                visible: () => can('test_groups.view'),
+            },
+            {
+                key: 'analytes', label: t('sidebar.analytes'), icon: RadarChartOutlined,
+                href: route('business_management.analytes.index'), inertia: true,
+                visible: () => can('analytes.view'),
+            },
+            {
+                key: 'instruments', label: t('sidebar.instruments'), icon: ToolOutlined,
+                href: route('business_management.instruments.index'), inertia: true,
+                visible: () => can('instruments.view'),
             },
         ],
     },

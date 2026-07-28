@@ -136,6 +136,18 @@ return [
             'model' => \App\Models\Equipment::class,
             'days'  => 90,
         ],
+        'instruments' => [
+            'model' => \App\Models\Instrument::class,
+            'days'  => 90,
+        ],
+        'test_groups' => [
+            'model' => \App\Models\TestGroup::class,
+            'days'  => 90,
+        ],
+        'test_definitions' => [
+            'model' => \App\Models\TestDefinition::class,
+            'days'  => 90,
+        ],
         // Suma modulos nuevos aqui:
         // 'patients' => [...],
         // 'doctors'  => [...],

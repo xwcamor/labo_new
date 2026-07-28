@@ -13,6 +13,16 @@ return [
     // Group: Business (operations)
     'group_business'     => 'Business',
     'customers'          => 'Customers',
+    'equipment'          => 'Equipment',
+
+    // Group: Sample testing — the heart of the laboratory.
+    'group_lab'          => 'Sample testing',
+    'worksheets'         => 'Worksheets',
+    'qc_charts'          => 'Control charts',
+    'test_definitions'   => 'Tests',
+    'test_groups'        => 'Test groups',
+    'analytes'           => 'Parameters',
+    'instruments'        => 'Instruments',
 
     'oil_types'          => 'Oil types',
     'equipment_types'  => 'Transformer types',

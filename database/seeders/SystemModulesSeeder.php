@@ -43,7 +43,10 @@ class SystemModulesSeeder extends Seeder
             // TR APP — módulos del dominio de diagnóstico de transformadores.
             // (transformers/oil_types se registraban ad-hoc; aquí quedan
             // reproducibles para installs frescos. firstOrCreate = idempotente.)
-            ['name' => 'Transformers',     'permission_key' => 'transformers'],
+            // `equipment` reemplaza a `transformers`: el laboratorio no ensaya
+            // solo transformadores (hay reactores, bujes y conmutadores), y las
+            // rutas ya usan `permission:equipment.*`.
+            ['name' => 'Equipment',        'permission_key' => 'equipment'],
             ['name' => 'OilTypes',         'permission_key' => 'oil_types'],
             ['name' => 'EquipmentTypes', 'permission_key' => 'equipment_types'],
             ['name' => 'Brands',           'permission_key' => 'brands'],
@@ -52,6 +55,23 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'TapChangerModels', 'permission_key' => 'tap_changer_models'],
             ['name' => 'TapChangerBrands', 'permission_key' => 'tap_changer_brands'],
             ['name' => 'Laboratories',     'permission_key' => 'laboratories'],
+
+            // ── Pruebas de Muestras ──────────────────────────────────────
+            // El corazón del laboratorio: las plantillas de ensayo, la bancada
+            // y el control de calidad analítica.
+            //
+            // Se registran como módulos y no bajo `role:super` porque quien los
+            // usa a diario NO es el super: las plantillas las mantiene el
+            // supervisor del laboratorio y las hojas de trabajo las carga el
+            // analista. En el sistema viejo los cuatro CRUD de plantillas
+            // estaban detrás de UN SOLO permiso indistinto (el 14) que servía
+            // igual para ver que para borrar; acá cada acción es su permiso.
+            ['name' => 'Analytes',         'permission_key' => 'analytes'],
+            ['name' => 'Instruments',      'permission_key' => 'instruments'],
+            ['name' => 'TestGroups',       'permission_key' => 'test_groups'],
+            ['name' => 'TestDefinitions',  'permission_key' => 'test_definitions'],
+            ['name' => 'Worksheets',       'permission_key' => 'worksheets'],
+            ['name' => 'QcCharts',         'permission_key' => 'qc_charts'],
         ];
 
         foreach ($modules as $m) {

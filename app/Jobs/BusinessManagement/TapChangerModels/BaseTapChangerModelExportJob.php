@@ -160,9 +160,25 @@ abstract class BaseTapChangerModelExportJob implements ShouldQueue
         $scope = $this->options['scope'] ?? 'filtered';
         $columns = $this->options['columns'] ?? ['creator'];
 
-        $base = TapChangerModel::query()->withoutGlobalScope('tenant');
+        $base = TapChangerModel::query();
 
-        // tap_changer_models es catálogo global (sin tenant), no filtramos por tenant_id.
+        // El worker NO tiene sesión, así que el global scope del trait de
+        // workspace no se aplica solo: hay que repetir su regla a mano con el
+        // tenant que se capturó al encolar. Sin esto un admin se lleva en su
+        // exportación los registros de TODOS los workspaces.
+        //
+        // La línea anterior decía `withoutGlobalScope('tenant')`, pero el scope
+        // no se llama así, con lo cual no quitaba nada y tampoco filtraba nada:
+        // parecía una decisión y era una fuga.
+        //
+        // Un super no tiene tenant y ve todo, que es lo esperado.
+        if ($this->tenantId !== null) {
+            $base->where(function ($q) {
+                $q->where('tap_changer_models.tenant_id', $this->tenantId)
+                  ->orWhereNull('tap_changer_models.tenant_id');
+            });
+        }
+
 
         if (in_array('creator', $columns)) {
             $base->with('creator:id,name');

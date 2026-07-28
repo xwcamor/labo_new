@@ -160,6 +160,7 @@ class ImportLegacyTestsCommand extends Command
                         'is_reusable'    => $reuse === '1',
                         'default_value'  => $this->str($default) ?: null,
                         'report_visible' => $isResult,
+                        'role'           => $this->roleFor($label, $isResult),
                     ];
                     $fieldByLegacy[(int) $fid] = $dry ? null
                         : TestField::updateOrCreate(['legacy_id' => (int) $fid], $row + ['slug' => Str::random(22)])->id;
@@ -266,6 +267,49 @@ class ImportLegacyTestsCommand extends Command
         $v = trim($v, "'");
         $v = str_replace(['\\r\\n', '\\n', '\\r', '\\t', "\\'", '\\"', '\\\\'], [' ', ' ', ' ', ' ', "'", '"', '\\'], $v);
         return trim(preg_replace('/\s+/', ' ', $v));
+    }
+
+    /**
+     * Deduce el ROL de la columna a partir de su etiqueta.
+     *
+     * El sistema Rails viejo no declaraba ningún rol: los deducía por POSICIÓN.
+     * La columna 1 era el número de muestra (un script copiaba el valor de
+     * `#col1`), la columna 2 era la norma (`LabDetail#norma_y_flag` lo asumía) y
+     * la última era el resultado (el gráfico de tendencias tomaba
+     * `.order(num_pos).last`). Por eso su README avisaba en mayúsculas que la
+     * columna resultado tenía que ser siempre la última.
+     *
+     * Acá se deduce por la ETIQUETA, que es lo que de verdad dice qué es la
+     * columna, y NO por la posición: reordenar el cuadro no puede cambiar el
+     * significado de nada. Lo que la etiqueta no alcance a decidir queda en
+     * `none` y lo confirma el supervisor desde el editor. Es deliberado:
+     * adivinar acá manda el dato equivocado al informe.
+     */
+    private function roleFor(string $label, bool $isResult): string
+    {
+        if ($isResult) {
+            return \App\Models\TestField::ROLE_RESULT;
+        }
+
+        $l = mb_strtolower($label);
+        $l = strtr($l, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n']);
+
+        // Los patrones llevan el modificador `u`: las etiquetas reales traen
+        // "Nº de Muestra" con el ordinal masculino, que ocupa dos bytes. Sin
+        // ese modificador la clase de caracteres no lo reconoce y la columna
+        // que enlaza con la muestra queda sin rol, que es justo la que no puede
+        // quedar sin rol.
+        return match (true) {
+            (bool) preg_match('/de\s*muestra|codigo\s*de\s*muestra/u', $l)
+                => \App\Models\TestField::ROLE_SAMPLE_CODE,
+            (bool) preg_match('/\bnorma\b/u', $l)
+                => \App\Models\TestField::ROLE_STANDARD,
+            (bool) preg_match('/temperatura/u', $l)
+                => \App\Models\TestField::ROLE_TEMPERATURE,
+            (bool) preg_match('/observaci(on|ones)/u', $l)
+                => \App\Models\TestField::ROLE_OBSERVATION,
+            default => \App\Models\TestField::ROLE_NONE,
+        };
     }
 
     /**

@@ -13,6 +13,19 @@ return [
     // Grupo: Negocio (operación)
     'group_business'     => 'Negocio',
     'customers'          => 'Clientes',
+    'equipment'          => 'Equipos',
+
+    // Grupo: Pruebas de Muestras. Los nombres siguen el vocabulario del
+    // laboratorio y no el del sistema viejo: allá el menú decía "Módulos" para
+    // referirse a las pruebas y "Muestras" para las hojas de trabajo, que es
+    // otra cosa (una hoja agrupa muchas muestras del mismo día).
+    'group_lab'          => 'Pruebas de Muestras',
+    'worksheets'         => 'Hojas de trabajo',
+    'qc_charts'          => 'Cartas de control',
+    'test_definitions'   => 'Pruebas',
+    'test_groups'        => 'Grupos de pruebas',
+    'analytes'           => 'Parámetros',
+    'instruments'        => 'Instrumentos',
 
     'oil_types'          => 'Tipos de aceite',
     'equipment_types'  => 'Tipos de transformador',

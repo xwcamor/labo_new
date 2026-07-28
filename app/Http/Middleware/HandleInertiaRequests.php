@@ -273,7 +273,23 @@ class HandleInertiaRequests extends Middleware
 
     protected function loadTranslations(): array
     {
-        $namespaces = ['global', 'regions', 'languages', 'countries', 'locales', 'tenants', 'system_modules', 'settings', 'users', 'roles', 'customers', 'oil_types', 'equipment_types', 'tap_changer_types', 'laboratories', 'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies', 'brands', 'equipment', 'analytes', 'audit_logs', 'sidebar', 'imports', 'notifications', 'auth', 'profile', 'subscriptions', 'plans', 'automations', 'dashboard', 'messages', 'sharing', 'comments', 'search', 'approvals', 'locks'];
+        // OJO: un archivo de idioma que NO esté en esta lista no llega al
+        // navegador, y la pantalla muestra la clave cruda ("worksheets.title")
+        // en lugar del texto. Al crear un módulo hay que agregarlo acá; es el
+        // paso que más se olvida y el síntoma no se parece a la causa.
+        $namespaces = [
+            'global', 'regions', 'languages', 'countries', 'locales', 'tenants',
+            'system_modules', 'settings', 'users', 'roles', 'customers',
+            'oil_types', 'equipment_types', 'tap_changer_types', 'laboratories',
+            'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies',
+            'brands', 'equipment', 'analytes', 'audit_logs', 'sidebar', 'imports',
+            'notifications', 'auth', 'profile', 'subscriptions', 'plans',
+            'automations', 'dashboard', 'messages', 'sharing', 'comments',
+            'search', 'approvals', 'locks',
+            // Pruebas de Muestras.
+            'test_groups', 'test_definitions', 'test_fields', 'worksheets',
+            'qc_charts', 'instruments', 'instrument_files',
+        ];
         $out = [];
         foreach ($namespaces as $ns) {
             $messages = trans($ns);

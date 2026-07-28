@@ -62,7 +62,60 @@ antes.
 
 ---
 
-## Estado actual: fase 0 CERRADA
+## Estado actual: fase 1 EN CURSO — Pruebas de Muestras
+
+> El diseño completo del módulo, y la respuesta a "¿cada prueba no debería
+> tener su tabla?", están en
+> [`docs/migracion/07-PRUEBAS-DE-MUESTRAS.md`](docs/migracion/07-PRUEBAS-DE-MUESTRAS.md).
+> La auditoría del módulo equivalente del sistema Rails, con archivo y línea de
+> cada hallazgo, está en
+> [`docs/origen-ruby/AUDITORIA-PRUEBAS-DE-MUESTRAS.md`](docs/origen-ruby/AUDITORIA-PRUEBAS-DE-MUESTRAS.md).
+
+**OJO al actualizar: las migraciones de la fase 1 se editaron EN SU LUGAR.**
+Todavía no hay ningún despliegue, así que agregar una columna a una migración
+sin publicar es más limpio que arrastrar una migración de alteración. Quien ya
+haya corrido `php artisan migrate` con una versión anterior tiene que correr
+**`php artisan migrate:fresh --seed`**. A partir del primer despliegue real
+esto deja de valer: de ahí en adelante, migración nueva siempre.
+
+### Qué se construyó
+
+| Pieza | Dónde |
+|---|---|
+| Plantillas de ensayo | `test_groups` → `test_definitions` → `test_fields` → `test_field_options` |
+| Parámetros medibles | `analytes` (la pieza que el sistema viejo no tenía) |
+| Instrumentos con calibración | `instruments` (ISO 17025) |
+| Bancada | `worksheets` → `worksheet_rows` → `worksheet_values` |
+| Control de calidad | `qc_charts` → `qc_points` + `qc_duplicates` |
+| Archivos de instrumento | `instrument_files` + `instrument_formats` |
+| Motor de fórmulas | `app/Services/Lab/Formula*` |
+| Westgard y repetibilidad | `app/Services/Lab/WestgardEvaluator`, `RepeatabilityEvaluator` |
+| Lector de archivos de instrumento | `app/Services/Lab/InstrumentFileParser` |
+| Flujo de la bancada | `app/Services/Lab/WorksheetService` |
+| Tipos de columna | `config/lab_field_types.php` (era una tabla; ver el doc) |
+
+Rutas en `routes/lab_management.php`, grupo propio `LabManagement`, prefijo
+`/lab_management`. Los módulos de catálogo se generaron con `make:module`; las
+hojas de trabajo y las cartas de control NO, porque no son catálogos.
+
+### Las cuatro reglas que el sistema viejo tenía en el HTML
+
+Todas se verifican ahora del lado del servidor, y cada una tiene su prueba:
+
+1. **El cálculo.** Era JavaScript guardado en la base e inyectado en la página;
+   el campo resultado tenía `readonly`, que un envío directo saltea.
+2. **Los campos obligatorios.** Se validaban en el navegador; la validación del
+   modelo estaba escrita y comentada.
+3. **El bloqueo de la hoja.** Solo escondía botones: ningún controlador lo miraba.
+4. **"Primero patrón y duplicado".** Vivía en las opciones de un select.
+
+Y una quinta, de autorización: la pantalla de validar escondía su enlace a los
+no supervisores pero la acción verificaba el permiso de **editar**. Por eso
+`worksheets.validate` es un permiso aparte de `worksheets.edit`.
+
+---
+
+## Estado anterior: fase 0 CERRADA
 
 Verificado en este entorno (PHP 8.4, Composer 2.8, Node 22, PostgreSQL 16):
 

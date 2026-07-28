@@ -13,6 +13,24 @@
 
 ---
 
+## Git: una sola rama
+
+**Todo se commitea y se pushea a `main`, directo. No se crean ramas.**
+
+Pedido explícito del dueño (2026-07-28). Ya pasó una vez que el trabajo quedó
+repartido entre una rama y `main`, y que ramas de documentación aparecieran en
+los otros dos repos — costó tiempo y desconfianza. Si una sesión arranca
+posicionada en una rama con otro nombre, lo primero es volver a `main`:
+
+```bash
+git checkout main && git pull
+```
+
+Nada de `feature/*`, nada de `claude/*`. Si algo necesita aislarse, se habla
+antes.
+
+---
+
 ## Estado actual: fase 0 CERRADA
 
 Verificado en este entorno (PHP 8.4, Composer 2.8, Node 22, PostgreSQL 16):

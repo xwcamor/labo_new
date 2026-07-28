@@ -41,11 +41,20 @@ class ImportLegacyTestsCommand extends Command
 
     protected $description = 'Importa las plantillas de ensayo (pruebas, campos y opciones) desde el volcado del sistema Rails viejo';
 
-    /** Tipo de campo del sistema viejo → tipo del nuevo. */
+    /**
+     * Tipo de campo del sistema viejo → tipo del nuevo.
+     *
+     * El 4 es FECHA y faltaba. Sin él, las seis columnas de fecha de los tres
+     * ensayos de Azufre caían al `?? 'text'` de más abajo, en silencio. Y ahí
+     * importa de verdad: el ensayo IEC 62535 es a 48 y a 72 horas, así que sin
+     * fechas comparables no se puede demostrar que la exposición duró lo que la
+     * norma exige.
+     */
     private const TYPE_MAP = [
         '1' => 'text',
         '2' => 'number',
         '3' => 'select',
+        '4' => 'date',
     ];
 
     /** Columnas cuyo nombre delata que son el resultado de la prueba. */
@@ -169,14 +178,35 @@ class ImportLegacyTestsCommand extends Command
             }
 
             // ── Opciones ─────────────────────────────────────────────────
+            // Se traen las CUATRO cosas que el volcado declara de cada opción,
+            // no solo su texto:
+            //
+            //   applicability_flag  "A" = ensayo ACREDITADO. Es lo que imprime
+            //                       el "(A) Acreditado" y la nota de la
+            //                       acreditación ISO/IEC 17025 en el informe.
+            //                       Perderlo es perder una afirmación legal.
+            //   num_pos             el orden en que el laboratorio las ofrece.
+            //   is_hidden           opciones retiradas de la lista sin borrar
+            //                       el histórico (el tensiómetro tiene dos).
+            //   deleted             opciones DADAS DE BAJA. Sin este filtro se
+            //                       reviven ocho, entre ellas la errata
+            //                       'PP-LA-01C-100.' con el punto al final.
             foreach ($options as $o) {
-                [$oid, $fieldId, $value] = array_pad(array_slice($o, 0, 3), 3, null);
+                [$oid, $fieldId, $value, , , $acreditada, $pos, $oculta, $borrada] =
+                    array_pad(array_slice($o, 0, 9), 9, null);
+
+                if ($borrada === '1') continue;
                 if (! isset($fieldByLegacy[(int) $fieldId]) && ! $dry) continue;
+
                 $stats['opciones']++;
                 if ($dry) continue;
+
                 TestFieldOption::updateOrCreate(['legacy_id' => (int) $oid], [
-                    'test_field_id' => $fieldByLegacy[(int) $fieldId],
-                    'value'         => $this->str($value),
+                    'test_field_id'      => $fieldByLegacy[(int) $fieldId],
+                    'value'              => $this->str($value),
+                    'accreditation_flag' => $this->str($acreditada) ?: null,
+                    'sort_order'         => (int) $pos,
+                    'is_hidden'          => $oculta === '1',
                 ]);
             }
         };

@@ -345,6 +345,8 @@ class WorksheetService
      */
     private function writeValues(WorksheetRow $row, $fields, array $input): void
     {
+        $fueraDeRango = [];
+
         foreach ($fields as $field) {
             if (filled($field->formula)) {
                 continue;   // lo calcula el servidor, no el formulario
@@ -360,19 +362,42 @@ class WorksheetService
                     continue;
                 }
 
+                $columnas = $this->typedValue($field, $value);
+
+                // El rango declarado de la columna, aplicado. Hasta ahora
+                // `min_value`/`max_value` vivían en la definición y no los leía
+                // NADIE: se podía declarar que la rigidez va de 0 a 80 kV y
+                // guardar 800. Y el caso que de verdad importa es el cero — en
+                // varias propiedades no es una medición sino el "no medido" del
+                // sistema anterior, que obligaba a llenar la celda.
+                if ($columnas['value_num'] !== null) {
+                    $motivo = $field->porQueNoAdmite((float) $columnas['value_num']);
+
+                    if ($motivo !== null) {
+                        $fueraDeRango[$field->code][] = $motivo;
+                        continue;
+                    }
+                }
+
                 WorksheetValue::updateOrCreate(
                     [
                         'worksheet_row_id' => $row->id,
                         'test_field_id'    => $field->id,
                         'replicate_no'     => $replicate,
                     ],
-                    $this->typedValue($field, $value) + [
+                    $columnas + [
                         'is_computed' => false,
                         'entered_by'  => auth()->id(),
                         'entered_at'  => now(),
                     ],
                 );
             }
+        }
+
+        if ($fueraDeRango !== []) {
+            // Se rechaza la fila entera y no solo la celda: guardar la mitad de
+            // una medición deja un ensayo a medias que después nadie sabe leer.
+            throw ValidationException::withMessages($fueraDeRango);
         }
 
         $row->unsetRelation('values');

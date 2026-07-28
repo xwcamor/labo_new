@@ -10,6 +10,7 @@ use App\Services\Lab\FormulaValidator;
 use Database\Seeders\LabAnalyteMapSeeder;
 use Database\Seeders\LabAnalytesSeeder;
 use Database\Seeders\LabInstrumentsSeeder;
+use Database\Seeders\LabTestFieldTypesSeeder;
 use Database\Seeders\LabTestFormulasSeeder;
 use Database\Seeders\LabTestTemplatesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,6 +50,7 @@ class LabSeedersTest extends TestCase
         $this->seed([
             LabAnalytesSeeder::class,
             LabTestTemplatesSeeder::class,
+            LabTestFieldTypesSeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
             LabAnalyteMapSeeder::class,
@@ -120,7 +122,9 @@ class LabSeedersTest extends TestCase
     {
         // En el sistema viejo el equipo era el TEXTO de una opción, con el
         // código de calibración adentro del nombre y sin fecha de vencimiento.
-        $this->assertSame(25, Instrument::withoutGlobalScopes()->count());
+        // Son 24 y no 25 porque el importador ya no revive las opciones que el
+        // laboratorio había dado de baja.
+        $this->assertSame(24, Instrument::withoutGlobalScopes()->count());
 
         $bureta = $this->columna('numero_acido', 'bureta_pp_la_01c');
         $this->assertSame('instrument', $bureta->type);
@@ -142,6 +146,118 @@ class LabSeedersTest extends TestCase
         // trazabilidad.
         $this->assertNull(
             Instrument::withoutGlobalScopes()->where('code', 'PP-LA-01C-056')->value('calibrated_at')
+        );
+    }
+
+    public function test_ninguna_columna_numerica_quedo_declarada_como_texto(): void
+    {
+        // El sistema viejo guardaba TODO en una sola columna varchar, así que
+        // declaraba "texto" hasta para los números. El importador copió ese
+        // criterio y quedaron como texto el resultado del Número Ácido, los
+        // PCB, los metales, las partículas y la viscosidad.
+        $numericas = [
+            'pcb.contenido_total_de_pcbs',
+            'metales_en_aceite.cobre_cu',
+            'particulas.um_4',
+            'viscocidad.resultado_mm2s',
+            'inhibidor.resultado',
+            'dbds.resultado',
+            'fluidez.resultado',
+            'inflamacion.resultado',
+            'pasivador.resultado',
+            'color.resultado',
+        ];
+
+        foreach ($numericas as $clave) {
+            [$prueba, $campo] = explode('.', $clave);
+            $this->assertSame(
+                'number',
+                $this->columna($prueba, $campo)->type,
+                "La columna '{$clave}' mide un número y quedó declarada como texto."
+            );
+        }
+    }
+
+    public function test_las_fechas_del_ensayo_de_azufre_son_fechas(): void
+    {
+        // Éstas el sistema viejo SÍ las declaraba fecha (tipo 4); las degradó
+        // el importador, que no mapeaba ese tipo y caía a texto en silencio.
+        // Importa: el ensayo IEC 62535 es a 48 y a 72 horas, y sin fechas
+        // comparables no se puede demostrar que la exposición duró lo debido.
+        foreach (['azufre_1275b', 'azufre_62535_48_horas', 'azufre_62535_72_horas'] as $prueba) {
+            $this->assertSame('date', $this->columna($prueba, 'fecha_inicial')->type);
+            $this->assertSame('date', $this->columna($prueba, 'fecha_final')->type);
+        }
+    }
+
+    public function test_las_clasificaciones_dejan_de_ser_texto_libre(): void
+    {
+        // Con texto libre conviven "Corrosivo", "corrosivo" y "CORROSIVO" en la
+        // misma columna y ningún filtro las agrupa.
+        $azufre = $this->columna('azufre_1275b', 'resultado');
+        $this->assertSame('select', $azufre->type);
+        $this->assertEqualsCanonicalizing(
+            ['No Corrosivo', 'Corrosivo'],
+            $azufre->options->pluck('value')->all()
+        );
+
+        // A 72 horas el vocabulario es DISTINTO: se evalúa además el depósito
+        // de sulfuro de cobre en el papel.
+        $this->assertEqualsCanonicalizing(
+            ['Negativo sin depósitos', 'Positivo sin depósitos', 'Positivo con depósitos'],
+            $this->columna('azufre_62535_72_horas', 'resultado')->options->pluck('value')->all()
+        );
+
+        $this->assertCount(12, $this->columna('azufre_1275b', 'astm_d130')->options);
+    }
+
+    public function test_el_cero_no_se_admite_donde_no_es_una_medicion(): void
+    {
+        // Una rigidez de 0 kV no existe, y un factor de potencia de exactamente
+        // 0.000 % no es medible: es el "no medido" del sistema anterior, que
+        // obligaba a llenar la celda.
+        foreach ([
+            ['rigidez_dielectrica', 'resultado_kv'],
+            ['factor_de_potencia_100o', 'resultado'],
+            ['numero_acido', 'peso_aceite_g'],
+            ['furanos', 'furfuraldehido_2'],
+        ] as [$prueba, $campo]) {
+            $columna = $this->columna($prueba, $campo);
+            $this->assertNotNull($columna->min_value, "{$prueba}.{$campo} sin cota inferior.");
+            $this->assertTrue((bool) $columna->min_exclusive, "{$prueba}.{$campo} admite el cero.");
+        }
+
+        // Y donde el cero SÍ es real, no se toca: un gas no detectado es 0 ppm.
+        $h2 = $this->columna('analisis_cromatografico', 'hidrogeno_h2_ppm');
+        $this->assertFalse((bool) $h2->min_exclusive);
+    }
+
+    public function test_no_se_reviven_las_opciones_dadas_de_baja(): void
+    {
+        // El volcado trae opciones con `deleted = 1` que el bucle no filtraba.
+        // Entre ellas, la errata 'PP-LA-01C-100.' con el punto al final.
+        $this->assertSame(
+            0,
+            \App\Models\TestFieldOption::where('value', 'like', '%100.')->count()
+        );
+    }
+
+    public function test_la_acreditacion_de_cada_opcion_no_se_pierde(): void
+    {
+        // El indicador "A" es el que imprime el "(A) Acreditado" y la nota de
+        // la acreditación ISO/IEC 17025 en el informe. El importador copiaba
+        // solo el texto de la opción y lo dejaba caer: es pérdida de dato con
+        // consecuencia legal.
+        $this->assertGreaterThan(
+            0,
+            \App\Models\TestFieldOption::where('accreditation_flag', 'A')->count(),
+            'No quedó ninguna opción marcada como ensayo acreditado.'
+        );
+
+        // Y las que el laboratorio había retirado de la lista siguen retiradas.
+        $this->assertGreaterThan(
+            0,
+            \App\Models\TestFieldOption::where('is_hidden', true)->count()
         );
     }
 
@@ -176,6 +292,7 @@ class LabSeedersTest extends TestCase
 
         $this->seed([
             LabTestTemplatesSeeder::class,
+            LabTestFieldTypesSeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
             LabAnalyteMapSeeder::class,

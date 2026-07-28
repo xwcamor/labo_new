@@ -87,6 +87,13 @@ return [
         'already_voided'        => 'La hoja ya está anulada. El motivo original no se reemplaza.',
         'void_reason_required'  => 'Indique el motivo de la anulación.',
         'preview_too_large'     => 'Los datos enviados para el cálculo son demasiados. Guarde la fila y vuelva a intentarlo.',
+
+        // Rango declarado de la columna. El primero es el caso del CERO: en
+        // varias propiedades el 0 no es una medición sino el "no medido" del
+        // sistema anterior, que obligaba a llenar la celda.
+        'value_not_above'       => ':field: el valor tiene que ser mayor que :min. Si la propiedad no se midió, deje la celda vacía en vez de poner :min.',
+        'value_below_min'       => ':field: el valor no puede ser menor que :min.',
+        'value_above_max'       => ':field: el valor no puede ser mayor que :max.',
     ],
 
     // ── Cálculo ───────────────────────────────────────────────────────────

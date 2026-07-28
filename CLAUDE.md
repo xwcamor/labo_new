@@ -118,7 +118,8 @@ llaman por dentro.
 | Sembrador | Qué carga | Su dato editable |
 |---|---|---|
 | `LabAnalytesSeeder` | los 36 parámetros medibles | `data/analytes.json` |
-| `LabTestTemplatesSeeder` | 29 pruebas + 207 columnas + 93 opciones | `docs/migracion/esquema/catalogos-definiciones.sql` |
+| `LabTestTemplatesSeeder` | 29 pruebas + 207 columnas + opciones | `docs/migracion/esquema/catalogos-definiciones.sql` |
+| `LabTestFieldTypesSeeder` | qué MIDE cada columna: tipo, unidad, decimales, rango | `data/test_field_types.json` |
 | `LabTestFormulasSeeder` | 9 fórmulas, con el JavaScript viejo al lado para cotejar | `data/test_formulas.json` |
 | `LabInstrumentsSeeder` | 25 instrumentos + pasa 19 columnas a tipo `instrument` | `data/instruments.json` |
 | `LabAnalyteMapSeeder` | qué columna alimenta qué parámetro | `data/analyte_map.json` |
@@ -131,6 +132,30 @@ Regresión cubierta por `tests/Feature/Lab/LabSeedersTest`, que además verifica
 que TODAS las fórmulas compilen contra las columnas reales: renombrar una
 columna y dejar una fórmula apuntando al nombre viejo no falla al sembrar,
 falla en la bancada con la muestra ya cargada.
+
+### Recepción de muestras — LA FASE QUE FALTA, y por qué importa
+
+`docs/migracion/09-RECEPCION-CORRELATIVOS-Y-ESTADOS.md` responde cuatro preguntas
+del laboratorio con el código del sistema anterior al lado. Lo esencial:
+
+- **Elegir el equipo en la fila de la bancada es un parche.** El equipo cuelga de
+  la MUESTRA, que se registra en la recepción. `worksheet_rows.sample_id` y
+  `sample_test_id` ya están reservados y en nulo. Hay que construir la recepción
+  ANTES de cargar datos reales.
+- **El correlativo (`2026-0695`) no se genera con `MAX+1`.** El sistema anterior
+  lo hacía dentro de un bucle, sin bloqueo, con la unicidad comentada y filtrando
+  por `deleted = 0` — o sea que reemitía el número de un correlativo dado de
+  baja. Lo correcto: una fila contadora por (workspace, año) que se bloquea en la
+  transacción y entrega el bloque completo de una.
+- **El estado se escribe cuando pasa lo que lo cambia, no al leer.** En el
+  sistema anterior las VISTAS ejecutaban `Rem.update` y `update_all` dentro de un
+  `GET`: abrir un REM de 40 muestras eran ~320 consultas y 40 escrituras, y en la
+  pantalla de administración ~400 JOIN y ~400 UPDATE.
+- **La respuesta a "¿una tabla por prueba?"**: la forma no era el problema. El
+  sistema anterior YA tenía las dos (15 contadores por prueba en `rems`, que se
+  quedaron cortos al agregar la cuarta prueba nueva; y `rem_report_details` con
+  221 columnas y un solo índice). Se guarda tipado y se LEE ancho, con una vista
+  por prueba generada desde su definición.
 
 **Las fórmulas ya no son JavaScript.** El sistema viejo guardaba en
 `blur_calculation` un bloque de JS que direccionaba las celdas por POSICIÓN

@@ -422,6 +422,67 @@ class WorksheetServiceTest extends TestCase
         $this->assertSame('Patrón vencido', $point->exclusion_reason);
     }
 
+    public function test_el_rango_declarado_de_la_columna_se_aplica(): void
+    {
+        // El rango vivía en la definición de la columna y NO lo leía nadie: se
+        // podía declarar que el peso va de 0 a 100 g y guardar 900.
+        $peso = $this->definition->fields->firstWhere('code', 'peso_aceite');
+        $peso->update(['min_value' => 1, 'max_value' => 100]);
+
+        $worksheet = $this->makeWorksheet();
+
+        $this->expectException(ValidationException::class);
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'peso_aceite' => '900',
+        ]);
+    }
+
+    public function test_el_cero_se_rechaza_donde_no_es_una_medicion(): void
+    {
+        // Una rigidez de 0 kV no existe y un factor de potencia de exactamente
+        // 0.000 % no es medible: es el "no medido" del sistema anterior, que
+        // obligaba a llenar la celda. Con la cota abierta, 0 se rechaza y
+        // cualquier valor real por chico que sea entra.
+        $peso = $this->definition->fields->firstWhere('code', 'peso_aceite');
+        $peso->update(['min_value' => 0, 'min_exclusive' => true]);
+
+        $worksheet = $this->makeWorksheet();
+
+        // 0.001 entra.
+        $row = $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'peso_aceite' => '0.001',
+        ]);
+        $this->assertEqualsWithDelta(
+            0.001,
+            (float) $row->valueFor($peso)->value_num,
+            1e-9
+        );
+
+        // 0 no.
+        $this->expectException(ValidationException::class);
+        $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'peso_aceite' => '0',
+        ]);
+    }
+
+    public function test_una_columna_sin_rango_declarado_admite_cualquier_numero(): void
+    {
+        // Las 207 columnas vienen sin rango: declararlo es una decisión del
+        // laboratorio, columna por columna. Mientras no lo declare, no se
+        // inventa un límite.
+        $worksheet = $this->makeWorksheet();
+
+        $row = $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
+            'peso_aceite' => '0', 'volumen_gastado' => '99999',
+        ]);
+
+        $this->assertEqualsWithDelta(
+            0.0,
+            (float) $row->valueFor($this->definition->fields->firstWhere('code', 'peso_aceite'))->value_num,
+            1e-9
+        );
+    }
+
     public function test_no_se_le_exige_codigo_de_muestra_a_un_patron(): void
     {
         // Un patrón, un duplicado o un blanco no son la muestra de un cliente y

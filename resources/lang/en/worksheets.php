@@ -79,6 +79,10 @@ return [
         'already_voided'        => 'The worksheet is already voided. The original reason is not replaced.',
         'void_reason_required'  => 'State the reason for voiding.',
         'preview_too_large'     => 'Too much data was sent for calculation. Save the row and try again.',
+
+        'value_not_above'       => ':field: the value must be greater than :min. If the property was not measured, leave the cell empty instead of entering :min.',
+        'value_below_min'       => ':field: the value cannot be lower than :min.',
+        'value_above_max'       => ':field: the value cannot be higher than :max.',
     ],
 
     // ── Calculation ───────────────────────────────────────────────────────

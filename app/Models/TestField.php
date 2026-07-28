@@ -75,8 +75,51 @@ class TestField extends Model
         // recorre para armar las celdas de la hoja (1..replicates).
         'replicates'     => 'integer',
         'decimals'       => 'integer',
+        // Cota inferior ABIERTA: el mínimo no se admite, solo lo que lo supere.
+        // Es el caso del cero, que en varias propiedades no es una medición
+        // sino el "no medido" del sistema anterior.
+        'min_exclusive'  => 'boolean',
         'locked_at'      => 'datetime',
     ];
+
+    /**
+     * Por qué este valor no entra en la columna, o null si entra.
+     *
+     * El rango ya vivía en la definición de la columna y NO lo leía nadie: se
+     * podía declarar que la rigidez va de 0 a 80 kV y guardar 800 igual. Acá es
+     * donde el rango pasa a significar algo.
+     */
+    public function porQueNoAdmite(float $valor): ?string
+    {
+        $formato = fn (float $n) => rtrim(rtrim(number_format($n, 4, '.', ''), '0'), '.');
+
+        if ($this->min_value !== null) {
+            $min = (float) $this->min_value;
+
+            if ($this->min_exclusive && $valor <= $min) {
+                return __('worksheets.errors.value_not_above', [
+                    'field' => $this->label,
+                    'min'   => $formato($min),
+                ]);
+            }
+
+            if (! $this->min_exclusive && $valor < $min) {
+                return __('worksheets.errors.value_below_min', [
+                    'field' => $this->label,
+                    'min'   => $formato($min),
+                ]);
+            }
+        }
+
+        if ($this->max_value !== null && $valor > (float) $this->max_value) {
+            return __('worksheets.errors.value_above_max', [
+                'field' => $this->label,
+                'max'   => $formato((float) $this->max_value),
+            ]);
+        }
+
+        return null;
+    }
 
     public function definition(): BelongsTo
     {

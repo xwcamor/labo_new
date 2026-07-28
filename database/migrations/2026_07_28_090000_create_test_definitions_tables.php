@@ -219,6 +219,17 @@ return new class extends Migration {
             $table->decimal('min_value', 18, 6)->nullable();
             $table->decimal('max_value', 18, 6)->nullable();
 
+            // Cota inferior ABIERTA: el mínimo no se admite, solo lo que esté
+            // por encima. Existe por un caso concreto y repetido: en varias
+            // propiedades el CERO no es una medición, es el "no medido" del
+            // sistema anterior, que obligaba a llenar la celda. Una rigidez
+            // dieléctrica de 0 kV no existe; un factor de potencia de
+            // exactamente 0.000 % no es medible. Con `min_value = 0` y esto en
+            // verdadero, la celda rechaza el cero y admite cualquier valor real
+            // por chico que sea. En TrafoDex ese mismo cero había fabricado 626
+            // ensayos de rigidez y 104 de factor de potencia que no existían.
+            $table->boolean('min_exclusive')->default(false);
+
             $table->boolean('is_required')->default(false);
             $table->boolean('is_locked')->default(false);   // solo lectura (calculado)
             $table->boolean('is_reusable')->default(false); // arrastra el valor anterior

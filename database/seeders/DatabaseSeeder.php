@@ -114,6 +114,11 @@ class DatabaseSeeder extends Seeder
             // mano después de cada migrate:fresh, y sin ellos el sistema se veía
             // roto: Pruebas vacío y ninguna hoja de trabajo que se pudiera crear.
             LabTestTemplatesSeeder::class,
+            // Qué MIDE cada columna. El importador copiaba el tipo del sistema
+            // anterior, que guardaba todo en una sola columna de texto y por eso
+            // declaraba "texto" hasta para los números. Va antes de las fórmulas
+            // porque una fórmula no puede leer como número una columna de texto.
+            LabTestFieldTypesSeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
             LabAnalyteMapSeeder::class,

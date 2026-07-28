@@ -1,0 +1,273 @@
+{
+  "_doc": [
+    "Qué MIDE cada columna: su tipo, su unidad, sus decimales y su rango.",
+    "",
+    "POR QUÉ EXISTE ESTE ARCHIVO. El sistema Rails anterior guardaba TODO en una",
+    "sola columna de texto (`lab_sub_details.name varchar(255)`): números, fechas",
+    "y hasta el id de la opción elegida en un desplegable. Con eso, declarar una",
+    "columna como 'texto' no costaba nada, y así quedaron declaradas casi todas.",
+    "El importador copió ese criterio, y por eso el resultado del Número Ácido,",
+    "las dos lecturas de Karl Fischer, los PCB, los metales y las partículas",
+    "llegaron como texto siendo números.",
+    "",
+    "Acá se corrige, columna por columna, decidiendo por lo que la columna MIDE y",
+    "no por lo que el sistema anterior declaraba. Cada corrección lleva la",
+    "evidencia que la respalda.",
+    "",
+    "Las seis columnas de FECHA no están en esta lista: ésas el sistema anterior",
+    "SÍ las declaraba fecha (tipo 4) y las degradó el importador, que no mapeaba",
+    "ese tipo. Se arregló en el importador, que es donde estaba el error.",
+    "",
+    "Después de editar esto: php artisan db:seed --class=LabTestFieldTypesSeeder"
+  ],
+
+  "correcciones": {
+    "_doc": [
+      "clave: codigo_de_prueba.codigo_de_columna",
+      "  type       tipo correcto (ver config/lab_field_types.php)",
+      "  unit       unidad tal como se informa",
+      "  decimals   cuántos decimales se muestran",
+      "  min        cota inferior; con min_exclusive el valor tiene que SUPERARLA",
+      "  min_exclusive  true = el mínimo no se admite (el caso del cero)",
+      "  label      corrige la etiqueta cuando el sistema anterior tenía una errata",
+      "  por_que    la evidencia"
+    ],
+
+    "color.lec_1": {
+      "type": "number", "decimals": 1, "min": 0, "min_exclusive": true,
+      "por_que": "Escala ASTM D1500, que empieza en 0.5. El sistema anterior comparaba el color con `.to_f <= límite` y sus criterios eran '0.5 - máximo', '1.0 - máximo', '15 - máximo'."
+    },
+    "color.lec_2": {
+      "type": "number", "decimals": 1, "min": 0, "min_exclusive": true,
+      "por_que": "Igual que la primera lectura."
+    },
+    "color.resultado": {
+      "type": "number", "decimals": 1, "min": 0, "min_exclusive": true,
+      "por_que": "El informe lo compara numéricamente contra el límite de la norma."
+    },
+
+    "pcb.aroclor_1242": {
+      "type": "number", "unit": "ppm", "decimals": 2,
+      "por_que": "El sistema anterior evaluaba el PCB con `.to_f >= 2`."
+    },
+    "pcb.aroclor_1254": { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "pcb.aroclor_1260": { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "pcb.contenido_total_de_pcbs": {
+      "type": "number", "unit": "ppm", "decimals": 2,
+      "por_que": "Es el valor que va al informe y se compara contra 2 ppm."
+    },
+
+    "viscocidad.constante": {
+      "type": "number", "decimals": 4, "min": 0, "min_exclusive": true,
+      "por_que": "Constante del viscosímetro. Multiplica al tiempo, así que un cero anula el resultado."
+    },
+    "viscocidad.resultado_mm2s": {
+      "type": "number", "unit": "mm2/s", "decimals": 2, "min": 0, "min_exclusive": true,
+      "por_que": "El sistema anterior lo evaluaba con `.to_f <= 12`. Una viscosidad de cero no existe."
+    },
+
+    "particulas.um_4":  { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo. La propia prueba declara la unidad 'Partículas/ml'." },
+    "particulas.um_6":  { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+    "particulas.um_10": { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+    "particulas.um_14": { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+    "particulas.um_21": { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+    "particulas.um_38": { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+    "particulas.um_70": { "type": "number", "unit": "partículas/mL", "decimals": 0, "por_que": "Conteo." },
+
+    "metales_en_aceite.aluminio_al": { "type": "number", "unit": "ppm", "decimals": 2, "label": "Aluminio (Al)", "por_que": "El sistema anterior comparaba cada metal con `.to_f > 0.05`. El símbolo del aluminio es Al, no AL." },
+    "metales_en_aceite.cobre_cu":    { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "metales_en_aceite.fierro_fe":   { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "metales_en_aceite.plomo_pb":    { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "metales_en_aceite.plata_ag":    { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "metales_en_aceite.estano_sn":   { "type": "number", "unit": "ppm", "decimals": 2, "por_que": "Igual." },
+    "metales_en_aceite.znic_zn": {
+      "type": "number", "unit": "ppm", "decimals": 2, "label": "Zinc (Zn)",
+      "por_que": "Errata del sistema anterior: decía 'Znic'. La plantilla del analista dice Zinc."
+    },
+    "metales_en_aceite.silicio_sn": {
+      "type": "number", "unit": "ppm", "decimals": 2, "label": "Silicio (Si)",
+      "por_que": "Errata grave: el símbolo del silicio es Si. 'Sn' es el estaño, que es la fila de arriba — dos metales distintos con el mismo símbolo en la misma tabla."
+    },
+
+    "inhibidor.resultado":  { "type": "number", "unit": "%",     "decimals": 3, "por_que": "El sistema anterior lo evaluaba con `.to_f < 0.08` y `>= 0.08 && <= 3`." },
+    "dbds.resultado":       { "type": "number", "unit": "mg/kg", "decimals": 2, "por_que": "Se evaluaba con `.to_f < 5`. Unidad tomada del parámetro `dbds`; el sistema anterior la rotulaba ppm — son equivalentes en aceite, pero el informe dice una sola." },
+    "fluidez.resultado":    { "type": "number", "unit": "°C",    "decimals": 0, "por_que": "Punto de fluidez. El informe dice 'punto de fluidez a X °C'." },
+    "inflamacion.resultado":{ "type": "number", "unit": "°C",    "decimals": 0, "por_que": "Punto de inflamación." },
+    "pasivador.resultado":  { "type": "number", "unit": "ppm",   "decimals": 1, "por_que": "Se evaluaba con `.to_f < 50`, `50..70`, `> 70`." },
+
+    "viscocidad.termometro_pp_la_01c": {
+      "type": "instrument",
+      "por_que": "La misma etiqueta es un instrumento en Tensión Interfacial. Viscosidad es la única de las 29 pruebas donde el sistema anterior la dejó como texto libre."
+    },
+    "viscocidad.viscosimetro_na": {
+      "type": "instrument",
+      "por_que": "Es el viscosímetro de bancada; su constante va en la columna de al lado. Sin instrumento no hay trazabilidad ISO 17025 de esta prueba."
+    },
+    "dbds.no_de_equipo": {
+      "type": "instrument",
+      "por_que": "En el resto de las pruebas la misma columna se llama 'Equipo PP-LA-01C' y es un instrumento."
+    },
+    "resistividad_volumetrica_25o.tipo_de_equipo": {
+      "type": "instrument",
+      "por_que": "La misma etiqueta es un instrumento en los tres Factor de Potencia. Acá el laboratorio nunca dio de alta el equipo (la única opción es '-'): queda pendiente cargarlo."
+    },
+    "resistividad_volumetrica_100o.tipo_de_equipo": {
+      "type": "instrument",
+      "por_que": "Igual que la de 25 °C."
+    }
+  },
+
+  "el_cero_no_es_una_medicion": {
+    "_doc": [
+      "Columnas donde el CERO del sistema anterior significa 'no medido' y no un",
+      "valor. Se les pone min = 0 con cota abierta, así la celda lo rechaza.",
+      "",
+      "Esto NO es una hipótesis: en TrafoDex, al anular esos ceros, aparecieron",
+      "626 ensayos con solo la rigidez por el método alterno y 104 con solo el",
+      "factor de potencia a 100 °C, que hasta ese momento se contaban como",
+      "mediciones reales de valor cero.",
+      "",
+      "La lista NO es uniforme y por eso va columna por columna: en los nueve",
+      "gases de la cromatografía el cero SÍ es real (gas no detectado), y en",
+      "sedimentos, metales, PCB y pasivador también puede serlo."
+    ],
+    "columnas": [
+      "rigidez_dielectrica.resultado_kv",
+      "rigidez_dielectrica_electrodos_planos.resultado_kv",
+      "factor_de_potencia_25o.resultado",
+      "factor_de_potencia_90o.resultado",
+      "factor_de_potencia_100o.resultado",
+      "tension_interfacial.tension_interfacial_aceite_mnm",
+      "tension_interfacial.densidad_aceite",
+      "tension_interfacial.densidad_agua",
+      "densidad_relativa.resultado",
+      "viscocidad.tiempo_segundos",
+      "resistividad_volumetrica_25o.rho_ocm",
+      "resistividad_volumetrica_25o.rho_ocm_2",
+      "resistividad_volumetrica_100o.rho_ocm",
+      "resistividad_volumetrica_100o.rho_ocm_2",
+      "numero_acido.peso_aceite_g",
+      "numero_acido.factor_koh",
+      "furanos.furfuraldehido_2"
+    ],
+    "por_que_furanos": [
+      "La fórmula del grado de polimerización hace log10(2FAL/1000): con cero da",
+      "infinito. Y el límite de detección del método es 10 ppb, así que",
+      "'no detectado' no es cero — es 'menor que 10'."
+    ]
+  },
+
+  "opciones": {
+    "_doc": [
+      "Columnas que son CLASIFICACIONES con vocabulario cerrado y el sistema",
+      "anterior tenía como texto libre. Con texto libre terminan conviviendo",
+      "'Corrosivo', 'corrosivo' y 'CORROSIVO' en la misma columna, y ningún",
+      "filtro ni informe puede agruparlas.",
+      "",
+      "Las listas salen de la hoja ACEITE del archivo con el que el laboratorio",
+      "redacta sus diagnósticos, y del selector real del sistema anterior.",
+      "Ninguna está inventada."
+    ],
+
+    "azufre_1275b.resultado": {
+      "opciones": ["No Corrosivo", "Corrosivo"],
+      "fuente": "Hoja de diagnóstico del laboratorio, criterio ASTM D1275-B."
+    },
+    "azufre_62535_48_horas.resultado": {
+      "opciones": ["No Corrosivo", "Corrosivo"],
+      "fuente": "Hoja de diagnóstico, texto de conclusión IEC 62535 anexo A."
+    },
+    "azufre_62535_72_horas.resultado": {
+      "opciones": ["Negativo sin depósitos", "Positivo sin depósitos", "Positivo con depósitos"],
+      "fuente": "Hoja de diagnóstico. El vocabulario es DISTINTO al de 48 horas porque a 72 horas se evalúa además el depósito de sulfuro de cobre en el papel."
+    },
+
+    "azufre_1275b.astm_d130": {
+      "opciones": [
+        "1A", "1B", "2A", "2B", "2C", "2D", "2E", "3A", "3B", "4A", "4B", "4C"
+      ],
+      "fuente": "Hoja de diagnóstico del laboratorio, escala de la lámina de cobre. Es la escala que el laboratorio usa: no incluye la clase 1 'recién pulido' ni la 3C, y no se completó por criterio propio."
+    },
+    "azufre_62535_48_horas.astm_d130": {
+      "opciones": [
+        "1A", "1B", "2A", "2B", "2C", "2D", "2E", "3A", "3B", "4A", "4B", "4C"
+      ],
+      "fuente": "La misma escala."
+    }
+  },
+
+  "pendientes": {
+    "_doc": [
+      "Lo que NO se toca hasta que el laboratorio lo confirme. Poblarlo por",
+      "criterio propio mandaría datos inventados a un informe firmado."
+    ],
+
+    "condicion_visual.resultado": [
+      "Es una clasificación y hoy es texto libre, pero el vocabulario del sistema",
+      "anterior tiene un problema que hay que resolver antes de cerrarlo:",
+      "",
+      "  'Brillante y Claro'            mineral, en servicio o tratado",
+      "  'Claro y libre de partículas'  silicona",
+      "  'B Y C'                        la abreviatura de la primera",
+      "  '-'                            sin criterio (conmutador, silicona nueva)",
+      "",
+      "'B Y C' y 'Brillante y Claro' son el MISMO resultado escrito de dos formas,",
+      "y '-' no es un resultado sino 'no aplica'. Unificarlos cambia lo que dicen",
+      "los informes históricos, así que es una decisión del laboratorio: ¿quedan",
+      "dos opciones y el 'no aplica' se resuelve dejando la celda vacía?"
+    ],
+
+    "particulas.codigo_iso_xyz": [
+      "Se deja como TEXTO a propósito. No es una lista cerrada: es el código ISO",
+      "4406, tres escalas concatenadas ('20/19/17'), cada una de 0 a 28 — miles",
+      "de combinaciones.",
+      "",
+      "Lo correcto sería derivarlo de los conteos de >4, >6 y >14 micras, que es",
+      "exactamente lo que hacía el sistema anterior al leerlo (lo partía por '/').",
+      "Eso necesita la tabla de escala de la norma, que el motor de fórmulas",
+      "—aritmética pura— todavía no puede expresar."
+    ],
+
+    "pcb.contenido_total_de_pcbs": [
+      "Parece la suma de los tres Aroclor y sería una columna calculada, pero el",
+      "sistema anterior no tenía esa fórmula y la plantilla del analista trae un",
+      "solo RESULTADO. Falta confirmarlo antes de calcularlo."
+    ],
+
+    "color.resultado": [
+      "Parece el promedio de las dos lecturas y sería una columna calculada. No",
+      "hay fórmula en el sistema anterior que lo respalde."
+    ],
+
+    "viscocidad.resultado_mm2s": [
+      "SÍ es calculable: la hoja de diagnóstico del laboratorio tiene la celda",
+      "escrita como 'tiempo × constante' (ASTM D445, v = C·t). Es la única",
+      "fórmula nueva con respaldo documental. Se deja como número hasta que el",
+      "laboratorio confirme que quiere que la calcule el sistema, porque pasarla",
+      "a calculada la vuelve de solo lectura."
+    ],
+
+    "azufre_62535_72_horas": [
+      "El ensayo de 72 horas evalúa el papel Y la lámina de cobre, pero solo",
+      "tiene una columna de resultado: la del papel. El sistema anterior tenía",
+      "una columna 'Resultado Lámina de Cobre' y la dio de baja. Si el",
+      "laboratorio informa las dos, falta una COLUMNA, no un cambio de tipo."
+    ],
+
+    "fechas_de_azufre": [
+      "Quedaron como fecha (era un error del importador, ya corregido). La",
+      "plantilla del analista registra FECHA y HORA en columnas separadas: si el",
+      "laboratorio necesita la hora, el tipo tiene que ser fecha con hora."
+    ],
+
+    "menor_al_limite_de_deteccion": [
+      "En PCB y en Metales el sistema anterior recibía valores como '< 2' y los",
+      "limpiaba antes de convertirlos a número. Al pasar esas columnas a número",
+      "ese matiz se pierde: 'menor al límite de detección' NO es cero.",
+      "",
+      "La bancada ya sabe representarlo —se escribe '<2' y se guarda el umbral",
+      "con su signo aparte—, así que el dato no se pierde. Lo que falta decidir",
+      "es cómo se informa: '<2 ppm' o 'no detectado'."
+    ]
+  }
+}

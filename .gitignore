@@ -64,3 +64,10 @@ docs/migracion/esquema/ori_aplicados.sql
 *.dump
 *.sql.gz
 *.sql.zip
+
+# Los logotipos del sistema viejo (marca de la empresa y sello del organismo
+# acreditador) que usa `php artisan report:compare` para reproducir el papel
+# anterior. NO se versionan: este repositorio es público, y ni una marca
+# registrada ni un sello de acreditación tienen por qué estar en él. Se copian
+# a mano desde los assets del sistema Ruby; el comando dice cómo si faltan.
+/storage/app/legacy-assets

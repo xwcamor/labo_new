@@ -29,27 +29,36 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 3mm 10mm 30mm 10mm; }
-        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 10px; margin: 0; }
+        /* El papel viejo APRIETA la letra para que cada ensayo entre en una
+           sola hoja: 10px de cuerpo con celdas de .3rem, y las tablas de
+           cabecera todavía más chicas. Si esto se agranda, la cromatografía se
+           parte en dos páginas y deja de ser el mismo papel. */
+        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 9px; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
         .grid, .grid td, .grid th { border: 1px solid #343a40; }
-        .grid td, .grid th { padding: .3rem; }
+        .grid td, .grid th { padding: 2.2px 3px; }
         .c { text-align: center; }
         .r { text-align: right; }
         .bar { background-color: #E8E8E8; }
         .red { color: #dc3545; }
-        .sec { font-size: 12px; font-weight: bold; padding-top: 6px; display: block; }
-        .ttl { font-size: 14px; font-weight: bold; }
+        .sec { font-size: 10px; font-weight: bold; padding-top: 4px; display: block; }
+        .ttl { font-size: 12px; font-weight: bold; }
         .brk { page-break-before: always; }
-        .legend { font-size: 8px; font-style: italic; }
-        .cond { width: 500px; }
-        .cond td { border: 1px solid #343a40; padding: .3rem; }
+        .legend { font-size: 7px; font-style: italic; }
+        .cond { width: 420px; }
+        .cond td { border: 1px solid #343a40; padding: 2.2px 3px; }
         .foot { position: fixed; bottom: -26mm; left: 0; right: 0; }
-        .foot .legal { font-size: 8px; text-align: justify; }
+        .foot .legal { font-size: 7px; text-align: justify; }
         .foot .company { font-size: 10px; text-align: center; font-weight: bold;
                          border-bottom: 1px solid #dc3545; padding-bottom: 2px; margin-top: 4px; }
-        .foot .addr { font-size: 10px; margin-top: 4px; }
-        .sign { margin-top: 8px; }
-        .sign .line { border-top: 1px solid #343a40; width: 200px; margin: 0 auto; }
+        .foot .addr { font-size: 9px; margin-top: 3px; }
+        .sign { margin-top: 10px; }
+        .sign td { vertical-align: bottom; text-align: center; padding: 0 6px; }
+        .sign .line { border-top: 1px solid #343a40; margin: 2px 0 3px; }
+        .sign .stamp { height: 34px; }
+        .sign .rel { font-size: 8px; color: #555; }
+        .sign .who { font-weight: bold; }
+        .sign .role { font-size: 8px; color: #555; }
     </style>
 </head>
 <body>
@@ -240,16 +249,26 @@
         </table>
     @endif
 
-    <table class="sign"><tr>
-        <td style="width:22%"></td>
-        <td style="width:22%" class="r"><br><br><br>Reportado por:</td>
-        <td style="width:34%" class="c">
-            <br><br><br>
-            <div class="line"></div>
-            {{ $firma['nombre'] }}<br>{{ $firma['cargo'] }}
-        </td>
-        <td></td>
-    </tr></table>
+    {{-- Las firmas de quienes aprobaron el informe. El papel viejo tenía UNA
+         ("Reportado por:"); el laboratorio hoy mantiene una lista con su
+         relación y su cargo, y todas van al pie de cada hoja. --}}
+    @if (! empty($firmantes))
+        <table class="sign"><tr>
+            @foreach ($firmantes as $f)
+                <td style="width:{{ (int) (100 / max(count($firmantes), 1)) }}%">
+                    @if ($f['imagen'])
+                        <img src="{{ $f['imagen'] }}" class="stamp">
+                    @else
+                        <br><br>
+                    @endif
+                    <div class="line"></div>
+                    <div class="rel">{{ $f['relacion'] }}</div>
+                    <div class="who">{{ $f['nombre'] }}</div>
+                    <div class="role">{{ $f['cargo'] }}</div>
+                </td>
+            @endforeach
+        </tr></table>
+    @endif
 
 </div>
 @endforeach

@@ -176,8 +176,11 @@ class CompareLegacyReportCommand extends Command
         $pdf = Pdf::loadView('lab_management/reports/legacy/report', [
             'paginas' => $paginas,
             'numero'  => 'REP-LAB-' . $muestra->year . '-' . str_pad((string) $muestra->number, 4, '0', STR_PAD_LEFT),
-            'logo'    => '<span style="font-size:16px;font-weight:bold;color:#354A5F">HITACHI ENERGY</span>',
-            'anab'    => '<span style="font-size:11px;font-weight:bold;color:#7a7a7a">[ sello ANAB ]</span>',
+            // Los logos SON los del sistema viejo: están en su carpeta de
+            // assets y se copian a `storage/app/legacy-assets`. Un recuadro con
+            // la palabra "ANAB" no sirve para comparar un papel acreditado.
+            'logo'    => $this->imagenLegado('hitachi_logo_new.png', 140, 70),
+            'anab'    => $this->imagenLegado('anab_logo.png', 100, 90),
             'cli' => [
                 'nombre'      => $re?->customer?->name ?? '',
                 'direccion'   => $re?->customer?->address ?? '',
@@ -218,7 +221,7 @@ class CompareLegacyReportCommand extends Command
                 'en' => 'This test is accredited under the laboratory\'s ISO/IEC 17025 accreditation issued by the ANSI-ASQ National Accreditation Board. Refer to certificate and scope of accreditation AT-2596.',
             ],
             'legal' => 'Los resultados obtenidos en este reporte solo corresponden a las muestras analizadas bajo las condiciones de ensayo. Cuando la muestra es proporcionada por el cliente interno o externo los resultados se aplican a la muestra como se recibio. Hitachi Energy Perú S.A. Cuando la muestra es proporcionada por el cliente interno o externo los resultados se aplican a la muestra como se recibio. Hitachi Energy Perú S.A. no se responsabiliza cuando algun componente de este informe ha sido proporcionado por el cliente y tampoco por el uso inadecuado de este documento. Hitachi Energy Perú S.A. no hace ninguna garantía o representación expresa o implícita en cuanto a condición, productividad o correcto funcionamiento de cualquier equipo u otros bienes que pueda ser objeto de este informe o depender de ella para la razón que sea. Se prohíbe la reproducción total o parcial de este documento sin autorización previa escrita. Los resultados de los ensayos no deben ser utilizados como una certificación de conformidad o como un certificado del sistema de calidad. Los análisis, opiniones o interpretaciones contenidas en este informe se basan en el material recolectado y representan el mejor juicio de Hitachi Energy Perú S.A. y no son refrendadas por el ente acreditador',
-            'firma' => ['nombre' => '', 'cargo' => ''],
+            'firmantes' => $this->firmantes(),
         ])->setPaper('a4');
 
         // El viejo numeraba con el JavaScript de wkhtmltopdf. dompdf no lo
@@ -431,6 +434,74 @@ class CompareLegacyReportCommand extends Command
             'rig', 'rig877' => (string) (int) $valor,
             default => (string) ($r->value_text ?? $this->num($valor)),
         };
+    }
+
+    /**
+     * Una imagen del sistema viejo, resuelta a data-URI.
+     *
+     * DomPDF no sale a buscar archivos por la red, y el papel viejo llevaba
+     * estos dos: el logotipo de la empresa y el sello del organismo que la
+     * acredita. Si el archivo no está, se devuelve el rótulo entre corchetes
+     * para que la hoja siga siendo legible y quede claro que falta.
+     */
+    private function imagenLegado(string $archivo, int $ancho, int $alto): string
+    {
+        $ruta = storage_path('app/legacy-assets/' . $archivo);
+
+        if (! is_file($ruta)) {
+            // No están versionados a propósito: este repositorio es público y
+            // ni una marca registrada ni un sello de acreditación tienen por
+            // qué estar en él. Se copian del sistema viejo:
+            //   cp <labo_old>/app/assets/images/{hitachi_logo_new,anab_logo}.png \
+            //      storage/app/legacy-assets/
+            return '<span style="font-size:9px;color:#7a7a7a">[ falta ' . e($archivo)
+                . ' — copiar de los assets del sistema viejo a storage/app/legacy-assets ]</span>';
+        }
+
+        $datos = base64_encode((string) file_get_contents($ruta));
+
+        return '<img src="data:image/png;base64,' . $datos . '" width="' . $ancho . '" height="' . $alto . '">';
+    }
+
+    /**
+     * Quiénes firman. El papel viejo imprimía UNA firma ("Reportado por"); el
+     * laboratorio hoy tiene una lista con su relación y su cargo. Se imprimen
+     * todos: comparar contra un solo firmante escondería justamente el cambio.
+     *
+     * @return array<int,array{relacion:string,nombre:string,cargo:?string,imagen:?string}>
+     */
+    private function firmantes(): array
+    {
+        $tenantId = \App\Models\Tenant::query()->orderBy('id')->value('id');
+
+        return \App\Models\Signature::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with('user:id,name,signature,auto_sign_reports')
+            ->orderBy('sort_order')->orderBy('id')
+            ->get()
+            ->map(fn ($f) => [
+                // La RELACIÓN (Aprobado por / Revisado por) y el CARGO son dos
+                // cosas distintas: el papel viejo solo tenía "Reportado por".
+                'relacion' => __('reports.relation.' . $f->relation),
+                'nombre'   => $f->printedName(),
+                'cargo'    => $f->title,
+                // La imagen se estampa con el mismo criterio que el informe
+                // real: solo si el firmante la tiene cargada.
+                'imagen'   => $this->firmaComoImagen($f),
+            ])
+            ->all();
+    }
+
+    private function firmaComoImagen(\App\Models\Signature $firma): ?string
+    {
+        $ruta = $firma->imagePath();
+
+        if (! $ruta || ! is_file($ruta)) {
+            return null;
+        }
+
+        return 'data:image/png;base64,' . base64_encode((string) file_get_contents($ruta));
     }
 
     private function num(mixed $v): string

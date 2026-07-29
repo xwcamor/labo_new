@@ -302,12 +302,16 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::get('samples/{sample}/reports/new', [SampleReportController::class, 'create'])->name('sample_reports.create');
         Route::get('reports/{report}/edit', [SampleReportController::class, 'edit'])->name('sample_reports.edit');
         Route::get('reports/{report}/pdf', [TestReportController::class, 'reportPdf'])->name('sample_reports.pdf');
+        // Los valores detectados y el análisis de resultados del informe.
+        Route::get('reports/{report}/analysis', [SampleReportController::class, 'analysis'])->name('sample_reports.analysis');
     });
 
     Route::middleware('permission:receptions.edit')->group(function () {
         Route::post('samples/{sample}/reports', [SampleReportController::class, 'store'])->name('sample_reports.store');
         Route::put('reports/{report}', [SampleReportController::class, 'update'])->name('sample_reports.update');
         Route::post('reports/{report}/issue', [SampleReportController::class, 'issue'])->name('sample_reports.issue');
+        Route::post('reports/{report}/autodiagnose', [SampleReportController::class, 'autodiagnose'])->name('sample_reports.autodiagnose');
+        Route::put('reports/{report}/analysis', [SampleReportController::class, 'saveAnalysis'])->name('sample_reports.analysis.save');
     });
 
     Route::middleware('permission:receptions.delete')->group(function () {

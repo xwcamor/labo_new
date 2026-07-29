@@ -24,7 +24,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Textarea, Tooltip } from 'ant-design-vue';
 import {
     DeleteOutlined, EditOutlined, ExperimentOutlined, FileTextOutlined,
-    FilePdfOutlined, InboxOutlined, PlusOutlined, ThunderboltFilled,
+    FilePdfOutlined, InboxOutlined, PlusOutlined, SolutionOutlined, ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -37,6 +37,7 @@ import SampleEquipmentSelect from '@/Components/Receptions/SampleEquipmentSelect
 import SampleProgress from '@/Components/Receptions/SampleProgress.vue';
 import AssignTestsModal from '@/Components/Receptions/AssignTestsModal.vue';
 import ReportFormModal from '@/Components/Receptions/ReportFormModal.vue';
+import ReportAnalysisModal from '@/Components/Receptions/ReportAnalysisModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { plainDate, testStatusColor } from './config/format';
@@ -163,6 +164,15 @@ const emitir = (report) => {
             { preserveScroll: true },
         ),
     });
+};
+
+// ── Resultados y diagnóstico del informe ─────────────────────────────────
+const analysisOpen   = ref(false);
+const analysisReport = ref(null);
+
+const verAnalisis = (report) => {
+    analysisReport.value = report;
+    analysisOpen.value = true;
 };
 
 // ── Baja de una muestra ──────────────────────────────────────────────────
@@ -476,6 +486,15 @@ const reportColumns = computed(() => [
                                 >
                                     <EditOutlined /> {{ $t('global.edit') }}
                                 </Button>
+                                <!-- Los valores detectados y el párrafo que va
+                                     impreso. Se abre también con el informe ya
+                                     emitido, de solo lectura: hay que poder
+                                     mirar qué se firmó. -->
+                                <Tooltip :title="$t('sample_reports.analysis_tab')">
+                                    <Button size="small" @click="verAnalisis(record)">
+                                        <SolutionOutlined />
+                                    </Button>
+                                </Tooltip>
                                 <Button
                                     v-if="canEdit && record.status === 'draft'"
                                     size="small"
@@ -512,6 +531,11 @@ const reportColumns = computed(() => [
             v-model:open="reportOpen"
             :sample="reportSample"
             :report="reportRecord"
+        />
+
+        <ReportAnalysisModal
+            v-model:open="analysisOpen"
+            :report="analysisReport"
         />
 
         <Modal

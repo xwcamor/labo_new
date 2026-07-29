@@ -1,6 +1,23 @@
 <?php
 
 return [
+    'no_criteria' => 'No criterion',
+    'analysis_title' => 'Result analysis',
+    'analysis_tab' => 'Results and diagnosis',
+    'analysis_intro' => 'The text is proposed by the system from which parameters fell inside or outside the limits, for this sample oil and equipment type. Correct it if the case calls for it: what is corrected by hand is not overwritten automatically.',
+    'autodiagnose' => 'Automatic diagnosis',
+    'autodiagnose_confirm' => 'Recomposes ALL paragraphs from the results and replaces anything written by hand.',
+    'diagnosed' => 'Analysis regenerated from the results.',
+    'analysis_saved' => 'Analysis saved.',
+    'analysis_empty' => 'The system has no template for this oil and equipment type, so it proposes no text. Write it by hand.',
+    'analysis_edited' => 'Corrected by hand',
+    'analysis_readonly' => 'The report is issued: its analysis has already been printed and cannot be edited.',
+    'no_sections' => 'There are no validated tests to analyse yet.',
+    'col_item' => 'Item',
+    'col_test' => 'Test',
+    'col_unit' => 'Unit',
+    'col_limit' => 'Guidance value',
+    'col_result' => 'Result',
     'plural'   => 'Reports',
     'singular' => 'Report',
     'tab'      => 'Reports',

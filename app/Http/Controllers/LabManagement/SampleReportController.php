@@ -71,6 +71,93 @@ class SampleReportController extends Controller
         return response()->json($this->formulario($sample, $report));
     }
 
+    /**
+     * Los valores que se detectaron y el análisis de resultados.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL TEXTO SE COMPONE SOLO, PERO LO FIRMA UNA PERSONA                  │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Es la pantalla "Análisis de Resultado de Resultados" del sistema
+     * anterior: por familia de ensayo, los valores medidos con su valor de
+     * orientación, y debajo el párrafo que va impreso. El párrafo lo propone el
+     * motor a partir de qué parámetros quedaron dentro y fuera de norma, y el
+     * analista lo corrige si el caso lo pide.
+     *
+     * Lo que sí cambia respecto del anterior: el motor no inventa. Si ninguna
+     * plantilla cubre la combinación de aceite y equipo, devuelve vacío y lo
+     * dice, en vez de escribir una frase genérica que después se firma sin
+     * leerla.
+     */
+    public function analysis(SampleReport $report): JsonResponse
+    {
+        $report->loadMissing(['sample', 'visibilities']);
+
+        $datos = app(\App\Services\Lab\TestReportPayload::class)
+            ->forSample($report->sample, $report);
+
+        return response()->json([
+            'code'     => $report->code,
+            'sample'   => $report->sample->code,
+            'editable' => $report->isDraft(),
+            // Una hoja por familia, con sus filas: es el mismo corte que usa el
+            // informe impreso, así que la pantalla y el papel dicen lo mismo.
+            'sections' => $datos['sections'],
+            'analysis' => $datos['analysis'],
+            'notes'    => $datos['notes'],
+        ]);
+    }
+
+    /**
+     * Vuelve a componer los párrafos desde los resultados.
+     *
+     * Pisa lo escrito a mano: es lo que se le pide al botón. Sin ese pedido
+     * explícito el motor respeta siempre lo que redactó una persona.
+     */
+    public function autodiagnose(SampleReport $report): RedirectResponse
+    {
+        if ($report->isIssued()) {
+            return back()->withErrors(['status' => __('sample_reports.issued_is_final')]);
+        }
+
+        app(\App\Services\Lab\DiagnosisTextService::class)
+            ->generate($report->sample, pisarEditados: true);
+
+        return back()->with('success', __('sample_reports.diagnosed'));
+    }
+
+    /**
+     * Guarda los párrafos corregidos a mano.
+     *
+     * Quedan marcados como editados (`is_edited`), y por eso el motor no los
+     * vuelve a pisar por su cuenta: el papel dice lo que el analista decidió,
+     * no lo último que compuso una fórmula.
+     */
+    public function saveAnalysis(Request $request, SampleReport $report): RedirectResponse
+    {
+        if ($report->isIssued()) {
+            return back()->withErrors(['status' => __('sample_reports.issued_is_final')]);
+        }
+
+        $datos = $request->validate([
+            'bodies'   => ['present', 'array'],
+            'bodies.*' => ['nullable', 'string', 'max:4000'],
+        ]);
+
+        foreach ($datos['bodies'] as $familia => $texto) {
+            \App\Models\SampleDiagnosis::updateOrCreate(
+                ['sample_id' => $report->sample_id, 'family' => (string) $familia],
+                [
+                    'body'      => $texto,
+                    'is_edited' => true,
+                    'edited_by' => $request->user()?->id,
+                    'tenant_id' => $report->tenant_id,
+                ],
+            );
+        }
+
+        return back()->with('success', __('sample_reports.analysis_saved'));
+    }
+
     public function store(Request $request, Sample $sample): RedirectResponse
     {
         $datos = $this->validated($request);

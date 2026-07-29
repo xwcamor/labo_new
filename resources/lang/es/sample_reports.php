@@ -1,6 +1,23 @@
 <?php
 
 return [
+    'no_criteria' => 'Sin criterio',
+    'analysis_title' => 'Análisis de resultados',
+    'analysis_tab' => 'Resultados y diagnóstico',
+    'analysis_intro' => 'El texto lo propone el sistema a partir de qué parámetros quedaron dentro y fuera de norma, para el aceite y el tipo de equipo de esta muestra. Corríjalo si el caso lo pide: lo que se corrige a mano no se vuelve a pisar solo.',
+    'autodiagnose' => 'Diagnóstico automático',
+    'autodiagnose_confirm' => 'Vuelve a componer TODOS los párrafos desde los resultados y reemplaza lo que se haya escrito a mano.',
+    'diagnosed' => 'Análisis regenerado desde los resultados.',
+    'analysis_saved' => 'Análisis guardado.',
+    'analysis_empty' => 'El sistema no tiene una plantilla para este aceite y este tipo de equipo, así que no propone texto. Escríbalo a mano.',
+    'analysis_edited' => 'Corregido a mano',
+    'analysis_readonly' => 'El informe está emitido: su análisis ya salió impreso y no se edita.',
+    'no_sections' => 'Todavía no hay ensayos validados que analizar.',
+    'col_item' => 'Ítem',
+    'col_test' => 'Ensayo',
+    'col_unit' => 'Unidad',
+    'col_limit' => 'Valor de orientación',
+    'col_result' => 'Resultado',
     'plural'   => 'Informes',
     'singular' => 'Informe',
     'tab'      => 'Informes',

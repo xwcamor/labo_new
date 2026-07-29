@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'measured_in' => 'Measured in',
+    'limits' => 'Limits',
+    'not_measured' => 'No test measures it yet',
+    'no_limits' => 'No limits',
     'singular'      => 'Analyte',
     'plural'        => 'Analytes',
     'record'        => 'analyte',

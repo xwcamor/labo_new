@@ -18,6 +18,11 @@ export const analytesTableColumns = (t, { isSuper = false, isMobile = false } = 
     ...(isSuper ? [
         { title: t('tenants.singular'), dataIndex: ['tenant', 'name'], key: 'tenant', width: 180, sorter: true, mobile: { role: 'meta', icon: ApartmentOutlined } },
     ] : []),
+    // Dónde se mide y contra qué se juzga: es la relación con las pruebas, que
+    // era justamente lo que no se veía. Sin ordenamiento porque son recuentos
+    // de una relación, no columnas de la tabla.
+    { title: t('analytes.measured_in'), key: 'measured_in', width: 260, mobile: { role: 'meta' } },
+    { title: t('analytes.limits'),      key: 'limits',      width: 120, align: 'right', mobile: { role: 'meta' } },
     { title: t('analytes.is_active'), dataIndex: 'is_active',   key: 'status',     width: 150, sorter: (a, b) => Number(a.is_active) - Number(b.is_active), mobile: { role: 'status' } },
     { title: t('global.created_at'),   dataIndex: 'created_at',  key: 'created_at', sorter: true, width: 180, mobile: { role: 'meta', icon: CalendarOutlined }, defaultHidden: true },
     { title: t('global.actions'),      key: 'actions',           width: isMobile ? 56 : 150, fixed: 'right', align: 'center', alwaysVisible: true, mobile: { role: 'actions' } },

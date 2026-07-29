@@ -531,6 +531,27 @@ const goDelete = (record) => router.visit(route('business_management.analytes.de
                         </div>
                     </template>
 
+                    <!-- Dónde se mide: la prueba y su columna. Es la relación
+                         que faltaba a la vista; sin ella el parámetro parecía un
+                         catálogo suelto. -->
+                    <template v-else-if="column.key === 'measured_in'">
+                        <div v-if="record.fields?.length" class="an-where">
+                            <span v-for="f in record.fields.slice(0, 3)" :key="f.id" class="an-where__item">
+                                {{ f.definition?.name ?? '—' }}
+                                <span class="an-where__col">· {{ f.label }}</span>
+                            </span>
+                            <span v-if="record.fields.length > 3" class="an-where__more">
+                                +{{ record.fields.length - 3 }}
+                            </span>
+                        </div>
+                        <span v-else class="an-none">{{ $t('analytes.not_measured') }}</span>
+                    </template>
+
+                    <template v-else-if="column.key === 'limits'">
+                        <span v-if="record.limits_count > 0">{{ record.limits_count }}</span>
+                        <span v-else class="an-none">{{ $t('analytes.no_limits') }}</span>
+                    </template>
+
                     <template v-else-if="column.key === 'tenant'">
                         <Tag v-if="record.tenant" color="blue" :bordered="false">
                             {{ record.tenant.name }}
@@ -616,6 +637,11 @@ const goDelete = (record) => router.visit(route('business_management.analytes.de
 </template>
 
 <style scoped>
+.an-where { display: flex; flex-direction: column; gap: 1px; font-size: 0.78rem; line-height: 1.4; }
+.an-where__col  { color: var(--color-text-muted); }
+.an-where__more { color: var(--color-text-muted); font-size: 0.72rem; }
+.an-none { color: var(--color-text-muted); font-size: 0.78rem; }
+
 .page-header {
     display: flex;
     justify-content: space-between;

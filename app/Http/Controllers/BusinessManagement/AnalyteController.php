@@ -61,7 +61,14 @@ class AnalyteController extends Controller
 
         $analytes = Analyte::query()
             ->select('analytes.*')
-            ->with($with)
+            // DÓNDE SE MIDE cada parámetro y CONTRA QUÉ se juzga. Sin estas dos
+            // columnas el módulo se leía como un catálogo suelto sin relación
+            // con las pruebas —era la queja, y era exacta—: el parámetro no se
+            // mide solo, se mide en una COLUMNA de una prueba, y esa
+            // declaración (`test_fields.output_analyte_id`) es la que convierte
+            // el número tipeado en un resultado consultable.
+            ->with($with + ['fields:id,output_analyte_id,test_definition_id,label', 'fields.definition:id,name'])
+            ->withCount(['fields as measured_in_count', 'specLimits as limits_count'])
             ->orderByFavoriteFirst($userId)
             ->filter($request)
             ->paginate($perPage)

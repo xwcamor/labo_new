@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'measured_in' => 'Medido en',
+    'limits' => 'Límites',
+    'not_measured' => 'Ninguna prueba lo mide todavía',
+    'no_limits' => 'Sin límites',
     'singular'      => 'Parámetro',
     'plural'        => 'Parámetros',
     'record'        => 'parámetro',

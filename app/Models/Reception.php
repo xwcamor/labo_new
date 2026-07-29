@@ -86,7 +86,7 @@ class Reception extends Model
 
     public function sampler(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'sampler_id');
+        return $this->belongsTo(Sampler::class, 'sampler_id');
     }
 
     public function confirmer(): BelongsTo
@@ -127,12 +127,20 @@ class Reception extends Model
     }
 
     /**
-     * Quién tomó la muestra: el usuario del sistema, o el nombre suelto.
+     * Quién tomó la muestra.
      *
-     * El muestreador no siempre es alguien del laboratorio —a veces es personal
-     * del cliente o un tercero—, y obligar a darlo de alta como usuario para
-     * poder registrarlo es lo que llevaba al sistema anterior a tener una tabla
-     * `samplers` con nombres reales sueltos.
+     * Sale del CATÁLOGO de muestreadores, no de los usuarios del sistema. El
+     * catálogo real del laboratorio tiene doce entradas y ninguna es una
+     * persona: LABORATORIO, SERVICE CAMPO, REPARACIONES, CLIENTE INTERNO,
+     * CLIENTE, PPMV, PPHV, PA, PS, DM, ABB, SUBCONTRATISTA. Son áreas propias,
+     * el cliente y terceros, y es lo que imprime el informe acreditado
+     * ("Muestra extraída por: Cliente").
+     *
+     * Esto estuvo apuntando a `users`, con un texto libre al lado como escape.
+     * Con eso, "Cliente", "cliente" y "CLIENTE " eran tres muestreadores
+     * distintos: no se podía filtrar ni contar, y el informe imprimía lo que
+     * alguien tipeó ese día. `sampler_name` queda solo hasta traspasar los datos
+     * ya cargados.
      */
     public function samplerLabel(): ?string
     {

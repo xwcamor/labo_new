@@ -8,6 +8,7 @@ use App\Models\Equipment;
 use App\Models\OilType;
 use App\Models\Reception;
 use App\Models\Sample;
+use App\Models\Sampler;
 use App\Models\SampleTest;
 use App\Models\TestDefinition;
 use App\Models\User;
@@ -101,7 +102,7 @@ class ReceptionController extends Controller
         return Inertia::render('Receptions/Form', [
             'reception' => null,
             'customers' => Customer::orderBy('name')->get(['id', 'slug', 'name']),
-            'samplers'  => User::orderBy('name')->get(['id', 'name']),
+            'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
             // Solo para mostrarlo: entre que se ve y se confirma pueden entrar
             // otras recepciones, así que el número real es el que se emite.
             'nextNumber' => Sample::formatCode(
@@ -193,7 +194,7 @@ class ReceptionController extends Controller
         return Inertia::render('Receptions/Form', [
             'reception' => $reception,
             'customers' => Customer::orderBy('name')->get(['id', 'slug', 'name']),
-            'samplers'  => User::orderBy('name')->get(['id', 'name']),
+            'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
             'nextNumber' => null,
         ]);
     }
@@ -347,7 +348,7 @@ class ReceptionController extends Controller
             'code'          => ['nullable', 'string', 'max:30'],
             'service_order' => ['nullable', 'string', 'max:60'],
             'customer_id'   => ['required', 'integer', 'exists:customers,id'],
-            'sampler_id'    => ['nullable', 'integer', 'exists:users,id'],
+            'sampler_id'    => ['nullable', 'integer', 'exists:samplers,id'],
             'sampler_name'  => ['nullable', 'string', 'max:120'],
             'received_at'   => ['required', 'date'],
             'due_at'        => ['nullable', 'date', 'after_or_equal:received_at'],

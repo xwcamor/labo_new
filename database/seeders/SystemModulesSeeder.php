@@ -68,6 +68,7 @@ class SystemModulesSeeder extends Seeder
             // igual para ver que para borrar; acá cada acción es su permiso.
             ['name' => 'Analytes',         'permission_key' => 'analytes'],
             ['name' => 'Instruments',      'permission_key' => 'instruments'],
+            ['name' => 'Samplers',        'permission_key' => 'samplers'],
             ['name' => 'TestGroups',       'permission_key' => 'test_groups'],
             ['name' => 'TestDefinitions',  'permission_key' => 'test_definitions'],
             ['name' => 'Receptions',       'permission_key' => 'receptions'],

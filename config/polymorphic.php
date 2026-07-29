@@ -116,6 +116,10 @@ return [
             'model'      => \App\Models\TestDefinition::class,
             'show_route' => 'lab_management.test_definitions.show',
         ],
+        'samplers' => [
+            'model'      => \App\Models\Sampler::class,
+            'show_route' => 'business_management.samplers.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

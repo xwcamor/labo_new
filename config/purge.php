@@ -148,6 +148,10 @@ return [
             'model' => \App\Models\TestDefinition::class,
             'days'  => 90,
         ],
+        'samplers' => [
+            'model' => \App\Models\Sampler::class,
+            'days'  => 90,
+        ],
         // Suma modulos nuevos aqui:
         // 'patients' => [...],
         // 'doctors'  => [...],

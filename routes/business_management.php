@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\SamplerController;
 use App\Http\Controllers\BusinessManagement\InstrumentController;
 use App\Http\Controllers\BusinessManagement\EquipmentController;
 use App\Http\Controllers\BusinessManagement\AnalyteController;
@@ -946,5 +947,79 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('instruments/{instrument}/lock',   [InstrumentController::class, 'lock'])->name('instruments.lock');
         Route::post('instruments/{instrument}/unlock', [InstrumentController::class, 'unlock'])->name('instruments.unlock');
+    });
+
+
+    // ── Samplers ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('samplers/trash',                  [SamplerController::class, 'trash'])->name('samplers.trash');
+        Route::post('samplers/bulk_restore',          [SamplerController::class, 'bulkRestore'])->name('samplers.bulk_restore');
+        Route::post('samplers/{slug}/restore',        [SamplerController::class, 'restore'])->name('samplers.restore');
+        Route::get('samplers/{slug}/restore',         fn () => redirect()->route('business_management.samplers.trash'));
+        Route::delete('samplers/{slug}/force_delete', [SamplerController::class, 'forceDelete'])->name('samplers.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:samplers.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('samplers/export_excel', [SamplerController::class, 'exportExcel'])->name('samplers.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('samplers/export_pdf',   [SamplerController::class, 'exportPdf'])->name('samplers.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('samplers/export_word',  [SamplerController::class, 'exportWord'])->name('samplers.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('samplers/export_csv',   [SamplerController::class, 'exportCsv'])->name('samplers.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:samplers.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('samplers/import',          [SamplerController::class, 'import'])->name('samplers.import');
+        Route::get('samplers/import_template',  [SamplerController::class, 'importTemplate'])->name('samplers.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:samplers.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('samplers/bulk_delete',     [SamplerController::class, 'bulkDelete'])->name('samplers.bulk_delete');
+        Route::post('samplers/bulk_set_active', [SamplerController::class, 'bulkSetActive'])->name('samplers.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:samplers.delete')->group(function () {
+        Route::post('samplers/undo_last_delete', [SamplerController::class, 'undoLastDelete'])->name('samplers.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:samplers.edit')->group(function () {
+        Route::get('samplers/edit_all',         [SamplerController::class, 'editAll'])->name('samplers.edit_all');
+        Route::post('samplers/edit_all/update', [SamplerController::class, 'editAllUpdate'])->name('samplers.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:samplers.create')->group(function () {
+        Route::get('samplers/create', [SamplerController::class, 'create'])->name('samplers.create');
+        Route::post('samplers',       [SamplerController::class, 'store'])->name('samplers.store');
+        Route::post('samplers/{sampler}/duplicate', [SamplerController::class, 'duplicate'])->name('samplers.duplicate');
+    });
+
+    Route::middleware('permission:samplers.view')->group(function () {
+        Route::get('samplers',                [SamplerController::class, 'index'])->name('samplers.index');
+        Route::get('samplers/{sampler}',  [SamplerController::class, 'show'])->name('samplers.show');
+    });
+    Route::middleware('permission:samplers.edit')->group(function () {
+        Route::get('samplers/{sampler}/edit', [SamplerController::class, 'edit'])->name('samplers.edit');
+        Route::put('samplers/{sampler}',      [SamplerController::class, 'update'])->name('samplers.update');
+    });
+    Route::middleware('permission:samplers.delete')->group(function () {
+        Route::get('samplers/{sampler}/delete',        [SamplerController::class, 'delete'])->name('samplers.delete');
+        Route::delete('samplers/{sampler}/deleteSave', [SamplerController::class, 'deleteSave'])->name('samplers.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('samplers/{sampler}/lock',   [SamplerController::class, 'lock'])->name('samplers.lock');
+        Route::post('samplers/{sampler}/unlock', [SamplerController::class, 'unlock'])->name('samplers.unlock');
     });
 });

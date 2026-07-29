@@ -24,6 +24,7 @@ return [
     'test_groups'        => 'Test groups',
     'analytes'           => 'Parameters',
     'instruments'        => 'Instruments',
+    'samplers'           => 'Samplers',
 
     // Diagnostic engine catalogues. The key was missing and the menu showed
     // the raw "SIDEBAR.GROUP_DIAGNOSTICS".

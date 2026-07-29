@@ -69,6 +69,7 @@ import {
     FolderOpenOutlined,
     ProfileOutlined,
     ToolOutlined,
+    UserSwitchOutlined,
     FundOutlined,
     DotChartOutlined,
 } from '@ant-design/icons-vue';
@@ -727,6 +728,11 @@ const menuStructure = computed(() => [
                 key: 'instruments', label: t('sidebar.instruments'), icon: ToolOutlined,
                 href: route('business_management.instruments.index'), inertia: true,
                 visible: () => can('instruments.view'),
+            },
+            {
+                key: 'samplers', label: t('sidebar.samplers'), icon: UserSwitchOutlined,
+                href: route('business_management.samplers.index'), inertia: true,
+                visible: () => can('samplers.view'),
             },
         ],
     },

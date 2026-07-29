@@ -190,7 +190,14 @@ class ReceptionController extends Controller
 
         $reception->update($data);
 
-        return back()->with('success', __('receptions.saved'));
+        // A la FICHA, no de vuelta al formulario. Guardar es el final de la
+        // edición: quedarse en el formulario deja al usuario mirando los mismos
+        // campos sin saber si el cambio entró, y lo empuja a guardar otra vez.
+        // La ficha es además donde está el trabajo real de la entrega: las
+        // muestras, sus equipos y las pruebas que se les piden.
+        return redirect()
+            ->route('lab_management.receptions.show', $reception)
+            ->with('success', __('receptions.saved'));
     }
 
     /**

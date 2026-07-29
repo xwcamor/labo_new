@@ -128,6 +128,7 @@ class DatabaseSeeder extends Seeder
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
             SamplersSeeder::class,
+            SignaturesSeeder::class,
             LabAnalyteMapSeeder::class,
 
             // ── Contra qué se compara el resultado ──────────────────────

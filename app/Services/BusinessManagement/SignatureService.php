@@ -22,7 +22,7 @@ class SignatureService
 {
     public function create(array $data): Signature
     {
-        $signature = new Signature($data);
+        $signature = new Signature($this->conImagen($data));
         $signature->created_by = auth()->id();
         $signature->save();
         return $signature;
@@ -30,8 +30,39 @@ class SignatureService
 
     public function update(Signature $signature, array $data): Signature
     {
-        $signature->update($data);
+        $signature->update($this->conImagen($data, $signature));
         return $signature;
+    }
+
+    /**
+     * Guarda la firma escaneada, si vino una.
+     *
+     * Va al disco `public` como el resto de las imágenes del proyecto. Sin
+     * archivo nuevo la clave se saca del arreglo: mandarla en nulo borraría la
+     * firma existente cada vez que alguien edita el cargo.
+     *
+     * @param  array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    private function conImagen(array $data, ?Signature $signature = null): array
+    {
+        $archivo = $data['image'] ?? null;
+
+        if (! $archivo instanceof \Illuminate\Http\UploadedFile) {
+            unset($data['image']);
+
+            return $data;
+        }
+
+        // La anterior se borra: una firma reemplazada no tiene por qué seguir
+        // en el disco.
+        if ($signature?->image) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($signature->image);
+        }
+
+        $data['image'] = $archivo->store('signatures', 'public');
+
+        return $data;
     }
 
     /**

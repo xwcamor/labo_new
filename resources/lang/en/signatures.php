@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'relation_prepared' => 'Prepared by',
+    'relation_reviewed' => 'Reviewed by',
+    'relation_approved' => 'Approved by',
+    'relation_authorized' => 'Authorized by',
+    'relation_verified' => 'Verified by',
+    'relation_endorsed' => 'Endorsed by',
     'name'      => 'Full name',
     'title'     => 'Job title',
     'image'     => 'Scanned signature',

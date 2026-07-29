@@ -290,7 +290,7 @@ class HandleInertiaRequests extends Middleware
             'test_groups', 'test_definitions', 'test_fields', 'worksheets',
             'qc_charts', 'instruments', 'instrument_files',
             // Recepción de muestras y el informe que sale de ellas.
-            'receptions', 'sample_reports',
+            'receptions', 'sample_reports', 'reports',
         ];
         $out = [];
         foreach ($namespaces as $ns) {

@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'relation_prepared' => 'Realizado por',
+    'relation_reviewed' => 'Revisado por',
+    'relation_approved' => 'Aprobado por',
+    'relation_authorized' => 'Autorizado por',
+    'relation_verified' => 'Verificado por',
+    'relation_endorsed' => 'Avalado por',
     'name'      => 'Nombre completo',
     'title'     => 'Cargo',
     'image'     => 'Firma escaneada',

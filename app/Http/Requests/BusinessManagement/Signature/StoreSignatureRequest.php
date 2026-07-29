@@ -62,6 +62,18 @@ class StoreSignatureRequest extends FormRequest
                     }
                 },
             ],
+            // ── Lo propio de una firma ─────────────────────────────────
+            'title'    => ['nullable', 'string', 'max:160'],
+            // Lista cerrada: es lo que se imprime sobre la línea y tiene que
+            // decir lo mismo en los dos idiomas. Texto libre daría "Aprobado
+            // por", "aprobado" y "APROBÓ" como tres relaciones distintas.
+            'relation' => ['nullable', \Illuminate\Validation\Rule::in(\App\Models\Signature::RELATIONS)],
+            // El firmante con cuenta en el sistema firma con SU imagen, cargada
+            // por él mismo desde su perfil. Acá solo se enlaza.
+            'user_id'  => ['nullable', 'integer', 'exists:users,id'],
+            // La imagen se acepta solo para el firmante SIN cuenta: el
+            // laboratorio igual necesita su firma en el papel.
+            'image'    => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:1024'],
             'is_active'  => ['sometimes', 'boolean'],
         ];
     }

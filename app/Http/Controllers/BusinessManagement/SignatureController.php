@@ -151,8 +151,31 @@ class SignatureController extends Controller
     public function create()
     {
         return inertia('Signatures/Form', [
-            'signature'        => null,
+            'signature' => null,
+            'users'     => $this->usuarios(),
+            'relations' => \App\Models\Signature::RELATIONS,
         ]);
+    }
+
+    /**
+     * Los usuarios que pueden enlazarse a una firma, con el estado de la suya.
+     *
+     * Se manda el estado para que la pantalla lo DIGA: enlazar a alguien que no
+     * cargó su firma o no activó la auto-firma es válido —el informe deja la
+     * línea para firmar a mano— pero quien lo configura tiene que saberlo antes,
+     * no descubrirlo cuando el papel sale sin la firma.
+     */
+    private function usuarios(): \Illuminate\Support\Collection
+    {
+        return \App\Models\User::where('tenant_id', auth()->user()?->tenant_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'signature', 'auto_sign_reports'])
+            ->map(fn ($u) => [
+                'id'    => $u->id,
+                'name'  => $u->name,
+                'ready' => ! empty($u->signature) && (bool) $u->auto_sign_reports,
+            ]);
     }
 
     public function store(StoreSignatureRequest $request, SignatureService $service): RedirectResponse
@@ -202,7 +225,13 @@ class SignatureController extends Controller
         abort_if($signature->is_locked, 403, __('locks.cannot_edit_locked'));
 
         return inertia('Signatures/Form', [
-            'signature'        => $this->payload($signature),
+            'signature' => $this->payload($signature) + [
+                'image_url' => $signature->image
+                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($signature->image)
+                    : null,
+            ],
+            'users'     => $this->usuarios(),
+            'relations' => \App\Models\Signature::RELATIONS,
         ]);
     }
 
@@ -411,6 +440,11 @@ class SignatureController extends Controller
             'slug'       => $m->slug,
             'name'       => $m->name,
             'code'       => $m->code,
+            // Lo propio de una firma: sin esto el formulario abría el cargo y
+            // la relación en blanco y guardarlos los borraba.
+            'title'      => $m->title,
+            'relation'   => $m->relation,
+            'user_id'    => $m->user_id,
             'sort_order' => $m->sort_order,
             'is_active'  => $m->is_active,
             'tenant_id'  => $m->tenant_id,

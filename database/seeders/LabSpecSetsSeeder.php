@@ -167,7 +167,7 @@ class LabSpecSetsSeeder extends Seeder
                         'voltage_to'        => $condicion['voltage_to'] ?? null,
                         'source_note'       => $this->procedencia($c),
                         'is_active'         => true,
-                        'tenant_id'         => null,
+                        'tenant_id'         => config('lab.seed_tenant_id'),
                     ]);
                     $sembrados++;
                 } else {

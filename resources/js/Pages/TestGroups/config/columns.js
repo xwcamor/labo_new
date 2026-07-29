@@ -12,10 +12,10 @@ import { ApartmentOutlined, CalendarOutlined, FileDoneOutlined } from '@ant-desi
  */
 export const testGroupsTableColumns = (t, { isSuper = false, isMobile = false } = {}) => [
     { title: '★',                      dataIndex: 'is_favorite', key: 'favorite',   width: 52,  align: 'center', alwaysVisible: true, mobile: { role: 'pin' } },
-    // Celda principal "rica": nombre con el código como subtítulo.
+    { title: t('test_groups.code'),     dataIndex: 'code',        key: 'code',       width: 170, sorter: (a, b) => (a.code || '').localeCompare(b.code || ''), alwaysVisible: true, mobile: { role: 'subtitle' } },
     { title: t('test_groups.name'),     dataIndex: 'name',        key: 'name',       sorter: (a, b) => (a.name || '').localeCompare(b.name || ''), alwaysVisible: true, mobile: { role: 'title' } },
     { title: t('test_groups.tests_count'), dataIndex: 'tests_count', key: 'tests_count', width: 130, align: 'right', mobile: { role: 'meta', icon: FileDoneOutlined } },
-    { title: t('test_groups.sort_order'), dataIndex: 'sort_order', key: 'sort_order', width: 110, align: 'right', sorter: true, defaultHidden: true },
+    { title: t('test_groups.sort_order'), dataIndex: 'sort_order', key: 'sort_order', width: 110, align: 'right', sorter: true },
     ...(isSuper ? [
         { title: t('tenants.singular'), dataIndex: ['tenant', 'name'], key: 'tenant', width: 180, sorter: true, mobile: { role: 'meta', icon: ApartmentOutlined } },
     ] : []),

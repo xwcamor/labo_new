@@ -94,7 +94,12 @@ class ImportLegacyTestsCommand extends Command
             foreach ($groups as $g) {
                 if (($g[2] ?? '1') === '1') continue;     // deleted
                 $name = $this->str($g[1]);
-                $row = ['code' => Str::slug($name, '_'), 'name' => $name, 'sort_order' => (int) $g[0]];
+                // El importador corre desde la consola, sin usuario, así que
+                // `BelongsToTenantOrGlobal` no tiene de dónde sacar la empresa y
+                // dejaba todo como catálogo COMPARTIDO. Estas son las pruebas de
+                // ESTE laboratorio: van a su workspace (ver config/lab.php).
+                $row = ['code' => Str::slug($name, '_'), 'name' => $name, 'sort_order' => (int) $g[0],
+                        'tenant_id' => config('lab.seed_tenant_id')];
                 $groupByLegacy[(int) $g[0]] = $dry ? null
                     : TestGroup::updateOrCreate(['code' => $row['code']], $row + ['slug' => Str::random(22)])->id;
                 $stats['grupos']++;
@@ -118,6 +123,7 @@ class ImportLegacyTestsCommand extends Command
                     'is_grouped'    => $isGrouped === '1',
                     'has_control'   => $hasReuse === '1',
                     'sort_order'    => (int) $pos,
+                    'tenant_id'     => config('lab.seed_tenant_id'),
                 ];
                 $testByLegacy[(int) $id] = $dry ? (int) $id
                     : TestDefinition::updateOrCreate(['legacy_id' => (int) $id], $row + ['slug' => Str::random(22)])->id;

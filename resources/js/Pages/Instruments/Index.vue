@@ -684,12 +684,6 @@ const goDelete = (record) => router.visit(route('business_management.instruments
    monoespaciada para que "PP-LA-01C" y "PP-LA-016" se distingan de un vistazo. */
 .tests { font-size: 0.8125rem; }
 .tests__more { color: var(--color-text-muted); margin-left: 4px; }
-.lead__code {
-    font-family: ui-monospace, Consolas, monospace;
-    font-size: 0.8125rem;
-    color: var(--color-text-muted);
-    margin-right: 6px;
-}
 
 /* ── Remaster del index (tabla tipo SaaS) ───────────────────────────── */
 .bidx-toolbar { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }

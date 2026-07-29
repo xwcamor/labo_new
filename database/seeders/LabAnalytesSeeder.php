@@ -66,7 +66,7 @@ class LabAnalytesSeeder extends Seeder
                     'is_active' => true,
                     // Global: el catálogo de parámetros es el mismo para todos
                     // los workspaces. Un workspace puede agregar los suyos.
-                    'tenant_id' => null,
+                    'tenant_id' => config('lab.seed_tenant_id'),
                 ]);
                 $creados++;
             }

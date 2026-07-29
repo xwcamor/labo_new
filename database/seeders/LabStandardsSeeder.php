@@ -95,7 +95,7 @@ class LabStandardsSeeder extends Seeder
                 'is_active' => true,
                 // Global: el catálogo de normas es el mismo para todos los
                 // workspaces. Uno puede agregar las suyas.
-                'tenant_id' => null,
+                'tenant_id' => config('lab.seed_tenant_id'),
             ]);
 
             $hechas++;
@@ -150,7 +150,7 @@ class LabStandardsSeeder extends Seeder
                 'slug'      => Str::random(22),
                 'code'      => $m['code'],
                 'is_active' => true,
-                'tenant_id' => null,
+                'tenant_id' => config('lab.seed_tenant_id'),
             ]);
 
             $hechos++;

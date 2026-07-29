@@ -264,6 +264,10 @@ html[data-theme="dark"] .mi-export-btn.ant-btn { background: #12324f !important;
 .lead__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .lead__name { font-weight: 600; font-size: 0.92rem; color: var(--color-text-strong, #1f2329); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lead__sub { font-weight: 400; font-size: 0.75rem; color: var(--color-text-muted, #8a9099); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* El CÓDIGO en su propia columna del índice: monoespaciado para que los
+   identificadores de ancho fijo (PP-LA-01C-056) queden alineados de arriba
+   abajo, que es como se buscan. */
+.lead__code { font-family: ui-monospace, Consolas, monospace; font-size: 0.8125rem; color: var(--color-text-muted, #8a9099); }
 
 /* ─── Show pages: grilla de "información general" (estándar tomado de Brands).
    Celdas suaves label/valor. Usado por todos los Show (negocio + core) para que

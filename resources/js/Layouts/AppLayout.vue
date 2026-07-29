@@ -704,15 +704,19 @@ const menuStructure = computed(() => [
                 visible: () => can('qc_charts.view'),
             },
             // ── Plantillas de ensayo ──
-            {
-                key: 'test_definitions', label: t('sidebar.test_definitions'), icon: FileDoneOutlined,
-                href: route('lab_management.test_definitions.index'), inertia: true,
-                visible: () => can('test_definitions.view'),
-            },
+            // El GRUPO va antes que las pruebas: una prueba se crea dentro de
+            // un grupo, así que el orden del menú sigue el orden en que se
+            // cargan. Al revés obligaba a entrar a Pruebas, descubrir que hace
+            // falta el grupo y volver.
             {
                 key: 'test_groups', label: t('sidebar.test_groups'), icon: FolderOpenOutlined,
                 href: route('lab_management.test_groups.index'), inertia: true,
                 visible: () => can('test_groups.view'),
+            },
+            {
+                key: 'test_definitions', label: t('sidebar.test_definitions'), icon: FileDoneOutlined,
+                href: route('lab_management.test_definitions.index'), inertia: true,
+                visible: () => can('test_definitions.view'),
             },
             {
                 key: 'analytes', label: t('sidebar.analytes'), icon: RadarChartOutlined,

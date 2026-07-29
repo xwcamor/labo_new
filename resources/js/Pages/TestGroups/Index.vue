@@ -522,13 +522,17 @@ const goDelete = (record) => router.visit(route('lab_management.test_groups.dele
                         @toggle="toggleFavorite"
                     />
 
+                    <!-- El CÓDIGO en su propia columna, no de subtítulo debajo
+                         del nombre: repetido bajo cada fila era ruido, y como
+                         columna se puede ordenar y comparar de un vistazo. -->
+                    <template v-else-if="column.key === 'code'">
+                        <code class="lead__code">{{ record.code }}</code>
+                    </template>
+
                     <template v-else-if="column.key === 'name'">
-                        <div class="lead">
-                            <div class="lead__txt">
-                                <Link :href="route('lab_management.test_groups.show', record.slug)" class="lead__name lead__link">{{ record.name }}</Link>
-                                <span v-if="record.code" class="lead__sub">{{ record.code }}</span>
-                            </div>
-                        </div>
+                        <!-- Sin hipervínculo: la fila ya tiene su botón de ver
+                             en Acciones. -->
+                        <span class="lead__name">{{ record.name }}</span>
                     </template>
 
                     <!-- Cuántas pruebas cuelgan del grupo. El 0 va en gris: es

@@ -49,3 +49,14 @@ Schedule::command('automations:purge-old-notifications')
     ->hourly()
     ->withoutOverlapping()
     ->onOneServer();
+
+// El candado de las hojas de bancada lo pone el sistema, no una persona: a los
+// N meses (ajuste `worksheets.auto_lock_months`, 4 de fábrica) la hoja deja de
+// ser editable. Es como funcionaba el sistema anterior y es lo correcto — un
+// ensayo de hace cuatro meses ya se informó y ya salió del laboratorio.
+// Desbloquear sigue siendo manual y queda auditado.
+Schedule::command('worksheets:auto-lock')
+    ->dailyAt('03:15')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/worksheets-lock.log'));

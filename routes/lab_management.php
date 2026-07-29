@@ -226,7 +226,6 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     Route::middleware('permission:worksheets.edit')->group(function () {
         Route::post('worksheets/{worksheet}/rows',        [WorksheetController::class, 'saveRow'])->name('worksheets.rows.save');
         Route::delete('worksheets/{worksheet}/rows/{row}', [WorksheetController::class, 'destroyRow'])->name('worksheets.rows.destroy');
-        Route::post('worksheets/{worksheet}/close',       [WorksheetController::class, 'close'])->name('worksheets.close');
         // Vista previa del cálculo mientras el analista escribe. NO guarda nada.
         //
         // El límite es 120 por minuto y por usuario. La grilla espera 400 ms de
@@ -248,8 +247,11 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('worksheets/{worksheet}/validate', [WorksheetController::class, 'validateSheet'])->name('worksheets.validate');
     });
 
+    // Dar de baja la hoja, con su motivo. Se llamaba "anular" y era un estado
+    // más que no aportaba nada: hacía lo mismo que un borrado lógico bien
+    // hecho, que es lo que tenía el sistema anterior.
     Route::middleware('permission:worksheets.delete')->group(function () {
-        Route::post('worksheets/{worksheet}/void', [WorksheetController::class, 'void'])->name('worksheets.void');
+        Route::delete('worksheets/{worksheet}', [WorksheetController::class, 'destroy'])->name('worksheets.destroy');
     });
 
     /*

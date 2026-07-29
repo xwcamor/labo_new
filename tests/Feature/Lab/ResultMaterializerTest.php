@@ -116,8 +116,7 @@ class ResultMaterializerTest extends TestCase
 
     private function validar(Worksheet $w): void
     {
-        $this->service->close($w);
-        $this->service->validate($w->fresh());
+        $this->service->validate($w);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -137,13 +136,12 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame('2026-07-28', $r->measured_at->toDateString());
     }
 
-    public function test_una_hoja_solo_cerrada_todavia_no_informa_nada(): void
+    public function test_una_hoja_en_carga_todavia_no_informa_nada(): void
     {
         // Hasta que el supervisor no firma, un valor no debe aparecer en el
         // informe de un cliente ni mover una tendencia.
         $w = $this->hoja();
         $this->cargarMuestra($w);
-        $this->service->close($w);
 
         $this->assertSame(0, Result::count());
     }
@@ -185,8 +183,7 @@ class ResultMaterializerTest extends TestCase
         $this->service->saveRow($w, ['kind' => WorksheetRow::KIND_SAMPLE], [
             'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '1.20',
         ]);
-        $this->service->close($w);
-        $this->service->validate($w->fresh());
+        $this->service->validate($w);
 
         $this->assertSame(0, Result::count());
 

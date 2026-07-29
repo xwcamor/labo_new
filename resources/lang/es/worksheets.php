@@ -37,15 +37,15 @@ return [
     // etiquetas invertidas: filtrar por "Bloqueado" devolvía los desbloqueados.
     'state' => [
         'draft'     => 'En carga',
-        'closed'    => 'Cerrada',
+        'closed'    => 'Cerrada',   // heredado: ya no se produce
         'validated' => 'Validada',
-        'voided'    => 'Anulada',
+        'voided'    => 'Dada de baja',
     ],
     'state_help' => [
         'draft'     => 'El analista todavía está cargando. Es el único estado en el que se puede escribir.',
-        'closed'    => 'El analista terminó. Espera la revisión del supervisor.',
+        'closed'    => 'Estado heredado: el analista terminó y espera la revisión. Ya no se produce — hoy se valida en un solo paso.',
         'validated' => 'El supervisor la revisó y la firmó. Los patrones ya alimentan la carta de control.',
-        'voided'    => 'Anulada con motivo. No se borra: el laboratorio responde por ella ante la auditoría.',
+        'voided'    => 'Dada de baja con su motivo. Sus valores crudos siguen ahí y se puede restaurar: el laboratorio responde por ella ante la auditoría.',
     ],
 
     // ── Tipos de fila ─────────────────────────────────────────────────────
@@ -65,17 +65,14 @@ return [
     // ── Acciones ──────────────────────────────────────────────────────────
     'actions' => [
         'add_row'       => 'Agregar fila',
-        'close'         => 'Cerrar hoja',
         'validate'      => 'Validar',
-        'void'          => 'Anular',
         'reopen'        => 'Reabrir',
         'import_file'   => 'Leer archivo del instrumento',
         'recalculate'   => 'Recalcular',
     ],
     'confirm' => [
-        'close'    => '¿Cerrar la hoja? Después de cerrarla no se pueden cargar más valores.',
-        'validate' => 'Al validar, los patrones de esta hoja pasan a alimentar la carta de control.',
-        'void'     => 'Anular requiere un motivo. La hoja queda registrada, no se borra.',
+        'validate' => 'Al validar, los resultados pasan al informe del cliente y los patrones alimentan la carta de control. Después la hoja deja de admitir cambios.',
+        'void'     => 'Dar de baja requiere un motivo. La hoja queda registrada con sus valores y se puede restaurar.',
     ],
 
     // ── Errores ───────────────────────────────────────────────────────────
@@ -84,11 +81,11 @@ return [
     'errors' => [
         'locked'                => 'La hoja está bloqueada por el supervisor. No admite cambios.',
         'not_draft'             => 'La hoja ya no está en carga. Solo se puede escribir mientras está en carga.',
-        'not_closed'            => 'Solo se puede validar una hoja cerrada.',
-        'missing_required'      => 'Faltan :count valores obligatorios. Complételos antes de cerrar la hoja.',
+        'not_open'              => 'Solo se puede validar una hoja en carga.',
+        'missing_required'      => 'Faltan :count valores obligatorios. Complételos antes de validar la hoja.',
         'missing_prerequisites' => 'Esta prueba exige cargar primero: :kinds. No se admiten muestras hasta entonces.',
-        'already_voided'        => 'La hoja ya está anulada. El motivo original no se reemplaza.',
-        'void_reason_required'  => 'Indique el motivo de la anulación.',
+        'already_voided'        => 'La hoja ya está dada de baja. El motivo original no se reemplaza.',
+        'void_reason_required'  => 'Indique el motivo de la baja.',
         'preview_too_large'     => 'Los datos enviados para el cálculo son demasiados. Guarde la fila y vuelva a intentarlo.',
 
         // Rango declarado de la columna. El primero es el caso del CERO: en
@@ -124,9 +121,8 @@ return [
     'created'     => 'Hoja de trabajo creada.',
     'row_saved'   => 'Fila guardada.',
     'row_deleted' => 'Fila eliminada.',
-    'closed'      => 'Hoja cerrada. Queda a la espera de la validación del supervisor.',
     'validated'   => 'Hoja validada. Los patrones ya alimentan la carta de control.',
-    'voided'      => 'Hoja anulada.',
+    'deleted'     => 'Hoja dada de baja. Sus valores quedan guardados con el motivo.',
 
     // ── Equipo del que se tomó la muestra ─────────────────────────────────
     // Sin este enlace el resultado no se escribe: no se puede consultar por

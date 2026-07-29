@@ -252,7 +252,7 @@ class WorksheetServiceTest extends TestCase
         $this->assertSame($antes, $despues);
     }
 
-    public function test_una_hoja_cerrada_ya_no_admite_cambios(): void
+    public function test_una_hoja_validada_ya_no_admite_cambios(): void
     {
         // El bloqueo del sistema viejo solo escondía botones: los controladores
         // nunca miraban el estado.
@@ -262,7 +262,7 @@ class WorksheetServiceTest extends TestCase
             'nro_muestra' => '2026-0744', 'peso_aceite' => '20',
         ]);
 
-        $this->service->close($worksheet);
+        $this->service->validate($worksheet);
 
         $this->expectException(ValidationException::class);
         $this->service->saveRow($worksheet->fresh(), ['kind' => WorksheetRow::KIND_SAMPLE], [
@@ -270,7 +270,7 @@ class WorksheetServiceTest extends TestCase
         ]);
     }
 
-    public function test_no_se_cierra_una_hoja_con_obligatorios_vacios(): void
+    public function test_no_se_valida_una_hoja_con_obligatorios_vacios(): void
     {
         $worksheet = $this->makeWorksheet();
         $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
@@ -278,15 +278,52 @@ class WorksheetServiceTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
-        $this->service->close($worksheet);
+        $this->service->validate($worksheet);
     }
 
-    public function test_solo_se_valida_una_hoja_cerrada(): void
+    public function test_no_se_valida_dos_veces(): void
     {
+        // El estado intermedio "cerrada" se sacó: hoy se valida desde la carga,
+        // en un solo paso. Lo que sí sigue siendo un error es validar algo que
+        // ya está validado.
         $worksheet = $this->makeWorksheet();
+        $this->addControlAndDuplicate($worksheet);
+        $this->service->validate($worksheet);
 
         $this->expectException(ValidationException::class);
-        $this->service->validate($worksheet);
+        $this->service->validate($worksheet->fresh());
+    }
+
+    public function test_una_hoja_bloqueada_no_se_valida(): void
+    {
+        // El candado lo pone el sistema a los N meses. Validar una hoja
+        // bloqueada sería entrar por la ventana a lo que el candado cierra.
+        $worksheet = $this->makeWorksheet();
+        $this->addControlAndDuplicate($worksheet);
+        $worksheet->forceFill(['locked_at' => now()])->save();
+
+        $this->expectException(ValidationException::class);
+        $this->service->validate($worksheet->fresh());
+    }
+
+    public function test_el_bloqueo_automatico_alcanza_a_las_hojas_viejas(): void
+    {
+        $vieja = $this->makeWorksheet();
+        $vieja->forceFill(['run_date' => now()->subMonths(6)->toDateString()])->save();
+        $nueva = $this->makeWorksheet();
+
+        $this->assertSame(1, $this->service->autoLockAged(4));
+        $this->assertNotNull($vieja->fresh()->locked_at);
+        $this->assertNull($nueva->fresh()->locked_at);
+    }
+
+    public function test_el_bloqueo_automatico_se_puede_apagar(): void
+    {
+        $vieja = $this->makeWorksheet();
+        $vieja->forceFill(['run_date' => now()->subYears(3)->toDateString()])->save();
+
+        $this->assertSame(0, $this->service->autoLockAged(0));
+        $this->assertNull($vieja->fresh()->locked_at);
     }
 
     public function test_validar_deja_constancia_de_quien_y_cuando(): void
@@ -295,9 +332,7 @@ class WorksheetServiceTest extends TestCase
         // de candado: no había forma de saber quién había validado.
         $worksheet = $this->makeWorksheet();
         $this->addControlAndDuplicate($worksheet);
-        $this->service->close($worksheet);
-
-        $this->service->validate($worksheet->fresh());
+        $this->service->validate($worksheet);
 
         $worksheet->refresh();
         $this->assertSame(Worksheet::STATUS_VALIDATED, $worksheet->status);
@@ -318,8 +353,7 @@ class WorksheetServiceTest extends TestCase
 
         $worksheet = $this->makeWorksheet();
         $this->addControlAndDuplicate($worksheet);
-        $this->service->close($worksheet);
-        $this->service->validate($worksheet->fresh());
+        $this->service->validate($worksheet);
 
         $this->assertSame(1, QcPoint::where('qc_chart_id', $chart->id)->count());
 
@@ -343,8 +377,7 @@ class WorksheetServiceTest extends TestCase
         // desvíos de distancia.
         $worksheet = $this->makeWorksheet();
         $this->addControlAndDuplicate($worksheet);
-        $this->service->close($worksheet);
-        $this->service->validate($worksheet->fresh());
+        $this->service->validate($worksheet);
 
         $point = QcPoint::where('qc_chart_id', $chart->id)->first();
 
@@ -397,7 +430,7 @@ class WorksheetServiceTest extends TestCase
         $this->assertNull($row->notes);
     }
 
-    public function test_anular_no_borra_y_saca_los_puntos_de_la_carta(): void
+    public function test_dar_de_baja_no_borra_y_saca_los_puntos_de_la_carta(): void
     {
         $chart = QcChart::create([
             'slug'               => Str::random(22),
@@ -408,8 +441,7 @@ class WorksheetServiceTest extends TestCase
 
         $worksheet = $this->makeWorksheet();
         $this->addControlAndDuplicate($worksheet);
-        $this->service->close($worksheet);
-        $this->service->validate($worksheet->fresh());
+        $this->service->validate($worksheet);
 
         $this->service->void($worksheet->fresh(), 'Patrón vencido');
 
@@ -507,9 +539,9 @@ class WorksheetServiceTest extends TestCase
             'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '1.20',
         ]);
 
-        $this->service->close($worksheet);
+        $this->service->validate($worksheet);
 
-        $this->assertSame(Worksheet::STATUS_CLOSED, $worksheet->fresh()->status);
+        $this->assertSame(Worksheet::STATUS_VALIDATED, $worksheet->fresh()->status);
     }
 
     public function test_a_la_muestra_si_se_le_exige_el_codigo(): void
@@ -530,7 +562,7 @@ class WorksheetServiceTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
-        $this->service->close($worksheet);
+        $this->service->validate($worksheet);
     }
 
     public function test_westgard_no_baja_la_alarma_de_un_punto_fuera_del_limite_de_alerta(): void
@@ -563,8 +595,7 @@ class WorksheetServiceTest extends TestCase
             'peso_aceite' => '20', 'volumen_gastado' => '1.20',
         ]);
 
-        $this->service->close($worksheet);
-        $this->service->validate($worksheet->fresh());
+        $this->service->validate($worksheet);
 
         $point = QcPoint::where('qc_chart_id', $chart->id)->first();
 

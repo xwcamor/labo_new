@@ -29,15 +29,15 @@ return [
     // ── Statuses ──────────────────────────────────────────────────────────
     'state' => [
         'draft'     => 'In progress',
-        'closed'    => 'Closed',
+        'closed'    => 'Closed',   // legacy: no longer produced
         'validated' => 'Validated',
-        'voided'    => 'Voided',
+        'voided'    => 'Removed',
     ],
     'state_help' => [
         'draft'     => 'The analyst is still entering data. The only writable state.',
-        'closed'    => 'The analyst is done. Awaiting supervisor review.',
+        'closed'    => 'Legacy state: the analyst is done and awaiting review. No longer produced — validation is now a single step.',
         'validated' => 'Reviewed and signed by the supervisor. Controls now feed the control chart.',
-        'voided'    => 'Voided with a reason. Not deleted: the laboratory answers for it under audit.',
+        'voided'    => 'Removed with a reason. Its raw values are kept and it can be restored: the laboratory answers for it under audit.',
     ],
 
     // ── Row kinds ─────────────────────────────────────────────────────────
@@ -57,28 +57,25 @@ return [
     // ── Actions ───────────────────────────────────────────────────────────
     'actions' => [
         'add_row'       => 'Add row',
-        'close'         => 'Close worksheet',
         'validate'      => 'Validate',
-        'void'          => 'Void',
         'reopen'        => 'Reopen',
         'import_file'   => 'Read instrument file',
         'recalculate'   => 'Recalculate',
     ],
     'confirm' => [
-        'close'    => 'Close the worksheet? No more values can be entered after closing.',
         'validate' => 'On validation, the controls in this worksheet start feeding the control chart.',
-        'void'     => 'Voiding requires a reason. The worksheet stays on record, it is not deleted.',
+        'void'     => 'Removing requires a reason. The worksheet stays on record with its values.',
     ],
 
     // ── Errors ────────────────────────────────────────────────────────────
     'errors' => [
         'locked'                => 'The worksheet is locked by the supervisor. No changes allowed.',
         'not_draft'             => 'The worksheet is no longer in progress. Only an in-progress worksheet is writable.',
-        'not_closed'            => 'Only a closed worksheet can be validated.',
-        'missing_required'      => ':count required values are missing. Fill them in before closing the worksheet.',
+        'not_open'              => 'Only an open worksheet can be validated.',
+        'missing_required'      => ':count required values are missing. Fill them in before validating the worksheet.',
         'missing_prerequisites' => 'This test requires entering first: :kinds. No samples are accepted until then.',
-        'already_voided'        => 'The worksheet is already voided. The original reason is not replaced.',
-        'void_reason_required'  => 'State the reason for voiding.',
+        'already_voided'        => 'The worksheet is already removed. The original reason is not replaced.',
+        'void_reason_required'  => 'State the reason for removal.',
         'preview_too_large'     => 'Too much data was sent for calculation. Save the row and try again.',
 
         'value_not_above'       => ':field: the value must be greater than :min. If the property was not measured, leave the cell empty instead of entering :min.',
@@ -111,9 +108,8 @@ return [
     'created'     => 'Worksheet created.',
     'row_saved'   => 'Row saved.',
     'row_deleted' => 'Row deleted.',
-    'closed'      => 'Worksheet closed. Awaiting supervisor validation.',
     'validated'   => 'Worksheet validated. Controls now feed the control chart.',
-    'voided'      => 'Worksheet voided.',
+    'deleted'     => 'Worksheet removed. Its values are kept along with the reason.',
 
     // ── Equipment the sample was drawn from ───────────────────────────────
     // Without this link the result is not written: it cannot be queried by

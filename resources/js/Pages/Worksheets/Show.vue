@@ -99,7 +99,7 @@ const equipmentWarning = computed(() => (samplesWithoutEquipment.value === 0 ? '
 const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filter(Boolean));
 
 const showActions = computed(
-    () => !!(props.can.close || props.can.validate || props.can.void),
+    () => !!(props.can.validate || props.can.delete),
 );
 </script>
 
@@ -162,9 +162,9 @@ const showActions = computed(
             />
         </Card>
 
-        <!-- Pegado a la barra de acciones, que es donde está "Cerrar hoja": el
+        <!-- Pegado a la barra de acciones, que es donde está "Validar": el
              recuento tiene que leerse justo antes de cerrar, no arriba de todo
-             donde ya nadie mira. Es ámbar y no rojo porque no impide cerrar. -->
+             donde ya nadie mira. Es ámbar y no rojo porque no impide validar. -->
         <Alert
             v-if="equipmentWarning"
             type="warning"
@@ -179,7 +179,7 @@ const showActions = computed(
 
 <style scoped>
 .ws-alert { margin-bottom: 12px; }
-/* Sin separación con la franja de acciones: el aviso y el botón "Cerrar hoja"
+/* Sin separación con la franja de acciones: el aviso y el botón "Validar"
    se leen como una sola cosa. */
 .ws-alert--equipment { margin: 12px 0 0; }
 .ws-sub { color: var(--color-text-muted); font-size: 0.8125rem; }

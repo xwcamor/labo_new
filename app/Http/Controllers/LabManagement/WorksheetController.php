@@ -205,10 +205,14 @@ class WorksheetController extends Controller
                 ->limit(2000)->get(['id', 'name', 'serial', 'tag', 'customer_id']),
             'can'         => [
                 'edit'     => $worksheet->isEditable() && $this->allows('worksheets.edit'),
-                'close'    => $worksheet->isEditable() && $this->allows('worksheets.edit'),
-                'validate' => $worksheet->status === Worksheet::STATUS_CLOSED
+                // Validar es el único paso del flujo. El estado intermedio
+                // "cerrada" se sacó: eran dos clics para un solo hecho y dos
+                // botones primarios en la misma franja. Las hojas que quedaron
+                // cerradas de antes se siguen pudiendo validar.
+                'validate' => in_array($worksheet->status, [Worksheet::STATUS_DRAFT, Worksheet::STATUS_CLOSED], true)
+                    && $worksheet->locked_at === null
                     && $this->allows('worksheets.validate'),
-                'void'     => $this->allows('worksheets.delete'),
+                'delete'   => ! $worksheet->isVoided() && $this->allows('worksheets.delete'),
             ],
             // Lo que le falta a la hoja para admitir muestras. Se manda como
             // dato y no como mensaje armado para que la pantalla explique el
@@ -377,13 +381,6 @@ class WorksheetController extends Controller
         return back()->with('success', __('worksheets.row_deleted'));
     }
 
-    public function close(Worksheet $worksheet): RedirectResponse
-    {
-        $this->service->close($worksheet);
-
-        return back()->with('success', __('worksheets.closed'));
-    }
-
     public function validateSheet(Worksheet $worksheet): RedirectResponse
     {
         $this->service->validate($worksheet);
@@ -391,7 +388,14 @@ class WorksheetController extends Controller
         return back()->with('success', __('worksheets.validated'));
     }
 
-    public function void(Request $request, Worksheet $worksheet): RedirectResponse
+    /**
+     * Da de baja la hoja, con su motivo.
+     *
+     * Era "anular" y ahora es borrar, que es lo que tenía el sistema anterior.
+     * El motivo sigue siendo obligatorio: una hoja que desaparece sin decir por
+     * qué no sirve ante una auditoría.
+     */
+    public function destroy(Request $request, Worksheet $worksheet): RedirectResponse
     {
         $data = $request->validate([
             'void_reason' => ['required', 'string', 'min:3', 'max:500'],
@@ -399,7 +403,9 @@ class WorksheetController extends Controller
 
         $this->service->void($worksheet, $data['void_reason']);
 
-        return back()->with('success', __('worksheets.voided'));
+        return redirect()
+            ->route('lab_management.worksheets.index')
+            ->with('success', __('worksheets.deleted'));
     }
 
     /**

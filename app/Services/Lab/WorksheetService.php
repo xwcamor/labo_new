@@ -178,35 +178,28 @@ class WorksheetService
     }
 
     /**
-     * Cierra la hoja: el analista terminó de cargar.
-     *
-     * Es donde se verifica que no falte nada obligatorio. En el sistema viejo
-     * no existía este momento: la hoja quedaba abierta hasta que alguien la
-     * bloqueaba a mano, y los campos vacíos se descubrían con un panel llamado
-     * "Pruebas con Valores Pendientes" que salía a cazar celdas en blanco y
-     * celdas con el texto "NaN".
-     *
-     * @throws ValidationException
-     */
-    public function close(Worksheet $worksheet): Worksheet
-    {
-        $this->assertEditable($worksheet);
-
-        $missing = $this->missingRequiredValues($worksheet);
-
-        if ($missing !== []) {
-            throw ValidationException::withMessages([
-                'rows' => __('worksheets.errors.missing_required', ['count' => count($missing)]),
-            ]);
-        }
-
-        $worksheet->forceFill(['status' => Worksheet::STATUS_CLOSED])->save();
-
-        return $worksheet;
-    }
-
-    /**
      * Valida la hoja: el supervisor la revisó y la firma.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ UN SOLO PASO, NO DOS                                                 │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Hubo un estado intermedio —"cerrada"— entre cargar y validar. No existía
+     * en el sistema anterior y no aportaba nada: el analista terminaba de
+     * cargar, apretaba "Cerrar hoja", y después alguien apretaba "Validar". Dos
+     * clics para un solo hecho, y una pantalla con dos botones primarios donde
+     * nadie sabía cuál era el que correspondía.
+     *
+     * Lo que sí aportaba el cierre era la verificación de obligatorios, y esa se
+     * mudó acá: validar es el momento en que los resultados se vuelven
+     * oficiales, así que es el momento correcto para exigir que estén completos.
+     * Las hojas "cerradas" que quedaron de antes se siguen aceptando.
+     *
+     * Validar y BLOQUEAR siguen siendo dos cosas distintas. En el sistema viejo
+     * terminaron siendo el mismo campo `state` (el modelo Ruby conserva
+     * comentadas las etiquetas del significado anterior), el filtro de búsqueda
+     * quedó con la semántica invertida, y `validate_user_id` se sobrescribía en
+     * cada cambio de candado, así que no había forma de saber quién había
+     * validado.
      *
      * Validar y bloquear son dos cosas distintas y acá lo son de verdad. En el
      * sistema viejo terminaron siendo el mismo campo `state` (el modelo Ruby
@@ -224,9 +217,26 @@ class WorksheetService
      */
     public function validate(Worksheet $worksheet): Worksheet
     {
-        if ($worksheet->status !== Worksheet::STATUS_CLOSED) {
+        if (! in_array($worksheet->status, [Worksheet::STATUS_DRAFT, Worksheet::STATUS_CLOSED], true)) {
             throw ValidationException::withMessages([
-                'status' => __('worksheets.errors.not_closed'),
+                'status' => __('worksheets.errors.not_open'),
+            ]);
+        }
+
+        if ($worksheet->locked_at !== null) {
+            throw ValidationException::withMessages([
+                'status' => __('worksheets.errors.locked'),
+            ]);
+        }
+
+        // Lo que antes verificaba el cierre. Validar es el momento en que estos
+        // valores pasan al informe de un cliente: si falta un obligatorio, el
+        // papel saldría con un hueco que nadie decidió dejar.
+        $missing = $this->missingRequiredValues($worksheet);
+
+        if ($missing !== []) {
+            throw ValidationException::withMessages([
+                'rows' => __('worksheets.errors.missing_required', ['count' => count($missing)]),
             ]);
         }
 
@@ -259,13 +269,26 @@ class WorksheetService
     }
 
     /**
-     * Anula la hoja. No se borra: un ensayo anulado tiene que seguir estando,
-     * con el motivo, porque el laboratorio responde por él ante la auditoría.
+     * Da de baja la hoja, con su motivo.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ ERA "ANULAR" Y NO EXISTÍA EN EL SISTEMA ANTERIOR                     │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Allá había ELIMINAR, y era un borrado lógico (`deleted = 1`) sin motivo.
+     * "Anular" fue un invento de esta reescritura que agregaba un estado más al
+     * flujo sin agregar ninguna capacidad: hacía exactamente lo mismo que un
+     * borrado lógico bien hecho.
+     *
+     * Así que se llama borrar y se comporta como borrar —desaparece de los
+     * listados, se puede restaurar desde la papelera— pero conserva TODO: la
+     * hoja, sus valores crudos y el motivo. Un ensayo dado de baja tiene que
+     * seguir estando, porque el laboratorio responde por él ante la auditoría.
+     * El estado `voided` se mantiene para las hojas que ya lo tenían.
      */
     public function void(Worksheet $worksheet, string $reason): Worksheet
     {
-        // Una hoja ya anulada no se vuelve a anular: pisaría el motivo original,
-        // que es justamente lo que hay que conservar.
+        // Una hoja ya dada de baja no se vuelve a dar de baja: pisaría el motivo
+        // original, que es justamente lo que hay que conservar.
         if ($worksheet->isVoided()) {
             throw ValidationException::withMessages([
                 'status' => __('worksheets.errors.already_voided'),
@@ -277,11 +300,11 @@ class WorksheetService
             'void_reason' => $reason,
         ])->save();
 
-        // Los resultados SÍ se retiran de la capa consultable: un ensayo
-        // anulado no puede seguir apareciendo en el informe de un cliente ni
+        // Los resultados SÍ se retiran de la capa consultable: un ensayo dado de
+        // baja no puede seguir apareciendo en el informe de un cliente ni
         // moviendo la tendencia de un equipo. La hoja y sus valores crudos
         // quedan intactos con su motivo, así que la constancia no se pierde y
-        // el resultado se puede reconstruir si la anulación fue un error.
+        // el resultado se puede reconstruir si la baja fue un error.
         $this->materializer->clearWorksheet($worksheet);
 
         // Los puntos de la carta de control, en cambio, se marcan y NO se
@@ -297,7 +320,56 @@ class WorksheetService
         // Es el único retroceso de estado admitido, y es explícito.
         $this->progress->markVoided($worksheet);
 
+        // El borrado lógico va DESPUÉS de limpiar: sale de los listados pero la
+        // fila y sus valores siguen ahí, y la papelera la restaura.
+        $worksheet->delete();
+
         return $worksheet;
+    }
+
+    /**
+     * Bloquea las hojas que ya cumplieron su antigüedad.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL CANDADO LO PONE EL SISTEMA, NO UNA PERSONA                        │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Es como funcionaba el sistema anterior y es lo correcto: un ensayo de hace
+     * cuatro meses ya se informó, ya se facturó y ya salió del laboratorio.
+     * Dejarlo editable indefinidamente porque nadie se acordó de bloquearlo es
+     * exactamente el agujero por el que un resultado cambia después de que el
+     * cliente recibió el papel.
+     *
+     * Bloqueado no es intocable: se desbloquea a mano y ese desbloqueo queda
+     * auditado, con quién y cuándo. Lo que cambia es que la edición pasa a ser
+     * una decisión explícita en vez del estado por omisión.
+     *
+     * Los meses son un AJUSTE (`worksheets.auto_lock_months`), no un número
+     * escrito acá: cada laboratorio tiene su plazo y ninguno debería necesitar
+     * un despliegue para cambiarlo.
+     *
+     * @return int cuántas hojas se bloquearon
+     */
+    public function autoLockAged(?int $meses = null): int
+    {
+        $meses ??= \App\Models\Setting::getInt('worksheets.auto_lock_months', 4);
+
+        // Cero o negativo apaga el bloqueo automático. Es la forma de decir "en
+        // este laboratorio no", sin tener que sacar la tarea programada.
+        if ($meses < 1) {
+            return 0;
+        }
+
+        $corte = now()->subMonths($meses);
+
+        return Worksheet::query()
+            ->whereNull('locked_at')
+            ->whereNull('deleted_at')
+            ->where('run_date', '<=', $corte->toDateString())
+            ->update([
+                'locked_at'  => now(),
+                'lock_scope' => 'auto',
+                'updated_at' => now(),
+            ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────

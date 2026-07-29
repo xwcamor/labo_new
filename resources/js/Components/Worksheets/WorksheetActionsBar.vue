@@ -11,7 +11,7 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Button, Modal, Textarea, Tooltip } from 'ant-design-vue';
-import { CheckOutlined, LockOutlined, StopOutlined } from '@ant-design/icons-vue';
+import { CheckOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import { useI18n } from '@/Plugins/i18n';
 
 const props = defineProps({
@@ -31,14 +31,6 @@ const post = (routeName) => {
     });
 };
 
-const confirmClose = () => Modal.confirm({
-    title:      t('worksheets.actions.close'),
-    content:    t('worksheets.confirm.close'),
-    okText:     t('worksheets.actions.close'),
-    cancelText: t('global.cancel'),
-    onOk: () => post('lab_management.worksheets.close'),
-});
-
 const confirmValidate = () => Modal.confirm({
     title:      t('worksheets.actions.validate'),
     content:    t('worksheets.confirm.validate'),
@@ -47,9 +39,10 @@ const confirmValidate = () => Modal.confirm({
     onOk: () => post('lab_management.worksheets.validate'),
 });
 
-// ── Anulación ────────────────────────────────────────────────────────────
-// El motivo es obligatorio y va en un modal propio: la hoja anulada no se
-// borra, y sin el motivo la constancia no sirve para nada ante una auditoría.
+// ── Baja ─────────────────────────────────────────────────────────────────
+// El motivo es obligatorio y va en un modal propio: la hoja dada de baja NO
+// desaparece —queda con sus valores crudos y su motivo, y se puede restaurar—,
+// y sin el motivo la constancia no sirve para nada ante una auditoría.
 const voidOpen   = ref(false);
 const voidReason = ref('');
 const voidError  = ref('');
@@ -68,10 +61,10 @@ const submitVoid = () => {
     }
 
     submitting.value = true;
-    router.post(
-        route('lab_management.worksheets.void', props.worksheet.slug),
-        { void_reason: voidReason.value.trim() },
+    router.delete(
+        route('lab_management.worksheets.destroy', props.worksheet.slug),
         {
+            data: { void_reason: voidReason.value.trim() },
             preserveScroll: true,
             onSuccess: () => { voidOpen.value = false; },
             onFinish:  () => { submitting.value = false; },
@@ -87,21 +80,15 @@ const submitVoid = () => {
         </span>
 
         <div class="ws-actions">
-            <Tooltip v-if="can.close" :title="$t('worksheets.confirm.close')">
-                <Button type="primary" :loading="submitting" @click="confirmClose">
-                    <LockOutlined /> {{ $t('worksheets.actions.close') }}
-                </Button>
-            </Tooltip>
-
             <Tooltip v-if="can.validate" :title="$t('worksheets.confirm.validate')">
                 <Button type="primary" :loading="submitting" @click="confirmValidate">
                     <CheckOutlined /> {{ $t('worksheets.actions.validate') }}
                 </Button>
             </Tooltip>
 
-            <Tooltip v-if="can.void" :title="$t('worksheets.confirm.void')">
+            <Tooltip v-if="can.delete" :title="$t('worksheets.confirm.void')">
                 <Button danger :loading="submitting" @click="openVoid">
-                    <StopOutlined /> {{ $t('worksheets.actions.void') }}
+                    <DeleteOutlined /> {{ $t('global.delete') }}
                 </Button>
             </Tooltip>
         </div>
@@ -109,8 +96,8 @@ const submitVoid = () => {
 
     <Modal
         v-model:open="voidOpen"
-        :title="$t('worksheets.actions.void')"
-        :ok-text="$t('worksheets.actions.void')"
+        :title="$t('global.delete')"
+        :ok-text="$t('global.delete')"
         :cancel-text="$t('global.cancel')"
         :ok-button-props="{ danger: true, loading: submitting }"
         @ok="submitVoid"

@@ -47,6 +47,9 @@ class SettingsSeeder extends Seeder
             ['key' => 'notifications.poll_interval_seconds', 'name' => 'Frecuencia de polling (seg)', 'type' => 'int', 'value' => '30', 'group' => 'notifications', 'description' => 'Cada cuántos segundos el frontend pregunta al backend si hay notificaciones nuevas. Subir reduce carga; bajar mejora reactividad. Default 30s es un buen balance.'],
             ['key' => 'notifications.email_enabled', 'name' => 'Emails de notificación activos', 'type' => 'bool', 'value' => 'true', 'group' => 'notifications', 'description' => 'Si false, las notificaciones se muestran solo en la campana del header, no envían email.'],
 
+            // ─── Grupo: lab ───────────────────────────────────────────────────
+            ['key' => 'worksheets.auto_lock_months', 'name' => 'Meses hasta bloquear la hoja', 'type' => 'int', 'value' => '4', 'group' => 'lab', 'description' => 'A los N meses de su fecha de ensayo, la hoja se bloquea sola y deja de ser editable. Para modificarla hay que desbloquearla a mano, y ese desbloqueo queda auditado. 0 apaga el bloqueo automático.'],
+
             // ─── Grupo: security ──────────────────────────────────────────────
             ['key' => 'security.session_lifetime_minutes', 'name' => 'Duración de sesión (min)', 'type' => 'int', 'value' => '120', 'group' => 'security', 'description' => 'Tiempo de inactividad antes de cerrar la sesión automáticamente. 120 = 2 horas.'],
             ['key' => 'security.max_login_attempts', 'name' => 'Máx intentos de login', 'type' => 'int', 'value' => '5', 'group' => 'security', 'description' => 'Intentos fallidos antes de bloquear temporalmente la cuenta (lockout).'],

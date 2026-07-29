@@ -159,12 +159,15 @@ class WorksheetRoutesTest extends TestCase
                 ->where('missing', [WorksheetRow::KIND_CONTROL, WorksheetRow::KIND_DUPLICATE]));
     }
 
-    public function test_anular_exige_motivo(): void
+    public function test_dar_de_baja_exige_motivo(): void
     {
+        // Era "anular" y ahora es borrar —que es lo que tenía el sistema
+        // anterior—, pero el motivo sigue siendo obligatorio: una hoja que
+        // desaparece sin decir por qué no sirve ante una auditoría.
         $worksheet = $this->makeWorksheet();
 
         $this->actingAs($this->userWith(['worksheets.view', 'worksheets.delete']))
-            ->post(route('lab_management.worksheets.void', $worksheet), [])
+            ->delete(route('lab_management.worksheets.destroy', $worksheet), [])
             ->assertSessionHasErrors('void_reason');
 
         $this->assertSame(Worksheet::STATUS_DRAFT, $worksheet->fresh()->status);

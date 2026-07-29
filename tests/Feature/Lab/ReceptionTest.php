@@ -296,14 +296,13 @@ class ReceptionTest extends TestCase
         $this->assertSame(SampleTest::STATUS_IN_PROGRESS, $prueba->fresh()->status);
         $this->assertSame(Sample::STATUS_IN_PROGRESS, $muestra->fresh()->status);
 
-        $servicio->close($hoja);
-        $servicio->validate($hoja->fresh());
+        $servicio->validate($hoja);
 
         $this->assertSame(SampleTest::STATUS_VALIDATED, $prueba->fresh()->status);
         $this->assertSame(Sample::STATUS_COMPLETED, $muestra->fresh()->status);
     }
 
-    public function test_anular_la_hoja_devuelve_la_prueba_a_la_cola(): void
+    public function test_dar_de_baja_la_hoja_devuelve_la_prueba_a_la_cola(): void
     {
         [$muestra, $prueba, $hoja] = $this->readyToLoad();
         $servicio = new WorksheetService();
@@ -311,8 +310,7 @@ class ReceptionTest extends TestCase
         $servicio->saveRow($hoja, [
             'kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id,
         ], ['h2' => '12.5']);
-        $servicio->close($hoja);
-        $servicio->validate($hoja->fresh());
+        $servicio->validate($hoja);
 
         $servicio->void($hoja->fresh(), 'Patrón vencido');
 
@@ -328,8 +326,7 @@ class ReceptionTest extends TestCase
         $fila = $servicio->saveRow($hoja, [
             'kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id,
         ], ['h2' => '12.5']);
-        $servicio->close($hoja);
-        $servicio->validate($hoja->fresh());
+        $servicio->validate($hoja);
 
         // Se fuerza la hoja de vuelta a carga y se reguarda la fila: la prueba
         // ya validada NO puede bajar a "en proceso".

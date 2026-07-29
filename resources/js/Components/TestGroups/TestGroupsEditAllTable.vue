@@ -3,7 +3,7 @@
  * Tabla editable in-line del flujo Edit-All de TestGroups. Recibe `draft` por
  * v-model y predicados isDirty/isDuplicate del composable useEditAllDraft.
  */
-import { Input, Switch } from 'ant-design-vue';
+import { Input, InputNumber, Switch } from 'ant-design-vue';
 
 const props = defineProps({
     isDirty:       { type: Function, required: true },
@@ -18,6 +18,11 @@ const draft = defineModel('draft', { type: Array, required: true });
         <thead>
             <tr>
                 <th class="col-id">ID</th>
+                <!-- El ORDEN primero y editable: es lo que se viene a cambiar de
+                     varios a la vez, porque decide la secuencia de los grupos
+                     en el informe y en los desplegables. Reordenar de a uno
+                     obliga a entrar y salir de cada ficha. -->
+                <th class="col-order">{{ $t('test_groups.sort_order') }}</th>
                 <th class="col-name">{{ $t('test_groups.table_headers.editable_name') }}</th>
                 <th class="col-cod">{{ $t('test_groups.code') }}</th>
                 <th class="col-status">{{ $t('test_groups.table_headers.editable_status') }}</th>
@@ -33,6 +38,15 @@ const draft = defineModel('draft', { type: Array, required: true });
                 }"
             >
                 <td class="col-id">{{ row.id }}</td>
+                <td class="col-order">
+                    <InputNumber
+                        v-model:value="row.sort_order"
+                        :min="0"
+                        :max="9999"
+                        size="small"
+                        style="width: 100%"
+                    />
+                </td>
                 <td class="col-name">
                     <Input
                         v-model:value="row.name"
@@ -84,7 +98,8 @@ const draft = defineModel('draft', { type: Array, required: true });
 }
 .edit-table tbody tr:last-child td { border-bottom: 0; }
 .edit-table .col-id     { width: 80px;  color: var(--color-text-muted); }
-.edit-table .col-cod    { width: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 0.8125rem; }
+.edit-table .col-order { width: 90px; }
+.col-cod    { width: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 0.8125rem; }
 .edit-table .col-status { width: 160px; }
 .edit-table tbody tr.is-dirty     { background: var(--tint-dirty); }
 .edit-table tbody tr.is-duplicate { background: var(--tint-duplicate); }

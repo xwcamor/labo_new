@@ -69,7 +69,7 @@ return [
 
     // Edit All
     'edit_all_title'    => 'Grupos de pruebas — Editar Todo',
-    'edit_all_subtitle' => 'Edite el nombre y el estado de varios grupos a la vez. Use "Guardar todo" para confirmar y "Descartar cambios" para deshacer.',
+    'edit_all_subtitle' => 'Edite el orden, el nombre y el estado de varios grupos a la vez. Use "Guardar todo" para confirmar y "Descartar cambios" para deshacer.',
     'edit_all_changes'  => '{0} Sin cambios|{1} 1 cambio pendiente|[2,*] :count cambios pendientes',
     'edit_all_save_all' => 'Guardar todo',
     'edit_all_discard'  => 'Descartar cambios',

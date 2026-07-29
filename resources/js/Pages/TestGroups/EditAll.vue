@@ -29,7 +29,7 @@ const props = defineProps({
 const source = computed(() => props.test_groups.data);
 const { draft, isDirty, dirtyCount, dirtyChanges, duplicateRows, discardAll } = useEditAllDraft({
     source,
-    editableFields: ['name', 'is_active'],
+    editableFields: ['name', 'sort_order', 'is_active'],
     // Sin `uniqueField`: lo único en la tabla es el CÓDIGO, no el nombre, y el
     // código no se edita acá. Con uniqueField:'name' el editor bloqueaba el
     // guardado de un lote válido en cuanto dos filas compartían nombre.

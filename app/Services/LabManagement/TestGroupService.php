@@ -265,7 +265,7 @@ class TestGroupService
                 if (!$testGroup) continue;
 
                 $patch = array_filter(
-                    array_intersect_key($change, array_flip(['name', 'is_active'])),
+                    array_intersect_key($change, array_flip(['name', 'is_active', 'sort_order'])),
                     fn ($v) => $v !== null,
                 );
                 if (empty($patch)) continue;

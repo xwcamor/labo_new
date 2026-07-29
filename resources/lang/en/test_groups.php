@@ -69,7 +69,7 @@ return [
 
     // Edit All
     'edit_all_title'    => 'Test groups — Edit All',
-    'edit_all_subtitle' => 'Edit name and status of several groups at once. Use "Save all" to confirm and "Discard changes" to undo.',
+    'edit_all_subtitle' => 'Edit the order, name and status of several groups at once. Use "Save all" to confirm and "Discard changes" to undo.',
     'edit_all_changes'  => '{0} No changes|{1} 1 pending change|[2,*] :count pending changes',
     'edit_all_save_all' => 'Save all',
     'edit_all_discard'  => 'Discard changes',

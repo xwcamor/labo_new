@@ -329,7 +329,7 @@ class TestGroupController extends Controller
 
         $test_groups = TestGroup::query()
             ->filter($request)
-            ->select('test_groups.id', 'test_groups.slug', 'test_groups.name', 'test_groups.code', 'test_groups.is_active')
+            ->select('test_groups.id', 'test_groups.slug', 'test_groups.name', 'test_groups.code', 'test_groups.is_active', 'test_groups.sort_order')
             ->paginate($perPage)
             ->withQueryString();
 

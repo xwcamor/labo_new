@@ -44,17 +44,15 @@ const fmt = (d) => formatDateTimeFull(d);
             :icon-bg="iconBg"
         >
             <template #icon><FolderOpenOutlined /></template>
+            <!-- Solo el ESTADO. El código y el conteo de pruebas ya están más
+                 abajo, en la ficha y en la lista de pruebas: repetirlos en la
+                 franja del título la convierte en un resumen de lo que sigue
+                 en vez de decir de qué registro se trata. -->
             <template #subtitle>
-                <Space :size="6">
-                    <Tag v-if="testGroup.code" :bordered="false">{{ testGroup.code }}</Tag>
-                    <Tag v-if="isDeleted" color="red" :bordered="false">{{ $t('global.deleted') }}</Tag>
-                    <Tag v-else :color="testGroup.is_active ? 'success' : 'default'" :bordered="false">
-                        {{ testGroup.is_active ? $t('global.active') : $t('global.inactive') }}
-                    </Tag>
-                    <Tag color="blue" :bordered="false">
-                        {{ $t('test_groups.tests_count') }}: {{ tests.length }}
-                    </Tag>
-                </Space>
+                <Tag v-if="isDeleted" color="red" :bordered="false">{{ $t('global.deleted') }}</Tag>
+                <Tag v-else :color="testGroup.is_active ? 'success' : 'default'" :bordered="false">
+                    {{ testGroup.is_active ? $t('global.active') : $t('global.inactive') }}
+                </Tag>
             </template>
             <template #actions>
                 <EntityShowActions

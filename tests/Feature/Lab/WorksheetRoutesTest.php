@@ -175,4 +175,72 @@ class WorksheetRoutesTest extends TestCase
             'kind'         => WorksheetRow::KIND_CONTROL,
         ]);
     }
+
+    // ─── El enlace con la muestra ─────────────────────────────────────────
+    //
+    // El sistema anterior ataba la fila a la muestra partiendo el correlativo
+    // TIPEADO e interpolándolo en SQL. Si el formato no coincidía, el enlace no
+    // se hacía y el resultado no llegaba al informe del cliente sin que nada lo
+    // avisara. Acá la fila se ata por clave foránea, y de ese enlace dependen
+    // el avance de la muestra, el equipo del resultado y el bloque de
+    // condiciones de ensayo del informe.
+
+    public function test_la_fila_se_ata_a_la_prueba_pedida_y_hereda_muestra_y_equipo(): void
+    {
+        $worksheet = $this->makeWorksheet();
+        $prueba    = $this->makeSampleTest();
+
+        $this->actingAs($this->userWith(['worksheets.view', 'worksheets.edit']))
+            ->post(route('lab_management.worksheets.rows.save', $worksheet), [
+                'kind'           => WorksheetRow::KIND_SAMPLE,
+                'sample_test_id' => $prueba->id,
+                'values'         => [],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('worksheet_rows', [
+            'worksheet_id'   => $worksheet->id,
+            'sample_test_id' => $prueba->id,
+            'sample_id'      => $prueba->sample_id,
+            'sample_code'    => $prueba->sample->code,
+        ]);
+    }
+
+    public function test_la_ficha_ofrece_las_pruebas_que_esta_hoja_espera(): void
+    {
+        $worksheet = $this->makeWorksheet();
+        $prueba    = $this->makeSampleTest();
+
+        $this->actingAs($this->userWith(['worksheets.view']))
+            ->get(route('lab_management.worksheets.show', $worksheet))
+            ->assertInertia(fn ($page) => $page
+                ->has('pendingTests', 1)
+                ->where('pendingTests.0.id', $prueba->id)
+                ->where('pendingTests.0.code', $prueba->sample->code));
+    }
+
+    /** Una muestra con esta prueba pedida y todavía sin resultado. */
+    private function makeSampleTest(): \App\Models\SampleTest
+    {
+        $cliente = \App\Models\Customer::create([
+            'slug' => Str::random(22), 'name' => 'Bancada ' . Str::random(5), 'tenant_id' => 1,
+        ]);
+        $recepcion = \App\Models\Reception::create([
+            'slug' => Str::random(22), 'customer_id' => $cliente->id,
+            'received_at' => now(), 'tenant_id' => 1,
+            'status' => \App\Models\Reception::STATUS_CONFIRMED,
+        ]);
+        $muestra = \App\Models\Sample::create([
+            'slug' => Str::random(22), 'reception_id' => $recepcion->id,
+            'year' => 2026, 'number' => 700, 'code' => '2026-0700',
+            'tenant_id' => 1, 'is_urgent' => false,
+        ]);
+
+        return \App\Models\SampleTest::create([
+            'sample_id' => $muestra->id,
+            'test_definition_id' => $this->definition->id,
+            'status' => \App\Models\SampleTest::STATUS_PENDING,
+            'tenant_id' => 1,
+        ]);
+    }
 }

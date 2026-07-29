@@ -50,6 +50,7 @@ import {
 import WorksheetCell from '@/Components/Worksheets/WorksheetCell.vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
 import EquipmentSelect from '@/Components/Worksheets/EquipmentSelect.vue';
+import SampleTestSelect from '@/Components/Worksheets/SampleTestSelect.vue';
 import { useI18n } from '@/Plugins/i18n';
 import { censoredText, kindColor } from '@/Pages/Worksheets/config/format';
 
@@ -63,6 +64,9 @@ const props = defineProps({
     instrumentsByField: { type: Object, default: () => ({}) },
     // Los equipos del workspace, para indicar de cuál es cada muestra.
     equipment:   { type: Array,  default: () => [] },
+    // Las pruebas que esta hoja todavía espera. La fila de muestra se ata a una
+    // de ellas por clave foránea, en vez de tipear el correlativo.
+    pendingTests: { type: Array, default: () => [] },
     missing:     { type: Array,  default: () => [] },
     readonly:    { type: Boolean, default: false },
 });
@@ -245,6 +249,7 @@ const buildDraft = (row = null) => {
         position:      row?.position ?? null,
         instrument_id: row?.instrument_id ?? null,
         equipment_id:  row?.equipment_id ?? null,
+        sample_test_id: row?.sample_test_id ?? null,
         notes:         row?.notes ?? '',
         values,
     };
@@ -452,6 +457,19 @@ const setCell = (draft, field, replicate, value) => {
 };
 
 /** El código de muestra que declara la plantilla, tal como quedó en el borrador. */
+/**
+ * Al elegir la muestra se llena también la celda del correlativo.
+ *
+ * El enlace de verdad es `sample_test_id`, pero la columna del Nº de muestra
+ * existe en la plantilla y se imprime en la hoja de bancada firmada: dejarla
+ * vacía porque ahora hay una clave foránea sería perder el papel.
+ */
+const onSamplePicked = (draft, test) => {
+    if (!sampleCodeField.value) return;
+
+    setCell(draft, sampleCodeField.value, 1, test?.code ?? '');
+};
+
 const sampleCodeOf = (draft) => {
     const field = sampleCodeField.value;
     if (!field) return null;
@@ -486,6 +504,14 @@ const payloadOf = (draft) => {
     // una fila ya guardada no la borraría igual.
     if (draft.kind === 'sample' && draft.equipment_id) {
         body.equipment_id = draft.equipment_id;
+    }
+
+    // El enlace con la prueba pedida. Solo en filas de muestra: un patrón, un
+    // duplicado o un blanco no vienen de ninguna. Se manda incluso en null
+    // —a diferencia del equipo— porque desasignar la muestra de una fila ya
+    // guardada tiene que poder hacerse.
+    if (draft.kind === 'sample') {
+        body.sample_test_id = draft.sample_test_id ?? null;
     }
 
     return body;
@@ -628,7 +654,16 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                         </td>
 
                         <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <SampleTestSelect
+                                v-if="drafts[row.id]?.kind === 'sample' && pendingTests.length"
+                                :tests="pendingTests"
+                                :value="drafts[row.id].sample_test_id"
+                                :disabled="readonly"
+                                @update:value="(value) => (drafts[row.id].sample_test_id = value)"
+                                @picked="(test) => onSamplePicked(drafts[row.id], test)"
+                            />
                             <WorksheetCell
+                                v-else
                                 :field="sampleCodeField"
                                 :values="drafts[row.id]?.values?.[sampleCodeField.code] ?? {}"
                                 :stored="stored[row.id]?.[sampleCodeField.code] ?? {}"
@@ -723,7 +758,15 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                         </td>
 
                         <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <SampleTestSelect
+                                v-if="newDraft.kind === 'sample' && pendingTests.length"
+                                :tests="pendingTests"
+                                :value="newDraft.sample_test_id"
+                                @update:value="(value) => (newDraft.sample_test_id = value)"
+                                @picked="(test) => onSamplePicked(newDraft, test)"
+                            />
                             <WorksheetCell
+                                v-else
                                 :field="sampleCodeField"
                                 :values="newDraft.values[sampleCodeField.code] ?? {}"
                                 :stored="{}"

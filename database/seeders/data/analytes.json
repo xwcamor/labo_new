@@ -211,6 +211,41 @@
   ],
   "papel": [
     {
+      "code": "fal",
+      "name": "2-Furfuraldehído (2-FAL)",
+      "unit": "ppb",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "hme",
+      "name": "5-Hidroxi-metil-furfuraldehído (5-HMF)",
+      "unit": "ppb",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "ace",
+      "name": "2-Acetilfurano (2-ACF)",
+      "unit": "ppb",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "mfu",
+      "name": "5-Metil-2-furfuraldehído (5-MEF)",
+      "unit": "ppb",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "fua",
+      "name": "2-Furfuril alcohol (2-FOL)",
+      "unit": "ppb",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
       "code": "dp",
       "name": "Grado de polimerización",
       "unit": "",

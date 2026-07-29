@@ -159,6 +159,7 @@ return [
     // acá, se imprime su clave —feo, pero visible— en vez de una página sin
     // título.
     'family' => [
+        'azufre_corrosivo' => 'AZUFRE CORROSIVO',
         'fisicoquimico' => 'ENSAYOS FISICO-QUIMICOS',
     ],
     'footer_legend' => 'Los resultados corresponden únicamente a la muestra recibida. El valor de orientación es el criterio de aceptación aplicable a este equipo según la norma indicada en cada fila.',

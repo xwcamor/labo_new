@@ -150,6 +150,7 @@ return [
     'analysis_empty'  => 'No analysis recorded for this test family.',
     'analysis_edited' => 'Edited by the analyst',
     'family' => [
+        'azufre_corrosivo' => 'CORROSIVE SULFUR',
         'fisicoquimico' => 'PHYSICOCHEMICAL TESTS',
     ],
     'footer_legend' => 'Results apply only to the sample as received. The acceptance value is the criterion applicable to this equipment under the standard shown on each row.',

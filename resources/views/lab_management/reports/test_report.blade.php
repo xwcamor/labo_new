@@ -152,6 +152,15 @@
             position: fixed; bottom: -26px; left: 0;
             font-size: 6.5pt; color: #555555;
         }
+        /* El descargo legal va en el pie de TODAS las páginas, como en el
+           informe anterior. No es redundancia: el informe se reparte una hoja
+           por ensayo y cada una se fotocopia, se escanea y se adjunta a un
+           correo por separado. Una hoja suelta sin el descargo es una hoja
+           que afirma más de lo que el laboratorio firmó. */
+        .disclaimer {
+            position: fixed; bottom: -18px; left: 0; right: 0;
+            font-size: 5.5pt; color: #666666; text-align: justify; line-height: 1.25;
+        }
     </style>
 </head>
 <body>
@@ -161,6 +170,9 @@
      seis páginas tiene que poder identificarse sola. --}}
 <div class="pagenum__sample">{{ $sample['code'] }}</div>
 <div class="pagenum__code">{{ $verifyCode }}</div>
+@if ($letterhead['disclaimer'])
+    <div class="disclaimer">{{ $letterhead['disclaimer'] }}</div>
+@endif
 
 @php
     // OJO: no escribir las directivas de bloque de PHP dentro de un comentario
@@ -489,10 +501,9 @@
 
         <div class="scope">
             {{ __('reports.analysis_scope') }}<br>
+            {{-- El descargo legal ya NO se repite acá: está en el pie de todas
+                 las páginas, que es donde el informe anterior lo tenía. --}}
             {{ __('reports.generated_by', ['name' => $generatedBy ?? '—']) }}
-            @if ($letterhead['disclaimer'])
-                <br>{{ $letterhead['disclaimer'] }}
-            @endif
         </div>
 
     @else

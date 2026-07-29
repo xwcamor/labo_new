@@ -78,6 +78,7 @@ return [
     // ── Errores ───────────────────────────────────────────────────────────
     // Todos se verifican del lado del servidor. En el sistema viejo estas
     // cuatro reglas vivían en el HTML y un envío directo las salteaba.
+    'pick_sample' => 'Elegir la muestra…',
     'errors' => [
         'locked'                => 'La hoja está bloqueada por el supervisor. No admite cambios.',
         'not_draft'             => 'La hoja ya no está en carga. Solo se puede escribir mientras está en carga.',

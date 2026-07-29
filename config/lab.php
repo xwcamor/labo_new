@@ -56,4 +56,19 @@ return [
         'fisico_quimico' => 'fisicoquimico',
     ],
 
+    /*
+    | Excepciones POR PRUEBA, para las familias que no coinciden con un grupo.
+    |
+    | Los tres ensayos de azufre viven en el grupo "Otros" —junto a PCB, furanos
+    | y todo lo demás— pero el informe acreditado los imprime en UNA sola hoja,
+    | con sus tres tablas. Declararlo por grupo mandaría a los quince ensayos de
+    | "Otros" a la misma página, que no es lo que hace el papel.
+    */
+
+    'report_families_by_test' => [
+        'azufre_1275b'          => 'azufre_corrosivo',
+        'azufre_62535_48_horas' => 'azufre_corrosivo',
+        'azufre_62535_72_horas' => 'azufre_corrosivo',
+    ],
+
 ];

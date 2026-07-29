@@ -140,7 +140,7 @@ censurado se conserva: ">300 °C" no se publica como "300 °C".
 sobre el párrafo real del DBDS, más los decimales, el signo, el código partido y
 el pedido por código de parámetro.
 
-### A6. `[ ]` Enlazar la fila de bancada con la prueba pedida
+### A6. `[x]` Enlazar la fila de bancada con la prueba pedida
 
 **Problema.** El servicio sabe resolver muestra, prueba y equipo a partir de
 `sample_test_id`, pero **el controlador no acepta ese campo** y la grilla manda
@@ -153,8 +153,20 @@ Sin ese enlace: el avance de la muestra nunca se escribe, el equipo cae al
 tipeado a mano, y **el bloque de condiciones del informe sale vacío en todas
 las páginas**.
 
-**Solución.** Aceptar `sample_test_id` en la validación de `saveRow`, mandar
-las pruebas pendientes a la pantalla, y poner un selector en la grilla.
+**Solución.** `saveRow` acepta `sample_test_id`, la ficha manda las pruebas que
+esta hoja espera, y la columna del Nº de muestra pasó de campo de texto a
+**selector**: se elige "2026-0031 · Abengoa Peru SA · T-01" en vez de tipear el
+correlativo. La fila queda atada por clave foránea y hereda muestra, código y
+equipo.
+
+Las pruebas que YA están en una fila de la hoja entran siempre en la lista, sin
+mirar su estado: si no, el selector no encuentra su propia opción y Ant Design
+cae a mostrar el número crudo del identificador — la hoja cargada se leía "124"
+donde dice "2026-0018".
+
+La celda del correlativo se llena igual al elegir: el enlace de verdad es la
+clave foránea, pero esa columna existe en la plantilla y se imprime en la hoja
+de bancada firmada.
 
 **Cómo lo verifico.**
 ```
@@ -164,40 +176,63 @@ Tiene que dar 0 **después de cargar una fila desde el navegador**, no solo
 después del sembrador. Y el PDF de esa muestra tiene que traer fecha de
 análisis, temperatura y humedad.
 
-### A7. `[ ]` El descargo legal en todas las páginas
+```
+php artisan test --filter=WorksheetRoutesTest   # 8 pruebas, 2 nuevas
+```
+`test_la_fila_se_ata_a_la_prueba_pedida_y_hereda_muestra_y_equipo` y
+`test_la_ficha_ofrece_las_pruebas_que_esta_hoja_espera`.
+
+### A7. `[x]` El descargo legal en todas las páginas
 
 **Problema.** El viejo lo tenía en el pie de todas; el nuevo, solo en la
 última. En un formato donde cada hoja se lee sola —y se fotocopia suelta— es un
 retroceso.
 
-**Solución.** Moverlo al pie común del blade.
+**Solución.** Bloque `position: fixed` en el pie, junto al código de muestra y
+al de verificación que ya se repetían. Deja de imprimirse en el bloque de la
+última hoja, donde estaba duplicado.
 
-**Cómo lo verifico.** Buscar el texto en cada página del PDF; tiene que
-aparecer tantas veces como páginas tenga.
+**Cómo lo verifico.** `php artisan report:compare` y buscar el texto en el PDF:
+tiene que aparecer tantas veces como páginas tenga.
 
-### A8. `[ ]` Los azufres en una sola hoja
+### A8. `[x]` Los azufres en una sola hoja
 
 **Problema.** El viejo imprimía los tres sub-ensayos (1275B, 62535 48 h, 62535
 72 h) en la misma hoja. Hoy salen en tres.
 
-**Solución.** Declarar la familia. **Solo datos**: una entrada en
-`config('lab.report_families')` o el campo "Tabla del informe" de la prueba.
+**Solución.** `config('lab.report_families_by_test')` — una excepción POR
+PRUEBA, no por grupo: los tres azufres viven en "Otros" junto a PCB, furanos y
+metales, y declararlo por grupo mandaría los quince ensayos a la misma página.
+Migración de relleno que respeta lo que el laboratorio haya reagrupado a mano.
 
-**Cómo lo verifico.** Una muestra con los tres azufres tiene que dar **una**
-sección con tres filas.
+**Cómo lo verifico.**
+```
+php artisan tinker --execute="foreach (App\Models\TestDefinition::where('report_comment_group','azufre_corrosivo')->pluck('code') as \$c) echo \$c, PHP_EOL;"
+```
+Tres códigos. Y una muestra con los tres azufres tiene que dar **una** sección.
 
-### A9. `[ ]` Los cinco furanos no se imprimen
+### A9. `[x]` Los cinco furanos no se imprimen
 
 **Problema.** Detectado al sembrar los límites de detección: en la prueba de
 furanos solo `grado_de_polimerizacion` tiene `report_visible`. Los cinco
 compuestos (2-FAL, 5-HMF, 2-ACF, 5-MEF, 2-FOL) tienen `role = none` y **no
 salen en el informe**. El viejo los imprimía los cinco, más el DP.
 
-**Solución.** Marcarlos `role = result` con su analito y `report_visible`.
-Es dato, no código.
+**Solución.** Se declararon los cinco parámetros (`fal`, `hme`, `ace`, `mfu`,
+`fua`, en ppb) y se enlazaron sus columnas en `analyte_map.json`. **No fue una
+adivinanza**: son los mismos códigos que TrafoDex ya usa en su tabla `furanos`,
+así que hay dos fuentes independientes. Con eso las cinco columnas quedan
+`role = result` + `report_visible`, y sus límites de detección (`< 10` ppb) ya
+estaban sembrados esperándolas.
 
-**Cómo lo verifico.** El PDF de una muestra con furanos tiene que traer seis
-filas, no una.
+Furanos sale de la lista de pendientes de `analyte_map.json`. Quedan cuatro:
+tensión interfacial, partículas, metales y condición visual.
+
+**Cómo lo verifico.**
+```
+php artisan db:seed --class=LabAnalyteMapSeeder   # "columnas enlazadas: 41"
+```
+El PDF de una muestra con furanos tiene que traer seis filas, no una.
 
 ### A10. `[ ]` El idioma del autodiagnóstico queda congelado
 

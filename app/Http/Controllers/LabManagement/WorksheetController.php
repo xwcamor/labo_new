@@ -194,6 +194,9 @@ class WorksheetController extends Controller
             'activity'    => $this->recordActivity($worksheet, $request),
             'fields'      => $worksheet->definition->fields,
             'fieldTypes'  => config('lab_field_types'),
+            // Las pruebas de ESTA definición que todavía esperan resultado, para
+            // que el analista elija la muestra en vez de tipear su código.
+            'pendingTests' => $this->pendingTests($worksheet),
             // Los equipos que cada columna ofrece, indexados por columna. La
             // columna que no declara ninguno cae a la lista completa: es lo
             // correcto para las que el sistema anterior dejó como texto libre,
@@ -226,6 +229,52 @@ class WorksheetController extends Controller
         ]);
     }
 
+    /**
+     * Las muestras que esperan ESTA prueba, para el selector de la grilla.
+     *
+     * Se ofrecen las pendientes y las en proceso —una hoja se corrige, y la
+     * fila que ya se cargó tiene que seguir apareciendo para poder editarla— y
+     * también las que ya están en otra fila de esta misma hoja, porque el
+     * analista puede querer moverlas de sitio.
+     *
+     * @return array<int,array{id:int,code:string,customer:?string,equipment:?string}>
+     */
+    private function pendingTests(Worksheet $worksheet): array
+    {
+        // Las que YA están en una fila de esta hoja entran siempre, sin mirar
+        // su estado. Si no, el selector no encuentra su propia opción y Ant
+        // Design cae a mostrar el número crudo del identificador en vez del
+        // correlativo: la hoja ya cargada se leería "124" donde dice
+        // "2026-0018".
+        $enLaHoja = $worksheet->rows()->whereNotNull('sample_test_id')->pluck('sample_test_id');
+
+        return \App\Models\SampleTest::query()
+            ->where('test_definition_id', $worksheet->test_definition_id)
+            ->where(fn ($q) => $q
+                ->whereIn('status', [
+                    \App\Models\SampleTest::STATUS_PENDING,
+                    \App\Models\SampleTest::STATUS_IN_PROGRESS,
+                ])
+                ->orWhereIn('id', $enLaHoja))
+            ->with([
+                'sample:id,code,equipment_id,reception_id',
+                'sample.equipment:id,name,tag,serial',
+                'sample.reception:id,customer_id',
+                'sample.reception.customer:id,name',
+            ])
+            ->get()
+            ->filter(fn ($p) => $p->sample !== null)
+            ->sortByDesc(fn ($p) => $p->sample->code)
+            ->map(fn ($p) => [
+                'id'        => $p->id,
+                'code'      => $p->sample->code,
+                'customer'  => $p->sample->reception?->customer?->name,
+                'equipment' => $p->sample->equipment?->tag ?: $p->sample->equipment?->name,
+            ])
+            ->values()
+            ->all();
+    }
+
     /** Alta o edición de una fila con todos sus valores. */
     public function saveRow(Request $request, Worksheet $worksheet): RedirectResponse
     {
@@ -233,6 +282,15 @@ class WorksheetController extends Controller
             'row_id'        => ['nullable', 'integer'],
             'kind'          => ['required', Rule::in(WorksheetRow::KINDS)],
             'sample_code'   => ['nullable', 'string', 'max:60'],
+            // CUÁL de las pruebas pedidas es esta fila. Es el enlace real con
+            // la muestra: sin él, `worksheet_rows.sample_id` queda nulo y con
+            // eso se caen tres cosas ya construidas — el avance de la muestra,
+            // el equipo del resultado y el bloque de condiciones del informe,
+            // que se busca por ese identificador y sale vacío. El sistema
+            // anterior enlazaba partiendo el código tipeado e interpolándolo en
+            // SQL, y cuando el texto no coincidía el resultado no llegaba nunca
+            // al informe, sin que nada avisara.
+            'sample_test_id' => ['nullable', 'integer'],
             'position'      => ['nullable', 'integer', 'min:0'],
             'instrument_id' => ['nullable', 'integer', Rule::exists('instruments', 'id')],
             // De qué equipo del cliente es la muestra. Sin esto el resultado no

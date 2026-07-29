@@ -68,6 +68,7 @@ return [
     ],
 
     // ── Errors ────────────────────────────────────────────────────────────
+    'pick_sample' => 'Pick the sample…',
     'errors' => [
         'locked'                => 'The worksheet is locked by the supervisor. No changes allowed.',
         'not_draft'             => 'The worksheet is no longer in progress. Only an in-progress worksheet is writable.',

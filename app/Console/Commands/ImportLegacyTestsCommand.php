@@ -115,15 +115,19 @@ class ImportLegacyTestsCommand extends Command
                 if ($deleted === '1') continue;
 
                 $name = $this->str($name);
+                $codigo = Str::slug($name, '_');
+
                 // La FAMILIA del informe: qué pruebas comparten tabla. Las
                 // fisicoquímicas van todas a la misma —es el formato
-                // acreditado— y el resto se queda con la suya. Sale del GRUPO
-                // (`config('lab.report_families')`), no de una lista de
-                // códigos escrita acá.
-                $familia = config('lab.report_families')[$grupoCodigo[(int) $groupId] ?? ''] ?? null;
+                // acreditado— y el resto se queda con la suya. Sale del GRUPO,
+                // no de una lista de códigos escrita acá; la excepción por
+                // prueba existe para los tres azufres, que comparten hoja pero
+                // no comparten grupo.
+                $familia = config('lab.report_families_by_test')[$codigo]
+                    ?? config('lab.report_families')[$grupoCodigo[(int) $groupId] ?? ''] ?? null;
 
                 $row = [
-                    'code'          => Str::slug($name, '_'),
+                    'code'          => $codigo,
                     'name'          => $name,
                     'test_group_id' => $groupByLegacy[(int) $groupId] ?? null,
                     'description'   => $this->str($desc) ?: null,

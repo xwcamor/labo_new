@@ -39,6 +39,9 @@ const props = defineProps({
     // colorímetro en el color); sin esto la grilla ofrecía los 24 en todas.
     instrumentsByField: { type: Object, default: () => ({}) },
     equipment:   { type: Array,  default: () => [] },
+    // Las pruebas pedidas que esta hoja todavía espera, para el selector de
+    // muestra de la grilla.
+    pendingTests: { type: Array, default: () => [] },
     can:         { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
     // El historial del registro, como en el resto de las fichas. En un
@@ -171,6 +174,7 @@ const showActions = computed(
                         :instruments="instruments"
                         :instruments-by-field="instrumentsByField"
                         :equipment="equipment"
+                        :pending-tests="pendingTests"
                         :missing="missing"
                         :readonly="readonly"
                     />

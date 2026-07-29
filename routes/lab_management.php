@@ -242,11 +242,6 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('worksheets/{worksheet}/instrument_file', [InstrumentFileController::class, 'store'])->name('worksheets.instrument_file');
     });
 
-    // Validar es del supervisor. Ver el comentario de arriba.
-    Route::middleware('permission:worksheets.validate')->group(function () {
-        Route::post('worksheets/{worksheet}/validate', [WorksheetController::class, 'validateSheet'])->name('worksheets.validate');
-    });
-
     // Dar de baja la hoja, con su motivo. Se llamaba "anular" y era un estado
     // más que no aportaba nada: hacía lo mismo que un borrado lógico bien
     // hecho, que es lo que tenía el sistema anterior.

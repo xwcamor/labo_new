@@ -303,9 +303,9 @@ class WorksheetPreviewTest extends TestCase
         $this->assertSame([], $response->json('errors'));
     }
 
-    public function test_una_hoja_cerrada_no_calcula(): void
+    public function test_una_hoja_dada_de_baja_no_calcula(): void
     {
-        $worksheet = $this->makeWorksheet(null, Worksheet::STATUS_CLOSED);
+        $worksheet = $this->makeWorksheet(null, Worksheet::STATUS_VOIDED);
 
         $this->preview($worksheet, ['peso_aceite' => ['1' => '20']])
             ->assertStatus(422)

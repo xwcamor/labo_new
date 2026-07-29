@@ -252,17 +252,18 @@ class WorksheetServiceTest extends TestCase
         $this->assertSame($antes, $despues);
     }
 
-    public function test_una_hoja_validada_ya_no_admite_cambios(): void
+    public function test_una_hoja_bloqueada_ya_no_admite_cambios(): void
     {
-        // El bloqueo del sistema viejo solo escondía botones: los controladores
-        // nunca miraban el estado.
+        // Lo único que cierra la hoja es el candado. El bloqueo del sistema
+        // viejo solo escondía botones: los controladores nunca miraban el
+        // estado, así que un envío directo escribía igual.
         $worksheet = $this->makeWorksheet();
         $this->addControlAndDuplicate($worksheet);
         $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_SAMPLE], [
             'nro_muestra' => '2026-0744', 'peso_aceite' => '20',
         ]);
 
-        $this->service->validate($worksheet);
+        $worksheet->forceFill(['locked_at' => now()])->save();
 
         $this->expectException(ValidationException::class);
         $this->service->saveRow($worksheet->fresh(), ['kind' => WorksheetRow::KIND_SAMPLE], [
@@ -270,7 +271,18 @@ class WorksheetServiceTest extends TestCase
         ]);
     }
 
-    public function test_no_se_valida_una_hoja_con_obligatorios_vacios(): void
+    public function test_la_hoja_completa_publica_sola(): void
+    {
+        // Ya no hay botón que la firme: al guardar la última fila que faltaba,
+        // los resultados quedan consultables. Antes vivían en un limbo hasta
+        // que alguien se acordara de apretar "Validar".
+        $worksheet = $this->makeWorksheet();
+        $this->addControlAndDuplicate($worksheet);
+
+        $this->assertSame(Worksheet::STATUS_VALIDATED, $worksheet->fresh()->status);
+    }
+
+    public function test_una_hoja_con_obligatorios_vacios_no_publica(): void
     {
         $worksheet = $this->makeWorksheet();
         $this->service->saveRow($worksheet, ['kind' => WorksheetRow::KIND_CONTROL], [
@@ -279,19 +291,6 @@ class WorksheetServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $this->service->validate($worksheet);
-    }
-
-    public function test_no_se_valida_dos_veces(): void
-    {
-        // El estado intermedio "cerrada" se sacó: hoy se valida desde la carga,
-        // en un solo paso. Lo que sí sigue siendo un error es validar algo que
-        // ya está validado.
-        $worksheet = $this->makeWorksheet();
-        $this->addControlAndDuplicate($worksheet);
-        $this->service->validate($worksheet);
-
-        $this->expectException(ValidationException::class);
-        $this->service->validate($worksheet->fresh());
     }
 
     public function test_una_hoja_bloqueada_no_se_valida(): void

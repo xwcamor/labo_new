@@ -43,10 +43,31 @@ class Analyte extends Model
         'decimals'   => 'integer',
     ];
 
-    /** Transformadores de esta marca (FK directa analyte_id). */
-    public function transformers(): HasMany
+    // ── Dónde se mide ────────────────────────────────────────────────────
+    //
+    // El parámetro no se mide solo: se mide en la COLUMNA de una prueba. El
+    // "Hidrógeno H2 ppm" es una columna de la hoja de cromatografía que declara
+    // `output_analyte_id`, y esa declaración es la que convierte el número
+    // tipeado en un resultado consultable. Sin verla, el módulo de parámetros se
+    // lee como un catálogo suelto que no sirve para nada — que es exactamente lo
+    // que pasaba.
+
+    /** Las columnas de prueba que producen este parámetro. */
+    public function fields(): HasMany
     {
-        return $this->hasMany(Transformer::class);
+        return $this->hasMany(TestField::class, 'output_analyte_id');
+    }
+
+    /** Los límites de norma cargados para este parámetro. */
+    public function specLimits(): HasMany
+    {
+        return $this->hasMany(SpecLimit::class);
+    }
+
+    /** Los resultados ya materializados. */
+    public function results(): HasMany
+    {
+        return $this->hasMany(Result::class);
     }
 
     protected static function booted(): void

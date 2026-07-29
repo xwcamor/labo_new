@@ -25,8 +25,9 @@ use Inertia\Inertia;
  * Este controlador NO se generó con el scaffold, a diferencia del resto de los
  * módulos, y la diferencia es deliberada: una hoja de trabajo no es un
  * catálogo. No tiene alta masiva, ni edición en lote, ni duplicado, ni
- * importación por planilla. Tiene un flujo —cargar, cerrar, validar— y ese
- * flujo es lo que hay que cuidar.
+ * importación por planilla. Tiene un flujo —se carga, publica sola en cuanto
+ * está completa, y el sistema la bloquea a los N meses— y ese flujo es lo que
+ * hay que cuidar.
  *
  * Toda la lógica vive en App\Services\Lab\WorksheetService. Acá solo entran los
  * datos y salen las páginas: el controlador nunca decide si una hoja se puede
@@ -38,8 +39,8 @@ use Inertia\Inertia;
  * En el sistema Rails viejo la pantalla de validar mostraba su enlace solo a
  * los supervisores, pero la ACCIÓN verificaba el permiso de editar. El botón
  * estaba escondido y la dirección seguía abierta para cualquiera que pudiera
- * editar. Acá `validate` exige `worksheets.validate` en la ruta, y esconder el
- * botón es solo cortesía.
+ * editar. Acá cada ruta declara su permiso y esconder el botón es solo
+ * cortesía.
  */
 class WorksheetController extends Controller
 {
@@ -205,13 +206,9 @@ class WorksheetController extends Controller
                 ->limit(2000)->get(['id', 'name', 'serial', 'tag', 'customer_id']),
             'can'         => [
                 'edit'     => $worksheet->isEditable() && $this->allows('worksheets.edit'),
-                // Validar es el único paso del flujo. El estado intermedio
-                // "cerrada" se sacó: eran dos clics para un solo hecho y dos
-                // botones primarios en la misma franja. Las hojas que quedaron
-                // cerradas de antes se siguen pudiendo validar.
-                'validate' => in_array($worksheet->status, [Worksheet::STATUS_DRAFT, Worksheet::STATUS_CLOSED], true)
-                    && $worksheet->locked_at === null
-                    && $this->allows('worksheets.validate'),
+                // No hay botón que firme la hoja: publica sola en cuanto está
+                // completa y deja de admitir cambios cuando el candado la
+                // cierra. Lo único que queda como acción es darla de baja.
                 'delete'   => ! $worksheet->isVoided() && $this->allows('worksheets.delete'),
             ],
             // Lo que le falta a la hoja para admitir muestras. Se manda como
@@ -379,13 +376,6 @@ class WorksheetController extends Controller
         $row->delete();
 
         return back()->with('success', __('worksheets.row_deleted'));
-    }
-
-    public function validateSheet(Worksheet $worksheet): RedirectResponse
-    {
-        $this->service->validate($worksheet);
-
-        return back()->with('success', __('worksheets.validated'));
     }
 
     /**

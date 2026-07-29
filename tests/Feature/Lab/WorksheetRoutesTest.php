@@ -90,36 +90,22 @@ class WorksheetRoutesTest extends TestCase
 
     // ─────────────────────────────────────────────────────────────────────
 
-    public function test_el_analista_carga_pero_no_valida(): void
+    public function test_sin_permiso_de_edicion_no_se_escribe_la_hoja(): void
     {
-        $analista = $this->userWith([
-            'worksheets.view', 'worksheets.create', 'worksheets.edit',
-        ]);
-        $worksheet = $this->makeWorksheet(Worksheet::STATUS_CLOSED);
+        // Ya no hay acción de validar: la hoja publica sola en cuanto está
+        // completa. Lo que sigue estando gobernado por permiso es ESCRIBIR, y
+        // eso es lo que se verifica.
+        $worksheet = $this->makeWorksheet();
 
-        $this->actingAs($analista)
-            ->post(route('lab_management.worksheets.validate', $worksheet))
+        $this->actingAs($this->userWith(['worksheets.view']))
+            ->post(route('lab_management.worksheets.rows.save', $worksheet), [
+                'kind' => WorksheetRow::KIND_CONTROL,
+                'values' => ['peso_aceite' => '20', 'volumen_gastado' => '1.20'],
+            ])
             // El proyecto convierte el 403 en una redirección al tablero.
             ->assertRedirect(route('dashboard_management.dashboards.index'));
 
-        $this->assertSame(Worksheet::STATUS_CLOSED, $worksheet->fresh()->status);
-        $this->assertNull($worksheet->fresh()->validated_by);
-    }
-
-    public function test_el_supervisor_valida(): void
-    {
-        $supervisor = $this->userWith([
-            'worksheets.view', 'worksheets.edit', 'worksheets.validate',
-        ]);
-        $worksheet = $this->makeWorksheet(Worksheet::STATUS_CLOSED);
-
-        $this->actingAs($supervisor)
-            ->post(route('lab_management.worksheets.validate', $worksheet))
-            ->assertSessionHasNoErrors();
-
-        $worksheet->refresh();
-        $this->assertSame(Worksheet::STATUS_VALIDATED, $worksheet->status);
-        $this->assertSame($supervisor->id, $worksheet->validated_by);
+        $this->assertSame(0, $worksheet->rows()->count());
     }
 
     public function test_sin_permiso_de_lectura_no_se_ve_el_listado(): void

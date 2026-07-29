@@ -30,13 +30,13 @@ return [
     'state' => [
         'draft'     => 'In progress',
         'closed'    => 'Closed',   // legacy: no longer produced
-        'validated' => 'Validated',
+        'validated' => 'Complete',
         'voided'    => 'Removed',
     ],
     'state_help' => [
-        'draft'     => 'The analyst is still entering data. The only writable state.',
+        'draft'     => 'Being filled in. The worksheet accepts changes until the system locks it by age; unlocking it afterwards is an explicit, audited decision.',
         'closed'    => 'Legacy state: the analyst is done and awaiting review. No longer produced — validation is now a single step.',
-        'validated' => 'Reviewed and signed by the supervisor. Controls now feed the control chart.',
+        'validated' => 'Complete: its results are published and controls feed the control chart. It still accepts corrections until the system locks it.',
         'voided'    => 'Removed with a reason. Its raw values are kept and it can be restored: the laboratory answers for it under audit.',
     ],
 

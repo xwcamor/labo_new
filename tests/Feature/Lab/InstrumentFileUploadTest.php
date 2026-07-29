@@ -158,9 +158,11 @@ class InstrumentFileUploadTest extends TestCase
         $this->assertNotNull(\App\Models\InstrumentFile::first()->parse_error);
     }
 
-    public function test_no_se_carga_un_archivo_en_una_hoja_cerrada(): void
+    public function test_no_se_carga_un_archivo_en_una_hoja_bloqueada(): void
     {
-        $this->worksheet->update(['status' => Worksheet::STATUS_CLOSED]);
+        // Lo único que cierra la hoja es el candado, que pone el sistema a los
+        // N meses. No hay estado intermedio que la congele.
+        $this->worksheet->forceFill(['locked_at' => now()])->save();
 
         $this->upload($this->protocolo())->assertStatus(422);
 

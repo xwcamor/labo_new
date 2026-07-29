@@ -115,8 +115,51 @@ class WorksheetService
             // ocurre, y no al abrir la pantalla de la recepción.
             $this->progress->markInProgress($row);
 
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ EL RESULTADO SE PUBLICA AL ESTAR COMPLETO, NO AL APRETAR UN  │
+            // │ BOTÓN                                                        │
+            // └──────────────────────────────────────────────────────────────┘
+            // Hubo un botón "Validar" en la franja de la hoja. No existía en el
+            // sistema anterior y creaba un limbo: la hoja quedaba cargada pero
+            // sus resultados no existían para nadie hasta que alguien se
+            // acordara de apretarlo, y ese alguien no estaba definido.
+            //
+            // El momento en que un resultado se vuelve oficial NO es un clic
+            // sobre la hoja: es la EMISIÓN del informe, que lleva número,
+            // firmantes y queda auditada. La hoja solo tiene que dejar el dato
+            // consultable en cuanto esté completo, y dejar de admitir cambios
+            // cuando el candado la cierre.
+            $this->publishIfComplete($worksheet);
+
             return $row->refresh();
         });
+    }
+
+    /**
+     * Vuelca a la capa consultable lo que la hoja ya tiene completo.
+     *
+     * Se ejecuta después de cada guardado y es idempotente: rematerializar
+     * reescribe los mismos resultados. Una hoja incompleta no publica nada —
+     * un obligatorio vacío significa que la medición no terminó, y publicarla
+     * a medias la haría aparecer en el informe de un cliente con un hueco que
+     * nadie decidió dejar.
+     */
+    private function publishIfComplete(Worksheet $worksheet): void
+    {
+        if ($this->missingRequiredValues($worksheet) !== []) {
+            return;
+        }
+
+        $worksheet->forceFill([
+            'status'       => Worksheet::STATUS_VALIDATED,
+            'validated_at' => $worksheet->validated_at ?? now(),
+        ])->save();
+
+        // Los patrones alimentan la carta de control, las muestras pasan a la
+        // capa consultable, y las pruebas pedidas quedan al día.
+        $this->materializeQc($worksheet);
+        $this->materializer->forWorksheet($worksheet);
+        $this->progress->markValidated($worksheet);
     }
 
     /**
@@ -178,60 +221,36 @@ class WorksheetService
     }
 
     /**
-     * Valida la hoja: el supervisor la revisó y la firma.
+     * Publica a mano lo que la hoja ya tiene completo.
      *
      * ┌──────────────────────────────────────────────────────────────────────┐
-     * │ UN SOLO PASO, NO DOS                                                 │
+     * │ YA NO ES UN BOTÓN                                                    │
      * └──────────────────────────────────────────────────────────────────────┘
-     * Hubo un estado intermedio —"cerrada"— entre cargar y validar. No existía
-     * en el sistema anterior y no aportaba nada: el analista terminaba de
-     * cargar, apretaba "Cerrar hoja", y después alguien apretaba "Validar". Dos
-     * clics para un solo hecho, y una pantalla con dos botones primarios donde
-     * nadie sabía cuál era el que correspondía.
+     * Hubo un botón "Validar" en la franja de la hoja, y antes de él uno de
+     * "Cerrar hoja". Ninguno de los dos existía en el sistema anterior y entre
+     * los dos creaban un limbo: la hoja quedaba cargada pero sus resultados no
+     * existían para nadie hasta que alguien apretara los dos botones, y ese
+     * alguien no estaba definido.
      *
-     * Lo que sí aportaba el cierre era la verificación de obligatorios, y esa se
-     * mudó acá: validar es el momento en que los resultados se vuelven
-     * oficiales, así que es el momento correcto para exigir que estén completos.
-     * Las hojas "cerradas" que quedaron de antes se siguen aceptando.
+     * Hoy la hoja publica sola en cuanto está completa (`publishIfComplete`,
+     * dentro de `saveRow`) y deja de admitir cambios cuando el candado la
+     * cierra. El momento en que un resultado se vuelve oficial es la EMISIÓN
+     * del informe, que lleva número, firmantes y queda auditada.
      *
-     * Validar y BLOQUEAR siguen siendo dos cosas distintas. En el sistema viejo
-     * terminaron siendo el mismo campo `state` (el modelo Ruby conserva
-     * comentadas las etiquetas del significado anterior), el filtro de búsqueda
-     * quedó con la semántica invertida, y `validate_user_id` se sobrescribía en
-     * cada cambio de candado, así que no había forma de saber quién había
-     * validado.
-     *
-     * Validar y bloquear son dos cosas distintas y acá lo son de verdad. En el
-     * sistema viejo terminaron siendo el mismo campo `state` (el modelo Ruby
-     * conserva comentadas las etiquetas del significado anterior), el filtro de
-     * búsqueda quedó con la semántica invertida, y `validate_user_id` se
-     * sobrescribía en cada cambio de candado, así que no había forma de saber
-     * quién había validado.
-     *
-     * Además, la pantalla de validar verificaba el permiso de EDITAR en vez del
-     * de validar: el botón estaba escondido para el analista, pero la dirección
-     * seguía siendo accesible. Acá la autorización es de la ruta y de la
-     * política, no del menú.
+     * Este método queda como el mismo trabajo hecho a pedido —lo usan las
+     * pruebas y sirve de respaldo para rematerializar una hoja vieja—, pero no
+     * cuelga de ninguna pantalla.
      *
      * @throws ValidationException
      */
     public function validate(Worksheet $worksheet): Worksheet
     {
-        if (! in_array($worksheet->status, [Worksheet::STATUS_DRAFT, Worksheet::STATUS_CLOSED], true)) {
-            throw ValidationException::withMessages([
-                'status' => __('worksheets.errors.not_open'),
-            ]);
-        }
-
         if ($worksheet->locked_at !== null) {
             throw ValidationException::withMessages([
                 'status' => __('worksheets.errors.locked'),
             ]);
         }
 
-        // Lo que antes verificaba el cierre. Validar es el momento en que estos
-        // valores pasan al informe de un cliente: si falta un obligatorio, el
-        // papel saldría con un hueco que nadie decidió dejar.
         $missing = $this->missingRequiredValues($worksheet);
 
         if ($missing !== []) {
@@ -247,21 +266,8 @@ class WorksheetService
                 'validated_at' => now(),
             ])->save();
 
-            // Recién con la hoja validada los patrones alimentan la carta de
-            // control: un patrón de una hoja que el supervisor todavía no
-            // revisó no debería mover los límites de nada.
             $this->materializeQc($worksheet);
-
-            // Y por el mismo motivo, recién acá los resultados de las muestras
-            // pasan a la capa consultable: hasta que el supervisor no firma, un
-            // valor no debería aparecer en el informe de un cliente ni mover
-            // una tendencia.
             $this->materializer->forWorksheet($worksheet);
-
-            // Y las pruebas pedidas de esas muestras quedan validadas. Es UNA
-            // actualización masiva sobre las filas de la hoja: el avance de la
-            // recepción se escribe acá, cuando pasa, no cuando alguien abre la
-            // pantalla.
             $this->progress->markValidated($worksheet);
 
             return $worksheet;

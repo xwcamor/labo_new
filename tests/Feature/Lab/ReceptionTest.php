@@ -282,21 +282,20 @@ class ReceptionTest extends TestCase
 
     // ─── Los estados ─────────────────────────────────────────────────────
 
-    public function test_el_estado_avanza_al_cargar_y_al_validar(): void
+    public function test_el_estado_avanza_al_cargar_y_al_completar(): void
     {
         [$muestra, $prueba, $hoja] = $this->readyToLoad();
         $servicio = new WorksheetService();
 
+        // El estado se escribe cuando OCURRE, no cuando alguien abre la ficha
+        // de la recepción. Esta prueba no declara obligatorios, así que la hoja
+        // queda completa con la primera fila y publica ahí mismo: ya no hay un
+        // botón intermedio que decida cuándo el resultado empieza a existir.
         $this->assertSame(SampleTest::STATUS_PENDING, $prueba->fresh()->status);
 
         $servicio->saveRow($hoja, [
             'kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id,
         ], ['h2' => '12.5']);
-
-        $this->assertSame(SampleTest::STATUS_IN_PROGRESS, $prueba->fresh()->status);
-        $this->assertSame(Sample::STATUS_IN_PROGRESS, $muestra->fresh()->status);
-
-        $servicio->validate($hoja);
 
         $this->assertSame(SampleTest::STATUS_VALIDATED, $prueba->fresh()->status);
         $this->assertSame(Sample::STATUS_COMPLETED, $muestra->fresh()->status);

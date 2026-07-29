@@ -38,13 +38,13 @@ return [
     'state' => [
         'draft'     => 'En carga',
         'closed'    => 'Cerrada',   // heredado: ya no se produce
-        'validated' => 'Validada',
+        'validated' => 'Completa',
         'voided'    => 'Dada de baja',
     ],
     'state_help' => [
-        'draft'     => 'El analista todavía está cargando. Es el único estado en el que se puede escribir.',
+        'draft'     => 'En carga. La hoja admite cambios hasta que el sistema la bloquee por antigüedad; desbloquearla después es una decisión explícita y queda auditada.',
         'closed'    => 'Estado heredado: el analista terminó y espera la revisión. Ya no se produce — hoy se valida en un solo paso.',
-        'validated' => 'El supervisor la revisó y la firmó. Los patrones ya alimentan la carta de control.',
+        'validated' => 'Completa: sus resultados ya están publicados y los patrones alimentan la carta de control. Sigue admitiendo correcciones hasta que el sistema la bloquee.',
         'voided'    => 'Dada de baja con su motivo. Sus valores crudos siguen ahí y se puede restaurar: el laboratorio responde por ella ante la auditoría.',
     ],
 

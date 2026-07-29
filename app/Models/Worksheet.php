@@ -234,7 +234,13 @@ class Worksheet extends Model
      */
     public function isEditable(): bool
     {
-        return $this->status === self::STATUS_DRAFT && $this->locked_at === null;
+        // Lo único que cierra la hoja es el CANDADO. No hay botón que la firme:
+        // el candado lo pone el sistema a los N meses (ajuste
+        // `worksheets.auto_lock_months`) y quitarlo es una decisión explícita
+        // que queda auditada. Es como funciona el sistema anterior, y evita el
+        // paso intermedio en el que la hoja quedaba congelada porque alguien
+        // apretó un botón que nadie sabía cuándo correspondía apretar.
+        return $this->locked_at === null && ! $this->isVoided();
     }
 
     public function isValidated(): bool

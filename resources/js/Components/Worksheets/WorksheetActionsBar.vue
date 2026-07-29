@@ -11,7 +11,7 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Button, Modal, Textarea, Tooltip } from 'ant-design-vue';
-import { CheckOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import { DeleteOutlined } from '@ant-design/icons-vue';
 import { useI18n } from '@/Plugins/i18n';
 
 const props = defineProps({
@@ -22,22 +22,6 @@ const props = defineProps({
 const { t } = useI18n();
 
 const submitting = ref(false);
-
-const post = (routeName) => {
-    submitting.value = true;
-    router.post(route(routeName, props.worksheet.slug), {}, {
-        preserveScroll: true,
-        onFinish: () => { submitting.value = false; },
-    });
-};
-
-const confirmValidate = () => Modal.confirm({
-    title:      t('worksheets.actions.validate'),
-    content:    t('worksheets.confirm.validate'),
-    okText:     t('worksheets.actions.validate'),
-    cancelText: t('global.cancel'),
-    onOk: () => post('lab_management.worksheets.validate'),
-});
 
 // ── Baja ─────────────────────────────────────────────────────────────────
 // El motivo es obligatorio y va en un modal propio: la hoja dada de baja NO
@@ -80,12 +64,6 @@ const submitVoid = () => {
         </span>
 
         <div class="ws-actions">
-            <Tooltip v-if="can.validate" :title="$t('worksheets.confirm.validate')">
-                <Button type="primary" :loading="submitting" @click="confirmValidate">
-                    <CheckOutlined /> {{ $t('worksheets.actions.validate') }}
-                </Button>
-            </Tooltip>
-
             <Tooltip v-if="can.delete" :title="$t('worksheets.confirm.void')">
                 <Button danger :loading="submitting" @click="openVoid">
                     <DeleteOutlined /> {{ $t('global.delete') }}

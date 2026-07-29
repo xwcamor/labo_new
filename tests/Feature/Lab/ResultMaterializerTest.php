@@ -136,12 +136,15 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame('2026-07-28', $r->measured_at->toDateString());
     }
 
-    public function test_una_hoja_en_carga_todavia_no_informa_nada(): void
+    public function test_una_hoja_incompleta_todavia_no_informa_nada(): void
     {
-        // Hasta que el supervisor no firma, un valor no debe aparecer en el
-        // informe de un cliente ni mover una tendencia.
+        // Un obligatorio vacío significa que la medición no terminó. Publicarla
+        // a medias la haría aparecer en el informe de un cliente con un hueco
+        // que nadie decidió dejar.
         $w = $this->hoja();
-        $this->cargarMuestra($w);
+        $this->service->saveRow($w, ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'nro_muestra' => '2026-0744',   // sin peso_aceite, que es obligatorio
+        ]);
 
         $this->assertSame(0, Result::count());
     }

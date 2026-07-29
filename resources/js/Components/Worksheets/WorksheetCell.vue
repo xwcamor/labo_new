@@ -162,6 +162,7 @@ const computedHelp = computed(() => {
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <DatePicker
+                        autocomplete="off"
                 :value="valueAt(r) || null"
                 :disabled="disabled"
                 size="small"

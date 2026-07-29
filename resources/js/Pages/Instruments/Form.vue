@@ -147,7 +147,8 @@ const submit = () => {
                     :validate-status="form.errors.calibrated_at ? 'error' : ''"
                     :help="form.errors.calibrated_at"
                 >
-                    <DatePicker v-model:value="form.calibrated_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
+                    <DatePicker
+                        autocomplete="off" v-model:value="form.calibrated_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
                 </FormItem>
 
                 <FormItem
@@ -156,7 +157,8 @@ const submit = () => {
                     :validate-status="form.errors.calibration_due_at ? 'error' : ''"
                     :help="form.errors.calibration_due_at"
                 >
-                    <DatePicker v-model:value="form.calibration_due_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
+                    <DatePicker
+                        autocomplete="off" v-model:value="form.calibration_due_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
                 </FormItem>
 
                 <FormItem

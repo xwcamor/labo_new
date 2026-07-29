@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import {
     Card, Tag, Space, Alert,
 } from 'ant-design-vue';
-import { TeamOutlined, ControlOutlined } from '@ant-design/icons-vue';
+import { TeamOutlined, ExperimentOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -42,7 +42,7 @@ const fmt = (d) => formatDateTimeFull(d);
             :title="laboratory.name"
             :icon-bg="iconBg"
         >
-            <template #icon><ControlOutlined /></template>
+            <template #icon><ExperimentOutlined /></template>
             <template #subtitle>
                 <Space :size="6">
                     <Tag v-if="isDeleted" color="red" :bordered="false">{{ $t('global.deleted') }}</Tag>
@@ -87,7 +87,7 @@ const fmt = (d) => formatDateTimeFull(d);
         <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
             <template #general>
                 <Card :bodyStyle="{ padding: 14 }" class="info-card">
-                    <template #title><ControlOutlined /> {{ $t('global.general_info') }}</template>
+                    <template #title><ExperimentOutlined /> {{ $t('global.general_info') }}</template>
                     <div class="spec-grid">
                         <!-- El id de la base y el slug son para dar soporte, no información
                              del laboratorio: van en caja como el resto —la ficha se ve

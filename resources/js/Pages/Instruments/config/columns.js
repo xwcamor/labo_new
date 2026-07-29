@@ -14,7 +14,10 @@ import { ApartmentOutlined, CalendarOutlined, EnvironmentOutlined, ExperimentOut
  */
 export const instrumentsTableColumns = (t, { isSuper = false, isMobile = false } = {}) => [
     { title: '★',                      dataIndex: 'is_favorite', key: 'favorite',   width: 52,  align: 'center', alwaysVisible: true, mobile: { role: 'pin' } },
-    // Celda principal "rica": nombre + código y marca/modelo como subtítulo.
+    // El CÓDIGO va en su propia columna. Es un identificador de ancho fijo
+    // (PP-LA-01C-056) y mezclado dentro del nombre desalineaba la lectura de
+    // arriba abajo, que es como se busca un instrumento en la bancada.
+    { title: t('instruments.code'),     dataIndex: 'code',        key: 'code',       width: 170, sorter: (a, b) => (a.code || '').localeCompare(b.code || ''), alwaysVisible: true, mobile: { role: 'subtitle' } },
     { title: t('instruments.name'),     dataIndex: 'name',        key: 'name',       sorter: (a, b) => (a.name || '').localeCompare(b.name || ''), alwaysVisible: true, mobile: { role: 'title' } },
     // PARA QUÉ SIRVE. Es la pregunta que el módulo no contestaba: la relación
     // columna-instrumento ya estaba en los datos del laboratorio y la pantalla

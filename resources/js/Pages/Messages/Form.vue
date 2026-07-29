@@ -173,7 +173,8 @@ const isPublished = computed(() => !!props.message?.published_at);
                 </FormItem>
 
                 <FormItem :label="t('messages.expires_at')" :tooltip="t('messages.expires_at_help')">
-                    <DatePicker v-model:value="form.expires_at" :placeholder="t('messages.no_expiration')" show-time />
+                    <DatePicker
+                        autocomplete="off" v-model:value="form.expires_at" :placeholder="t('messages.no_expiration')" show-time />
                 </FormItem>
 
                 <FormItem :label="t('messages.is_active')" :tooltip="t('messages.is_active_help')">

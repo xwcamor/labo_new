@@ -209,6 +209,7 @@ const submit = () => {
                     :help="form.errors.received_at"
                 >
                     <DatePicker
+                        autocomplete="off"
                         v-model:value="form.received_at"
                         size="large"
                         value-format="YYYY-MM-DD"
@@ -223,6 +224,7 @@ const submit = () => {
                     :help="form.errors.due_at"
                 >
                     <DatePicker
+                        autocomplete="off"
                         v-model:value="form.due_at"
                         size="large"
                         value-format="YYYY-MM-DD"

@@ -153,7 +153,8 @@ const title = computed(() =>
                         :validate-status="form.errors.starts_at ? 'error' : ''"
                         :help="form.errors.starts_at"
                     >
-                        <DatePicker v-model:value="form.starts_at" size="large" style="width: 100%" />
+                        <DatePicker
+                        autocomplete="off" v-model:value="form.starts_at" size="large" style="width: 100%" />
                     </FormItem>
                 </Col>
 
@@ -164,7 +165,8 @@ const title = computed(() =>
                         :validate-status="form.errors.ends_at ? 'error' : ''"
                         :help="form.errors.ends_at"
                     >
-                        <DatePicker v-model:value="form.ends_at" size="large" style="width: 100%" />
+                        <DatePicker
+                        autocomplete="off" v-model:value="form.ends_at" size="large" style="width: 100%" />
                     </FormItem>
                 </Col>
 

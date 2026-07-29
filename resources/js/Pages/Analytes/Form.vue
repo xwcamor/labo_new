@@ -4,7 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import {
     Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select,
 } from 'ant-design-vue';
-import { TagsOutlined } from '@ant-design/icons-vue';
+import { RadarChartOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -42,7 +42,7 @@ const submit = () => {
             :title="isEdit ? $t('global.edit') + ' ' + $t('analytes.record') : $t('analytes.new')"
             :subtitle="isEdit ? analyte.name : $t('analytes.create_subtitle')"
         >
-            <template #icon><TagsOutlined /></template>
+            <template #icon><RadarChartOutlined /></template>
         </SectionHeader>
 
         <div class="form-body">

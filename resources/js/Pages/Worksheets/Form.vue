@@ -147,6 +147,7 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
                     :help="form.errors.run_date"
                 >
                     <DatePicker
+                        autocomplete="off"
                         v-model:value="form.run_date"
                         size="large"
                         value-format="YYYY-MM-DD"

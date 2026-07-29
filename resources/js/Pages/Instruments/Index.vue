@@ -527,12 +527,22 @@ const goDelete = (record) => router.visit(route('business_management.instruments
                         @toggle="toggleFavorite"
                     />
 
+                    <!-- El CÓDIGO en su propia columna: es un identificador de
+                         ancho fijo y mezclado con el nombre desalineaba la
+                         lectura de arriba abajo, que es como se busca un
+                         instrumento en la bancada. -->
+                    <template v-else-if="column.key === 'code'">
+                        <code class="lead__code">{{ record.code }}</code>
+                    </template>
+
                     <template v-else-if="column.key === 'name'">
                         <div class="lead">
                             <div class="lead__txt">
-                                <Link :href="route('business_management.instruments.show', record.slug)" class="lead__name lead__link">
-                                    <code class="lead__code">{{ record.code }}</code> {{ record.name }}
-                                </Link>
+                                <!-- Sin hipervínculo: la fila ya tiene su botón
+                                     de ver en Acciones, y un nombre azul
+                                     subrayado en cada fila compite con lo que
+                                     de verdad hay que leer. -->
+                                <span class="lead__name">{{ record.name }}</span>
                                 <span v-if="record.brand || record.model" class="lead__sub">
                                     {{ [record.brand, record.model].filter(Boolean).join(' · ') }}
                                 </span>
@@ -545,14 +555,12 @@ const goDelete = (record) => router.visit(route('business_management.instruments
                          factor de potencia entra en tres columnas y la lista
                          completa rompía el ancho de la fila. -->
                     <template v-else-if="column.key === 'tests'">
-                        <Space v-if="record.tests?.length" :size="4" wrap>
-                            <Tag v-for="t in record.tests.slice(0, 2)" :key="t.id" color="blue" :bordered="false">
-                                {{ t.name }}
-                            </Tag>
+                        <span v-if="record.tests?.length" class="tests">
+                            {{ record.tests.slice(0, 2).map(x => x.name).join(' · ') }}
                             <Tooltip v-if="record.tests.length > 2" :title="record.tests.slice(2).map(x => x.name).join(', ')">
-                                <Tag :bordered="false">+{{ record.tests.length - 2 }}</Tag>
+                                <span class="tests__more">+{{ record.tests.length - 2 }}</span>
                             </Tooltip>
-                        </Space>
+                        </span>
                         <span v-else class="muted">{{ $t('instruments.tests_none') }}</span>
                     </template>
 
@@ -674,6 +682,8 @@ const goDelete = (record) => router.visit(route('business_management.instruments
 
 /* El código es la clave natural del equipo: va delante del nombre y en
    monoespaciada para que "PP-LA-01C" y "PP-LA-016" se distingan de un vistazo. */
+.tests { font-size: 0.8125rem; }
+.tests__more { color: var(--color-text-muted); margin-left: 4px; }
 .lead__code {
     font-family: ui-monospace, Consolas, monospace;
     font-size: 0.8125rem;

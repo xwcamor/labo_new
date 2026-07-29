@@ -4,7 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import {
     Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select,
 } from 'ant-design-vue';
-import { UserOutlined, ControlOutlined } from '@ant-design/icons-vue';
+import { UserOutlined, BlockOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -42,7 +42,7 @@ const submit = () => {
             :title="isEdit ? $t('global.edit') + ' ' + $t('tap_changer_models.record') : $t('tap_changer_models.new')"
             :subtitle="isEdit ? tapChangerModel.name : $t('tap_changer_models.create_subtitle')"
         >
-            <template #icon><ControlOutlined /></template>
+            <template #icon><BlockOutlined /></template>
         </SectionHeader>
 
         <Card class="form-card" :bodyStyle="{ padding: '24px 28px' }">

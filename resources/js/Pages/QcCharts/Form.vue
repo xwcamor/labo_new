@@ -13,7 +13,7 @@ import {
     Alert, DatePicker, Form, FormItem, Input, InputNumber, Select, SelectOption,
     Space, Switch, Textarea,
 } from 'ant-design-vue';
-import { LineChartOutlined } from '@ant-design/icons-vue';
+import { DotChartOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -135,7 +135,7 @@ const submit = () => {
             :title="isEdit ? $t('qc_charts.edit') : $t('qc_charts.create')"
             :subtitle="$t('qc_charts.intro')"
         >
-            <template #icon><LineChartOutlined /></template>
+            <template #icon><DotChartOutlined /></template>
         </SectionHeader>
 
         <div class="form-body">
@@ -393,6 +393,7 @@ const submit = () => {
                     :help="form.errors.effective_from"
                 >
                     <DatePicker
+                        autocomplete="off"
                         :value="dateValue(form.effective_from)"
                         @update:value="(d) => form.effective_from = d ? d.format('YYYY-MM-DD') : null"
                         format="YYYY-MM-DD"
@@ -407,6 +408,7 @@ const submit = () => {
                     :help="form.errors.effective_to"
                 >
                     <DatePicker
+                        autocomplete="off"
                         :value="dateValue(form.effective_to)"
                         @update:value="(d) => form.effective_to = d ? d.format('YYYY-MM-DD') : null"
                         format="YYYY-MM-DD"

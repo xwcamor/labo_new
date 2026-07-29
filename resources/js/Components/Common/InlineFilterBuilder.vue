@@ -209,6 +209,7 @@ defineExpose({ addRow });
                 class="ifb__val"
             />
             <DatePicker
+                        autocomplete="off"
                 v-else-if="valueKind(clause) === 'date'"
                 :value="clause.value ? dayjs(clause.value) : null"
                 @update:value="(d) => setValue(i, d ? d.format('YYYY-MM-DD') : null)"

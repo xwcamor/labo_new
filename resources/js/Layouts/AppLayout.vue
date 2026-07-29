@@ -40,6 +40,7 @@ import {
     ReadOutlined,
     AuditOutlined,
     AppstoreOutlined,
+    ApartmentOutlined,
     TeamOutlined, BgColorsOutlined, BlockOutlined, FileDoneOutlined,
     ControlOutlined,
     ExperimentOutlined,
@@ -660,7 +661,7 @@ const menuStructure = computed(() => [
                 visible: () => can('customers.view'),
             },
             {
-                key: 'equipment', label: t('sidebar.equipment'), icon: AppstoreOutlined,
+                key: 'equipment', label: t('sidebar.equipment'), icon: ApartmentOutlined,
                 href: route('business_management.equipment.index'), inertia: true,
                 visible: () => can('equipment.view'),
             },

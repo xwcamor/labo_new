@@ -13,7 +13,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Button, Card, Tag, Tooltip } from 'ant-design-vue';
-import { EditOutlined, LineChartOutlined } from '@ant-design/icons-vue';
+import { EditOutlined, DotChartOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -97,7 +97,7 @@ const openExclusion = (point) => {
             :back-href="route('lab_management.qc_charts.index')"
             :title="chart.label || chart.definition?.name || $t('qc_charts.singular')"
         >
-            <template #icon><LineChartOutlined /></template>
+            <template #icon><DotChartOutlined /></template>
             <template #subtitle>
                 <p class="qcs-subtitle">
                     {{ chart.definition?.name }}
@@ -156,7 +156,7 @@ const openExclusion = (point) => {
 
         <!-- ── La carta ────────────────────────────────────────────────── -->
         <Card :bodyStyle="{ padding: 14 }" class="qcs-card">
-            <template #title><LineChartOutlined /> {{ $t('qc_charts.show') }}</template>
+            <template #title><DotChartOutlined /> {{ $t('qc_charts.show') }}</template>
             <template #extra>
                 <span class="qcs-tally">
                     <span class="qcs-tally__item">{{ $t('qc_charts.flags.ok') }}: <b>{{ tally.ok }}</b></span>

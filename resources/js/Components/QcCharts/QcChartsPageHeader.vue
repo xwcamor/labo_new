@@ -1,5 +1,5 @@
 <script setup>
-import { LineChartOutlined } from '@ant-design/icons-vue';
+import { DotChartOutlined } from '@ant-design/icons-vue';
 
 defineProps({
     title:    { type: String, required: true },
@@ -10,7 +10,7 @@ defineProps({
 <template>
     <div class="page-header__title">
         <div class="page-header__icon">
-            <LineChartOutlined />
+            <DotChartOutlined />
         </div>
         <div class="page-header__heading">
             <h1>{{ title }}</h1>

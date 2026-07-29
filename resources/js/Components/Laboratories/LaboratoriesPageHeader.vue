@@ -1,5 +1,5 @@
 <script setup>
-import { ControlOutlined } from '@ant-design/icons-vue';
+import { ExperimentOutlined } from '@ant-design/icons-vue';
 
 defineProps({
     title:        { type: String, required: true },
@@ -9,7 +9,7 @@ defineProps({
 <template>
     <div class="page-header__title">
         <div class="page-header__icon">
-            <ControlOutlined />
+            <ExperimentOutlined />
         </div>
         <div class="page-header__heading">
             <h1>{{ title }}</h1>

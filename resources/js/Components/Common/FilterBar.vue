@@ -259,6 +259,7 @@ const chipLabel = (field) => {
                     @update:value="(v) => updateField(field.key, v, true)"
                 />
                 <DatePicker
+                        autocomplete="off"
                     v-else-if="field.type === 'date'"
                     :value="local[field.key]"
                     :placeholder="field.label"
@@ -392,6 +393,7 @@ const chipLabel = (field) => {
                     @update:value="(v) => updateField(field.key, v, true)"
                 />
                 <DatePicker
+                        autocomplete="off"
                     v-else-if="field.type === 'date'"
                     :value="local[field.key]"
                     style="width: 100%"

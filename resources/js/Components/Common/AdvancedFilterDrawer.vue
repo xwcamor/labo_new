@@ -186,6 +186,7 @@ const cancel = () => {
 
                 <template v-else-if="['date', 'datetime'].includes(fieldMeta(clause.field)?.type)">
                     <DatePicker
+                        autocomplete="off"
                         :value="clause.value ? dayjs(clause.value) : null"
                         @update:value="(d) => clause.value = d ? d.format('YYYY-MM-DD') : null"
                         :format="fieldMeta(clause.field).type === 'datetime' ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD'"

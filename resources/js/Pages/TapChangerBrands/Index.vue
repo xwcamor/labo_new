@@ -28,6 +28,7 @@ import TapChangerBrandsFavoriteCell from '@/Components/TapChangerBrands/TapChang
 import TapChangerBrandsPageHeader from '@/Components/TapChangerBrands/TapChangerBrandsPageHeader.vue';
 import TapChangerBrandsActionsCell from '@/Components/TapChangerBrands/TapChangerBrandsActionsCell.vue';
 import TapChangerBrandsEmptyState from '@/Components/TapChangerBrands/TapChangerBrandsEmptyState.vue';
+import TapChangerBrandFormModal from '@/Pages/TapChangerBrands/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'tap_changer_brands', steps: () => moduleTourSteps(t, { moduleName: t('tap_changer_brands.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`tap_changer_brands.*`), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('tap_changer_brands.create') && router.visit(route('business_management.tap_changer_brands.create')),
+    'ctrl+n': () => can('tap_changer_brands.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +359,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.tap_changer_brands.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.tap_changer_brands.delete', record.slug));
 </script>
 
@@ -477,9 +487,7 @@ const goDelete = (record) => router.visit(route('business_management.tap_changer
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('tap_changer_brands.create')" :title="$t('tap_changer_brands.new')" data-tour="new">
-                    <Link :href="route('business_management.tap_changer_brands.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('tap_changer_brands.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('tap_changer_brands.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -514,6 +522,7 @@ const goDelete = (record) => router.visit(route('business_management.tap_changer
                         :can-create="can('tap_changer_brands.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -620,6 +629,13 @@ const goDelete = (record) => router.visit(route('business_management.tap_changer
             :resource-label="$t('tap_changer_brands.records')"
         />
 
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <TapChangerBrandFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
+        />
     </div>
 </template>
 

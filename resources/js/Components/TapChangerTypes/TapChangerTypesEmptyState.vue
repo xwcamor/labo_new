@@ -2,7 +2,6 @@
 /** Empty state del Table. Cambia mensaje + CTAs segun hasFilters. */
 import { computed } from 'vue';
 import { Button, Space } from 'ant-design-vue';
-import { Link } from '@inertiajs/vue3';
 import { TeamOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
 
@@ -15,7 +14,8 @@ defineProps({
     canCreate:  { type: Boolean, default: false },
 });
 
-defineEmits(['clear-filters', 'open-import']);
+// 'create' abre el diálogo de alta del listado (regla Fiori: sin página aparte).
+defineEmits(['clear-filters', 'open-import', 'create']);
 </script>
 
 <template>
@@ -30,11 +30,9 @@ defineEmits(['clear-filters', 'open-import']);
                 {{ $t('global.clear') }} {{ $t('global.filters').toLowerCase() }}
             </Button>
             <template v-if="!hasFilters && canCreate">
-                <Link :href="route('business_management.tap_changer_types.create')">
-                    <Button type="primary">
-                        <PlusOutlined /> {{ $t('tap_changer_types.new') }}
-                    </Button>
-                </Link>
+                <Button type="primary" @click="$emit('create')">
+                    <PlusOutlined /> {{ $t('tap_changer_types.new') }}
+                </Button>
                 <Button v-if="canUseImports" @click="$emit('open-import')">
                     <UploadOutlined /> {{ $t('global.import') }}
                 </Button>

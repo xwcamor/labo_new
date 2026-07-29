@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import {
     Card, Tag, Space, Alert,
@@ -12,6 +12,7 @@ import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import AnalyteFormModal from '@/Pages/Analytes/FormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -31,6 +32,11 @@ const iconBg = computed(() => isDeleted.value ? 'var(--color-danger)' : 'var(--c
 
 // Wrapper local para mantener call-sites compactos (fmt(...) en templates).
 const fmt = (d) => formatDateTimeFull(d);
+
+// Editar abre el diálogo sobre la ficha (regla Fiori: menos de 7 campos).
+// EntityShowActions solo emite 'edit' si el registro no está bloqueado ni es
+// un global visto por un no-super, así que aquí no hace falta re-chequear.
+const editOpen = ref(false);
 </script>
 
 <template>
@@ -64,6 +70,8 @@ const fmt = (d) => formatDateTimeFull(d);
                     :is-super="isSuper"
                     :is-global="analyte.tenant_id === null"
                     :lock="analyte.lock"
+                    edit-as-modal
+                    @edit="editOpen = true"
                 />
             </template>
         </SectionHeader>
@@ -127,6 +135,13 @@ const fmt = (d) => formatDateTimeFull(d);
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <!-- Edición en diálogo, sobre la ficha (regla Fiori: menos de 7 campos). -->
+        <AnalyteFormModal
+            :open="editOpen"
+            :record="analyte"
+            @close="editOpen = false"
+        />
     </div>
 </template>
 

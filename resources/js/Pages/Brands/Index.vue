@@ -28,6 +28,7 @@ import BrandsFavoriteCell from '@/Components/Brands/BrandsFavoriteCell.vue';
 import BrandsPageHeader from '@/Components/Brands/BrandsPageHeader.vue';
 import BrandsActionsCell from '@/Components/Brands/BrandsActionsCell.vue';
 import BrandsEmptyState from '@/Components/Brands/BrandsEmptyState.vue';
+import BrandFormModal from '@/Pages/Brands/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'brands', steps: () => moduleTourSteps(t, { moduleName: t('brands.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`brands.*`), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('brands.create') && router.visit(route('business_management.brands.create')),
+    'ctrl+n': () => can('brands.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +359,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.brands.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.brands.delete', record.slug));
 </script>
 
@@ -474,9 +484,7 @@ const goDelete = (record) => router.visit(route('business_management.brands.dele
                 </Dropdown>
 
                 <Tooltip v-if="can('brands.create')" :title="$t('brands.new')" data-tour="new">
-                    <Link :href="route('business_management.brands.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('brands.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('brands.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -511,6 +519,7 @@ const goDelete = (record) => router.visit(route('business_management.brands.dele
                         :can-create="can('brands.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -611,6 +620,13 @@ const goDelete = (record) => router.visit(route('business_management.brands.dele
             :endpoint="route('business_management.brands.import')"
             :template-url="route('business_management.brands.import_template')"
             :resource-label="$t('brands.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <BrandFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

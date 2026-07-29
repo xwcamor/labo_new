@@ -28,6 +28,7 @@ import TestGroupsFavoriteCell from '@/Components/TestGroups/TestGroupsFavoriteCe
 import TestGroupsPageHeader from '@/Components/TestGroups/TestGroupsPageHeader.vue';
 import TestGroupsActionsCell from '@/Components/TestGroups/TestGroupsActionsCell.vue';
 import TestGroupsEmptyState from '@/Components/TestGroups/TestGroupsEmptyState.vue';
+import TestGroupFormModal from '@/Pages/TestGroups/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'test_groups', steps: () => moduleTourSteps(t, { moduleName: t('test_groups.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`test_groups.*`), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('test_groups.create') && router.visit(route('lab_management.test_groups.create')),
+    'ctrl+n': () => can('test_groups.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +359,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('lab_management.test_groups.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('lab_management.test_groups.delete', record.slug));
 </script>
 
@@ -474,9 +484,7 @@ const goDelete = (record) => router.visit(route('lab_management.test_groups.dele
                 </Dropdown>
 
                 <Tooltip v-if="can('test_groups.create')" :title="$t('test_groups.new')" data-tour="new">
-                    <Link :href="route('lab_management.test_groups.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('test_groups.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('test_groups.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -511,6 +519,7 @@ const goDelete = (record) => router.visit(route('lab_management.test_groups.dele
                         :can-create="can('test_groups.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -621,6 +630,13 @@ const goDelete = (record) => router.visit(route('lab_management.test_groups.dele
             :endpoint="route('lab_management.test_groups.import')"
             :template-url="route('lab_management.test_groups.import_template')"
             :resource-label="$t('test_groups.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <TestGroupFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

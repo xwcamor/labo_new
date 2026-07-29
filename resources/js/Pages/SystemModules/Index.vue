@@ -29,6 +29,7 @@ import SystemModulesBulkDeleteModal from '@/Components/SystemModules/SystemModul
 import SystemModulesEmptyState from '@/Components/SystemModules/SystemModulesEmptyState.vue';
 import SystemModulesFavoriteCell from '@/Components/SystemModules/SystemModulesFavoriteCell.vue';
 import SystemModulesActionsCell from '@/Components/SystemModules/SystemModulesActionsCell.vue';
+import SystemModuleFormModal from '@/Pages/SystemModules/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useKeyboardShortcuts } from '@/Composables/useKeyboardShortcuts';
@@ -263,8 +264,17 @@ const openImport = () => { importOpen.value = true; };
 const exportableColumns = computed(() => system_modulesExportableColumns(t));
 const exportEndpoints   = computed(() => system_modulesExportEndpoints());
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda en cada fila los
+// campos que el diálogo edita (name + is_active) más permission_key, que la
+// vista previa de permisos generados necesita al editar.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Row navigation (acciones de fila) ──────────────────────────────────
-const goToEdit   = (record) => router.visit(route('system_management.system_modules.edit',   record.slug));
+const goToEdit   = (record) => openEdit(record);
 const goToDelete = (record) => router.visit(route('system_management.system_modules.delete', record.slug));
 
 // ─── Duplicate ───────────────────────────────────────────────────────────
@@ -279,9 +289,10 @@ const duplicate = (record) => {
 
 // ─── Keyboard shortcuts ──────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('system_modules.create') && router.visit(route('system_management.system_modules.create')),
+    'ctrl+n': () => can('system_modules.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -432,9 +443,7 @@ const tour = useModuleTour({ module: 'system_modules', steps: () => moduleTourSt
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('system_modules.create')" :title="$t('system_modules.new')" data-tour="new">
-                    <Link :href="route('system_management.system_modules.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('system_modules.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('system_modules.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -473,6 +482,7 @@ const tour = useModuleTour({ module: 'system_modules', steps: () => moduleTourSt
                         :can-create="can('system_modules.create')"
                         @clear-filters="clearFilters"
                         @open-import="openImport"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, isMobile, compact, text }">
@@ -565,6 +575,13 @@ const tour = useModuleTour({ module: 'system_modules', steps: () => moduleTourSt
             :endpoint="route('system_management.system_modules.import')"
             :template-url="route('system_management.system_modules.import_template')"
             :resource-label="$t('system_modules.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <SystemModuleFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

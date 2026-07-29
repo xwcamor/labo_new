@@ -43,8 +43,10 @@ class SystemModuleController extends Controller
 
         // orderByFavoriteFirst hace LEFT JOIN a user_favorites y expone
         // is_favorite como columna calculada en la misma query (no N+1).
+        // permission_key va en el select porque el diálogo de edición del
+        // índice muestra la vista previa de permisos generados a partir de él.
         $system_modules = SystemModule::filter($request)
-            ->select('system_modules.id', 'system_modules.slug', 'system_modules.name', 'system_modules.is_active', 'system_modules.created_at', 'system_modules.updated_at', 'system_modules.created_by')
+            ->select('system_modules.id', 'system_modules.slug', 'system_modules.name', 'system_modules.permission_key', 'system_modules.is_active', 'system_modules.created_at', 'system_modules.updated_at', 'system_modules.created_by')
             ->with(['creator:id,name,email'])
             ->orderByFavoriteFirst($userId)
             ->paginate($perPage)

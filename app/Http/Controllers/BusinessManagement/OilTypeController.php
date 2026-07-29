@@ -86,6 +86,11 @@ class OilTypeController extends Controller
             // avanzados" del frontend (selects de field/op + control tipado
             // del valor). Cada modulo declara el suyo en su modelo.
             'filterSchema'   => OilType::filterSchema(),
+            // Origenes para "copiar reglas de" en el diálogo de alta/edición
+            // (regla Fiori: el form vive sobre el listado). Se manda la lista
+            // completa: el diálogo excluye el propio aceite al editar y oculta
+            // el select si el registro ya tiene reglas.
+            'cloneSources'   => $this->cloneSources(),
         ]);
     }
 
@@ -124,10 +129,16 @@ class OilTypeController extends Controller
             )->resolve()
             : [];
 
+        $hasRules = $this->oilHasRules($oilType);
+
         return inertia('OilTypes/Show', [
-            'oilType' => $this->payload($oilType, withAudit: true) + ['has_rules' => $this->oilHasRules($oilType)],
+            'oilType' => $this->payload($oilType, withAudit: true) + ['has_rules' => $hasRules],
             'recordAudit'  => $this->recordAuditMeta($oilType),
             'activity'     => $activity,
+            // Para el diálogo de edición sobre la ficha — mismo criterio que
+            // edit(): si el aceite ya tiene reglas no se ofrece copiar (no se
+            // pisan), y nunca se ofrece copiarse de sí mismo.
+            'cloneSources' => $hasRules ? [] : $this->cloneSources($oilType->id),
         ]);
     }
 

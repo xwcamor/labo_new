@@ -28,6 +28,7 @@ import SamplersFavoriteCell from '@/Components/Samplers/SamplersFavoriteCell.vue
 import SamplersPageHeader from '@/Components/Samplers/SamplersPageHeader.vue';
 import SamplersActionsCell from '@/Components/Samplers/SamplersActionsCell.vue';
 import SamplersEmptyState from '@/Components/Samplers/SamplersEmptyState.vue';
+import SamplerFormModal from '@/Pages/Samplers/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'samplers', steps: () => moduleTourSteps(t, { moduleName: t('samplers.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`samplers.*`), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('samplers.create') && router.visit(route('business_management.samplers.create')),
+    'ctrl+n': () => can('samplers.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +359,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.samplers.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.samplers.delete', record.slug));
 </script>
 
@@ -474,9 +484,7 @@ const goDelete = (record) => router.visit(route('business_management.samplers.de
                 </Dropdown>
 
                 <Tooltip v-if="can('samplers.create')" :title="$t('samplers.new')" data-tour="new">
-                    <Link :href="route('business_management.samplers.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('samplers.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('samplers.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -511,6 +519,7 @@ const goDelete = (record) => router.visit(route('business_management.samplers.de
                         :can-create="can('samplers.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -611,6 +620,13 @@ const goDelete = (record) => router.visit(route('business_management.samplers.de
             :endpoint="route('business_management.samplers.import')"
             :template-url="route('business_management.samplers.import_template')"
             :resource-label="$t('samplers.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <SamplerFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

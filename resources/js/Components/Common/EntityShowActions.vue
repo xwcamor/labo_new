@@ -52,7 +52,13 @@ const props = defineProps({
     // { is_locked, can_lock, can_unlock, lock_scope }. Si está bloqueado se
     // ocultan editar/eliminar y se muestra el candado + (des)bloquear según nivel.
     lock: { type: Object, default: null },
+    // Módulos chicos (menos de 7 campos): Editar abre un DIÁLOGO en esta misma
+    // pantalla (regla Fiori de la casa) en vez de navegar a la página de
+    // edición. El botón emite 'edit' y la ficha dibuja su FormModal.
+    editAsModal: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['edit']);
 
 const canManageGlobal = computed(() => props.isSuper || !props.isGlobal);
 const isLocked  = computed(() => !!props.lock?.is_locked);
@@ -77,7 +83,10 @@ const doUnlock = () => router.post(route(routes.value.unlock, props.slug), {}, {
 <template>
     <div class="esa">
         <Tooltip v-if="!isDeleted && !isLocked && canEdit && canManageGlobal" :title="$t('global.edit')">
-            <Link :href="route(routes.edit, slug)">
+            <Button v-if="editAsModal" type="primary" @click="emit('edit')">
+                <EditOutlined /><span class="esa__label"> {{ $t('global.edit') }}</span>
+            </Button>
+            <Link v-else :href="route(routes.edit, slug)">
                 <Button type="primary">
                     <EditOutlined /><span class="esa__label"> {{ $t('global.edit') }}</span>
                 </Button>

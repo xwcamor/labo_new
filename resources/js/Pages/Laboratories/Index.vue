@@ -28,6 +28,7 @@ import LaboratoriesFavoriteCell from '@/Components/Laboratories/LaboratoriesFavo
 import LaboratoriesPageHeader from '@/Components/Laboratories/LaboratoriesPageHeader.vue';
 import LaboratoriesActionsCell from '@/Components/Laboratories/LaboratoriesActionsCell.vue';
 import LaboratoriesEmptyState from '@/Components/Laboratories/LaboratoriesEmptyState.vue';
+import LaboratoryFormModal from '@/Pages/Laboratories/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'laboratories', steps: () => moduleTourSteps(t, { moduleName: t('laboratories.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`laboratories.*`), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('laboratories.create') && router.visit(route('business_management.laboratories.create')),
+    'ctrl+n': () => can('laboratories.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +359,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.laboratories.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.laboratories.delete', record.slug));
 </script>
 
@@ -477,9 +487,7 @@ const goDelete = (record) => router.visit(route('business_management.laboratorie
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('laboratories.create')" :title="$t('laboratories.new')" data-tour="new">
-                    <Link :href="route('business_management.laboratories.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('laboratories.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('laboratories.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -514,6 +522,7 @@ const goDelete = (record) => router.visit(route('business_management.laboratorie
                         :can-create="can('laboratories.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -620,6 +629,12 @@ const goDelete = (record) => router.visit(route('business_management.laboratorie
             :resource-label="$t('laboratories.records')"
         />
 
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <LaboratoryFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
+        />
     </div>
 </template>
 

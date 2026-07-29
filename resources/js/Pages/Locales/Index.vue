@@ -29,6 +29,7 @@ import LocalesBulkDeleteModal from '@/Components/Locales/LocalesBulkDeleteModal.
 import LocalesEmptyState from '@/Components/Locales/LocalesEmptyState.vue';
 import LocalesFavoriteCell from '@/Components/Locales/LocalesFavoriteCell.vue';
 import LocalesActionsCell from '@/Components/Locales/LocalesActionsCell.vue';
+import LocaleFormModal from '@/Pages/Locales/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useKeyboardShortcuts } from '@/Composables/useKeyboardShortcuts';
@@ -269,10 +270,19 @@ const openImport = () => { importOpen.value = true; };
 const exportableColumns = computed(() => localesExportableColumns(t));
 const exportEndpoints   = computed(() => localesExportEndpoints());
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda en cada fila los
+// campos que el diálogo edita (name + code + language_id + is_active) y el
+// catálogo languageOptions para el Select, así que no falta nada.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Navigation ───────────────────────────────────────────────────────────
 const goToTrash  = () => router.visit(route('system_management.locales.trash'));
 const goToEditAll = () => router.visit(route('system_management.locales.edit_all'));
-const goToEdit   = (record) => router.visit(route('system_management.locales.edit',   record.slug));
+const goToEdit   = (record) => openEdit(record);
 const goToDelete = (record) => router.visit(route('system_management.locales.delete', record.slug));
 
 // ─── Duplicate ───────────────────────────────────────────────────────────
@@ -287,9 +297,10 @@ const duplicate = (record) => {
 
 // ─── Keyboard shortcuts ──────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('locales.create') && router.visit(route('system_management.locales.create')),
+    'ctrl+n': () => can('locales.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -441,9 +452,7 @@ const tour = useModuleTour({ module: 'locales', steps: () => moduleTourSteps(t, 
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('locales.create')" :title="$t('locales.new')" data-tour="new">
-                    <Link :href="route('system_management.locales.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('locales.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('locales.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -482,6 +491,7 @@ const tour = useModuleTour({ module: 'locales', steps: () => moduleTourSteps(t, 
                         :can-create="can('locales.create')"
                         @clear-filters="clearFilters"
                         @open-import="openImport"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, isMobile, compact, text }">
@@ -588,6 +598,14 @@ const tour = useModuleTour({ module: 'locales', steps: () => moduleTourSteps(t, 
                 { title: $t('locales.code'),     dataIndex: 'code',     key: 'code',     width: 110 },
                 { title: $t('locales.language'), dataIndex: 'language', key: 'language', width: 160, ellipsis: true },
             ]"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <LocaleFormModal
+            :open="formOpen"
+            :record="formRecord"
+            :language-options="languageOptions"
+            @close="formOpen = false"
         />
     </div>
 </template>

@@ -29,6 +29,7 @@ import RegionsBulkDeleteModal from '@/Components/Regions/RegionsBulkDeleteModal.
 import RegionsEmptyState from '@/Components/Regions/RegionsEmptyState.vue';
 import RegionsFavoriteCell from '@/Components/Regions/RegionsFavoriteCell.vue';
 import RegionsActionsCell from '@/Components/Regions/RegionsActionsCell.vue';
+import RegionFormModal from '@/Pages/Regions/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useKeyboardShortcuts } from '@/Composables/useKeyboardShortcuts';
@@ -292,10 +293,18 @@ const openImport = () => { importOpen.value = true; };
 const exportableColumns = computed(() => regionsExportableColumns(t));
 const exportEndpoints   = computed(() => regionsExportEndpoints());
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda en cada fila los
+// campos que el diálogo edita (name + is_active), así que no falta nada.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Navigation ─────────────────────────────────────────────────────────
 const goToTrash   = () => router.visit(route('system_management.regions.trash'));
 const goToEditAll = () => router.visit(route('system_management.regions.edit_all'));
-const goToEdit   = (record) => router.visit(route('system_management.regions.edit',   record.slug));
+const goToEdit   = (record) => openEdit(record);
 const goToDelete = (record) => router.visit(route('system_management.regions.delete', record.slug));
 
 // ─── Duplicate ───────────────────────────────────────────────────────────
@@ -310,9 +319,10 @@ const duplicate = (record) => {
 
 // ─── Keyboard shortcuts ──────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('regions.create') && router.visit(route('system_management.regions.create')),
+    'ctrl+n': () => can('regions.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -465,9 +475,7 @@ const tour = useModuleTour({ module: 'regions', steps: () => moduleTourSteps(t, 
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('regions.create')" :title="$t('regions.new')" data-tour="new">
-                    <Link :href="route('system_management.regions.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('regions.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('regions.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -507,6 +515,7 @@ const tour = useModuleTour({ module: 'regions', steps: () => moduleTourSteps(t, 
                         :can-create="can('regions.create')"
                         @clear-filters="clearFilters"
                         @open-import="openImport"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -599,6 +608,13 @@ const tour = useModuleTour({ module: 'regions', steps: () => moduleTourSteps(t, 
             :endpoint="route('system_management.regions.import')"
             :template-url="route('system_management.regions.import_template')"
             :resource-label="$t('regions.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <RegionFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

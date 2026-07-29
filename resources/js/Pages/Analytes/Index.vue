@@ -28,6 +28,7 @@ import AnalytesFavoriteCell from '@/Components/Analytes/AnalytesFavoriteCell.vue
 import AnalytesPageHeader from '@/Components/Analytes/AnalytesPageHeader.vue';
 import AnalytesActionsCell from '@/Components/Analytes/AnalytesActionsCell.vue';
 import AnalytesEmptyState from '@/Components/Analytes/AnalytesEmptyState.vue';
+import AnalyteFormModal from '@/Pages/Analytes/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -333,11 +334,22 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'analytes', steps: () => moduleTourSteps(t, { moduleName: t('analytes.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`analytes.*`), así que el diálogo de edición tiene todos los campos. Los
+// registros bloqueados o globales no llegan: la celda de acciones no les
+// ofrece el botón de editar.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('analytes.create') && router.visit(route('business_management.analytes.create')),
+    'ctrl+n': () => can('analytes.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -349,7 +361,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.analytes.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.analytes.delete', record.slug));
 </script>
 
@@ -474,9 +486,7 @@ const goDelete = (record) => router.visit(route('business_management.analytes.de
                 </Dropdown>
 
                 <Tooltip v-if="can('analytes.create')" :title="$t('analytes.new')" data-tour="new">
-                    <Link :href="route('business_management.analytes.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('analytes.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('analytes.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -511,6 +521,7 @@ const goDelete = (record) => router.visit(route('business_management.analytes.de
                         :can-create="can('analytes.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -632,6 +643,13 @@ const goDelete = (record) => router.visit(route('business_management.analytes.de
             :endpoint="route('business_management.analytes.import')"
             :template-url="route('business_management.analytes.import_template')"
             :resource-label="$t('analytes.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <AnalyteFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

@@ -29,6 +29,7 @@ import LanguagesBulkDeleteModal from '@/Components/Languages/LanguagesBulkDelete
 import LanguagesEmptyState from '@/Components/Languages/LanguagesEmptyState.vue';
 import LanguagesFavoriteCell from '@/Components/Languages/LanguagesFavoriteCell.vue';
 import LanguagesActionsCell from '@/Components/Languages/LanguagesActionsCell.vue';
+import LanguageFormModal from '@/Pages/Languages/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useKeyboardShortcuts } from '@/Composables/useKeyboardShortcuts';
@@ -268,10 +269,18 @@ const openImport = () => { importOpen.value = true; };
 const exportableColumns = computed(() => languagesExportableColumns(t));
 const exportEndpoints   = computed(() => languagesExportEndpoints());
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda en cada fila los
+// campos que el diálogo edita (name + iso_code + is_active), así que no falta nada.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Navigation ───────────────────────────────────────────────────────────
 const goToTrash  = () => router.visit(route('system_management.languages.trash'));
 const goToEditAll = () => router.visit(route('system_management.languages.edit_all'));
-const goToEdit   = (record) => router.visit(route('system_management.languages.edit',   record.slug));
+const goToEdit   = (record) => openEdit(record);
 const goToDelete = (record) => router.visit(route('system_management.languages.delete', record.slug));
 
 // ─── Duplicate ───────────────────────────────────────────────────────────
@@ -286,9 +295,10 @@ const duplicate = (record) => {
 
 // ─── Keyboard shortcuts ──────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('languages.create') && router.visit(route('system_management.languages.create')),
+    'ctrl+n': () => can('languages.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -440,9 +450,7 @@ const tour = useModuleTour({ module: 'languages', steps: () => moduleTourSteps(t
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('languages.create')" :title="$t('languages.new')" data-tour="new">
-                    <Link :href="route('system_management.languages.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('languages.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('languages.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -481,6 +489,7 @@ const tour = useModuleTour({ module: 'languages', steps: () => moduleTourSteps(t
                         :can-create="can('languages.create')"
                         @clear-filters="clearFilters"
                         @open-import="openImport"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, isMobile, compact, text }">
@@ -577,6 +586,13 @@ const tour = useModuleTour({ module: 'languages', steps: () => moduleTourSteps(t
             :extra-preview-columns="[
                 { title: $t('languages.iso_code'), dataIndex: 'iso_code', key: 'iso_code', width: 100 },
             ]"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <LanguageFormModal
+            :open="formOpen"
+            :record="formRecord"
+            @close="formOpen = false"
         />
     </div>
 </template>

@@ -28,6 +28,7 @@ import OilTypesFavoriteCell from '@/Components/OilTypes/OilTypesFavoriteCell.vue
 import OilTypesPageHeader from '@/Components/OilTypes/OilTypesPageHeader.vue';
 import OilTypesActionsCell from '@/Components/OilTypes/OilTypesActionsCell.vue';
 import OilTypesEmptyState from '@/Components/OilTypes/OilTypesEmptyState.vue';
+import OilTypeFormModal from '@/Pages/OilTypes/FormModal.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useColumnPreferences } from '@/Composables/useColumnPreferences';
@@ -78,6 +79,9 @@ const props = defineProps({
     filters:        { type: Object, default: () => ({}) },
     filterSchema:   { type: Array,  default: () => [] },
     exportLimits:    { type: Object, default: () => ({}) },
+    // Aceites que pueden servir de origen para "copiar reglas de" en el
+    // diálogo de alta/edición (los filtra el propio diálogo por registro).
+    cloneSources:   { type: Array,  default: () => [] },
 });
 
 // ─── Filtros (schema + (de)serialización en config/filters.js) ──────────────
@@ -332,11 +336,20 @@ const { currentViewState, applySavedState } = useModuleSavedViews({
 // ─── Onboarding tour (pasos en config/tour.js) ──────────────────────────────
 const tour = useModuleTour({ module: 'oil_types', steps: () => moduleTourSteps(t, { moduleName: t('oil_types.plural') }) });
 
+// ─── Alta y edición en diálogo (regla Fiori: menos de 7 campos) ─────────────
+// El formulario se abre SOBRE el listado; el índice manda las filas completas
+// (`oil_types.*` + has_rules), así que el diálogo de edición tiene todos los campos.
+const formOpen    = ref(false);
+const formRecord  = ref(null);
+const openCreate  = () => { formRecord.value = null; formOpen.value = true; };
+const openEdit    = (record) => { formRecord.value = record; formOpen.value = true; };
+
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 useKeyboardShortcuts({
-    'ctrl+n': () => can('oil_types.create') && router.visit(route('business_management.oil_types.create')),
+    'ctrl+n': () => can('oil_types.create') && openCreate(),
     'esc': () => {
-        if (exportOpen.value)             exportOpen.value = false;
+        if (formOpen.value)               formOpen.value = false;
+        else if (exportOpen.value)        exportOpen.value = false;
         else if (importOpen.value)        importOpen.value = false;
         else if (bulkOpen.value)          bulkOpen.value = false;
     },
@@ -348,7 +361,7 @@ useKeyboardShortcuts({
 });
 
 // ─── Acciones ───────────────────────────────────────────────────────────────
-const goEdit   = (record) => router.visit(route('business_management.oil_types.edit',   record.slug));
+const goEdit   = (record) => openEdit(record);
 const goDelete = (record) => router.visit(route('business_management.oil_types.delete', record.slug));
 </script>
 
@@ -476,9 +489,7 @@ const goDelete = (record) => router.visit(route('business_management.oil_types.d
                     </template>
                 </Dropdown>
                 <Tooltip v-if="can('oil_types.create')" :title="$t('oil_types.new')" data-tour="new">
-                    <Link :href="route('business_management.oil_types.create')">
-                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('oil_types.new')"><PlusOutlined /></Button>
-                    </Link>
+                    <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('oil_types.new')" @click="openCreate"><PlusOutlined /></Button>
                 </Tooltip>
             </div>
         </div>
@@ -513,6 +524,7 @@ const goDelete = (record) => router.visit(route('business_management.oil_types.d
                         :can-create="can('oil_types.create')"
                         @clear-filters="clearFilters"
                         @open-import="importOpen = true"
+                        @create="openCreate"
                     />
                 </template>
                 <template #bodyCell="{ column, record, text, isMobile, compact }">
@@ -618,6 +630,14 @@ const goDelete = (record) => router.visit(route('business_management.oil_types.d
             :endpoint="route('business_management.oil_types.import')"
             :template-url="route('business_management.oil_types.import_template')"
             :resource-label="$t('oil_types.records')"
+        />
+
+        <!-- Alta y edición en diálogo (regla Fiori: menos de 7 campos). -->
+        <OilTypeFormModal
+            :open="formOpen"
+            :record="formRecord"
+            :clone-sources="cloneSources"
+            @close="formOpen = false"
         />
     </div>
 </template>

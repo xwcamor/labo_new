@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import {
     Card, Tag, Space, Alert,
 } from 'ant-design-vue';
@@ -12,6 +12,7 @@ import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import OilTypeFormModal from '@/Pages/OilTypes/FormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -21,6 +22,9 @@ const props = defineProps({
     oilType: { type: Object, required: true },
     activity:   { type: Array,  default: () => [] },
     recordAudit: { type: Object, default: null },
+    // Origenes para "copiar reglas de" en el diálogo de edición. El controller
+    // ya manda [] cuando el aceite tiene reglas (no se pisan).
+    cloneSources: { type: Array, default: () => [] },
 });
 
 const { can, isSuper, canSeeAudit } = useAuth();
@@ -31,6 +35,11 @@ const iconBg = computed(() => isDeleted.value ? 'var(--color-danger)' : 'var(--c
 
 // Wrapper local para mantener call-sites compactos (fmt(...) en templates).
 const fmt = (d) => formatDateTimeFull(d);
+
+// Editar abre el diálogo sobre la ficha (regla Fiori: menos de 7 campos).
+// El CTA "copiar reglas" de la ficha abre el MISMO diálogo: el select de
+// clonado vive ahí.
+const editOpen = ref(false);
 </script>
 
 <template>
@@ -61,6 +70,8 @@ const fmt = (d) => formatDateTimeFull(d);
                     :can-edit="can('oil_types.edit')"
                     :can-delete="can('oil_types.delete')"
                     :can-see-audit="canSeeAudit"
+                    edit-as-modal
+                    @edit="editOpen = true"
                 />
             </template>
         </SectionHeader>
@@ -114,13 +125,16 @@ const fmt = (d) => formatDateTimeFull(d);
                                 <Tag :color="oilType.has_rules ? 'green' : 'default'" :bordered="false">
                                     {{ oilType.has_rules ? $t('oil_types.has_rules_yes') : $t('oil_types.has_rules_no') }}
                                 </Tag>
-                                <Link
+                                <!-- Abre el diálogo de edición (ahí vive el
+                                     select de clonado), sin salir de la ficha. -->
+                                <a
                                     v-if="!oilType.has_rules && !isDeleted && can('oil_types.edit')"
-                                    :href="route('business_management.oil_types.edit', oilType.slug)"
                                     class="rules-cta"
+                                    href="#"
+                                    @click.prevent="editOpen = true"
                                 >
                                     {{ $t('oil_types.clone_rules') }}
-                                </Link>
+                                </a>
                             </span>
                         </div>
                         <!-- Estado: siempre al final. -->
@@ -140,6 +154,14 @@ const fmt = (d) => formatDateTimeFull(d);
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <!-- Edición en diálogo, sobre la ficha (regla Fiori: menos de 7 campos). -->
+        <OilTypeFormModal
+            :open="editOpen"
+            :record="oilType"
+            :clone-sources="cloneSources"
+            @close="editOpen = false"
+        />
     </div>
 </template>
 

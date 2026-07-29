@@ -227,6 +227,9 @@ class LocaleController extends Controller
             ],
             'recordAudit' => $this->recordAuditMeta($locale),
             'activity' => $activity,
+            // El diálogo de edición se abre sobre la ficha (regla Fiori):
+            // necesita el catálogo de idiomas igual que create()/edit().
+            'languageOptions' => $this->languageOptions(),
         ]);
     }
 

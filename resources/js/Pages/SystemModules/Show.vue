@@ -16,6 +16,7 @@ import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
+import SystemModuleFormModal from '@/Pages/SystemModules/FormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -41,6 +42,9 @@ const lastUpdatedRel = computed(() => props.system_module.updated_at ? dayjs(pro
 
 // Single source of truth de canónicas viene del backend (Observer::CANONICAL_ACTIONS).
 const isCanonical = (action) => props.canonicalActions.includes(action);
+
+// Editar abre el diálogo sobre la ficha (regla Fiori: menos de 7 campos).
+const editOpen = ref(false);
 
 // Modal "Agregar acción"
 const addModalOpen = ref(false);
@@ -96,6 +100,8 @@ const removePermission = (permissionId) => {
                     :can-edit="can('system_modules.edit')"
                     :can-delete="can('system_modules.delete')"
                     :can-see-audit="canSeeAudit"
+                    edit-as-modal
+                    @edit="editOpen = true"
                 />
             </template>
         </SectionHeader>
@@ -251,6 +257,13 @@ const removePermission = (permissionId) => {
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <!-- Edición en diálogo, sobre la ficha (regla Fiori: menos de 7 campos). -->
+        <SystemModuleFormModal
+            :open="editOpen"
+            :record="system_module"
+            @close="editOpen = false"
+        />
     </div>
 </template>
 

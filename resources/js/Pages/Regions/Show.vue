@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import {
     Card, Tag, Space, Alert,
@@ -17,6 +17,7 @@ import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import RegionFormModal from '@/Pages/Regions/FormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -38,6 +39,9 @@ const iconBg = computed(() => isDeleted.value ? 'var(--color-danger)' : 'var(--c
 const fmt = (d) => formatDateTimeFull(d);
 // Relative timestamp para el chip del header — context ligero visible a todos.
 const lastUpdatedRel = computed(() => props.region.updated_at ? dayjs(props.region.updated_at).fromNow() : null);
+
+// Editar abre el diálogo sobre la ficha (regla Fiori: menos de 7 campos).
+const editOpen = ref(false);
 </script>
 
 <template>
@@ -70,6 +74,8 @@ const lastUpdatedRel = computed(() => props.region.updated_at ? dayjs(props.regi
                     :can-edit="can('regions.edit')"
                     :can-delete="can('regions.delete')"
                     :can-see-audit="canSeeAudit"
+                    edit-as-modal
+                    @edit="editOpen = true"
                 />
             </template>
         </SectionHeader>
@@ -141,6 +147,13 @@ const lastUpdatedRel = computed(() => props.region.updated_at ? dayjs(props.regi
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <!-- Edición en diálogo, sobre la ficha (regla Fiori: menos de 7 campos). -->
+        <RegionFormModal
+            :open="editOpen"
+            :record="region"
+            @close="editOpen = false"
+        />
     </div>
 </template>
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import {
     Card, Tag, Space, Descriptions, DescriptionsItem, Alert,
@@ -12,6 +12,7 @@ import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import ViewDeletedButton from '@/Components/Common/ViewDeletedButton.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import EquipmentTypeFormModal from '@/Pages/EquipmentTypes/FormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -31,6 +32,9 @@ const iconBg = computed(() => isDeleted.value ? 'var(--color-danger)' : 'var(--c
 
 // Wrapper local para mantener call-sites compactos (fmt(...) en templates).
 const fmt = (d) => formatDateTimeFull(d);
+
+// Editar abre el diálogo sobre la ficha (regla Fiori: menos de 7 campos).
+const editOpen = ref(false);
 </script>
 
 <template>
@@ -61,6 +65,8 @@ const fmt = (d) => formatDateTimeFull(d);
                     :can-edit="can('equipment_types.edit')"
                     :can-delete="can('equipment_types.delete')"
                     :can-see-audit="canSeeAudit"
+                    edit-as-modal
+                    @edit="editOpen = true"
                 />
             </template>
         </SectionHeader>
@@ -106,6 +112,13 @@ const fmt = (d) => formatDateTimeFull(d);
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <!-- Edición en diálogo, sobre la ficha (regla Fiori: menos de 7 campos). -->
+        <EquipmentTypeFormModal
+            :open="editOpen"
+            :record="equipmentType"
+            @close="editOpen = false"
+        />
     </div>
 </template>
 

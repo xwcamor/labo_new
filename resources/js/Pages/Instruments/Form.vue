@@ -59,15 +59,7 @@ const submit = () => {
         </SectionHeader>
 
         <div class="form-body">
-            <Form
-                layout="horizontal"
-                :label-col="{ xs: 24, sm: 8, md: 6 }"
-                :wrapper-col="{ xs: 24, sm: 16, md: 13 }"
-                label-align="right"
-                :colon="true"
-                @submit.prevent="submit"
-            >
-
+            <Form layout="vertical" @submit.prevent="submit">
                 <Alert
                     v-if="form.hasErrors && Object.keys(form.errors).length > 0"
                     type="error"
@@ -77,142 +69,136 @@ const submit = () => {
                 />
 
                 <h2 class="form-section-title">{{ $t('instruments.section_identification') }}</h2>
+                <div class="form-grid">
+                    <!-- El código va PRIMERO: es la clave natural del equipo, lo
+                         que figura en su hoja de calibración. -->
+                    <FormItem
+                        :label="$t('instruments.code')"
+                        :tooltip="$t('instruments.code_help')"
+                        required
+                        :validate-status="form.errors.code ? 'error' : ''"
+                        :help="form.errors.code"
+                    >
+                        <Input
+                            v-model:value="form.code"
+                            :maxlength="255"
+                            autofocus
+                            :placeholder="$t('instruments.code_placeholder')"
+                        />
+                    </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('instruments.name')"
+                        :tooltip="$t('instruments.name_help')"
+                        required
+                        :validate-status="form.errors.name ? 'error' : ''"
+                        :help="form.errors.name"
+                    >
+                        <Input
+                            v-model:value="form.name"
+                            :maxlength="255"
+                            showCount
+                            :placeholder="$t('instruments.name_placeholder')"
+                        />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.brand')"
+                        :tooltip="$t('instruments.brand_help')"
+                        :validate-status="form.errors.brand ? 'error' : ''"
+                        :help="form.errors.brand"
+                    >
+                        <Input v-model:value="form.brand" :maxlength="100" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.model')"
+                        :tooltip="$t('instruments.model_help')"
+                        :validate-status="form.errors.model ? 'error' : ''"
+                        :help="form.errors.model"
+                    >
+                        <Input v-model:value="form.model" :maxlength="100" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.serial')"
+                        :tooltip="$t('instruments.serial_help')"
+                        :validate-status="form.errors.serial ? 'error' : ''"
+                        :help="form.errors.serial"
+                    >
+                        <Input v-model:value="form.serial" :maxlength="100" />
+                    </FormItem>
+                </div>
 
-                <!-- El código va PRIMERO: es la clave natural del equipo, lo
-                     que figura en su hoja de calibración. -->
-                <FormItem
-                    :label="$t('instruments.code')"
-                    :tooltip="$t('instruments.code_help')"
-                    required
-                    :validate-status="form.errors.code ? 'error' : ''"
-                    :help="form.errors.code"
-                >
-                    <Input
-                        v-model:value="form.code"
-                        size="large"
-                        :maxlength="255"
-                        autofocus
-                        :placeholder="$t('instruments.code_placeholder')"
-                    />
-                </FormItem>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('instruments.section_calibration') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('instruments.calibrated_at')"
+                        :tooltip="$t('instruments.calibrated_at_help')"
+                        :validate-status="form.errors.calibrated_at ? 'error' : ''"
+                        :help="form.errors.calibrated_at"
+                    >
+                        <DatePicker
+                            autocomplete="off" v-model:value="form.calibrated_at" value-format="YYYY-MM-DD" style="width:100%" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.calibration_due_at')"
+                        :tooltip="$t('instruments.calibration_due_at_help')"
+                        :validate-status="form.errors.calibration_due_at ? 'error' : ''"
+                        :help="form.errors.calibration_due_at"
+                    >
+                        <DatePicker
+                            autocomplete="off" v-model:value="form.calibration_due_at" value-format="YYYY-MM-DD" style="width:100%" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.calibration_certificate')"
+                        :tooltip="$t('instruments.calibration_certificate_help')"
+                        :validate-status="form.errors.calibration_certificate ? 'error' : ''"
+                        :help="form.errors.calibration_certificate"
+                    >
+                        <Input v-model:value="form.calibration_certificate" :maxlength="150" />
+                    </FormItem>
+                </div>
 
-                <FormItem
-                    :label="$t('instruments.name')"
-                    :tooltip="$t('instruments.name_help')"
-                    required
-                    :validate-status="form.errors.name ? 'error' : ''"
-                    :help="form.errors.name"
-                >
-                    <Input
-                        v-model:value="form.name"
-                        size="large"
-                        :maxlength="255"
-                        showCount
-                        :placeholder="$t('instruments.name_placeholder')"
-                    />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.brand')"
-                    :tooltip="$t('instruments.brand_help')"
-                    :validate-status="form.errors.brand ? 'error' : ''"
-                    :help="form.errors.brand"
-                >
-                    <Input v-model:value="form.brand" size="large" :maxlength="100" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.model')"
-                    :tooltip="$t('instruments.model_help')"
-                    :validate-status="form.errors.model ? 'error' : ''"
-                    :help="form.errors.model"
-                >
-                    <Input v-model:value="form.model" size="large" :maxlength="100" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.serial')"
-                    :tooltip="$t('instruments.serial_help')"
-                    :validate-status="form.errors.serial ? 'error' : ''"
-                    :help="form.errors.serial"
-                >
-                    <Input v-model:value="form.serial" size="large" :maxlength="100" />
-                </FormItem>
-
-                <h2 class="form-section-title">{{ $t('instruments.section_calibration') }}</h2>
-
-                <FormItem
-                    :label="$t('instruments.calibrated_at')"
-                    :tooltip="$t('instruments.calibrated_at_help')"
-                    :validate-status="form.errors.calibrated_at ? 'error' : ''"
-                    :help="form.errors.calibrated_at"
-                >
-                    <DatePicker
-                        autocomplete="off" v-model:value="form.calibrated_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.calibration_due_at')"
-                    :tooltip="$t('instruments.calibration_due_at_help')"
-                    :validate-status="form.errors.calibration_due_at ? 'error' : ''"
-                    :help="form.errors.calibration_due_at"
-                >
-                    <DatePicker
-                        autocomplete="off" v-model:value="form.calibration_due_at" size="large" value-format="YYYY-MM-DD" style="width:100%" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.calibration_certificate')"
-                    :tooltip="$t('instruments.calibration_certificate_help')"
-                    :validate-status="form.errors.calibration_certificate ? 'error' : ''"
-                    :help="form.errors.calibration_certificate"
-                >
-                    <Input v-model:value="form.calibration_certificate" size="large" :maxlength="150" />
-                </FormItem>
-
-                <h2 class="form-section-title">{{ $t('instruments.section_extra') }}</h2>
-
-                <FormItem
-                    :label="$t('instruments.location')"
-                    :tooltip="$t('instruments.location_help')"
-                    :validate-status="form.errors.location ? 'error' : ''"
-                    :help="form.errors.location"
-                >
-                    <Input v-model:value="form.location" size="large" :maxlength="150" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.notes')"
-                    :tooltip="$t('instruments.notes_help')"
-                    :validate-status="form.errors.notes ? 'error' : ''"
-                    :help="form.errors.notes"
-                >
-                    <Textarea v-model:value="form.notes" :rows="3" :maxlength="2000" showCount />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('instruments.sort_order')"
-                    :tooltip="$t('instruments.sort_order_help')"
-                    :validate-status="form.errors.sort_order ? 'error' : ''"
-                    :help="form.errors.sort_order"
-                >
-                    <InputNumber v-model:value="form.sort_order" size="large" :min="0" :max="99999" style="width:160px" />
-                </FormItem>
-
-                <FormItem
-                    v-if="isEdit"
-                    :label="$t('instruments.is_active')"
-                    :tooltip="$t('instruments.is_active_help')"
-                    :validate-status="form.errors.is_active ? 'error' : ''"
-                    :help="form.errors.is_active"
-                >
-                    <Space>
-                        <Switch v-model:checked="form.is_active" />
-                        <span class="state-label">
-                            {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
-                        </span>
-                    </Space>
-                </FormItem>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('instruments.section_extra') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('instruments.location')"
+                        :tooltip="$t('instruments.location_help')"
+                        :validate-status="form.errors.location ? 'error' : ''"
+                        :help="form.errors.location"
+                    >
+                        <Input v-model:value="form.location" :maxlength="150" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('instruments.sort_order')"
+                        :tooltip="$t('instruments.sort_order_help')"
+                        :validate-status="form.errors.sort_order ? 'error' : ''"
+                        :help="form.errors.sort_order"
+                    >
+                        <InputNumber v-model:value="form.sort_order" :min="0" :max="99999" style="width:100%" />
+                    </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('instruments.notes')"
+                        :tooltip="$t('instruments.notes_help')"
+                        :validate-status="form.errors.notes ? 'error' : ''"
+                        :help="form.errors.notes"
+                    >
+                        <Textarea v-model:value="form.notes" :rows="3" :maxlength="2000" showCount />
+                    </FormItem>
+                    <FormItem
+                        v-if="isEdit"
+                        :label="$t('instruments.is_active')"
+                        :tooltip="$t('instruments.is_active_help')"
+                        :validate-status="form.errors.is_active ? 'error' : ''"
+                        :help="form.errors.is_active"
+                    >
+                        <Space>
+                            <Switch v-model:checked="form.is_active" />
+                            <span class="state-label">
+                                {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
+                            </span>
+                        </Space>
+                    </FormItem>
+                </div>
 
                 <FormFooter
                     :cancel-href="route('business_management.instruments.index')"

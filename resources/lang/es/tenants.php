@@ -56,6 +56,7 @@ return [
     'logo_label'          => 'Logo de la empresa',
     'logo_upload'         => 'Subir logo',
     'logo_help'           => 'Haz clic en «Subir logo» para elegir la imagen. Aparece en tus informes PDF, en el sistema y en el portal de tus clientes. Formatos PNG, JPG o WebP.',
+    'section_letterhead'  => 'Membrete de los informes PDF',
     'form_address_label'  => 'Dirección (membrete de informes)',
     'form_address_help'   => 'Dirección de la empresa que aparece en el pie de los informes PDF.',
     'form_disclaimer_label' => 'Disclaimer legal de informes',

@@ -139,14 +139,12 @@ const submit = () => {
         </SectionHeader>
 
         <div class="form-body">
-            <Form
-                layout="horizontal"
-                :label-col="{ xs: 24, sm: 8, md: 6 }"
-                :wrapper-col="{ xs: 24, sm: 16, md: 13 }"
-                label-align="right"
-                :colon="true"
-                @submit.prevent="submit"
-            >
+            <!-- `layout="vertical"` + `.form-grid`: el rótulo va ARRIBA del
+                 campo y los campos se acomodan en varias columnas. Una carta
+                 tiene veintiún datos; con el rótulo a la izquierda y uno por
+                 fila la página se iba a varias pantallas sin que entrara una
+                 sección completa. -->
+            <Form layout="vertical" @submit.prevent="submit">
                 <Alert
                     v-if="(form.hasErrors && Object.keys(form.errors).length > 0) || clientError"
                     type="error"
@@ -157,314 +155,301 @@ const submit = () => {
 
                 <!-- ── Qué se controla ─────────────────────────────────── -->
                 <h2 class="form-section-title">{{ $t('global.general_data') }}</h2>
-
-                <FormItem
-                    :label="$t('qc_charts.test_definition')"
-                    required
-                    :validate-status="form.errors.test_definition_id ? 'error' : ''"
-                    :help="form.errors.test_definition_id"
-                >
-                    <Select
-                        v-model:value="form.test_definition_id"
-                        size="large"
-                        show-search
-                        option-filter-prop="label"
-                        :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.test_definition') })"
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('qc_charts.test_definition')"
+                        required
+                        :validate-status="form.errors.test_definition_id ? 'error' : ''"
+                        :help="form.errors.test_definition_id"
                     >
-                        <SelectOption v-for="test in tests" :key="test.id" :value="test.id" :label="test.name">
-                            {{ test.name }}
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                        <Select
+                            v-model:value="form.test_definition_id"
+                            show-search
+                            option-filter-prop="label"
+                            :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.test_definition') })"
+                        >
+                            <SelectOption v-for="test in tests" :key="test.id" :value="test.id" :label="test.name">
+                                {{ test.name }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.test_field')"
-                    :validate-status="form.errors.test_field_id ? 'error' : ''"
-                    :help="form.errors.test_field_id"
-                >
-                    <Select
-                        v-model:value="form.test_field_id"
-                        size="large"
-                        allow-clear
-                        show-search
-                        option-filter-prop="label"
-                        :disabled="!form.test_definition_id"
-                        :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.test_field') })"
+                    <FormItem
+                        :label="$t('qc_charts.test_field')"
+                        :validate-status="form.errors.test_field_id ? 'error' : ''"
+                        :help="form.errors.test_field_id"
                     >
-                        <SelectOption v-for="field in testFields" :key="field.id" :value="field.id" :label="field.label">
-                            {{ field.label }}
-                            <span v-if="field.unit" class="qcf-dim">({{ field.unit }})</span>
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                        <Select
+                            v-model:value="form.test_field_id"
+                            allow-clear
+                            show-search
+                            option-filter-prop="label"
+                            :disabled="!form.test_definition_id"
+                            :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.test_field') })"
+                        >
+                            <SelectOption v-for="field in testFields" :key="field.id" :value="field.id" :label="field.label">
+                                {{ field.label }}
+                                <span v-if="field.unit" class="qcf-dim">({{ field.unit }})</span>
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.analyte')"
-                    :validate-status="form.errors.analyte_id ? 'error' : ''"
-                    :help="form.errors.analyte_id"
-                >
-                    <Select
-                        v-model:value="form.analyte_id"
-                        size="large"
-                        allow-clear
-                        show-search
-                        option-filter-prop="label"
-                        :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.analyte') })"
+                    <FormItem
+                        :label="$t('qc_charts.analyte')"
+                        :validate-status="form.errors.analyte_id ? 'error' : ''"
+                        :help="form.errors.analyte_id"
                     >
-                        <SelectOption v-for="a in analytes" :key="a.id" :value="a.id" :label="a.name">
-                            {{ a.name }}
-                            <span v-if="a.unit" class="qcf-dim">({{ a.unit }})</span>
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                        <Select
+                            v-model:value="form.analyte_id"
+                            allow-clear
+                            show-search
+                            option-filter-prop="label"
+                            :placeholder="$t('global.placeholders.select_attribute', { attribute: $t('qc_charts.analyte') })"
+                        >
+                            <SelectOption v-for="a in analytes" :key="a.id" :value="a.id" :label="a.name">
+                                {{ a.name }}
+                                <span v-if="a.unit" class="qcf-dim">({{ a.unit }})</span>
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.label')"
-                    :validate-status="form.errors.label ? 'error' : ''"
-                    :help="form.errors.label"
-                >
-                    <Input v-model:value="form.label" size="large" :maxlength="150" />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.label')"
+                        :validate-status="form.errors.label ? 'error' : ''"
+                        :help="form.errors.label"
+                    >
+                        <Input v-model:value="form.label" :maxlength="150" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.control_lot')"
-                    :validate-status="form.errors.control_lot ? 'error' : ''"
-                    :help="form.errors.control_lot"
-                >
-                    <Input v-model:value="form.control_lot" size="large" :maxlength="100" />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.control_lot')"
+                        :validate-status="form.errors.control_lot ? 'error' : ''"
+                        :help="form.errors.control_lot"
+                    >
+                        <Input v-model:value="form.control_lot" :maxlength="100" />
+                    </FormItem>
+                </div>
 
                 <!-- ── Los cinco límites ───────────────────────────────── -->
-                <h2 class="form-section-title form-section-title--spaced">
-                    {{ $t('qc_charts.limits_short.lcs') }} · {{ $t('qc_charts.limits_short.lc') }} · {{ $t('qc_charts.limits_short.lci') }}
-                </h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('qc_charts.limits_title') }}</h2>
+                <div class="form-grid">
+                    <Alert type="info" show-icon :message="$t('qc_charts.limits_help')" class="form-grid__wide qcf-alert" />
 
-                <Alert type="info" show-icon :message="$t('qc_charts.limits_help')" class="qcf-alert" />
+                    <FormItem
+                        :label="$t('qc_charts.limits.lcs')"
+                        :validate-status="form.errors.ucl ? 'error' : ''"
+                        :help="form.errors.ucl"
+                    >
+                        <InputNumber
+                            :value="shown('ucl')"
+                            @update:value="(v) => form.ucl = v"
+                            :disabled="form.is_derived"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.limits.lcs')"
-                    :validate-status="form.errors.ucl ? 'error' : ''"
-                    :help="form.errors.ucl"
-                >
-                    <InputNumber
-                        :value="shown('ucl')"
-                        @update:value="(v) => form.ucl = v"
-                        :disabled="form.is_derived"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.limits.las')"
+                        :validate-status="form.errors.uwl ? 'error' : ''"
+                        :help="form.errors.uwl"
+                    >
+                        <InputNumber
+                            :value="shown('uwl')"
+                            @update:value="(v) => form.uwl = v"
+                            :disabled="form.is_derived"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.limits.las')"
-                    :validate-status="form.errors.uwl ? 'error' : ''"
-                    :help="form.errors.uwl"
-                >
-                    <InputNumber
-                        :value="shown('uwl')"
-                        @update:value="(v) => form.uwl = v"
-                        :disabled="form.is_derived"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.limits.lc')"
+                        :tooltip="$t('qc_charts.center')"
+                        :validate-status="form.errors.center ? 'error' : ''"
+                        :help="form.errors.center"
+                    >
+                        <InputNumber v-model:value="form.center" class="qcf-number" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.limits.lc')"
-                    :tooltip="$t('qc_charts.center')"
-                    :validate-status="form.errors.center ? 'error' : ''"
-                    :help="form.errors.center"
-                >
-                    <InputNumber v-model:value="form.center" size="large" class="qcf-number" />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.limits.lai')"
+                        :validate-status="form.errors.lwl ? 'error' : ''"
+                        :help="form.errors.lwl"
+                    >
+                        <InputNumber
+                            :value="shown('lwl')"
+                            @update:value="(v) => form.lwl = v"
+                            :disabled="form.is_derived"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.limits.lai')"
-                    :validate-status="form.errors.lwl ? 'error' : ''"
-                    :help="form.errors.lwl"
-                >
-                    <InputNumber
-                        :value="shown('lwl')"
-                        @update:value="(v) => form.lwl = v"
-                        :disabled="form.is_derived"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.limits.lci')"
+                        :validate-status="form.errors.lcl ? 'error' : ''"
+                        :help="form.errors.lcl"
+                    >
+                        <InputNumber
+                            :value="shown('lcl')"
+                            @update:value="(v) => form.lcl = v"
+                            :disabled="form.is_derived"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.limits.lci')"
-                    :validate-status="form.errors.lcl ? 'error' : ''"
-                    :help="form.errors.lcl"
-                >
-                    <InputNumber
-                        :value="shown('lcl')"
-                        @update:value="(v) => form.lcl = v"
-                        :disabled="form.is_derived"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.sd')"
+                        :validate-status="form.errors.sd ? 'error' : ''"
+                        :help="form.errors.sd"
+                    >
+                        <InputNumber v-model:value="form.sd" :min="0" class="qcf-number" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.sd')"
-                    :validate-status="form.errors.sd ? 'error' : ''"
-                    :help="form.errors.sd"
-                >
-                    <InputNumber v-model:value="form.sd" :min="0" size="large" class="qcf-number" />
-                </FormItem>
+                    <FormItem :label="$t('qc_charts.is_derived')">
+                        <Space>
+                            <Switch v-model:checked="form.is_derived" />
+                            <span class="qcf-state">
+                                {{ form.is_derived ? $t('global.yes') : $t('global.no') }}
+                            </span>
+                        </Space>
+                    </FormItem>
 
-                <FormItem :label="$t('qc_charts.is_derived')">
-                    <Space>
-                        <Switch v-model:checked="form.is_derived" />
-                        <span class="qcf-state">
-                            {{ form.is_derived ? $t('global.yes') : $t('global.no') }}
-                        </span>
-                    </Space>
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.warn_sigma')"
+                        :validate-status="(form.errors.warn_sigma || sigmaInvalid) ? 'error' : ''"
+                        :help="form.errors.warn_sigma || $t('qc_charts.sigma_help')"
+                    >
+                        <InputNumber
+                            v-model:value="form.warn_sigma"
+                            :min="0.5"
+                            :max="10"
+                            :step="0.5"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.warn_sigma')"
-                    :validate-status="(form.errors.warn_sigma || sigmaInvalid) ? 'error' : ''"
-                    :help="form.errors.warn_sigma || $t('qc_charts.sigma_help')"
-                >
-                    <InputNumber
-                        v-model:value="form.warn_sigma"
-                        :min="0.5"
-                        :max="10"
-                        :step="0.5"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.action_sigma')"
+                        :validate-status="(form.errors.action_sigma || sigmaInvalid) ? 'error' : ''"
+                        :help="form.errors.action_sigma"
+                    >
+                        <InputNumber
+                            v-model:value="form.action_sigma"
+                            :min="0.5"
+                            :max="10"
+                            :step="0.5"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.action_sigma')"
-                    :validate-status="(form.errors.action_sigma || sigmaInvalid) ? 'error' : ''"
-                    :help="form.errors.action_sigma"
-                >
-                    <InputNumber
-                        v-model:value="form.action_sigma"
-                        :min="0.5"
-                        :max="10"
-                        :step="0.5"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
-
-                <!-- Vista previa: lo que quedaría si se guarda con la
-                     derivación activa. La cuenta definitiva es la del servidor. -->
-                <FormItem v-if="form.is_derived" :wrapper-col="{ xs: 24, sm: { offset: 8, span: 16 }, md: { offset: 6, span: 13 } }">
-                    <ul class="qcf-preview">
-                        <li>
-                            <span>{{ $t('qc_charts.limits_short.lcs') }}</span>
-                            <b>{{ fmtNumber(derived.ucl) }}</b>
-                        </li>
-                        <li>
-                            <span>{{ $t('qc_charts.limits_short.las') }}</span>
-                            <b>{{ fmtNumber(derived.uwl) }}</b>
-                        </li>
-                        <li>
-                            <span>{{ $t('qc_charts.limits_short.lc') }}</span>
-                            <b>{{ fmtNumber(form.center) }}</b>
-                        </li>
-                        <li>
-                            <span>{{ $t('qc_charts.limits_short.lai') }}</span>
-                            <b>{{ fmtNumber(derived.lwl) }}</b>
-                        </li>
-                        <li>
-                            <span>{{ $t('qc_charts.limits_short.lci') }}</span>
-                            <b>{{ fmtNumber(derived.lcl) }}</b>
-                        </li>
-                    </ul>
-                </FormItem>
+                    <!-- Vista previa: lo que quedaría si se guarda con la
+                         derivación activa. La cuenta definitiva es la del servidor. -->
+                    <FormItem v-if="form.is_derived" class="form-grid__wide">
+                        <ul class="qcf-preview">
+                            <li>
+                                <span>{{ $t('qc_charts.limits_short.lcs') }}</span>
+                                <b>{{ fmtNumber(derived.ucl) }}</b>
+                            </li>
+                            <li>
+                                <span>{{ $t('qc_charts.limits_short.las') }}</span>
+                                <b>{{ fmtNumber(derived.uwl) }}</b>
+                            </li>
+                            <li>
+                                <span>{{ $t('qc_charts.limits_short.lc') }}</span>
+                                <b>{{ fmtNumber(form.center) }}</b>
+                            </li>
+                            <li>
+                                <span>{{ $t('qc_charts.limits_short.lai') }}</span>
+                                <b>{{ fmtNumber(derived.lwl) }}</b>
+                            </li>
+                            <li>
+                                <span>{{ $t('qc_charts.limits_short.lci') }}</span>
+                                <b>{{ fmtNumber(derived.lcl) }}</b>
+                            </li>
+                        </ul>
+                    </FormItem>
+                </div>
 
                 <!-- ── Vigencia ────────────────────────────────────────── -->
-                <h2 class="form-section-title form-section-title--spaced">
-                    {{ $t('qc_charts.effective_from') }} · {{ $t('qc_charts.effective_to') }}
-                </h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('qc_charts.validity') }}</h2>
+                <div class="form-grid">
+                    <Alert type="info" show-icon :message="$t('qc_charts.validity_help')" class="form-grid__wide qcf-alert" />
 
-                <Alert type="info" show-icon :message="$t('qc_charts.validity_help')" class="qcf-alert" />
+                    <FormItem
+                        :label="$t('qc_charts.effective_from')"
+                        :validate-status="form.errors.effective_from ? 'error' : ''"
+                        :help="form.errors.effective_from"
+                    >
+                        <DatePicker
+                            autocomplete="off"
+                            :value="dateValue(form.effective_from)"
+                            @update:value="(d) => form.effective_from = d ? d.format('YYYY-MM-DD') : null"
+                            format="YYYY-MM-DD"
+                            class="qcf-number"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.effective_from')"
-                    :validate-status="form.errors.effective_from ? 'error' : ''"
-                    :help="form.errors.effective_from"
-                >
-                    <DatePicker
-                        autocomplete="off"
-                        :value="dateValue(form.effective_from)"
-                        @update:value="(d) => form.effective_from = d ? d.format('YYYY-MM-DD') : null"
-                        format="YYYY-MM-DD"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('qc_charts.effective_to')"
-                    :validate-status="form.errors.effective_to ? 'error' : ''"
-                    :help="form.errors.effective_to"
-                >
-                    <DatePicker
-                        autocomplete="off"
-                        :value="dateValue(form.effective_to)"
-                        @update:value="(d) => form.effective_to = d ? d.format('YYYY-MM-DD') : null"
-                        format="YYYY-MM-DD"
-                        size="large"
-                        class="qcf-number"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.effective_to')"
+                        :validate-status="form.errors.effective_to ? 'error' : ''"
+                        :help="form.errors.effective_to"
+                    >
+                        <DatePicker
+                            autocomplete="off"
+                            :value="dateValue(form.effective_to)"
+                            @update:value="(d) => form.effective_to = d ? d.format('YYYY-MM-DD') : null"
+                            format="YYYY-MM-DD"
+                            class="qcf-number"
+                        />
+                    </FormItem>
+                </div>
 
                 <!-- ── Repetibilidad ───────────────────────────────────── -->
-                <h2 class="form-section-title form-section-title--spaced">
-                    {{ $t('qc_charts.duplicates') }}
-                </h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('qc_charts.duplicates') }}</h2>
+                <div class="form-grid">
+                    <Alert type="info" show-icon :message="$t('qc_charts.repeatability_help')" class="form-grid__wide qcf-alert" />
 
-                <Alert type="info" show-icon :message="$t('qc_charts.repeatability_help')" class="qcf-alert" />
+                    <FormItem
+                        :label="$t('qc_charts.repeatability_limit')"
+                        :validate-status="form.errors.repeatability_limit ? 'error' : ''"
+                        :help="form.errors.repeatability_limit"
+                    >
+                        <InputNumber v-model:value="form.repeatability_limit" :min="0" class="qcf-number" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.repeatability_limit')"
-                    :validate-status="form.errors.repeatability_limit ? 'error' : ''"
-                    :help="form.errors.repeatability_limit"
-                >
-                    <InputNumber v-model:value="form.repeatability_limit" :min="0" size="large" class="qcf-number" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('qc_charts.repeatability_mode')"
-                    :validate-status="form.errors.repeatability_mode ? 'error' : ''"
-                    :help="form.errors.repeatability_mode"
-                >
-                    <Select v-model:value="form.repeatability_mode" size="large">
-                        <SelectOption v-for="mode in modes" :key="mode" :value="mode">
-                            {{ $t(`qc_charts.mode.${mode}`) }}
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                    <FormItem
+                        :label="$t('qc_charts.repeatability_mode')"
+                        :validate-status="form.errors.repeatability_mode ? 'error' : ''"
+                        :help="form.errors.repeatability_mode"
+                    >
+                        <Select v-model:value="form.repeatability_mode">
+                            <SelectOption v-for="mode in modes" :key="mode" :value="mode">
+                                {{ $t(`qc_charts.mode.${mode}`) }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
+                </div>
 
                 <!-- ── Cierre ──────────────────────────────────────────── -->
-                <h2 class="form-section-title form-section-title--spaced">
-                    {{ $t('qc_charts.comment') }}
-                </h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('qc_charts.comment') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('qc_charts.comment')"
+                        :validate-status="form.errors.comment ? 'error' : ''"
+                        :help="form.errors.comment"
+                    >
+                        <Textarea v-model:value="form.comment" :rows="3" :maxlength="2000" show-count />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('qc_charts.comment')"
-                    :validate-status="form.errors.comment ? 'error' : ''"
-                    :help="form.errors.comment"
-                >
-                    <Textarea v-model:value="form.comment" :rows="3" :maxlength="2000" show-count />
-                </FormItem>
-
-                <FormItem :label="$t('qc_charts.is_active')">
-                    <Space>
-                        <Switch v-model:checked="form.is_active" />
-                        <span class="qcf-state">
-                            {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
-                        </span>
-                    </Space>
-                </FormItem>
+                    <FormItem :label="$t('qc_charts.is_active')">
+                        <Space>
+                            <Switch v-model:checked="form.is_active" />
+                            <span class="qcf-state">
+                                {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
+                            </span>
+                        </Space>
+                    </FormItem>
+                </div>
 
                 <FormFooter
                     :cancel-href="route('lab_management.qc_charts.index')"
@@ -480,7 +465,8 @@ const submit = () => {
 
 <style scoped>
 .qcf-alert  { margin-bottom: 16px; }
-.qcf-number { width: 100%; max-width: 260px; }
+/* Sin max-width: la columna de la rejilla ya acota el ancho del campo. */
+.qcf-number { width: 100%; }
 .qcf-state  { font-size: 0.875rem; color: var(--color-text); font-weight: 500; }
 .qcf-dim    { color: var(--color-text-muted); }
 

@@ -59,6 +59,7 @@ return [
     'logo_label'          => 'Company logo',
     'logo_upload'         => 'Upload logo',
     'logo_help'           => 'Click "Upload logo" to pick the image. It appears on your PDF reports, in the app and on the client portal. PNG, JPG or WebP.',
+    'section_letterhead'  => 'PDF report letterhead',
     'form_address_label'  => 'Address (report letterhead)',
     'form_address_help'   => 'Company address shown in the footer of PDF reports.',
     'form_disclaimer_label' => 'Report legal disclaimer',

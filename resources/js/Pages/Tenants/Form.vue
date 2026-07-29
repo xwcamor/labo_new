@@ -2,20 +2,17 @@
 import { ref, computed } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import {
-    Card, Form, FormItem, Input, Textarea, InputPassword, Switch, Button, Space, Alert, Avatar,
-    Select, SelectOption, Tag, Divider, Row, Col,
+    Form, FormItem, Input, Textarea, InputPassword, Switch, Button, Space, Alert, Avatar,
+    Select, SelectOption, Tag,
 } from 'ant-design-vue';
 import {
     BankOutlined, UploadOutlined,
-    UserOutlined, MailOutlined, LockOutlined, TeamOutlined,
+    UserOutlined, MailOutlined, LockOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import FormFooter from '@/Components/Common/FormFooter.vue';
-import { useI18n } from '@/Plugins/i18n';
-
-const { t } = useI18n();
 
 defineOptions({ layout: AppLayout });
 
@@ -94,161 +91,154 @@ const submit = () => {
             <template #icon><BankOutlined /></template>
         </SectionHeader>
 
-        <Form layout="horizontal" :label-col="{ xs: 24, sm: 8, md: 6 }" :wrapper-col="{ xs: 24, sm: 16, md: 13 }" label-align="right" :colon="true" @submit.prevent="submit">
+        <div class="form-body">
+            <Form layout="vertical" @submit.prevent="submit">
 
-            <Alert
-                v-if="form.hasErrors && Object.keys(form.errors).length > 0"
-                type="error"
-                show-icon
-                :message="$t('global.fix_marked_fields')"
-                class="mb-4"
-            />
-            <Row :gutter="[20, 20]">
-                <!-- COL IZQ: datos del workspace -->
-                <Col :xs="24" :lg="!isEdit ? 14 : 24">
-                    <Card class="form-card" :bodyStyle="{ padding: '24px 28px' }">
-                        <h3 class="section-title">
-                            <BankOutlined /> {{ $t('tenants.singular') }}
-                        </h3>
+                <Alert
+                    v-if="form.hasErrors && Object.keys(form.errors).length > 0"
+                    type="error"
+                    show-icon
+                    :message="$t('global.fix_marked_fields')"
+                    class="mb-4"
+                />
 
-                        <!-- Logo -->
-                        <div class="logo-section">
-                            <Avatar :src="previewUrl" :size="96" shape="square">
-                                <template v-if="!previewUrl" #icon><BankOutlined /></template>
-                            </Avatar>
-                            <div class="logo-controls">
-                                <input
-                                    ref="fileInput"
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp,image/jpg"
-                                    style="display: none"
-                                    @change="(e) => onLogoChange(e.target.files[0])"
-                                />
-                                <Button @click="$refs.fileInput.click()">
-                                    <UploadOutlined /> {{ previewUrl ? $t('tenants.form_change_logo') : $t('tenants.form_upload_logo') }}
-                                </Button>
-                                <Button v-if="form.logo" @click="onLogoChange(null)" type="text" danger>
-                                    {{ $t('global.remove') }}
-                                </Button>
-                                <p class="logo-hint">{{ $t('tenants.form_logo_hint') }}</p>
-                            </div>
-                        </div>
-                        <div v-if="form.errors.logo" class="field-error">{{ form.errors.logo }}</div>
+                <!-- ════ Sección: Workspace ════ -->
+                <h2 class="form-section-title">{{ $t('tenants.singular') }}</h2>
 
-                        <FormItem
-                            :label="$t('tenants.form_name_label')"
-                            :tooltip="$t('tenants.form_name_help')"
-                            required
-                            :validate-status="form.errors.name ? 'error' : ''"
-                            :help="form.errors.name"
+                <!-- Logo -->
+                <div class="logo-section">
+                    <Avatar :src="previewUrl" :size="96" shape="square">
+                        <template v-if="!previewUrl" #icon><BankOutlined /></template>
+                    </Avatar>
+                    <div class="logo-controls">
+                        <input
+                            ref="fileInput"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            style="display: none"
+                            @change="(e) => onLogoChange(e.target.files[0])"
+                        />
+                        <Button @click="$refs.fileInput.click()">
+                            <UploadOutlined /> {{ previewUrl ? $t('tenants.form_change_logo') : $t('tenants.form_upload_logo') }}
+                        </Button>
+                        <Button v-if="form.logo" @click="onLogoChange(null)" type="text" danger>
+                            {{ $t('global.remove') }}
+                        </Button>
+                        <p class="logo-hint">{{ $t('tenants.form_logo_hint') }}</p>
+                    </div>
+                </div>
+                <div v-if="form.errors.logo" class="field-error">{{ form.errors.logo }}</div>
+
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('tenants.form_name_label')"
+                        :tooltip="$t('tenants.form_name_help')"
+                        required
+                        :validate-status="form.errors.name ? 'error' : ''"
+                        :help="form.errors.name"
+                    >
+                        <Input
+                            v-model:value="form.name"
+                            :placeholder="$t('tenants.form_name_placeholder')"
+                            size="large"
+                            :maxlength="255"
+                            showCount
+                            autofocus
+                        />
+                    </FormItem>
+
+                    <!-- Plan: SOLO en create. Al crear con un plan pago se
+                         arranca un trial automático. En edición el plan NO
+                         se toca aquí — se gestiona en el tab Suscripción. -->
+                    <FormItem
+                        v-if="!isEdit"
+                        :label="$t('tenants.plan')"
+                        :tooltip="$t('tenants.plan_help')"
+                        :validate-status="form.errors.plan ? 'error' : ''"
+                        :help="form.errors.plan || currentPlanHint"
+                    >
+                        <Select v-model:value="form.plan" size="large" :placeholder="$t('tenants.plan_placeholder')">
+                            <SelectOption v-for="p in PLANS" :key="p.value" :value="p.value">
+                                <Tag :color="p.color" :bordered="false" style="margin-right: 6px;">{{ p.label }}</Tag>
+                                <span class="plan-hint">{{ p.tagline }}</span>
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
+
+                    <FormItem
+                        v-if="isEdit"
+                        :label="$t('tenants.form_status_label')"
+                        :tooltip="$t('tenants.form_status_help')"
+                        :validate-status="form.errors.is_active ? 'error' : ''"
+                        :help="form.errors.is_active"
+                    >
+                        <Space>
+                            <Switch v-model:checked="form.is_active" />
+                            <span class="state-label">
+                                {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
+                            </span>
+                        </Space>
+                    </FormItem>
+
+                    <!-- Zona horaria del workspace — todos los users del
+                         tenant que no tengan TZ propio heredan de aquí. -->
+                    <FormItem
+                        :label="$t('tenants.timezone')"
+                        :tooltip="$t('tenants.timezone_help')"
+                        :validate-status="form.errors.timezone ? 'error' : ''"
+                        :help="form.errors.timezone || $t('tenants.timezone_hint')"
+                    >
+                        <Select
+                            v-model:value="form.timezone"
+                            size="large"
+                            show-search
+                            option-filter-prop="children"
+                            :placeholder="$t('tenants.timezone')"
+                            allow-clear
                         >
-                            <Input
-                                v-model:value="form.name"
-                                :placeholder="$t('tenants.form_name_placeholder')"
-                                size="large"
-                                :maxlength="255"
-                                showCount
-                                autofocus
-                            />
-                        </FormItem>
+                            <SelectOption v-for="tz in availableTimezones" :key="tz" :value="tz">
+                                {{ tz }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
+                </div>
 
-                        <!-- Membrete de los informes PDF: dirección + disclaimer legal. -->
-                        <FormItem
-                            :label="$t('tenants.form_address_label')"
-                            :tooltip="$t('tenants.form_address_help')"
-                            :validate-status="form.errors.address ? 'error' : ''"
-                            :help="form.errors.address"
-                        >
-                            <Input v-model:value="form.address" :maxlength="255" showCount />
-                        </FormItem>
-                        <FormItem
-                            :label="$t('tenants.form_disclaimer_label')"
-                            :tooltip="$t('tenants.form_disclaimer_help')"
-                            :validate-status="form.errors.report_disclaimer ? 'error' : ''"
-                            :help="form.errors.report_disclaimer"
-                        >
-                            <Textarea v-model:value="form.report_disclaimer" :rows="4" :maxlength="2000" showCount />
-                        </FormItem>
-                        <FormItem
-                            :label="$t('tenants.form_approver_label')"
-                            :tooltip="$t('tenants.form_approver_help')"
-                            :validate-status="form.errors.report_approver ? 'error' : ''"
-                            :help="form.errors.report_approver"
-                        >
-                            <Input v-model:value="form.report_approver" :maxlength="120" showCount />
-                        </FormItem>
+                <!-- ════ Sección: Membrete de los informes PDF ════ -->
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('tenants.section_letterhead') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('tenants.form_address_label')"
+                        :tooltip="$t('tenants.form_address_help')"
+                        :validate-status="form.errors.address ? 'error' : ''"
+                        :help="form.errors.address"
+                    >
+                        <Input v-model:value="form.address" :maxlength="255" showCount />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('tenants.form_approver_label')"
+                        :tooltip="$t('tenants.form_approver_help')"
+                        :validate-status="form.errors.report_approver ? 'error' : ''"
+                        :help="form.errors.report_approver"
+                    >
+                        <Input v-model:value="form.report_approver" :maxlength="120" showCount />
+                    </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('tenants.form_disclaimer_label')"
+                        :tooltip="$t('tenants.form_disclaimer_help')"
+                        :validate-status="form.errors.report_disclaimer ? 'error' : ''"
+                        :help="form.errors.report_disclaimer"
+                    >
+                        <Textarea v-model:value="form.report_disclaimer" :rows="4" :maxlength="2000" showCount />
+                    </FormItem>
+                </div>
 
-                        <Row :gutter="[20, 0]">
-                            <!-- Plan: SOLO en create. Al crear con un plan pago se
-                                 arranca un trial automático. En edición el plan NO
-                                 se toca aquí — se gestiona en el tab Suscripción. -->
-                            <Col v-if="!isEdit" :xs="24" :md="24">
-                                <FormItem
-                                    :label="$t('tenants.plan')"
-                                    :tooltip="$t('tenants.plan_help')"
-                                    :validate-status="form.errors.plan ? 'error' : ''"
-                                    :help="form.errors.plan || currentPlanHint"
-                                >
-                                    <Select v-model:value="form.plan" size="large" :placeholder="$t('tenants.plan_placeholder')">
-                                        <SelectOption v-for="p in PLANS" :key="p.value" :value="p.value">
-                                            <Tag :color="p.color" :bordered="false" style="margin-right: 6px;">{{ p.label }}</Tag>
-                                            <span class="plan-hint">{{ p.tagline }}</span>
-                                        </SelectOption>
-                                    </Select>
-                                </FormItem>
-                            </Col>
+                <!-- ════ Sección: Admin del workspace (solo en create) ════ -->
+                <template v-if="!isEdit">
+                    <h2 class="form-section-title form-section-title--spaced">{{ $t('tenants.admin_section_title') }}</h2>
+                    <p class="admin-hint">{{ $t('tenants.admin_section_hint') }}</p>
 
-                            <Col v-if="isEdit" :xs="24" :md="24">
-                                <FormItem
-                                    :label="$t('tenants.form_status_label')"
-                                    :tooltip="$t('tenants.form_status_help')"
-                                    :validate-status="form.errors.is_active ? 'error' : ''"
-                                    :help="form.errors.is_active"
-                                >
-                                    <Space>
-                                        <Switch v-model:checked="form.is_active" />
-                                        <span class="state-label">
-                                            {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
-                                        </span>
-                                    </Space>
-                                </FormItem>
-                            </Col>
-
-                            <!-- Zona horaria del workspace — todos los users del
-                                 tenant que no tengan TZ propio heredan de aquí. -->
-                            <Col :xs="24" :md="24">
-                                <FormItem
-                                    :label="$t('tenants.timezone')"
-                                    :tooltip="$t('tenants.timezone_help')"
-                                    :validate-status="form.errors.timezone ? 'error' : ''"
-                                    :help="form.errors.timezone || $t('tenants.timezone_hint')"
-                                >
-                                    <Select
-                                        v-model:value="form.timezone"
-                                        size="large"
-                                        show-search
-                                        option-filter-prop="children"
-                                        :placeholder="$t('tenants.timezone')"
-                                        allow-clear
-                                    >
-                                        <SelectOption v-for="tz in availableTimezones" :key="tz" :value="tz">
-                                            {{ tz }}
-                                        </SelectOption>
-                                    </Select>
-                                </FormItem>
-                            </Col>
-                        </Row>
-                    </Card>
-                </Col>
-
-                <!-- COL DER: Admin del workspace (solo en create) -->
-                <Col v-if="!isEdit" :xs="24" :lg="10">
-                    <Card class="form-card" :bodyStyle="{ padding: '24px 28px' }">
-                        <h3 class="section-title">
-                            <TeamOutlined /> {{ $t('tenants.admin_section_title') }}
-                        </h3>
-                        <p class="admin-hint">{{ $t('tenants.admin_section_hint') }}</p>
-
+                    <div class="form-grid">
                         <FormItem
                             :label="$t('tenants.admin_name')"
                             :tooltip="$t('tenants.admin_name_help')"
@@ -284,29 +274,22 @@ const submit = () => {
                                 <template #prefix><LockOutlined /></template>
                             </InputPassword>
                         </FormItem>
-                    </Card>
-                </Col>
-            </Row>
+                    </div>
+                </template>
 
-            <FormFooter
-                :cancel-href="route('system_management.tenants.index')"
-                :is-edit="isEdit"
-                :processing="form.processing"
+                <FormFooter
+                    :cancel-href="route('system_management.tenants.index')"
+                    :is-edit="isEdit"
+                    :processing="form.processing"
                     floating
-            />
-        </Form>
+                />
+            </Form>
+        </div>
     </div>
 </template>
 
 <style scoped>
 .form-page { width: 100%; max-width: none; }
-.section-title {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.9375rem; font-weight: 600; color: var(--color-text-strong);
-    margin: 0 0 16px 0; padding-bottom: 12px;
-    border-bottom: 1px solid var(--color-border-soft);
-}
-.form-card { border-radius: 6px; height: 100%; }
 
 .logo-section {
     display: flex; align-items: center; gap: 18px;
@@ -321,7 +304,6 @@ const submit = () => {
 
 .mb-4 { margin-bottom: 16px; }
 
-.admin-section { margin-top: 8px; }
 .admin-hint { font-size: 0.8125rem; color: #6A6D70; margin: -8px 0 16px 0; line-height: 1.4; }
 html[data-theme="dark"] .admin-hint { color: #a8aaae; }
 

@@ -67,14 +67,7 @@ const submit = () => {
         </SectionHeader>
 
         <div class="form-body">
-            <Form
-                layout="horizontal"
-                :label-col="{ xs: 24, sm: 8, md: 6 }"
-                :wrapper-col="{ xs: 24, sm: 16, md: 13 }"
-                label-align="right"
-                :colon="true"
-                @submit.prevent="submit"
-            >
+            <Form layout="vertical" @submit.prevent="submit">
 
                 <Alert
                     v-if="form.hasErrors && Object.keys(form.errors).length > 0"
@@ -85,155 +78,162 @@ const submit = () => {
                 />
 
                 <h2 class="form-section-title">{{ $t('test_definitions.section_identification') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('test_definitions.name')"
+                        :tooltip="$t('test_definitions.name_help')"
+                        required
+                        :validate-status="form.errors.name ? 'error' : ''"
+                        :help="form.errors.name"
+                    >
+                        <Input
+                            v-model:value="form.name"
+                            size="large"
+                            :maxlength="150"
+                            showCount
+                            autofocus
+                            :placeholder="$t('test_definitions.name_placeholder')"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('test_definitions.name')"
-                    :tooltip="$t('test_definitions.name_help')"
-                    required
-                    :validate-status="form.errors.name ? 'error' : ''"
-                    :help="form.errors.name"
-                >
-                    <Input
-                        v-model:value="form.name"
-                        size="large"
-                        :maxlength="150"
-                        showCount
-                        autofocus
-                        :placeholder="$t('test_definitions.name_placeholder')"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('test_definitions.code')"
+                        :tooltip="$t('test_definitions.code_help')"
+                        :validate-status="form.errors.code ? 'error' : ''"
+                        :help="form.errors.code"
+                    >
+                        <Input
+                            v-model:value="form.code"
+                            size="large"
+                            :maxlength="60"
+                            :placeholder="$t('test_definitions.code_placeholder')"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('test_definitions.code')"
-                    :tooltip="$t('test_definitions.code_help')"
-                    :validate-status="form.errors.code ? 'error' : ''"
-                    :help="form.errors.code"
-                >
-                    <Input
-                        v-model:value="form.code"
-                        size="large"
-                        :maxlength="60"
-                        :placeholder="$t('test_definitions.code_placeholder')"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('test_definitions.group')"
+                        :tooltip="$t('test_definitions.group_help')"
+                        :validate-status="form.errors.test_group_id ? 'error' : ''"
+                        :help="form.errors.test_group_id"
+                    >
+                        <Select
+                            v-model:value="form.test_group_id"
+                            size="large"
+                            allow-clear
+                            show-search
+                            option-filter-prop="label"
+                            :options="groups"
+                            :placeholder="$t('test_definitions.group_none')"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('test_definitions.group')"
-                    :tooltip="$t('test_definitions.group_help')"
-                    :validate-status="form.errors.test_group_id ? 'error' : ''"
-                    :help="form.errors.test_group_id"
-                >
-                    <Select
-                        v-model:value="form.test_group_id"
-                        size="large"
-                        allow-clear
-                        show-search
-                        option-filter-prop="label"
-                        :options="groups"
-                        :placeholder="$t('test_definitions.group_none')"
-                    />
-                </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('test_definitions.description')"
+                        :tooltip="$t('test_definitions.description_help')"
+                        :validate-status="form.errors.description ? 'error' : ''"
+                        :help="form.errors.description"
+                    >
+                        <Textarea v-model:value="form.description" :rows="3" :maxlength="2000" showCount />
+                    </FormItem>
+                </div>
 
-                <FormItem
-                    :label="$t('test_definitions.description')"
-                    :tooltip="$t('test_definitions.description_help')"
-                    :validate-status="form.errors.description ? 'error' : ''"
-                    :help="form.errors.description"
-                >
-                    <Textarea v-model:value="form.description" :rows="3" :maxlength="2000" showCount />
-                </FormItem>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('test_definitions.section_sampling') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('test_definitions.container')"
+                        :tooltip="$t('test_definitions.container_help')"
+                        :validate-status="form.errors.container ? 'error' : ''"
+                        :help="form.errors.container"
+                    >
+                        <Input v-model:value="form.container" size="large" :maxlength="100" />
+                    </FormItem>
 
-                <h2 class="form-section-title">{{ $t('test_definitions.section_sampling') }}</h2>
+                    <FormItem
+                        :label="$t('test_definitions.chart_unit')"
+                        :tooltip="$t('test_definitions.chart_unit_help')"
+                        :validate-status="form.errors.chart_unit ? 'error' : ''"
+                        :help="form.errors.chart_unit"
+                    >
+                        <Input v-model:value="form.chart_unit" size="large" :maxlength="40" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('test_definitions.container')"
-                    :tooltip="$t('test_definitions.container_help')"
-                    :validate-status="form.errors.container ? 'error' : ''"
-                    :help="form.errors.container"
-                >
-                    <Input v-model:value="form.container" size="large" :maxlength="100" />
-                </FormItem>
+                    <FormItem
+                        :label="$t('test_definitions.replicates')"
+                        :tooltip="$t('test_definitions.replicates_help')"
+                        :validate-status="form.errors.replicates ? 'error' : ''"
+                        :help="form.errors.replicates"
+                    >
+                        <InputNumber v-model:value="form.replicates" size="large" :min="1" :max="255" style="width: 100%" />
+                    </FormItem>
+                </div>
 
-                <FormItem
-                    :label="$t('test_definitions.chart_unit')"
-                    :tooltip="$t('test_definitions.chart_unit_help')"
-                    :validate-status="form.errors.chart_unit ? 'error' : ''"
-                    :help="form.errors.chart_unit"
-                >
-                    <Input v-model:value="form.chart_unit" size="large" :maxlength="40" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('test_definitions.replicates')"
-                    :tooltip="$t('test_definitions.replicates_help')"
-                    :validate-status="form.errors.replicates ? 'error' : ''"
-                    :help="form.errors.replicates"
-                >
-                    <InputNumber v-model:value="form.replicates" size="large" :min="1" :max="255" style="width:160px" />
-                </FormItem>
-
-                <h2 class="form-section-title">{{ $t('test_definitions.section_control') }}</h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('test_definitions.section_control') }}</h2>
 
                 <!-- Las tres banderas van juntas y con la explicación arriba:
                      sueltas, "corre con patrón" y "exige patrón" se leen igual
                      y nadie sabe cuál marcar. -->
                 <p class="section-intro">{{ $t('test_definitions.control_intro') }}</p>
 
-                <FormItem :wrapper-col="{ xs: 24, sm: { offset: 8, span: 16 }, md: { offset: 6, span: 13 } }">
-                    <div class="flag">
-                        <Checkbox v-model:checked="form.has_control" :disabled="form.requires_control">
-                            {{ $t('test_definitions.has_control') }}
-                        </Checkbox>
-                        <span class="flag__help">{{ $t('test_definitions.has_control_help') }}</span>
-                    </div>
+                <div class="form-grid">
+                    <FormItem class="form-grid__wide">
+                        <div class="flag">
+                            <Checkbox v-model:checked="form.has_control" :disabled="form.requires_control">
+                                {{ $t('test_definitions.has_control') }}
+                            </Checkbox>
+                            <span class="flag__help">{{ $t('test_definitions.has_control_help') }}</span>
+                        </div>
 
-                    <div class="flag">
-                        <Checkbox v-model:checked="form.requires_control" @change="onRequiresControl($event.target.checked)">
-                            {{ $t('test_definitions.requires_control') }}
-                        </Checkbox>
-                        <span class="flag__help">{{ $t('test_definitions.requires_control_help') }}</span>
-                    </div>
+                        <div class="flag">
+                            <Checkbox v-model:checked="form.requires_control" @change="onRequiresControl($event.target.checked)">
+                                {{ $t('test_definitions.requires_control') }}
+                            </Checkbox>
+                            <span class="flag__help">{{ $t('test_definitions.requires_control_help') }}</span>
+                        </div>
 
-                    <div class="flag">
-                        <Checkbox v-model:checked="form.requires_duplicate">
-                            {{ $t('test_definitions.requires_duplicate') }}
-                        </Checkbox>
-                        <span class="flag__help">{{ $t('test_definitions.requires_duplicate_help') }}</span>
-                    </div>
+                        <div class="flag">
+                            <Checkbox v-model:checked="form.requires_duplicate">
+                                {{ $t('test_definitions.requires_duplicate') }}
+                            </Checkbox>
+                            <span class="flag__help">{{ $t('test_definitions.requires_duplicate_help') }}</span>
+                        </div>
 
-                    <div class="flag flag--legacy">
-                        <Checkbox v-model:checked="form.is_grouped">
-                            {{ $t('test_definitions.is_grouped') }}
-                        </Checkbox>
-                        <span class="flag__help">{{ $t('test_definitions.is_grouped_help') }}</span>
-                    </div>
-                </FormItem>
+                        <div class="flag flag--legacy">
+                            <Checkbox v-model:checked="form.is_grouped">
+                                {{ $t('test_definitions.is_grouped') }}
+                            </Checkbox>
+                            <span class="flag__help">{{ $t('test_definitions.is_grouped_help') }}</span>
+                        </div>
+                    </FormItem>
+                </div>
 
-                <h2 class="form-section-title">{{ $t('global.general_data') }}</h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('global.general_data') }}</h2>
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('test_definitions.sort_order')"
+                        :tooltip="$t('test_definitions.sort_order_help')"
+                        :validate-status="form.errors.sort_order ? 'error' : ''"
+                        :help="form.errors.sort_order"
+                    >
+                        <InputNumber v-model:value="form.sort_order" size="large" :min="0" :max="99999" style="width: 100%" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('test_definitions.sort_order')"
-                    :tooltip="$t('test_definitions.sort_order_help')"
-                    :validate-status="form.errors.sort_order ? 'error' : ''"
-                    :help="form.errors.sort_order"
-                >
-                    <InputNumber v-model:value="form.sort_order" size="large" :min="0" :max="99999" style="width:160px" />
-                </FormItem>
-
-                <FormItem
-                    v-if="isEdit"
-                    :label="$t('test_definitions.is_active')"
-                    :tooltip="$t('test_definitions.is_active_help')"
-                    :validate-status="form.errors.is_active ? 'error' : ''"
-                    :help="form.errors.is_active"
-                >
-                    <Space>
-                        <Switch v-model:checked="form.is_active" />
-                        <span class="state-label">
-                            {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
-                        </span>
-                    </Space>
-                </FormItem>
+                    <FormItem
+                        v-if="isEdit"
+                        :label="$t('test_definitions.is_active')"
+                        :tooltip="$t('test_definitions.is_active_help')"
+                        :validate-status="form.errors.is_active ? 'error' : ''"
+                        :help="form.errors.is_active"
+                    >
+                        <Space>
+                            <Switch v-model:checked="form.is_active" />
+                            <span class="state-label">
+                                {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
+                            </span>
+                        </Space>
+                    </FormItem>
+                </div>
 
                 <!-- legacy_id NO se edita: es el id de esta prueba en el
                      sistema Rails y lo escribe el importador. Se ve en la

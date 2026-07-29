@@ -17,7 +17,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Alert, Button, Modal, Tag, Tooltip } from 'ant-design-vue';
 import {
     DeleteOutlined, DownOutlined, EditOutlined, HolderOutlined, PlusOutlined,
-    SettingOutlined, TableOutlined, UpOutlined,
+    SettingOutlined, FileDoneOutlined, UpOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -147,7 +147,7 @@ const analyteName = (id) => props.analytes.find((a) => a.id === id)?.name ?? nul
             :title="$t('test_fields.title')"
             :subtitle="definition.name"
         >
-            <template #icon><TableOutlined /></template>
+            <template #icon><FileDoneOutlined /></template>
             <template #actions>
                 <Link :href="route('lab_management.test_definitions.constants.index', definition.slug)">
                     <Button><SettingOutlined /> {{ $t('test_fields.constants') }}</Button>

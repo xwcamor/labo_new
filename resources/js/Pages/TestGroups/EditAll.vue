@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Button, Card, Pagination } from 'ant-design-vue';
-import { SaveOutlined, UndoOutlined, EditOutlined, TagsOutlined } from '@ant-design/icons-vue';
+import { SaveOutlined, UndoOutlined, EditOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -68,7 +68,7 @@ const onPageChange = (page, pageSize) => {
             :title="$t('global.edit_all') + ' — ' + $t('test_groups.plural')"
             :subtitle="$t('test_groups.edit_all_subtitle')"
         >
-            <template #icon><TagsOutlined /></template>
+            <template #icon><FolderOpenOutlined /></template>
         </SectionHeader>
 
         <Card :bodyStyle="{ padding: 0 }" class="edit-table-card">

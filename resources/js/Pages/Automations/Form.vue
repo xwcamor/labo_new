@@ -2,8 +2,8 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
-    Card, Form, FormItem, Input, InputNumber, Switch, Select, SelectOption,
-    Row, Col, Divider, Button, Space, Tag, TimePicker, DatePicker, Alert, Tooltip,
+    Form, FormItem, Input, InputNumber, Switch, Select, SelectOption,
+    Button, Tag, TimePicker, DatePicker, Tooltip,
 } from 'ant-design-vue';
 import { ThunderboltOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
@@ -16,7 +16,6 @@ import AutomationPreviewModal from '@/Components/Automations/AutomationPreviewMo
 import {
     InfoCircleOutlined, EyeOutlined, UsergroupAddOutlined, TeamOutlined,
 } from '@ant-design/icons-vue';
-import { Modal as AntModal } from 'ant-design-vue';
 import { useI18n } from '@/Plugins/i18n';
 import { useAuth } from '@/Composables/useAuth';
 
@@ -325,128 +324,111 @@ const daysOfWeek = [
             @apply="applyTemplate"
         />
 
-        <Card :bodyStyle="{ padding: '24px 28px' }">
-            <Form layout="horizontal" :label-col="{ xs: 24, sm: 8, md: 6 }" :wrapper-col="{ xs: 24, sm: 16, md: 13 }" label-align="right" :colon="true" @submit.prevent="submit">
+        <div class="form-body">
+            <!-- `layout="vertical"` + `.form-grid`: el rótulo va ARRIBA del
+                 campo y los campos se acomodan en varias columnas. Una
+                 automatización tiene diecinueve datos; con el rótulo a la
+                 izquierda y uno por fila la página se iba a varias pantallas. -->
+            <Form layout="vertical" @submit.prevent="submit">
 
                 <!-- ── Identidad ─────────────────────────────────────────── -->
-                <Divider orientation="left" plain>
-                    <strong>{{ $t('automations.section_identity') }}</strong>
+                <h2 class="form-section-title">
+                    {{ $t('automations.section_identity') }}
                     <Tooltip :title="$t('automations.section_identity_help')">
                         <InfoCircleOutlined class="section-help" />
                     </Tooltip>
-                </Divider>
-                <Row :gutter="[20, 0]">
+                </h2>
+                <div class="form-grid">
                     <!-- Selector de workspace: solo super lo ve. Admin tiene
                          tenant fijo y se autoasigna server-side. -->
-                    <Col v-if="isSuper" :xs="24" :md="10">
-                        <FormItem :label="$t('automations.workspace')" :tooltip="$t('automations.workspace_help')" required
-                                  :validate-status="form.errors.tenant_id ? 'error' : ''"
-                                  :help="form.errors.tenant_id || $t('automations.workspace_hint')">
-                            <Select v-model:value="form.tenant_id" size="large"
-                                    :options="tenantOptions"
-                                    :placeholder="$t('automations.workspace_placeholder')"
-                                    show-search
-                                    :filter-option="(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())" />
-                        </FormItem>
-                    </Col>
-                    <Col :xs="24" :md="isSuper ? 8 : 14">
-                        <FormItem :label="$t('automations.name')" :tooltip="$t('automations.name_help')" required
-                                  :validate-status="form.errors.name ? 'error' : ''"
-                                  :help="form.errors.name">
-                            <Input v-model:value="form.name" size="large" :maxlength="150"
-                                   :placeholder="$t('automations.name_placeholder')" />
-                        </FormItem>
-                    </Col>
-                    <Col :xs="24" :md="6">
-                        <FormItem :label="$t('automations.is_active')"
-                                  :tooltip="$t('automations.is_active_help')"
-                                  :help="$t('automations.is_active_hint')">
-                            <Switch v-model:checked="form.is_active" />
-                        </FormItem>
-                    </Col>
-                    <Col :xs="24">
-                        <FormItem :label="$t('automations.description')"
-                                  :tooltip="$t('automations.description_help')"
-                                  :validate-status="form.errors.description ? 'error' : ''"
-                                  :help="form.errors.description">
-                            <Input.TextArea v-model:value="form.description" :rows="2" :maxlength="1000"
-                                            :placeholder="$t('automations.description_placeholder')" />
-                        </FormItem>
-                    </Col>
-                </Row>
+                    <FormItem v-if="isSuper" :label="$t('automations.workspace')" :tooltip="$t('automations.workspace_help')" required
+                              :validate-status="form.errors.tenant_id ? 'error' : ''"
+                              :help="form.errors.tenant_id || $t('automations.workspace_hint')">
+                        <Select v-model:value="form.tenant_id"
+                                :options="tenantOptions"
+                                :placeholder="$t('automations.workspace_placeholder')"
+                                show-search
+                                :filter-option="(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())" />
+                    </FormItem>
+                    <FormItem :label="$t('automations.name')" :tooltip="$t('automations.name_help')" required
+                              :validate-status="form.errors.name ? 'error' : ''"
+                              :help="form.errors.name">
+                        <Input v-model:value="form.name" :maxlength="150"
+                               :placeholder="$t('automations.name_placeholder')" />
+                    </FormItem>
+                    <FormItem :label="$t('automations.is_active')"
+                              :tooltip="$t('automations.is_active_help')"
+                              :help="$t('automations.is_active_hint')">
+                        <Switch v-model:checked="form.is_active" />
+                    </FormItem>
+                    <FormItem class="form-grid__wide" :label="$t('automations.description')"
+                              :tooltip="$t('automations.description_help')"
+                              :validate-status="form.errors.description ? 'error' : ''"
+                              :help="form.errors.description">
+                        <Input.TextArea v-model:value="form.description" :rows="2" :maxlength="1000"
+                                        :placeholder="$t('automations.description_placeholder')" />
+                    </FormItem>
+                </div>
 
                 <!-- ── Trigger ───────────────────────────────────────────── -->
-                <Divider orientation="left" plain>
-                    <strong>{{ $t('automations.section_trigger') }}</strong>
+                <h2 class="form-section-title form-section-title--spaced">
+                    {{ $t('automations.section_trigger') }}
                     <Tooltip :title="$t('automations.section_trigger_help')">
                         <InfoCircleOutlined class="section-help" />
                     </Tooltip>
-                </Divider>
-                <Row :gutter="[20, 0]">
-                    <Col :xs="24" :md="8">
-                        <FormItem :label="$t('automations.trigger_kind')" :tooltip="$t('automations.trigger_kind_help')">
-                            <Select :value="form.trigger_config.kind" size="large" @change="onKindChange" :placeholder="$t('automations.trigger_kind_placeholder')">
-                                <SelectOption value="daily">{{ $t('automations.trigger_kind_daily') }}</SelectOption>
-                                <SelectOption value="weekly">{{ $t('automations.trigger_kind_weekly') }}</SelectOption>
-                                <SelectOption value="monthly">{{ $t('automations.trigger_kind_monthly') }}</SelectOption>
-                                <SelectOption value="cron">{{ $t('automations.trigger_kind_cron') }}</SelectOption>
-                            </Select>
-                        </FormItem>
-                    </Col>
+                </h2>
+                <div class="form-grid">
+                    <FormItem :label="$t('automations.trigger_kind')" :tooltip="$t('automations.trigger_kind_help')">
+                        <Select :value="form.trigger_config.kind" @change="onKindChange" :placeholder="$t('automations.trigger_kind_placeholder')">
+                            <SelectOption value="daily">{{ $t('automations.trigger_kind_daily') }}</SelectOption>
+                            <SelectOption value="weekly">{{ $t('automations.trigger_kind_weekly') }}</SelectOption>
+                            <SelectOption value="monthly">{{ $t('automations.trigger_kind_monthly') }}</SelectOption>
+                            <SelectOption value="cron">{{ $t('automations.trigger_kind_cron') }}</SelectOption>
+                        </Select>
+                    </FormItem>
 
-                    <Col :xs="24" :md="8" v-if="form.trigger_config.kind !== 'cron'">
-                        <FormItem :label="$t('automations.trigger_time')" :tooltip="$t('automations.trigger_time_help')">
-                            <TimePicker v-model:value="timeValue" format="HH:mm" size="large" style="width: 100%" :placeholder="$t('automations.trigger_time_placeholder')" />
-                        </FormItem>
-                    </Col>
+                    <FormItem v-if="form.trigger_config.kind !== 'cron'" :label="$t('automations.trigger_time')" :tooltip="$t('automations.trigger_time_help')">
+                        <TimePicker v-model:value="timeValue" format="HH:mm" style="width: 100%" :placeholder="$t('automations.trigger_time_placeholder')" />
+                    </FormItem>
 
-                    <Col :xs="24" :md="8" v-if="form.trigger_config.kind === 'weekly'">
-                        <FormItem :label="$t('automations.trigger_day_of_week')" :tooltip="$t('automations.trigger_day_of_week_help')">
-                            <Select v-model:value="form.trigger_config.day" size="large" :placeholder="$t('automations.trigger_day_of_week_placeholder')">
-                                <SelectOption v-for="d in daysOfWeek" :key="d.value" :value="d.value">{{ d.label }}</SelectOption>
-                            </Select>
-                        </FormItem>
-                    </Col>
+                    <FormItem v-if="form.trigger_config.kind === 'weekly'" :label="$t('automations.trigger_day_of_week')" :tooltip="$t('automations.trigger_day_of_week_help')">
+                        <Select v-model:value="form.trigger_config.day" :placeholder="$t('automations.trigger_day_of_week_placeholder')">
+                            <SelectOption v-for="d in daysOfWeek" :key="d.value" :value="d.value">{{ d.label }}</SelectOption>
+                        </Select>
+                    </FormItem>
 
-                    <Col :xs="24" :md="8" v-if="form.trigger_config.kind === 'monthly'">
-                        <FormItem :label="$t('automations.trigger_day_of_month')" :tooltip="$t('automations.trigger_day_of_month_help')">
-                            <InputNumber v-model:value="form.trigger_config.day" :min="1" :max="31" size="large" style="width: 100%" :placeholder="$t('automations.trigger_day_of_month_placeholder')" />
-                        </FormItem>
-                    </Col>
+                    <FormItem v-if="form.trigger_config.kind === 'monthly'" :label="$t('automations.trigger_day_of_month')" :tooltip="$t('automations.trigger_day_of_month_help')">
+                        <InputNumber v-model:value="form.trigger_config.day" :min="1" :max="31" style="width: 100%" :placeholder="$t('automations.trigger_day_of_month_placeholder')" />
+                    </FormItem>
 
-                    <Col :xs="24" v-if="form.trigger_config.kind === 'cron'">
-                        <FormItem :label="$t('automations.trigger_cron_expression')"
-                                  :tooltip="$t('automations.trigger_cron_expression_help')"
-                                  :help="$t('automations.trigger_cron_hint')">
-                            <Input v-model:value="form.trigger_config.expression" size="large" placeholder="0 9 * * 1" />
-                        </FormItem>
-                    </Col>
-                </Row>
+                    <FormItem v-if="form.trigger_config.kind === 'cron'" class="form-grid__wide"
+                              :label="$t('automations.trigger_cron_expression')"
+                              :tooltip="$t('automations.trigger_cron_expression_help')"
+                              :help="$t('automations.trigger_cron_hint')">
+                        <Input v-model:value="form.trigger_config.expression" placeholder="0 9 * * 1" />
+                    </FormItem>
+                </div>
 
                 <!-- ── Data source + filtros ─────────────────────────────── -->
-                <Divider orientation="left" plain>
-                    <strong>{{ $t('automations.section_data') }}</strong>
+                <h2 class="form-section-title form-section-title--spaced">
+                    {{ $t('automations.section_data') }}
                     <Tooltip :title="$t('automations.section_data_help')">
                         <InfoCircleOutlined class="section-help" />
                     </Tooltip>
-                </Divider>
-                <Row :gutter="[20, 0]">
-                    <Col :xs="24" :md="10">
-                        <FormItem :label="$t('automations.data_source')" :tooltip="$t('automations.data_source_help')">
-                            <Select v-model:value="form.data_source" size="large" allow-clear
-                                    :placeholder="$t('automations.data_source_none')">
-                                <SelectOption v-for="s in catalog.data_sources" :key="s.key" :value="s.key">
-                                    {{ s.label }}
-                                </SelectOption>
-                            </Select>
-                        </FormItem>
-                    </Col>
-                    <Col :xs="24" :md="6" v-if="form.data_source">
-                        <FormItem :label="$t('automations.data_filter_limit')" :tooltip="$t('automations.data_filter_limit_help')">
-                            <InputNumber v-model:value="form.data_filter.limit" :min="1" :max="1000" size="large" style="width: 100%" :placeholder="$t('automations.data_filter_limit_placeholder')" />
-                        </FormItem>
-                    </Col>
-                </Row>
+                </h2>
+                <div class="form-grid">
+                    <FormItem :label="$t('automations.data_source')" :tooltip="$t('automations.data_source_help')">
+                        <Select v-model:value="form.data_source" allow-clear
+                                :placeholder="$t('automations.data_source_none')">
+                            <SelectOption v-for="s in catalog.data_sources" :key="s.key" :value="s.key">
+                                {{ s.label }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
+                    <FormItem v-if="form.data_source" :label="$t('automations.data_filter_limit')" :tooltip="$t('automations.data_filter_limit_help')">
+                        <InputNumber v-model:value="form.data_filter.limit" :min="1" :max="1000" style="width: 100%" :placeholder="$t('automations.data_filter_limit_placeholder')" />
+                    </FormItem>
+                </div>
 
                 <div v-if="form.data_source">
                     <p class="hint">{{ $t('automations.data_filter_intro') }}</p>
@@ -521,147 +503,128 @@ const daysOfWeek = [
                 </div>
 
                 <!-- ── Action ────────────────────────────────────────────── -->
-                <Divider orientation="left" plain>
-                    <strong>{{ $t('automations.section_action') }}</strong>
+                <h2 class="form-section-title form-section-title--spaced">
+                    {{ $t('automations.section_action') }}
                     <Tooltip :title="$t('automations.section_action_help')">
                         <InfoCircleOutlined class="section-help" />
                     </Tooltip>
-                </Divider>
-                <Row :gutter="[20, 0]">
-                    <Col :xs="24" :md="10">
-                        <FormItem :label="$t('automations.action_type')" :tooltip="$t('automations.action_type_help')" required>
-                            <Select v-model:value="form.action_type" size="large" :placeholder="$t('automations.action_type_placeholder')">
-                                <SelectOption v-for="a in catalog.actions" :key="a.key" :value="a.key">
-                                    {{ a.label }}
+                </h2>
+                <!-- Los <template> condicionales no generan nodo propio: sus
+                     FormItem caen directo como celdas de la misma rejilla. -->
+                <div class="form-grid">
+                    <FormItem :label="$t('automations.action_type')" :tooltip="$t('automations.action_type_help')" required>
+                        <Select v-model:value="form.action_type" :placeholder="$t('automations.action_type_placeholder')">
+                            <SelectOption v-for="a in catalog.actions" :key="a.key" :value="a.key">
+                                {{ a.label }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
+
+                    <!-- Email config -->
+                    <template v-if="form.action_type === 'email'">
+                        <FormItem class="form-grid__wide" :label="$t('automations.action_email_to')" :tooltip="$t('automations.action_email_to_help')" required
+                                  :help="$t('automations.action_email_to_hint')">
+                            <div class="bulk-helpers">
+                                <Button size="small" @click="addAllAdminsAsEmails">
+                                    <UsergroupAddOutlined /> {{ $t('automations.add_all_admins') }}
+                                </Button>
+                                <Button size="small" @click="addAllUsersAsEmails">
+                                    <TeamOutlined /> {{ $t('automations.add_all_users') }}
+                                </Button>
+                                <Button v-if="(form.action_config.to ?? []).length" size="small" type="text" danger @click="clearEmailRecipients">
+                                    {{ $t('automations.clear_recipients') }}
+                                </Button>
+                            </div>
+                            <Select
+                                v-model:value="form.action_config.to"
+                                mode="tags"
+                                :options="userEmailOptions"
+                                :placeholder="$t('automations.action_email_to_placeholder')"
+                                :token-separators="[',', ' ', ';', '\n']"
+                                style="width: 100%"
+                            />
+                        </FormItem>
+                        <FormItem :label="$t('automations.action_email_subject')" :tooltip="$t('automations.action_email_subject_help')" required>
+                            <Input ref="emailSubjectRef" v-model:value="form.action_config.subject"
+                                   :maxlength="200"
+                                   :placeholder="$t('automations.action_email_subject_placeholder')" />
+                        </FormItem>
+                        <FormItem class="form-grid__wide" :label="$t('automations.action_email_body')" :tooltip="$t('automations.action_email_body_help')" required>
+                            <div class="template-vars">
+                                <span class="template-vars__label">{{ $t('automations.template_variables_label') }}:</span>
+                                <Tooltip v-for="v in templateVariables" :key="v.key" :title="v.description">
+                                    <Tag class="template-vars__chip" color="blue" :bordered="false"
+                                         @click="insertAtCursor(emailBodyRef, form.action_config.body, val => form.action_config.body = val, v.key)">
+                                        <code>{{ v.key }}</code>
+                                        <span class="template-vars__chip-label">— {{ v.label }}</span>
+                                    </Tag>
+                                </Tooltip>
+                            </div>
+                            <Input.TextArea ref="emailBodyRef" v-model:value="form.action_config.body" :rows="6"
+                                :placeholder="$t('automations.action_email_body_placeholder')" />
+                            <Button @click="openPreview" type="dashed" size="small" style="margin-top: 10px">
+                                <EyeOutlined /> {{ $t('automations.preview_button') }}
+                            </Button>
+                        </FormItem>
+                    </template>
+
+                    <!-- In-app notification config -->
+                    <template v-if="form.action_type === 'in_app_notification'">
+                        <FormItem :label="$t('automations.action_in_app_recipients')" :tooltip="$t('automations.action_in_app_recipients_help')" required>
+                            <Select v-model:value="form.action_config.recipients" :placeholder="$t('automations.action_in_app_recipients_placeholder')">
+                                <SelectOption v-for="r in recipientsOptions" :key="r.value" :value="r.value">
+                                    {{ r.label }}
                                 </SelectOption>
                             </Select>
                         </FormItem>
-                    </Col>
-                </Row>
-
-                <!-- Email config -->
-                <template v-if="form.action_type === 'email'">
-                    <Row :gutter="[20, 0]">
-                        <Col :xs="24" :md="14">
-                            <FormItem :label="$t('automations.action_email_to')" :tooltip="$t('automations.action_email_to_help')" required
-                                      :help="$t('automations.action_email_to_hint')">
-                                <div class="bulk-helpers">
-                                    <Button size="small" @click="addAllAdminsAsEmails">
-                                        <UsergroupAddOutlined /> {{ $t('automations.add_all_admins') }}
-                                    </Button>
-                                    <Button size="small" @click="addAllUsersAsEmails">
-                                        <TeamOutlined /> {{ $t('automations.add_all_users') }}
-                                    </Button>
-                                    <Button v-if="(form.action_config.to ?? []).length" size="small" type="text" danger @click="clearEmailRecipients">
-                                        {{ $t('automations.clear_recipients') }}
-                                    </Button>
-                                </div>
-                                <Select
-                                    v-model:value="form.action_config.to"
-                                    mode="tags"
-                                    size="large"
-                                    :options="userEmailOptions"
-                                    :placeholder="$t('automations.action_email_to_placeholder')"
-                                    :token-separators="[',', ' ', ';', '\n']"
-                                    style="width: 100%"
-                                />
-                            </FormItem>
-                        </Col>
-                        <Col :xs="24" :md="10">
-                            <FormItem :label="$t('automations.action_email_subject')" :tooltip="$t('automations.action_email_subject_help')" required>
-                                <Input ref="emailSubjectRef" v-model:value="form.action_config.subject"
-                                       size="large" :maxlength="200"
-                                       :placeholder="$t('automations.action_email_subject_placeholder')" />
-                            </FormItem>
-                        </Col>
-                        <Col :xs="24">
-                            <FormItem :label="$t('automations.action_email_body')" :tooltip="$t('automations.action_email_body_help')" required>
-                                <div class="template-vars">
-                                    <span class="template-vars__label">{{ $t('automations.template_variables_label') }}:</span>
-                                    <Tooltip v-for="v in templateVariables" :key="v.key" :title="v.description">
-                                        <Tag class="template-vars__chip" color="blue" :bordered="false"
-                                             @click="insertAtCursor(emailBodyRef, form.action_config.body, val => form.action_config.body = val, v.key)">
-                                            <code>{{ v.key }}</code>
-                                            <span class="template-vars__chip-label">— {{ v.label }}</span>
-                                        </Tag>
-                                    </Tooltip>
-                                </div>
-                                <Input.TextArea ref="emailBodyRef" v-model:value="form.action_config.body" :rows="6"
-                                    :placeholder="$t('automations.action_email_body_placeholder')" />
-                                <Button @click="openPreview" type="dashed" size="small" style="margin-top: 10px">
-                                    <EyeOutlined /> {{ $t('automations.preview_button') }}
+                        <FormItem :label="$t('automations.action_in_app_title')" :tooltip="$t('automations.action_in_app_title_help')" required>
+                            <Input ref="inAppTitleRef" v-model:value="form.action_config.title"
+                                   :maxlength="200"
+                                   :placeholder="$t('automations.action_in_app_title_placeholder')" />
+                        </FormItem>
+                        <FormItem v-if="form.action_config.recipients === 'specific_users'" class="form-grid__wide"
+                                  :label="$t('automations.action_in_app_specific_users')" :tooltip="$t('automations.action_in_app_specific_users_help')" required
+                                  :help="$t('automations.action_in_app_specific_users_hint')">
+                            <div class="bulk-helpers">
+                                <Button size="small" @click="addAllAdminsAsUserIds">
+                                    <UsergroupAddOutlined /> {{ $t('automations.add_all_admins') }}
                                 </Button>
-                            </FormItem>
-                        </Col>
-                    </Row>
-                </template>
-
-                <!-- In-app notification config -->
-                <template v-if="form.action_type === 'in_app_notification'">
-                    <Row :gutter="[20, 0]">
-                        <Col :xs="24" :md="10">
-                            <FormItem :label="$t('automations.action_in_app_recipients')" :tooltip="$t('automations.action_in_app_recipients_help')" required>
-                                <Select v-model:value="form.action_config.recipients" size="large" :placeholder="$t('automations.action_in_app_recipients_placeholder')">
-                                    <SelectOption v-for="r in recipientsOptions" :key="r.value" :value="r.value">
-                                        {{ r.label }}
-                                    </SelectOption>
-                                </Select>
-                            </FormItem>
-                        </Col>
-                        <Col :xs="24" :md="14">
-                            <FormItem :label="$t('automations.action_in_app_title')" :tooltip="$t('automations.action_in_app_title_help')" required>
-                                <Input ref="inAppTitleRef" v-model:value="form.action_config.title"
-                                       size="large" :maxlength="200"
-                                       :placeholder="$t('automations.action_in_app_title_placeholder')" />
-                            </FormItem>
-                        </Col>
-                        <Col v-if="form.action_config.recipients === 'specific_users'" :xs="24">
-                            <FormItem :label="$t('automations.action_in_app_specific_users')" :tooltip="$t('automations.action_in_app_specific_users_help')" required
-                                      :help="$t('automations.action_in_app_specific_users_hint')">
-                                <div class="bulk-helpers">
-                                    <Button size="small" @click="addAllAdminsAsUserIds">
-                                        <UsergroupAddOutlined /> {{ $t('automations.add_all_admins') }}
-                                    </Button>
-                                    <Button size="small" @click="addAllUserIds">
-                                        <TeamOutlined /> {{ $t('automations.add_all_users') }}
-                                    </Button>
-                                    <Button v-if="(form.action_config.user_ids ?? []).length" size="small" type="text" danger @click="clearUserIds">
-                                        {{ $t('automations.clear_recipients') }}
-                                    </Button>
-                                </div>
-                                <Select
-                                    v-model:value="form.action_config.user_ids"
-                                    mode="multiple"
-                                    size="large"
-                                    :options="userIdOptions"
-                                    :placeholder="$t('automations.action_in_app_specific_users_placeholder')"
-                                    :filter-option="(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())"
-                                    style="width: 100%"
-                                />
-                            </FormItem>
-                        </Col>
-                        <Col :xs="24">
-                            <FormItem :label="$t('automations.action_in_app_body')" :tooltip="$t('automations.action_in_app_body_help')" required>
-                                <div class="template-vars">
-                                    <span class="template-vars__label">{{ $t('automations.template_variables_label') }}:</span>
-                                    <Tooltip v-for="v in inAppVariables" :key="v.key" :title="v.description">
-                                        <Tag class="template-vars__chip" color="blue" :bordered="false"
-                                             @click="insertAtCursor(inAppBodyRef, form.action_config.body, val => form.action_config.body = val, v.key)">
-                                            <code>{{ v.key }}</code>
-                                            <span class="template-vars__chip-label">— {{ v.label }}</span>
-                                        </Tag>
-                                    </Tooltip>
-                                </div>
-                                <p class="hint">{{ $t('automations.in_app_body_hint') }}</p>
-                                <Input.TextArea ref="inAppBodyRef" v-model:value="form.action_config.body" :rows="4"
-                                                :placeholder="$t('automations.action_in_app_body_placeholder')" />
-                                <Button @click="openPreview" type="dashed" size="small" style="margin-top: 10px">
-                                    <EyeOutlined /> {{ $t('automations.preview_button') }}
+                                <Button size="small" @click="addAllUserIds">
+                                    <TeamOutlined /> {{ $t('automations.add_all_users') }}
                                 </Button>
-                            </FormItem>
-                        </Col>
-                    </Row>
-                </template>
+                                <Button v-if="(form.action_config.user_ids ?? []).length" size="small" type="text" danger @click="clearUserIds">
+                                    {{ $t('automations.clear_recipients') }}
+                                </Button>
+                            </div>
+                            <Select
+                                v-model:value="form.action_config.user_ids"
+                                mode="multiple"
+                                :options="userIdOptions"
+                                :placeholder="$t('automations.action_in_app_specific_users_placeholder')"
+                                :filter-option="(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())"
+                                style="width: 100%"
+                            />
+                        </FormItem>
+                        <FormItem class="form-grid__wide" :label="$t('automations.action_in_app_body')" :tooltip="$t('automations.action_in_app_body_help')" required>
+                            <div class="template-vars">
+                                <span class="template-vars__label">{{ $t('automations.template_variables_label') }}:</span>
+                                <Tooltip v-for="v in inAppVariables" :key="v.key" :title="v.description">
+                                    <Tag class="template-vars__chip" color="blue" :bordered="false"
+                                         @click="insertAtCursor(inAppBodyRef, form.action_config.body, val => form.action_config.body = val, v.key)">
+                                        <code>{{ v.key }}</code>
+                                        <span class="template-vars__chip-label">— {{ v.label }}</span>
+                                    </Tag>
+                                </Tooltip>
+                            </div>
+                            <p class="hint">{{ $t('automations.in_app_body_hint') }}</p>
+                            <Input.TextArea ref="inAppBodyRef" v-model:value="form.action_config.body" :rows="4"
+                                            :placeholder="$t('automations.action_in_app_body_placeholder')" />
+                            <Button @click="openPreview" type="dashed" size="small" style="margin-top: 10px">
+                                <EyeOutlined /> {{ $t('automations.preview_button') }}
+                            </Button>
+                        </FormItem>
+                    </template>
+                </div>
 
                 <FormFooter
                     :cancel-href="route('automation_management.automations.index')"
@@ -669,7 +632,7 @@ const daysOfWeek = [
                     floating
                 />
             </Form>
-        </Card>
+        </div>
 
         <AutomationPreviewModal v-model:open="previewOpen" :form="form" :catalog="catalog" />
     </div>

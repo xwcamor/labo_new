@@ -84,14 +84,7 @@ const submit = () => {
         </SectionHeader>
 
         <div class="form-body">
-            <Form
-                layout="horizontal"
-                :label-col="{ xs: 24, sm: 8, md: 6 }"
-                :wrapper-col="{ xs: 24, sm: 16, md: 13 }"
-                label-align="right"
-                :colon="true"
-                @submit.prevent="submit"
-            >
+            <Form layout="vertical" @submit.prevent="submit">
                 <Alert
                     v-if="form.hasErrors"
                     type="error"
@@ -121,158 +114,163 @@ const submit = () => {
                 />
 
                 <h2 class="form-section-title">{{ $t('receptions.section_header') }}</h2>
-
-                <FormItem
-                    :label="$t('receptions.code')"
-                    :extra="$t('receptions.code_help')"
-                    :validate-status="form.errors.code ? 'error' : ''"
-                    :help="form.errors.code"
-                >
-                    <Input v-model:value="form.code" size="large" :maxlength="30" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('receptions.service_order')"
-                    :validate-status="form.errors.service_order ? 'error' : ''"
-                    :help="form.errors.service_order"
-                >
-                    <Input v-model:value="form.service_order" size="large" :maxlength="60" />
-                </FormItem>
-
-                <FormItem
-                    :label="$t('receptions.customer')"
-                    required
-                    :extra="$t('receptions.customer_help')"
-                    :validate-status="form.errors.customer_id ? 'error' : ''"
-                    :help="form.errors.customer_id"
-                >
-                    <Select
-                        v-model:value="form.customer_id"
-                        size="large"
-                        show-search
-                        option-filter-prop="label"
-                        :disabled="isLocked"
-                        :placeholder="$t('receptions.customer')"
+                <div class="form-grid">
+                    <FormItem
+                        :label="$t('receptions.code')"
+                        :extra="$t('receptions.code_help')"
+                        :validate-status="form.errors.code ? 'error' : ''"
+                        :help="form.errors.code"
                     >
-                        <SelectOption
-                            v-for="customer in customers"
-                            :key="customer.id"
-                            :value="customer.id"
-                            :label="customer.name"
-                        >
-                            {{ customer.name }}
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                        <Input v-model:value="form.code" size="large" :maxlength="30" />
+                    </FormItem>
 
-                <!-- El muestreador no siempre es alguien del laboratorio: puede
-                     ser personal del cliente o un tercero. Por eso hay las dos
-                     formas y ninguna obliga a dar de alta un usuario. -->
-                <FormItem
-                    :label="$t('receptions.sampler')"
-                    :extra="$t('receptions.sampler_help')"
-                    :validate-status="form.errors.sampler_id ? 'error' : ''"
-                    :help="form.errors.sampler_id"
-                >
-                    <Select
-                        v-model:value="form.sampler_id"
-                        size="large"
-                        allow-clear
-                        show-search
-                        option-filter-prop="label"
-                        :placeholder="$t('receptions.sampler')"
+                    <FormItem
+                        :label="$t('receptions.service_order')"
+                        :validate-status="form.errors.service_order ? 'error' : ''"
+                        :help="form.errors.service_order"
                     >
-                        <SelectOption
-                            v-for="user in samplers"
-                            :key="user.id"
-                            :value="user.id"
-                            :label="user.name"
+                        <Input v-model:value="form.service_order" size="large" :maxlength="60" />
+                    </FormItem>
+
+                    <FormItem
+                        :label="$t('receptions.customer')"
+                        required
+                        :extra="$t('receptions.customer_help')"
+                        :validate-status="form.errors.customer_id ? 'error' : ''"
+                        :help="form.errors.customer_id"
+                    >
+                        <Select
+                            v-model:value="form.customer_id"
+                            size="large"
+                            show-search
+                            option-filter-prop="label"
+                            :disabled="isLocked"
+                            :placeholder="$t('receptions.customer')"
                         >
-                            {{ user.name }}
-                        </SelectOption>
-                    </Select>
-                </FormItem>
+                            <SelectOption
+                                v-for="customer in customers"
+                                :key="customer.id"
+                                :value="customer.id"
+                                :label="customer.name"
+                            >
+                                {{ customer.name }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('receptions.sampler_name')"
-                    :validate-status="form.errors.sampler_name ? 'error' : ''"
-                    :help="form.errors.sampler_name"
-                >
-                    <Input v-model:value="form.sampler_name" size="large" :maxlength="120" />
-                </FormItem>
+                    <!-- El muestreador no siempre es alguien del laboratorio: puede
+                         ser personal del cliente o un tercero. Por eso hay las dos
+                         formas y ninguna obliga a dar de alta un usuario. -->
+                    <FormItem
+                        :label="$t('receptions.sampler')"
+                        :extra="$t('receptions.sampler_help')"
+                        :validate-status="form.errors.sampler_id ? 'error' : ''"
+                        :help="form.errors.sampler_id"
+                    >
+                        <Select
+                            v-model:value="form.sampler_id"
+                            size="large"
+                            allow-clear
+                            show-search
+                            option-filter-prop="label"
+                            :placeholder="$t('receptions.sampler')"
+                        >
+                            <SelectOption
+                                v-for="user in samplers"
+                                :key="user.id"
+                                :value="user.id"
+                                :label="user.name"
+                            >
+                                {{ user.name }}
+                            </SelectOption>
+                        </Select>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('receptions.received_at')"
-                    required
-                    :extra="$t('receptions.received_at_help')"
-                    :validate-status="form.errors.received_at ? 'error' : ''"
-                    :help="form.errors.received_at"
-                >
-                    <DatePicker
-                        autocomplete="off"
-                        v-model:value="form.received_at"
-                        size="large"
-                        value-format="YYYY-MM-DD"
-                        style="width: 100%"
-                        :disabled="isLocked"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('receptions.sampler_name')"
+                        :validate-status="form.errors.sampler_name ? 'error' : ''"
+                        :help="form.errors.sampler_name"
+                    >
+                        <Input v-model:value="form.sampler_name" size="large" :maxlength="120" />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('receptions.due_at')"
-                    :validate-status="form.errors.due_at ? 'error' : ''"
-                    :help="form.errors.due_at"
-                >
-                    <DatePicker
-                        autocomplete="off"
-                        v-model:value="form.due_at"
-                        size="large"
-                        value-format="YYYY-MM-DD"
-                        style="width: 100%"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('receptions.received_at')"
+                        required
+                        :extra="$t('receptions.received_at_help')"
+                        :validate-status="form.errors.received_at ? 'error' : ''"
+                        :help="form.errors.received_at"
+                    >
+                        <DatePicker
+                            autocomplete="off"
+                            v-model:value="form.received_at"
+                            size="large"
+                            value-format="YYYY-MM-DD"
+                            style="width: 100%"
+                            :disabled="isLocked"
+                        />
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('receptions.packages')"
-                    :validate-status="form.errors.packages ? 'error' : ''"
-                    :help="form.errors.packages"
-                >
-                    <InputNumber
-                        v-model:value="form.packages"
-                        size="large"
-                        style="width: 100%"
-                        :min="0"
-                        :max="9999"
-                    />
-                </FormItem>
+                    <FormItem
+                        :label="$t('receptions.due_at')"
+                        :validate-status="form.errors.due_at ? 'error' : ''"
+                        :help="form.errors.due_at"
+                    >
+                        <DatePicker
+                            autocomplete="off"
+                            v-model:value="form.due_at"
+                            size="large"
+                            value-format="YYYY-MM-DD"
+                            style="width: 100%"
+                        />
+                    </FormItem>
 
-                <h2 class="form-section-title">{{ $t('receptions.section_check') }}</h2>
+                    <FormItem
+                        :label="$t('receptions.packages')"
+                        :validate-status="form.errors.packages ? 'error' : ''"
+                        :help="form.errors.packages"
+                    >
+                        <InputNumber
+                            v-model:value="form.packages"
+                            size="large"
+                            style="width: 100%"
+                            :min="0"
+                            :max="9999"
+                        />
+                    </FormItem>
+                </div>
 
-                <FormItem :wrapper-col="{ xs: 24, sm: { offset: 8, span: 16 }, md: { offset: 6, span: 13 } }">
-                    <p class="rc-form__hint">{{ $t('receptions.check_help') }}</p>
-                    <div class="rc-form__checks">
-                        <Checkbox v-model:checked="form.container_ok">
-                            {{ $t('receptions.container_ok') }}
-                        </Checkbox>
-                        <Checkbox v-model:checked="form.volume_ok">
-                            {{ $t('receptions.volume_ok') }}
-                        </Checkbox>
-                        <Checkbox v-model:checked="form.label_ok">
-                            {{ $t('receptions.label_ok') }}
-                        </Checkbox>
-                        <Checkbox v-model:checked="form.is_urgent">
-                            {{ $t('receptions.is_urgent') }}
-                        </Checkbox>
-                    </div>
-                </FormItem>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('receptions.section_check') }}</h2>
+                <div class="form-grid">
+                    <!-- Los cuatro checks comparten la fila ancha: son una sola
+                         verificación al recibir y en fila se comparan de un vistazo. -->
+                    <FormItem class="form-grid__wide">
+                        <p class="rc-form__hint">{{ $t('receptions.check_help') }}</p>
+                        <div class="rc-form__checks">
+                            <Checkbox v-model:checked="form.container_ok">
+                                {{ $t('receptions.container_ok') }}
+                            </Checkbox>
+                            <Checkbox v-model:checked="form.volume_ok">
+                                {{ $t('receptions.volume_ok') }}
+                            </Checkbox>
+                            <Checkbox v-model:checked="form.label_ok">
+                                {{ $t('receptions.label_ok') }}
+                            </Checkbox>
+                            <Checkbox v-model:checked="form.is_urgent">
+                                {{ $t('receptions.is_urgent') }}
+                            </Checkbox>
+                        </div>
+                    </FormItem>
 
-                <FormItem
-                    :label="$t('receptions.notes')"
-                    :validate-status="form.errors.notes ? 'error' : ''"
-                    :help="form.errors.notes"
-                >
-                    <Textarea v-model:value="form.notes" :rows="3" :maxlength="2000" show-count />
-                </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('receptions.notes')"
+                        :validate-status="form.errors.notes ? 'error' : ''"
+                        :help="form.errors.notes"
+                    >
+                        <Textarea v-model:value="form.notes" :rows="3" :maxlength="2000" show-count />
+                    </FormItem>
+                </div>
 
                 <FormFooter
                     :cancel-href="isEdit
@@ -291,8 +289,10 @@ const submit = () => {
 <style scoped>
 .rc-form__alert { margin-bottom: 16px; }
 .rc-form__hint { font-size: 0.8125rem; color: var(--color-text-muted); margin: 0 0 10px; }
-.rc-form__checks { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-/* Ant Design separa los checkbox contiguos con margen izquierdo: apilados en
-   columna eso los desalinea del resto del formulario. */
+/* En fila con salto: los cuatro checks se leen como una sola verificación;
+   en pantallas angostas caen de a uno sin desbordar. */
+.rc-form__checks { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: center; }
+/* Ant Design separa los checkbox contiguos con margen izquierdo: con el gap
+   de la fila ese margen extra los descuadra. */
 .rc-form__checks :deep(.ant-checkbox-wrapper) { margin-left: 0; }
 </style>

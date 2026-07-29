@@ -18,7 +18,7 @@ import {
     Button, Card, DatePicker, Select, SelectOptGroup, SelectOption, Space, Tag, Tooltip,
 } from 'ant-design-vue';
 import {
-    ClearOutlined, ExperimentOutlined, InfoCircleOutlined, PlusOutlined,
+    ClearOutlined, ProfileOutlined, InfoCircleOutlined, PlusOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -129,7 +129,7 @@ const onTableChange = (page, _filters, sorter) => {
     <div class="sap-index">
         <div class="mi-title">
             <div class="page-header__title">
-                <div class="page-header__icon"><ExperimentOutlined /></div>
+                <div class="page-header__icon"><ProfileOutlined /></div>
                 <div class="page-header__heading">
                     <h1>{{ $t('worksheets.title') }}</h1>
                     <p>{{ $t('worksheets.intro') }}</p>

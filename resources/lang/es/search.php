@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'placeholder'      => 'Escribe para ir a un módulo o buscar un trafo…',
+    'placeholder'      => 'Escribe para ir a un módulo o buscar una muestra, un equipo o un cliente…',
     'empty'            => 'Sin resultados.',
     'start_hint'       => 'Escribe para buscar, o elige una opción.',
     'type_transformer' => 'Transformador',

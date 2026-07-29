@@ -11,7 +11,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Alert, Button, Input, Tooltip } from 'ant-design-vue';
-import { SaveOutlined, TableOutlined } from '@ant-design/icons-vue';
+import { SaveOutlined, FileDoneOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -62,7 +62,7 @@ const save = () => {
             :title="$t('test_fields.constants')"
             :subtitle="definition.name"
         >
-            <template #icon><TableOutlined /></template>
+            <template #icon><FileDoneOutlined /></template>
             <template #actions>
                 <Link :href="route('lab_management.test_definitions.fields.index', definition.slug)">
                     <Button>{{ $t('test_fields.title') }}</Button>

@@ -13,7 +13,7 @@
 import { computed } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Alert, Card, Space } from 'ant-design-vue';
-import { ExperimentOutlined } from '@ant-design/icons-vue';
+import { ProfileOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -111,7 +111,7 @@ const showActions = computed(
             :back-href="route('lab_management.worksheets.index')"
             :title="worksheet.definition?.name ?? $t('worksheets.show')"
         >
-            <template #icon><ExperimentOutlined /></template>
+            <template #icon><ProfileOutlined /></template>
             <template #subtitle>
                 <Space :size="8" wrap>
                     <WorksheetStatusTag :status="worksheet.status" />

@@ -4,7 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import {
     Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select, SelectOption, RadioGroup, RadioButton,
 } from 'ant-design-vue';
-import { TagsOutlined } from '@ant-design/icons-vue';
+import { HighlightOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -84,7 +84,7 @@ const submit = () => {
             :title="isEdit ? $t('global.edit') + ' ' + $t('signatures.record') : $t('signatures.new')"
             :subtitle="isEdit ? signature.name : $t('signatures.create_subtitle')"
         >
-            <template #icon><TagsOutlined /></template>
+            <template #icon><HighlightOutlined /></template>
         </SectionHeader>
 
         <div class="form-body">

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { SearchOutlined, ThunderboltOutlined, TeamOutlined, AppstoreOutlined, LoadingOutlined, CloseOutlined, ClockCircleOutlined, AudioOutlined } from '@ant-design/icons-vue';
+import { SearchOutlined, ThunderboltOutlined, ExperimentOutlined, TeamOutlined, AppstoreOutlined, LoadingOutlined, CloseOutlined, ClockCircleOutlined, AudioOutlined } from '@ant-design/icons-vue';
 import { useI18n } from '@/Plugins/i18n';
 import { useVoiceSearch } from '@/Composables/useVoiceSearch';
 
@@ -17,7 +17,7 @@ const props = defineProps({
 const modalOpen = ref(false);
 const q = ref('');
 const loading = ref(false);
-const remote = ref({ transformers: [], customers: [] });
+const remote = ref({ equipment: [], samples: [], customers: [] });
 const inputEl = ref(null);
 let debounce = null;
 
@@ -51,12 +51,18 @@ const recentItems = computed(() => props.recentViews.slice(0, 6).map((r) => ({
 const searchFlat = computed(() => {
     const out = [];
     navMatches.value.forEach((i) => out.push({ type: 'nav', href: i.href, label: i.label }));
-    remote.value.transformers.forEach((tr) => out.push({
-        type: 'transformer',
-        href: route('business_management.equipment.show', tr.slug),
-        label: tr.serial || tr.tag,
-        sub: [tr.customer, tr.brand].filter(Boolean).join(' · '),
-        color: tr.color, condition: tr.condition,
+    remote.value.equipment.forEach((e) => out.push({
+        type: 'equipment',
+        href: route('business_management.equipment.show', e.slug),
+        label: e.name || e.serial || e.tag,
+        sub: [e.serial, e.tag, e.customer].filter(Boolean).join(' · '),
+    }));
+    // La muestra lleva a la ficha de su ENTREGA: es donde se trabaja.
+    remote.value.samples.forEach((m) => out.push({
+        type: 'sample',
+        href: route('lab_management.receptions.show', m.reception),
+        label: m.code,
+        sub: m.customer,
     }));
     remote.value.customers.forEach((c) => out.push({
         type: 'customer',
@@ -79,13 +85,13 @@ watch(q, () => {
     active.value = 0;
     clearTimeout(debounce);
     const s = q.value.trim();
-    if (s.length < 2) { remote.value = { transformers: [], customers: [] }; loading.value = false; return; }
+    if (s.length < 2) { remote.value = { equipment: [], samples: [], customers: [] }; loading.value = false; return; }
     loading.value = true;
     debounce = setTimeout(async () => {
         try {
             const { data } = await window.axios.get(route('search'), { params: { q: s } });
             remote.value = data;
-        } catch (_) { remote.value = { transformers: [], customers: [] }; }
+        } catch (_) { remote.value = { equipment: [], samples: [], customers: [] }; }
         finally { loading.value = false; }
     }, 220);
 });
@@ -112,7 +118,13 @@ const onGlobalKey = (e) => {
 onMounted(() => document.addEventListener('keydown', onGlobalKey));
 onBeforeUnmount(() => { document.removeEventListener('keydown', onGlobalKey); document.body.style.overflow = ''; });
 
-const iconFor = (type) => (type === 'transformer' ? ThunderboltOutlined : type === 'customer' ? TeamOutlined : type === 'recent' ? ClockCircleOutlined : AppstoreOutlined);
+const iconFor = (type) => (
+    type === 'equipment' ? ThunderboltOutlined
+    : type === 'sample' ? ExperimentOutlined
+    : type === 'customer' ? TeamOutlined
+    : type === 'recent' ? ClockCircleOutlined
+    : AppstoreOutlined
+);
 const HEX = { green: '#1D7044', lime: '#5AA82E', yellow: '#E9A23B', orange: '#E2661E', red: '#C8281D' };
 const hex = (c) => HEX[c] ?? '#9aa0a6';
 

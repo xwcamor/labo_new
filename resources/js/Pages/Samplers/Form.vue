@@ -4,7 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import {
     Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select,
 } from 'ant-design-vue';
-import { TagsOutlined } from '@ant-design/icons-vue';
+import { UserSwitchOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -42,7 +42,7 @@ const submit = () => {
             :title="isEdit ? $t('global.edit') + ' ' + $t('samplers.record') : $t('samplers.new')"
             :subtitle="isEdit ? sampler.name : $t('samplers.create_subtitle')"
         >
-            <template #icon><TagsOutlined /></template>
+            <template #icon><UserSwitchOutlined /></template>
         </SectionHeader>
 
         <div class="form-body">

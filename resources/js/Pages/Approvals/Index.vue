@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Tabs, TabPane, Card, Button, Tag, Empty, Modal, Input, Progress, Pagination, message } from 'ant-design-vue';
-import { CheckCircleOutlined, CloseCircleOutlined, FilePdfOutlined, AuditOutlined, ClusterOutlined, ThunderboltOutlined } from '@ant-design/icons-vue';
+import { CheckCircleOutlined, CloseCircleOutlined, FilePdfOutlined, FileDoneOutlined, ClusterOutlined, ThunderboltOutlined } from '@ant-design/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useI18n } from '@/Plugins/i18n';
 import { useDateFormat } from '@/Composables/useDateFormat';
@@ -82,7 +82,7 @@ const submitReject = () => {
     <div class="sap-index approvals">
         <div class="mi-title" data-tour="module">
             <div class="page-header__title">
-                <div class="page-header__icon"><AuditOutlined /></div>
+                <div class="page-header__icon"><FileDoneOutlined /></div>
                 <div class="page-header__heading">
                     <h1>{{ t('approvals.title') }}</h1>
                     <p>{{ t('approvals.subtitle') }}</p>

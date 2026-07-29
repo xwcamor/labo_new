@@ -12,7 +12,7 @@ import {
     Alert, DatePicker, Form, FormItem, Input, InputNumber, Select, SelectOptGroup,
     SelectOption, Textarea,
 } from 'ant-design-vue';
-import { ExperimentOutlined } from '@ant-design/icons-vue';
+import { ProfileOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -81,7 +81,7 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
             :title="$t('worksheets.create')"
             :subtitle="$t('worksheets.intro')"
         >
-            <template #icon><ExperimentOutlined /></template>
+            <template #icon><ProfileOutlined /></template>
         </SectionHeader>
 
         <div class="form-body">

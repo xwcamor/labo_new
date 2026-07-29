@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
-use App\Models\Transformer;
+use App\Models\Equipment;
+use App\Models\Reception;
+use App\Models\Sample;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +30,7 @@ class SearchTest extends TestCase
         DB::table('tenants')->insertOrIgnore([['id' => 2, 'slug' => Str::random(22), 'name' => 'T2', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        foreach (['transformers.view', 'customers.view'] as $p) {
+        foreach (['equipment.view', 'receptions.view', 'customers.view'] as $p) {
             Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
         }
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'], ['description' => 'a']);
@@ -48,53 +50,49 @@ class SearchTest extends TestCase
         return $u;
     }
 
-    public function test_searches_transformers_and_customers_of_own_tenant(): void
+    public function test_searches_equipment_and_customers_of_own_tenant(): void
     {
         $cust = Customer::create(['slug' => 'c1', 'name' => 'Minera Andina', 'tenant_id' => 1, 'created_by' => 1]);
-        Transformer::create(['slug' => 'tr1', 'serial' => 'ABC-123', 'tag' => 'T1', 'customer_id' => $cust->id, 'tenant_id' => 1, 'created_by' => 1]);
-        // Otro tenant: no debe aparecer.
-        Transformer::create(['slug' => 'tr2', 'serial' => 'ABC-999', 'tag' => 'T9', 'tenant_id' => 2, 'created_by' => 1]);
+        Equipment::create(['slug' => 'eq1', 'name' => 'Trafo principal', 'serial' => 'ABC-123', 'tag' => 'T1', 'customer_id' => $cust->id, 'tenant_id' => 1, 'created_by' => 1]);
+        // Otro workspace: no debe aparecer.
+        Equipment::create(['slug' => 'eq2', 'name' => 'Ajeno', 'serial' => 'ABC-999', 'tag' => 'T9', 'tenant_id' => 2, 'created_by' => 1]);
 
-        $this->actingAs($this->actor('admin', ['transformers.view', 'customers.view']));
+        $this->actingAs($this->actor('admin', ['equipment.view', 'customers.view']));
 
         $res = $this->getJson(route('search', ['q' => 'ABC']))->assertOk();
-        $res->assertJsonCount(1, 'transformers');
-        $res->assertJsonPath('transformers.0.serial', 'ABC-123');
+        $res->assertJsonCount(1, 'equipment');
+        $res->assertJsonPath('equipment.0.serial', 'ABC-123');
 
         $this->getJson(route('search', ['q' => 'Andina']))->assertOk()->assertJsonPath('customers.0.name', 'Minera Andina');
     }
 
-    public function test_finds_by_brand_substation_and_health_state(): void
+    public function test_finds_the_sample_by_its_code(): void
     {
-        $brand = \App\Models\Brand::create(['slug' => 'b1', 'name' => 'ABB', 'tenant_id' => 1, 'created_by' => 1]);
-        Transformer::create(['slug' => 'tr-abb', 'serial' => 'S-100', 'tag' => 'T', 'brand_id' => $brand->id, 'tenant_id' => 1, 'created_by' => 1]);
-        // health_rating lo setea el motor (1 = Malo). 4=Muy Bueno … 0=Muy Malo.
-        (new Transformer())->forceFill(['slug' => 'tr-bad', 'serial' => 'S-200', 'tag' => 'T', 'health_rating' => 1, 'health_index' => 40, 'tenant_id' => 1, 'created_by' => 1])->save();
+        // El correlativo es lo que el cliente cita por teléfono, y el resultado
+        // lleva a la ficha de su ENTREGA, que es donde la muestra se trabaja.
+        $cust = Customer::create(['slug' => 'c1', 'name' => 'Minera Andina', 'tenant_id' => 1, 'created_by' => 1]);
+        $rec = Reception::create(['slug' => 'rec-1', 'customer_id' => $cust->id, 'received_at' => now(), 'tenant_id' => 1, 'status' => 'confirmed']);
+        Sample::create(['slug' => Str::random(22), 'reception_id' => $rec->id, 'year' => 2026, 'number' => 695, 'code' => '2026-0695', 'tenant_id' => 1, 'is_urgent' => false]);
 
-        $this->actingAs($this->actor('admin', ['transformers.view', 'customers.view']));
+        $this->actingAs($this->actor('admin', ['receptions.view']));
 
-        // Por marca.
-        $this->getJson(route('search', ['q' => 'ABB']))->assertOk()
-            ->assertJsonPath('transformers.0.serial', 'S-100')
-            ->assertJsonPath('transformers.0.brand', 'ABB');
-
-        // Por estado de salud ("malo" → Crítico/Malo label) devuelve el trafo en Malo con color.
-        $res = $this->getJson(route('search', ['q' => 'malo']))->assertOk();
-        $serials = collect($res->json('transformers'))->pluck('serial');
-        $this->assertTrue($serials->contains('S-200'));
-        $this->assertSame('orange', collect($res->json('transformers'))->firstWhere('serial', 'S-200')['color']);
+        $res = $this->getJson(route('search', ['q' => '0695']))->assertOk();
+        $res->assertJsonPath('samples.0.code', '2026-0695');
+        $res->assertJsonPath('samples.0.reception', 'rec-1');
+        $res->assertJsonPath('samples.0.customer', 'Minera Andina');
     }
 
     public function test_respects_permissions_and_min_length(): void
     {
-        Transformer::create(['slug' => 'tr1', 'serial' => 'XYZ-1', 'tag' => 'T', 'tenant_id' => 1, 'created_by' => 1]);
+        Equipment::create(['slug' => 'eq1', 'name' => 'X', 'serial' => 'XYZ-1', 'tag' => 'T', 'tenant_id' => 1, 'created_by' => 1]);
 
-        // Sin permiso de transformers → no devuelve transformers.
+        // Sin permiso de equipos, el buscador no los devuelve: esconder el
+        // modulo del menu no serviria de nada si la busqueda lo salteara.
         $this->actingAs($this->actor('user', []));
-        $this->getJson(route('search', ['q' => 'XYZ']))->assertOk()->assertJsonCount(0, 'transformers');
+        $this->getJson(route('search', ['q' => 'XYZ']))->assertOk()->assertJsonCount(0, 'equipment');
 
-        // Query muy corta → vacío.
-        $this->actingAs($this->actor('admin', ['transformers.view']));
-        $this->getJson(route('search', ['q' => 'X']))->assertOk()->assertJsonCount(0, 'transformers');
+        // Consulta muy corta: vacio, sin barrer la tabla.
+        $this->actingAs($this->actor('admin', ['equipment.view']));
+        $this->getJson(route('search', ['q' => 'X']))->assertOk()->assertJsonCount(0, 'equipment');
     }
 }

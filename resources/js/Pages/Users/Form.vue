@@ -2,20 +2,16 @@
 import { ref, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
-    Card, Form, FormItem, Input, Switch, Button, Space, Alert, Avatar, Upload, Select,
+    Form, FormItem, Input, Switch, Button, Space, Alert, Select,
 } from 'ant-design-vue';
 import {
     UserOutlined, MailOutlined, LockOutlined,
-    EyeOutlined, EyeInvisibleOutlined, UploadOutlined, TeamOutlined,
-    GlobalOutlined, ReloadOutlined,
+    EyeOutlined, EyeInvisibleOutlined, UploadOutlined, ReloadOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import FormFooter from '@/Components/Common/FormFooter.vue';
-import { useI18n } from '@/Plugins/i18n';
-
-const { t } = useI18n();
 
 defineOptions({ layout: AppLayout });
 
@@ -112,8 +108,8 @@ const submit = () => {
             <template #icon><UserOutlined /></template>
         </SectionHeader>
 
-        <Card class="form-card" :bodyStyle="{ padding: '24px 28px' }">
-            <Form layout="horizontal" :label-col="{ xs: 24, sm: 8, md: 6 }" :wrapper-col="{ xs: 24, sm: 16, md: 13 }" label-align="right" :colon="true" @submit.prevent="submit">
+        <div class="form-body">
+            <Form layout="vertical" @submit.prevent="submit">
 
                 <Alert
                     v-if="form.hasErrors && Object.keys(form.errors).length > 0"
@@ -124,8 +120,8 @@ const submit = () => {
                 />
 
                 <!-- ════ Sección: Datos de la cuenta ════ -->
-                <section class="form-section">
-                    <h2 class="form-section-title">{{ $t('users.section_account') }}</h2>
+                <h2 class="form-section-title">{{ $t('users.section_account') }}</h2>
+                <div class="form-grid">
                     <!-- Nombre -->
                     <FormItem
                         :label="$t('users.name')"
@@ -164,8 +160,9 @@ const submit = () => {
                         </Input>
                     </FormItem>
 
-                    <!-- Password + generar -->
+                    <!-- Password + generar: fila ancha, el botón acompaña al input. -->
                     <FormItem
+                        class="form-grid__wide"
                         :label="isEdit ? $t('users.password') + ' (opcional)' : $t('users.password')"
                         :tooltip="$t('users.password_help')"
                         :required="!isEdit"
@@ -197,8 +194,8 @@ const submit = () => {
                         </div>
                     </FormItem>
 
-                    <!-- Foto: debajo de la contraseña, alineada como el resto. -->
-                    <FormItem :label="$t('users.photo')" :tooltip="$t('global.photo_hint')">
+                    <!-- Foto: bloque ancho (preview + controles no caben en una celda). -->
+                    <FormItem class="form-grid__wide" :label="$t('users.photo')" :tooltip="$t('global.photo_hint')">
                         <div class="photo-section">
                             <div class="photo-preview">
                                 <img v-if="previewUrl" :src="previewUrl" alt="foto" />
@@ -223,11 +220,11 @@ const submit = () => {
                         </div>
                         <div v-if="form.errors.photo" class="field-error">{{ form.errors.photo }}</div>
                     </FormItem>
-                </section>
+                </div>
 
                 <!-- ════ Sección: Acceso y permisos ════ -->
-                <section class="form-section">
-                    <h2 class="form-section-title">{{ $t('users.section_access') }}</h2>
+                <h2 class="form-section-title form-section-title--spaced">{{ $t('users.section_access') }}</h2>
+                <div class="form-grid">
                     <!-- Perfil (Rol) -->
                     <FormItem
                         v-if="roleOptions.length"
@@ -251,13 +248,10 @@ const submit = () => {
                         </p>
                     </FormItem>
 
-                </section>
-
-                <!-- ════ Sección: Workspace ════ (solo super; tenantOptions vacío para los demás) -->
-                <section v-if="tenantOptions.length" class="form-section">
-                    <h2 class="form-section-title">{{ $t('tenants.singular') }}</h2>
-                    <!-- No hay usuarios globales: el workspace es obligatorio. -->
+                    <!-- Workspace (solo super; tenantOptions vacío para los demás).
+                         No hay usuarios globales: el workspace es obligatorio. -->
                     <FormItem
+                        v-if="tenantOptions.length"
                         :label="$t('users.tenant')"
                         :tooltip="$t('users.tenant_help')"
                         required
@@ -273,13 +267,11 @@ const submit = () => {
                             option-filter-prop="label"
                         />
                     </FormItem>
-                </section>
 
-                <!-- ════ Sección: Restricción de clientes ════ -->
-                <!-- Restricción por cliente (enterprise): vacío = ve todo. -->
-                <section v-if="canScopeCustomers && customerOptions.length" class="form-section">
-                    <h2 class="form-section-title">{{ $t('users.section_customer_scope') }}</h2>
+                    <!-- Restricción por cliente (enterprise): vacío = ve todo. -->
                     <FormItem
+                        v-if="canScopeCustomers && customerOptions.length"
+                        class="form-grid__wide"
                         :label="$t('users.assigned_customers')"
                         :tooltip="$t('users.assigned_customers_help')"
                         :validate-status="form.errors.assigned_customer_ids ? 'error' : ''"
@@ -297,66 +289,71 @@ const submit = () => {
                             :max-tag-count="3"
                         />
                     </FormItem>
-                </section>
+                </div>
 
                 <!-- ════ Sección: Regionalización ════ -->
-                <section v-if="countryOptions.length || localeOptions.length" class="form-section">
-                    <h2 class="form-section-title">{{ $t('users.section_region') }}</h2>
-                    <!-- País -->
-                    <FormItem
-                        v-if="countryOptions.length"
-                        :label="$t('countries.singular')"
-                        :tooltip="$t('users.country_help')"
-                        required
-                        :validate-status="form.errors.country_id ? 'error' : ''"
-                        :help="form.errors.country_id"
-                    >
-                        <Select
-                            v-model:value="form.country_id"
-                            :options="countryOptions"
-                            :placeholder="$t('countries.singular')"
-                            size="large"
-                            allow-clear
-                            show-search
-                            :filter-option="(input, opt) => (opt.label ?? '').toLowerCase().includes(input.toLowerCase())"
-                        />
-                    </FormItem>
+                <template v-if="countryOptions.length || localeOptions.length">
+                    <h2 class="form-section-title form-section-title--spaced">{{ $t('users.section_region') }}</h2>
+                    <div class="form-grid">
+                        <!-- País -->
+                        <FormItem
+                            v-if="countryOptions.length"
+                            :label="$t('countries.singular')"
+                            :tooltip="$t('users.country_help')"
+                            required
+                            :validate-status="form.errors.country_id ? 'error' : ''"
+                            :help="form.errors.country_id"
+                        >
+                            <Select
+                                v-model:value="form.country_id"
+                                :options="countryOptions"
+                                :placeholder="$t('countries.singular')"
+                                size="large"
+                                allow-clear
+                                show-search
+                                :filter-option="(input, opt) => (opt.label ?? '').toLowerCase().includes(input.toLowerCase())"
+                            />
+                        </FormItem>
 
-                    <!-- Idioma -->
-                    <FormItem
-                        v-if="localeOptions.length"
-                        :label="$t('locales.singular')"
-                        :tooltip="$t('users.locale_help')"
-                        required
-                        :validate-status="form.errors.locale_id ? 'error' : ''"
-                        :help="form.errors.locale_id"
-                    >
-                        <Select
-                            v-model:value="form.locale_id"
-                            :options="localeOptions"
-                            :placeholder="$t('locales.singular')"
-                            size="large"
-                            allow-clear
-                        />
-                    </FormItem>
-                </section>
+                        <!-- Idioma -->
+                        <FormItem
+                            v-if="localeOptions.length"
+                            :label="$t('locales.singular')"
+                            :tooltip="$t('users.locale_help')"
+                            required
+                            :validate-status="form.errors.locale_id ? 'error' : ''"
+                            :help="form.errors.locale_id"
+                        >
+                            <Select
+                                v-model:value="form.locale_id"
+                                :options="localeOptions"
+                                :placeholder="$t('locales.singular')"
+                                size="large"
+                                allow-clear
+                            />
+                        </FormItem>
+                    </div>
+                </template>
 
                 <!-- Estado (solo edición) — siempre al final del formulario. -->
-                <section v-if="isEdit" class="form-section">
-                    <FormItem
-                        :label="$t('users.is_active')"
-                        :tooltip="$t('users.is_active_help')"
-                        :validate-status="form.errors.is_active ? 'error' : ''"
-                        :help="form.errors.is_active"
-                    >
-                        <Space>
-                            <Switch v-model:checked="form.is_active" />
-                            <span class="state-label">
-                                {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
-                            </span>
-                        </Space>
-                    </FormItem>
-                </section>
+                <template v-if="isEdit">
+                    <h2 class="form-section-title form-section-title--spaced">{{ $t('global.general_data') }}</h2>
+                    <div class="form-grid">
+                        <FormItem
+                            :label="$t('users.is_active')"
+                            :tooltip="$t('users.is_active_help')"
+                            :validate-status="form.errors.is_active ? 'error' : ''"
+                            :help="form.errors.is_active"
+                        >
+                            <Space>
+                                <Switch v-model:checked="form.is_active" />
+                                <span class="state-label">
+                                    {{ form.is_active ? $t('global.active') : $t('global.inactive') }}
+                                </span>
+                            </Space>
+                        </FormItem>
+                    </div>
+                </template>
 
                 <!-- Footer -->
                 <FormFooter
@@ -366,28 +363,12 @@ const submit = () => {
                     floating
                 />
             </Form>
-        </Card>
+        </div>
     </div>
 </template>
 
 <style scoped>
 .form-page { /* fullscreen — sin max-width, ocupa todo el ancho del content */ }
-
-.form-card { border-radius: 6px; }
-
-/* Secciones agrupadas */
-.form-section + .form-section { margin-top: 4px; }
-.form-section__title {
-    font-size: 0.95rem; font-weight: 700; color: #354A5F;
-    margin: 0 0 16px; display: flex; align-items: center; gap: 8px;
-}
-.form-section__title :deep(.anticon) { color: #0A6ED1; }
-
-/* Dos columnas para campos relacionados; una sola en mobile. minmax(0,1fr)
-   permite que la columna se achique bajo el contenido (sin esto, un option
-   largo del select estira la columna y se sale de la pantalla en mobile). */
-.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 22px; }
-@media (max-width: 768px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
 
 /* Selects e inputs ocupan el 100% y nunca desbordan; el valor largo se recorta. */
 .form-page :deep(.ant-select) { width: 100%; }
@@ -448,6 +429,4 @@ const submit = () => {
 <style>
 html[data-theme="dark"] .photo-section  { border-bottom-color: #3f4448; }
 html[data-theme="dark"] .state-label    { color: #e5e6e7; }
-html[data-theme="dark"] .form-section + .form-section { border-top-color: #3f4448; }
-html[data-theme="dark"] .form-section__title { color: #cdd6df; }
 </style>

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Button, Card, Pagination, Alert } from 'ant-design-vue';
-import { SaveOutlined, UndoOutlined, EditOutlined, ControlOutlined } from '@ant-design/icons-vue';
+import { SaveOutlined, UndoOutlined, EditOutlined, ExperimentOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -65,7 +65,7 @@ const onPageChange = (page, pageSize) => {
             :title="$t('global.edit_all') + ' — ' + $t('laboratories.plural')"
             :subtitle="$t('laboratories.edit_all_subtitle')"
         >
-            <template #icon><ControlOutlined /></template>
+            <template #icon><ExperimentOutlined /></template>
         </SectionHeader>
 
         <Alert

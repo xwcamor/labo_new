@@ -2,7 +2,9 @@
 
 namespace App\Services\Lab;
 
+use App\Models\Reception;
 use App\Models\Sample;
+use App\Models\SampleReport;
 use App\Models\SampleTest;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
@@ -130,6 +132,40 @@ class SampleProgressService
     }
 
     /**
+     * Se emitió el informe: sus ensayos VISIBLES quedan informados.
+     *
+     * Era el eslabón que faltaba en la cadena de estados: sin esto ninguna
+     * prueba llegaba nunca a "informado", la muestra jamás alcanzaba su estado
+     * final y la recepción no tenía forma de saber que ya no debía nada. En el
+     * sistema anterior este hueco se tapaba a mano: el jefe apretaba
+     * "Bloquear" cuando juzgaba que la remisión estaba completa.
+     *
+     * Solo los VISIBLES: un ensayo excluido del informe no se publicó, y
+     * marcarlo informado mentiría en el avance.
+     */
+    public function markReported(SampleReport $informe): void
+    {
+        $visibles = $informe->visibilities()->where('is_visible', true)->pluck('sample_test_id')->all();
+
+        if ($visibles === []) {
+            return;
+        }
+
+        SampleTest::whereIn('id', $visibles)
+            // Solo avanza (mismo criterio que markValidated): se admite desde
+            // cualquier estado activo porque el laboratorio a veces emite con
+            // la hoja todavía sin validar — el informe ES la publicación.
+            ->where('status', '!=', SampleTest::STATUS_CANCELLED)
+            ->where('status', '!=', SampleTest::STATUS_REPORTED)
+            ->update([
+                'status'     => SampleTest::STATUS_REPORTED,
+                'updated_at' => now(),
+            ]);
+
+        $this->refreshSample($informe->sample);
+    }
+
+    /**
      * Recalcula el estado de UNA muestra a partir de sus pruebas pedidas.
      *
      * Es una sola consulta agregada, y se llama desde los eventos de arriba —
@@ -155,6 +191,41 @@ class SampleProgressService
             (int) ($conteo->en_proceso ?? 0),
             (int) ($conteo->informadas ?? 0),
         )]);
+
+        $this->refreshReception($sample->reception);
+    }
+
+    /**
+     * La recepción se CIERRA SOLA cuando su última muestra queda informada.
+     *
+     * Es lo que en el sistema anterior era un botón: el jefe "bloqueaba" la
+     * remisión a mano cuando la daba por terminada (columna `state`, que la
+     * misma pantalla rotulaba "Bloqueado" y "Completado" según el lugar), y
+     * un evento nocturno de MySQL usaba ese bloqueo solo para apagar la
+     * urgencia. Acá el cierre es un hecho derivado de los datos y ocurre en el
+     * momento en que se emite el informe que faltaba. También REABRE: si una
+     * prueba vuelve a la cola (se anuló una hoja, se agregó un ensayo), la
+     * recepción deja de estar cerrada sin que nadie tenga que acordarse.
+     */
+    public function refreshReception(?Reception $recepcion): void
+    {
+        // Borrador y cancelada no se tocan: su estado lo gobierna la gente.
+        if (! $recepcion || $recepcion->isDraft() || $recepcion->status === Reception::STATUS_CANCELLED) {
+            return;
+        }
+
+        $conteo = Sample::where('reception_id', $recepcion->id)
+            ->selectRaw('count(*) total')
+            ->selectRaw('count(*) filter (where status = ?) informadas', [Sample::STATUS_REPORTED])
+            ->first();
+
+        $total     = (int) ($conteo->total ?? 0);
+        $completa  = $total > 0 && $total === (int) ($conteo->informadas ?? 0);
+        $siguiente = $completa ? Reception::STATUS_CLOSED : Reception::STATUS_CONFIRMED;
+
+        if ($recepcion->status !== $siguiente) {
+            $recepcion->update(['status' => $siguiente]);
+        }
     }
 
     /**

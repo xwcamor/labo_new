@@ -66,6 +66,28 @@ class ReceptionController extends Controller
                     'sample_tests.status',
                     [SampleTest::STATUS_PENDING, SampleTest::STATUS_IN_PROGRESS]
                 ),
+                // El semáforo de avance por fila — los cuatro chequeos que el
+                // sistema anterior mostraba como iconos (Series · Trabajos ·
+                // Datos · Informes), pero derivados en LA MISMA consulta del
+                // listado. Allá eran banderas cacheadas en `rems` que solo se
+                // refrescaban cuando alguien ABRÍA la remisión (los Rem.update
+                // vivían en el ERB de la ficha), así que el listado mentía
+                // hasta la próxima visita.
+                //
+                // Muestras sin equipo enlazado (el "Series" del viejo: su
+                // correlativo sin transformador). Sin el enlace, el resultado
+                // no llega al informe ni a la tendencia del equipo.
+                'samples as unlinked_count' => fn ($q) => $q->whereNull('equipment_id'),
+                // Muestras a las que nadie les pidió ningún ensayo (el
+                // "Trabajos" del viejo). Un correlativo emitido sin pruebas
+                // pedidas es un frasco que nadie va a procesar.
+                'samples as untested_count' => fn ($q) => $q->whereDoesntHave(
+                    'tests',
+                    fn ($t) => $t->where('status', '!=', SampleTest::STATUS_CANCELLED)
+                ),
+                // Muestras con TODO informado (el "Informes" del viejo, que
+                // comparaba informes emitidos contra la cantidad pactada).
+                'samples as reported_count' => fn ($q) => $q->where('status', Sample::STATUS_REPORTED),
             ]);
 
         $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->status));

@@ -89,6 +89,22 @@ return [
     'no_tests'         => 'Sin pruebas pedidas',
     'progress'         => 'Avance',
     'outstanding'      => 'Pendientes',
+
+    // El semáforo de avance del listado: los cuatro chequeos que el sistema
+    // anterior mostraba como iconos por fila (Series · Trabajos · Datos ·
+    // Informes), derivados en la consulta del listado.
+    'prog_equipment'         => 'Equipo',
+    'prog_equipment_pending' => ':count muestra(s) sin equipo enlazado. Sin el enlace, el resultado no llega al informe ni a la tendencia del equipo.',
+    'prog_equipment_done'    => 'Todas las muestras indican su equipo.',
+    'prog_tests'             => 'Pruebas',
+    'prog_tests_pending'     => ':count muestra(s) sin ningún ensayo pedido.',
+    'prog_tests_done'        => 'Todas las muestras tienen sus ensayos pedidos.',
+    'prog_data'              => 'Datos',
+    'prog_data_pending'      => ':count ensayo(s) sin cargar o a medio cargar en la bancada.',
+    'prog_data_done'         => 'Todos los ensayos pedidos están cargados.',
+    'prog_reports'           => 'Informes',
+    'prog_reports_pending'   => ':count muestra(s) sin informe emitido.',
+    'prog_reports_done'      => 'Todas las muestras tienen su informe emitido.',
     'report'      => 'Informe',
     'report_help' => 'Abre el informe de ensayo de esta muestra en PDF. Solo incluye los ensayos ya validados.',
 

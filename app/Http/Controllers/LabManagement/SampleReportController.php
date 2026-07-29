@@ -207,6 +207,12 @@ class SampleReportController extends Controller
                 'snapshot'  => $datos,
             ]);
 
+            // El estado se escribe cuando ocurre: los ensayos publicados pasan
+            // a "informado", la muestra recalcula el suyo y la recepción se
+            // cierra sola si era la última. En el sistema anterior nada de
+            // esto pasaba al emitir — el jefe "bloqueaba" la remisión a mano.
+            app(\App\Services\Lab\SampleProgressService::class)->markReported($report);
+
             AuditLog::create([
                 'user_id'        => $request->user()?->id,
                 'auditable_type' => SampleReport::class,

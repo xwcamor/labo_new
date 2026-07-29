@@ -318,6 +318,10 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::get('samples/{sample}/reports/new', [SampleReportController::class, 'create'])->name('sample_reports.create');
         Route::get('reports/{report}/edit', [SampleReportController::class, 'edit'])->name('sample_reports.edit');
         Route::get('reports/{report}/pdf', [TestReportController::class, 'reportPdf'])->name('sample_reports.pdf');
+        // El mismo informe con la MAQUETA DEL SISTEMA ANTERIOR (una hoja por
+        // prueba, sello ANAB, relaciones de gases). La elección de plantilla
+        // es de quien emite; los datos son los mismos.
+        Route::get('reports/{report}/pdf-clasico', [TestReportController::class, 'reportPdfLegacy'])->name('sample_reports.pdf_legacy');
         // Los valores detectados y el análisis de resultados del informe.
         Route::get('reports/{report}/analysis', [SampleReportController::class, 'analysis'])->name('sample_reports.analysis');
     });

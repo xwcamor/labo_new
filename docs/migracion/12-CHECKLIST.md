@@ -348,11 +348,16 @@ dato de ensayo y no tiene columna en ninguna parte.
 **Verificación:** cargar la bitácora del día y abrir una hoja nueva: los tres
 valores tienen que venir puestos.
 
-### C2. `[ ]` `worksheets.sample_temp_c` no tiene dónde cargarse
+### C2. `[x]` `worksheets.sample_temp_c` no tiene dónde cargarse
 
 La columna existe, es asignable y **el informe la imprime** — pero no está en
 el formulario ni en la validación del controlador. Son dos líneas.
 **Verificación:** cargarla desde la pantalla y verla en el PDF.
+**Resuelto (2026-07-29):** el campo está en el formulario de la hoja (alta y
+edición de cabecera) y en la validación de `store()`/`update()`. De paso la
+bancada quedó en el estándar de los módulos: Editar/Eliminar/Bloquear en el
+encabezado, edición de cabecera (la prueba no se cambia), página de baja con
+motivo y candado manual además del automático por antigüedad.
 
 ### C3. `[ ]` Los cuatro catálogos que se volvieron texto libre
 
@@ -413,6 +418,43 @@ distintas de OTD** en la misma pantalla. Hay que elegir una.
 **Verificación:** una recepción entregada después de su fecha comprometida
 tiene que contar como fuera de plazo; y el número no puede cambiar según el día
 en que se baje el reporte.
+
+### C9. `[x]` Completitud de la recepción a la vista (los 4 iconos del viejo)
+
+Investigado en el viejo (2026-07-29): el index de `rems` mostraba 4 iconos por
+fila — Series (`series_done`: correlativos con transformador), Trabajos
+(`jobs_done`: pruebas asignadas), Datos (`datas_done`: valores cargados),
+Informes (`reports_done`: emitidos vs pactados). Eran **banderas cacheadas en
+`rems` que se recalculaban con `Rem.update` DENTRO del ERB de la ficha**: si
+nadie abría la remisión, el listado mentía. El "bloqueo" del completado era
+**manual** (columna `state`, que la misma pantalla rotulaba "Bloqueado" y
+"Completado" según el lugar); el único evento nocturno de MySQL
+(`update_is_urgent`, README_EVENTS.md) solo apagaba la urgencia — no bloqueaba
+nada.
+**Qué cambia:** el index de recepciones deriva los 4 chequeos (Equipo ·
+Pruebas · Datos · Informes) en la MISMA consulta del listado (withCount), sin
+caché; y el cierre dejó de ser un botón: al emitir el informe las pruebas
+publicadas pasan a "informado" (`SampleProgressService::markReported` — era el
+eslabón que faltaba en la cadena de estados), la muestra recalcula su estado y
+la recepción se CIERRA SOLA cuando la última queda informada (y REABRE si un
+ensayo vuelve a la cola).
+**Verificación:** `SampleReportTest` (emitir informa las pruebas y cierra la
+recepción · una prueba no publicada no se marca informada · la recepción
+reabre) + captura del index con los chips.
+
+### C10. `[x]` Las dos plantillas de exportación del informe
+
+El botón de exportar ofrece **PDF clásico** (la maqueta del sistema anterior:
+una hoja por prueba, sello ANAB, relaciones de gases — extraída del comando
+`report:compare` al servicio `LegacyReportRenderer`, ruta
+`sample_reports.pdf_legacy`) y **PDF moderno** (la plantilla nueva). Mismos
+datos: si el informe está emitido, ambos imprimen su snapshot congelado. El
+clásico no lleva QR ni código de verificación (la maqueta vieja no los tenía);
+cada descarga queda auditada con la plantilla usada. Además el borrador ahora
+tiene su botón **Eliminar** (con motivo) en la pestaña Informes; el emitido
+sigue sin poder borrarse.
+**Verificación:** captura de la fila de Informes con los dos botones + PDF
+clásico generado por el servicio (195 KB, `%PDF-1.7`).
 
 ---
 

@@ -47,6 +47,17 @@ return [
     'download' => 'Download PDF',
     'preview'  => 'Preview',
 
+    // The TWO export templates: classic is the previous system's layout (one
+    // page per test, ANAB seal, gas ratios), which the lab's customers
+    // recognize; modern is the new proposal. Same data, different sheet.
+    'template_modern'  => 'Modern PDF',
+    'template_legacy'  => 'Classic PDF',
+    'download_modern'  => 'Download with the modern template',
+    'download_legacy'  => 'Download with the previous lab template (the one the customer knows)',
+
+    'delete_confirm'         => 'The draft is removed along with its reason and no longer appears in the list. An ISSUED report cannot be deleted.',
+    'delete_reason_required' => 'State the reason for the removal.',
+
     'created' => 'Report :code created as a draft.',
     'saved'   => 'Report saved.',
     'issued'  => 'Report :code issued.',

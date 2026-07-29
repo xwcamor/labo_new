@@ -50,6 +50,18 @@ return [
     'download' => 'Descargar PDF',
     'preview'  => 'Vista previa',
 
+    // Las DOS plantillas de exportación: la clásica es la maqueta del sistema
+    // anterior (una hoja por prueba, sello ANAB, relaciones de gases), que los
+    // clientes del laboratorio reconocen; la moderna es la propuesta nueva.
+    // Mismos datos, distinta hoja.
+    'template_modern'  => 'PDF moderno',
+    'template_legacy'  => 'PDF clásico',
+    'download_modern'  => 'Descargar con la plantilla moderna',
+    'download_legacy'  => 'Descargar con la plantilla del laboratorio anterior (la que el cliente conoce)',
+
+    'delete_confirm'         => 'El borrador se da de baja con su motivo y deja de figurar en la lista. Un informe EMITIDO no se puede eliminar.',
+    'delete_reason_required' => 'Indique el motivo de la baja.',
+
     // ── Mensajes ──────────────────────────────────────────────────────────
     'created' => 'Informe :code creado como borrador.',
     'saved'   => 'Informe guardado.',

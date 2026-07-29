@@ -53,6 +53,53 @@ class TestReportController extends Controller
         return $this->render($request, $sample, null);
     }
 
+    /**
+     * El mismo informe registrado, con la MAQUETA DEL SISTEMA ANTERIOR.
+     *
+     * Los clientes del laboratorio llevan años recibiendo el papel con esa
+     * maqueta (una hoja por prueba, el sello ANAB en las acreditadas, las
+     * relaciones de gases al pie del cromatográfico) y hay quien la sigue
+     * pidiendo. La plantilla es una ELECCIÓN de quien exporta; los datos son
+     * los mismos: si el informe está emitido, salen de su snapshot congelado,
+     * igual que en la plantilla moderna.
+     *
+     * No lleva código de verificación ni QR — la maqueta vieja no los tenía y
+     * agregárselos la convertiría en otra cosa. La emisión queda auditada con
+     * la plantilla usada.
+     */
+    public function reportPdfLegacy(Request $request, \App\Models\SampleReport $report)
+    {
+        $report->loadMissing(['sample']);
+        $sample = $report->sample;
+
+        $datos = $report->frozenPayload() ?? $this->payload->forSample($sample, $report);
+
+        AuditLog::create([
+            'user_id'        => $request->user()?->id,
+            'auditable_type' => Sample::class,
+            'auditable_id'   => $sample->id,
+            'event'          => 'report_generated',
+            'new_values'     => [
+                'sample'   => $sample->code,
+                'report'   => $report->code,
+                'template' => 'legacy',
+                'sections' => count($datos['sections'] ?? []),
+            ],
+            'url'        => $request->fullUrl(),
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 500),
+            'module'     => 'samples',
+        ]);
+
+        $bytes = app(\App\Services\Lab\LegacyReportRenderer::class)
+            ->render($sample, $datos, $report->code);
+
+        return response($bytes, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="informe-clasico-' . $report->code . '.pdf"',
+        ]);
+    }
+
     private function render(Request $request, Sample $sample, ?\App\Models\SampleReport $report)
     {
         // Un informe EMITIDO imprime su snapshot, no el estado actual de la

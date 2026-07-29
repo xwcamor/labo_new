@@ -162,6 +162,68 @@ class SampleReportTest extends TestCase
         $this->assertSame($congelado, $informe->fresh()->frozenPayload());
     }
 
+    // ─── La cadena de estados al emitir ──────────────────────────────────
+
+    public function test_emitir_informa_las_pruebas_y_cierra_la_recepcion(): void
+    {
+        // El eslabón que faltaba: sin esto ninguna prueba llegaba a
+        // "informado", la muestra nunca alcanzaba su estado final y la
+        // recepción quedaba abierta para siempre — en el sistema anterior el
+        // jefe la "bloqueaba" a mano cuando la daba por terminada.
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $informe->update(['status' => SampleReport::STATUS_ISSUED]);
+
+        app(\App\Services\Lab\SampleProgressService::class)->markReported($informe);
+
+        $muestra->refresh();
+
+        $this->assertSame(
+            SampleTest::STATUS_REPORTED,
+            $muestra->tests()->first()->status,
+        );
+        $this->assertSame(Sample::STATUS_REPORTED, $muestra->status);
+        // La única muestra de la entrega quedó informada: la recepción se
+        // cierra sola, sin botón.
+        $this->assertSame(Reception::STATUS_CLOSED, $muestra->reception->fresh()->status);
+    }
+
+    public function test_una_prueba_no_publicada_no_se_marca_informada(): void
+    {
+        // El informe salió SIN esa prueba: decir que se informó mentiría en el
+        // avance, y la recepción no puede cerrarse.
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, ['tests' => []], null);
+        $informe->update(['status' => SampleReport::STATUS_ISSUED]);
+
+        app(\App\Services\Lab\SampleProgressService::class)->markReported($informe);
+
+        $this->assertSame(
+            SampleTest::STATUS_VALIDATED,
+            $muestra->tests()->first()->fresh()->status,
+        );
+        $this->assertSame(Reception::STATUS_CONFIRMED, $muestra->reception->fresh()->status);
+    }
+
+    public function test_la_recepcion_reabre_si_una_prueba_vuelve_a_la_cola(): void
+    {
+        // Cerrada no es lápida: si un ensayo vuelve a pendiente (se anuló la
+        // hoja, se pidió uno nuevo), la recepción deja de figurar terminada
+        // sin que nadie tenga que acordarse de reabrirla.
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $informe->update(['status' => SampleReport::STATUS_ISSUED]);
+
+        $progreso = app(\App\Services\Lab\SampleProgressService::class);
+        $progreso->markReported($informe);
+        $this->assertSame(Reception::STATUS_CLOSED, $muestra->reception->fresh()->status);
+
+        $muestra->tests()->first()->update(['status' => SampleTest::STATUS_PENDING]);
+        $progreso->refreshSample($muestra->fresh());
+
+        $this->assertSame(Reception::STATUS_CONFIRMED, $muestra->reception->fresh()->status);
+    }
+
     // ─── El borrado de la muestra ────────────────────────────────────────
 
     public function test_una_muestra_con_informe_emitido_no_se_borra(): void

@@ -45,11 +45,14 @@ export const receptionsTableColumns = (t) => [
         mobile: { role: 'meta', icon: ExperimentOutlined },
     },
     {
-        title: t('receptions.outstanding'),
-        dataIndex: 'outstanding_count',
-        key: 'outstanding_count',
-        width: 120,
-        align: 'right',
+        // El semáforo de avance: Equipo · Pruebas · Datos · Informes. Son los
+        // cuatro chequeos que el sistema anterior mostraba como iconos por
+        // fila, pero acá los cuenta el servidor en la misma consulta del
+        // listado (allá eran banderas cacheadas que solo se refrescaban al
+        // abrir la remisión, y el listado mentía hasta la próxima visita).
+        title: t('receptions.progress'),
+        key: 'progress',
+        width: 210,
         mobile: { role: 'meta' },
     },
     {

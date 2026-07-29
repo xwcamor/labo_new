@@ -131,6 +131,30 @@ const onTableChange = (page, _filters, sorter) => {
 const openReception = (record) => router.visit(
     route('lab_management.receptions.show', record.slug),
 );
+
+/**
+ * Los cuatro chequeos de avance de una recepción, como los cuatro iconos del
+ * sistema anterior (Series · Trabajos · Datos · Informes) pero derivados en la
+ * consulta del listado, nunca cacheados:
+ *
+ *   equipo   → muestras sin equipo enlazado (sin el enlace, el resultado no
+ *              llega al informe ni a la tendencia del equipo)
+ *   pruebas  → muestras sin ningún ensayo pedido (un frasco que nadie procesa)
+ *   datos    → ensayos pedidos que siguen sin cargarse o a medio cargar
+ *   informes → muestras que todavía no tienen su informe emitido
+ *
+ * Cada chip dice CUÁNTAS faltan; en verde, esa parte está completa.
+ */
+const progressChips = (record) => {
+    const total = record.samples_count ?? 0;
+
+    return [
+        { key: 'equipment', pending: record.unlinked_count ?? 0 },
+        { key: 'tests',     pending: record.untested_count ?? 0 },
+        { key: 'data',      pending: record.outstanding_count ?? 0 },
+        { key: 'reports',   pending: total - (record.reported_count ?? 0) },
+    ];
+};
 </script>
 
 <template>
@@ -249,11 +273,28 @@ const openReception = (record) => router.visit(
                         {{ record.samples_count ?? 0 }}
                     </template>
 
-                    <!-- Lo que sigue abierto. En cero no se pinta de rojo: es
-                         justamente la entrega que ya no requiere nada. -->
-                    <template v-else-if="column.key === 'outstanding_count'">
-                        <span :class="{ 'rc-outstanding': (record.outstanding_count ?? 0) > 0 }">
-                            {{ record.outstanding_count ?? 0 }}
+                    <!-- El semáforo de avance por fila. Verde = esa parte está
+                         completa; ámbar = cuántas faltan. Sin muestras no hay
+                         nada que semaforizar. -->
+                    <template v-else-if="column.key === 'progress'">
+                        <span v-if="!(record.samples_count > 0)">—</span>
+                        <span v-else class="rc-progress">
+                            <Tooltip
+                                v-for="chip in progressChips(record)"
+                                :key="chip.key"
+                                :title="chip.pending > 0
+                                    ? $t(`receptions.prog_${chip.key}_pending`, { count: chip.pending })
+                                    : $t(`receptions.prog_${chip.key}_done`)"
+                            >
+                                <span
+                                    class="rc-chip"
+                                    :class="chip.pending > 0 ? 'rc-chip--pending' : 'rc-chip--done'"
+                                >
+                                    {{ $t(`receptions.prog_${chip.key}`) }}
+                                    <template v-if="chip.pending > 0"> {{ chip.pending }}</template>
+                                    <template v-else> ✓</template>
+                                </span>
+                            </Tooltip>
                         </span>
                     </template>
 
@@ -279,6 +320,21 @@ const openReception = (record) => router.visit(
 .rc-filters { margin-bottom: 12px; }
 .rc-filters__search { min-width: 220px; }
 .rc-link { font-weight: 600; }
-.rc-outstanding { font-weight: 600; color: #d4700e; }
+
+/* El semáforo de avance: chips compactos, legibles de un vistazo. El texto no
+   se pinta solo de color (el número acompaña) para que el daltónico también
+   lo lea. */
+.rc-progress { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.rc-chip {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.rc-chip--done    { background: rgba(29, 112, 68, 0.12);  color: #1D7044; }
+.rc-chip--pending { background: rgba(212, 112, 14, 0.14); color: #b45309; }
 .rc-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 </style>

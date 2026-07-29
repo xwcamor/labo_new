@@ -69,7 +69,8 @@ const { can, canSeeAudit } = useAuth();
 const page = usePage();
 
 const isDraft = computed(() => props.reception.status === 'draft');
-const canEdit = computed(() => can('receptions.edit'));
+const canEdit   = computed(() => can('receptions.edit'));
+const canDelete = computed(() => can('receptions.delete'));
 
 const title = computed(
     () => props.reception.code || `${t('receptions.singular')} #${props.reception.id}`,
@@ -171,6 +172,40 @@ const emitir = (report) => {
     });
 };
 
+// ── Baja de un informe BORRADOR ──────────────────────────────────────────
+//
+// Solo el borrador: el emitido no se borra ni acá ni en el servidor (el
+// cliente tiene un papel que cita ese número). El motivo es obligatorio,
+// como en toda baja del sistema.
+const delReportOpen   = ref(false);
+const delReportRecord = ref(null);
+const delReportReason = ref('');
+const delReportError  = ref('');
+
+const abrirBajaInforme = (report) => {
+    delReportRecord.value = report;
+    delReportReason.value = '';
+    delReportError.value = '';
+    delReportOpen.value = true;
+};
+
+const confirmarBajaInforme = () => {
+    if (delReportReason.value.trim().length < 3) {
+        delReportError.value = t('sample_reports.delete_reason_required');
+
+        return;
+    }
+
+    router.delete(
+        route('lab_management.sample_reports.destroy', delReportRecord.value.slug),
+        {
+            data: { deleted_description: delReportReason.value.trim() },
+            preserveScroll: true,
+            onSuccess: () => { delReportOpen.value = false; },
+        },
+    );
+};
+
 // ── Resultados y diagnóstico del informe ─────────────────────────────────
 const analysisOpen   = ref(false);
 const analysisReport = ref(null);
@@ -226,7 +261,8 @@ const reportColumns = computed(() => [
     { title: t('sample_reports.status'), key: 'status', width: 110 },
     { title: t('sample_reports.issued_at'), key: 'issued_at', width: 130 },
     { title: t('sample_reports.tests_count'), key: 'tests_count', width: 120, align: 'right' },
-    { title: t('global.actions'), key: 'actions', width: 230, align: 'right' },
+    // Ancho para las dos plantillas de exportación + editar/emitir/eliminar.
+    { title: t('global.actions'), key: 'actions', width: 360, align: 'right' },
 ]);
 </script>
 
@@ -515,13 +551,36 @@ const reportColumns = computed(() => [
                                 >
                                     {{ $t('sample_reports.issue') }}
                                 </Button>
-                                <Tooltip :title="$t('sample_reports.download')">
+                                <!-- Las DOS plantillas del informe: la clásica
+                                     (la maqueta del sistema anterior, que los
+                                     clientes reconocen) y la moderna. Mismos
+                                     datos; la elección es de quien exporta. -->
+                                <Tooltip :title="$t('sample_reports.download_modern')">
                                     <Button
                                         size="small"
                                         :href="route('lab_management.sample_reports.pdf', record.slug)"
                                         target="_blank"
                                     >
-                                        <FilePdfOutlined />
+                                        <FilePdfOutlined /> {{ $t('sample_reports.template_modern') }}
+                                    </Button>
+                                </Tooltip>
+                                <Tooltip :title="$t('sample_reports.download_legacy')">
+                                    <Button
+                                        size="small"
+                                        :href="route('lab_management.sample_reports.pdf_legacy', record.slug)"
+                                        target="_blank"
+                                    >
+                                        <FilePdfOutlined /> {{ $t('sample_reports.template_legacy') }}
+                                    </Button>
+                                </Tooltip>
+                                <!-- Solo el BORRADOR se elimina: el emitido es
+                                     un papel que el cliente ya cita. -->
+                                <Tooltip
+                                    v-if="canDelete && record.status === 'draft'"
+                                    :title="$t('global.delete')"
+                                >
+                                    <Button size="small" danger @click="abrirBajaInforme(record)">
+                                        <DeleteOutlined />
                                     </Button>
                                 </Tooltip>
                             </Space>
@@ -583,6 +642,24 @@ const reportColumns = computed(() => [
             <Textarea v-model:value="bajaReason" :rows="3" :maxlength="1000" show-count />
 
             <p v-if="bajaError" class="rc-baja__error">{{ bajaError }}</p>
+        </Modal>
+
+        <!-- Baja de un informe BORRADOR, con su motivo. El emitido no se
+             ofrece: el servidor también lo rechaza. -->
+        <Modal
+            v-model:open="delReportOpen"
+            :title="$t('global.delete') + ' — ' + (delReportRecord?.code ?? '')"
+            :ok-text="$t('global.delete')"
+            :cancel-text="$t('global.cancel')"
+            :ok-button-props="{ danger: true }"
+            @ok="confirmarBajaInforme"
+        >
+            <p class="rc-baja__intro">{{ $t('sample_reports.delete_confirm') }}</p>
+
+            <label class="rc-baja__label">{{ $t('global.delete_description') }}</label>
+            <Textarea v-model:value="delReportReason" :rows="3" :maxlength="1000" show-count />
+
+            <p v-if="delReportError" class="rc-baja__error">{{ delReportError }}</p>
         </Modal>
     </div>
 </template>

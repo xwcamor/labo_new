@@ -245,7 +245,7 @@ class TestReportPayload
         $resultados = Result::query()
             ->where('sample_id', $sample->id)
             ->whereIn('test_definition_id', $pruebas->pluck('test_definition_id'))
-            ->with(['field:id,label,unit,decimals,sort_order,report_visible', 'analyte:id,name'])
+            ->with(['field:id,label,unit,decimals,detection_limit,sort_order,report_visible', 'analyte:id,code,name'])
             ->orderBy('test_definition_id')
             ->get()
             ->groupBy('test_definition_id');
@@ -557,6 +557,10 @@ class TestReportPayload
             $filas[] = [
                 'item'     => ++$item,
                 'analyte'  => $resultado->analyte?->name ?? $resultado->field?->label,
+                // El código del parámetro. No se imprime: lo usa quien tiene
+                // que cruzar esta fila con otra cosa (la maqueta del informe
+                // viejo, un envío a TrafoDex) sin depender del nombre visible.
+                'code'     => $resultado->analyte?->code,
                 'unit'     => $resultado->unit ?? $resultado->field?->unit,
                 // De dónde salió el LÍMITE (el cuadro de aceptación aplicado).
                 // No es la norma del método: ver `normaDelEnsayo`.
@@ -583,7 +587,28 @@ class TestReportPayload
             return (string) ($resultado->value_text ?? '—');
         }
 
-        $decimales = $resultado->field?->decimals;
+        $campo = $resultado->field;
+
+        // ┌──────────────────────────────────────────────────────────────┐
+        // │ POR DEBAJO DEL LÍMITE DE DETECCIÓN NO SE INFORMA UN NÚMERO   │
+        // └──────────────────────────────────────────────────────────────┘
+        // El método no distingue 0.4 ppm de 0.7 ppm de hidrógeno: publicar el
+        // número sugiere una precisión que el ensayo no tiene. El informe
+        // acreditado imprimía "< 1", y eso es lo correcto.
+        //
+        // Solo afecta a la IMPRESIÓN. El veredicto ya se decidió al validar la
+        // hoja, con el valor medido, y no se toca acá — si el límite de
+        // detección cambiara lo que se compara, el papel y el criterio
+        // volverían a discrepar, que es el error del sistema viejo.
+        //
+        // El "<" que el analista tipeó gana: si él declaró el censurado, es su
+        // lectura y no la del catálogo.
+        $lod = $campo?->detection_limit;
+        if ($resultado->qualifier === null && $lod !== null && (float) $resultado->value_num < (float) $lod) {
+            return '< ' . rtrim(rtrim(number_format((float) $lod, 6, '.', ''), '0'), '.');
+        }
+
+        $decimales = $campo?->decimals;
         $numero = $decimales !== null
             ? number_format((float) $resultado->value_num, (int) $decimales, '.', '')
             : rtrim(rtrim(number_format((float) $resultado->value_num, 6, '.', ''), '0'), '.');

@@ -1,0 +1,33 @@
+{
+  "_doc": {
+    "que_es": "Límite de detección de cada método, por columna de resultado. Por debajo de este número el informe imprime '< límite' en vez del valor medido.",
+    "de_donde_sale": "Estaban CLAVADOS en el HTML del informe del sistema Ruby, repetidos hasta tres veces por gas (una vez por rama del if que decidía el color de la celda). Archivos: app/views/im_management/rem_reports/partials/_report_cromas.erb (líneas 36, 67, 82, 97, 129, 161, 193, 225, 257), _report_furanos.erb (35, 51, 67, 83, 99) y _report_physicals.erb (45-54).",
+    "alcance": "Solo presentación. El veredicto (results.spec_status) se decide al validar la hoja con el valor medido y no lo toca este número.",
+    "estado": "SIN VALIDAR por el laboratorio. Son los cortes que el informe viejo venía imprimiendo; hay que confirmarlos contra los certificados de los métodos vigentes.",
+    "pendiente_numero_acido": "El informe viejo tenía TRES tramos en la acidez: menor a 0.005 imprimía '< 0.01'; entre 0.005 y 0.010 imprimía '0.01' (un número forzado, NO el medido); de 0.010 en adelante, dos decimales. Acá se sembró el límite simple (0.01): cualquier valor por debajo sale '< 0.01'. Decidir con el laboratorio si el tramo del medio era un criterio o un parche."
+  },
+
+  "analisis_cromatografico": {
+    "hidrogeno_h2_ppm": 1,
+    "oxigeno_o2_ppm": 105.4,
+    "nitrogeno_n2_ppm": 396.2,
+    "metano_ch4_ppm": 0.3,
+    "mcarbono_co_ppm": 0.3,
+    "dcarbono_co2_ppm": 4.0,
+    "etileno_c2h4_ppm": 0.3,
+    "etano_c2h6_ppm": 0.3,
+    "acetileno_c2h2_ppm": 0.4
+  },
+
+  "furanos": {
+    "furfuraldehido_2": 10,
+    "hidroxi_metil_furfuraldehido_5": 10,
+    "acetilfurano_2": 10,
+    "metil_2_furfuraldehido_5": 10,
+    "furfuril_alcohol_2": 10
+  },
+
+  "numero_acido": {
+    "resultado_mgkohg_aceite": 0.01
+  }
+}

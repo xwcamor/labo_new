@@ -281,6 +281,10 @@ class TestFieldController extends Controller
                 'nullable', 'numeric',
                 $request->filled('min_value') ? 'gte:min_value' : null,
             ]),
+            // Por debajo de este número el informe imprime "< límite" en vez
+            // del valor medido. Es una propiedad del MÉTODO, no del criterio de
+            // aceptación: no participa del veredicto.
+            'detection_limit'   => ['nullable', 'numeric', 'min:0'],
             'is_required'       => ['boolean'],
             'is_locked'         => ['boolean'],
             'is_reusable'       => ['boolean'],

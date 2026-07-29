@@ -28,6 +28,8 @@ return [
     'default_value'  => 'Constant value',
     'report_visible' => 'Show in the report',
     'report_visible_help' => 'Decides whether this column is printed on the customer report. Intermediate calculation columns are normally not published.',
+    'detection_limit' => 'Detection limit',
+    'detection_limit_help' => 'Below this number the report prints "< limit" instead of the measured value: the method cannot tell 0.4 from 0.7, and printing the number implies a precision the test does not have. It does NOT affect the verdict, which is decided on the real value.',
     'replicates'     => 'Readings per sample',
     'replicates_help' => 'How many times this reading is repeated on the same sample. Dielectric strength is measured five or six times and averaged.',
     'sort_order'     => 'Order',

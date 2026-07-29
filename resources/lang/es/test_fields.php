@@ -28,6 +28,8 @@ return [
     'default_value'  => 'Valor constante',
     'report_visible' => 'Mostrar en el informe',
     'report_visible_help' => 'Decide si esta columna sale impresa en el informe del cliente. Las columnas intermedias del cálculo normalmente no se publican.',
+    'detection_limit' => 'Límite de detección',
+    'detection_limit_help' => 'Por debajo de este número el informe imprime "< límite" en vez del valor medido: el método no distingue 0.4 de 0.7, y publicar el número sugiere una precisión que el ensayo no tiene. NO participa del veredicto, que se decide con el valor real.',
     'replicates'     => 'Mediciones por muestra',
     'replicates_help' => 'Cuántas veces se repite esta medición sobre la misma muestra. La rigidez dieléctrica se mide cinco o seis veces y se promedia.',
     'sort_order'     => 'Orden',

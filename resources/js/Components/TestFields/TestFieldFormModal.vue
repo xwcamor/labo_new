@@ -44,6 +44,7 @@ const form = useForm({
     unit:              props.field?.unit ?? '',
     decimals:          props.field?.decimals ?? null,
     min_value:         props.field?.min_value ?? null,
+    detection_limit:   props.field?.detection_limit ?? null,
     max_value:         props.field?.max_value ?? null,
     is_required:       props.field?.is_required ?? false,
     is_locked:         props.field?.is_locked ?? false,
@@ -220,6 +221,15 @@ const submit = () => {
                     :help="form.errors.max_value"
                 >
                     <InputNumber v-model:value="form.max_value" class="tff__num" />
+                </FormItem>
+
+                <FormItem
+                    :label="$t('test_fields.detection_limit')"
+                    :tooltip="$t('test_fields.detection_limit_help')"
+                    :validate-status="form.errors.detection_limit ? 'error' : ''"
+                    :help="form.errors.detection_limit"
+                >
+                    <InputNumber v-model:value="form.detection_limit" :min="0" class="tff__num" />
                 </FormItem>
 
                 <FormItem

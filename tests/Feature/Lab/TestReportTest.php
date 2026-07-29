@@ -216,6 +216,72 @@ class TestReportTest extends TestCase
         $this->assertFalse($seccion['not_accredited']);
     }
 
+    // ─── El límite de detección ──────────────────────────────────────────
+    //
+    // El informe acreditado no publica el número medido cuando cae por debajo
+    // del límite de detección: el método no distingue 0.4 ppm de 0.7 ppm, y
+    // publicar el número sugiere una precisión que el ensayo no tiene.
+
+    public function test_por_debajo_del_limite_de_deteccion_se_imprime_el_limite(): void
+    {
+        $this->columna->forceFill(['detection_limit' => 1])->save();
+
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.40, min: null, max: 150, estado: 'in_spec');
+
+        $fila = $this->payload->forSample($muestra)['sections'][0]['rows'][0];
+
+        $this->assertSame('< 1', $fila['value']);
+    }
+
+    public function test_en_el_limite_exacto_ya_se_informa_el_numero(): void
+    {
+        // El corte es estricto: el límite ES informable. Con "menor o igual",
+        // una medición que da justo el límite se publicaría como si no se
+        // hubiera podido medir.
+        $this->columna->forceFill(['detection_limit' => 1])->save();
+
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 1.00, min: null, max: 150, estado: 'in_spec');
+
+        $this->assertSame('1.00', $this->payload->forSample($muestra)['sections'][0]['rows'][0]['value']);
+    }
+
+    public function test_el_limite_de_deteccion_no_cambia_el_veredicto(): void
+    {
+        // Es lo que separa este cambio del error del sistema viejo: el papel y
+        // el criterio no pueden discrepar. El veredicto se congeló al validar
+        // con el valor medido y el límite de detección no lo toca.
+        $this->columna->forceFill(['detection_limit' => 1])->save();
+
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.40, min: 47, max: null, estado: 'out_of_spec');
+
+        $fila = $this->payload->forSample($muestra)['sections'][0]['rows'][0];
+
+        $this->assertSame('< 1', $fila['value']);
+        $this->assertSame('out_of_spec', $fila['status'], 'El veredicto sale del resultado congelado, no del texto impreso.');
+    }
+
+    public function test_el_censurado_que_tipeo_el_analista_gana(): void
+    {
+        // Si el analista declaró "> 75" es su lectura, no la del catálogo.
+        $this->columna->forceFill(['detection_limit' => 100])->save();
+
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 75, min: null, max: null, estado: null, qualifier: 'gt');
+
+        $this->assertSame('> 75.00', $this->payload->forSample($muestra)['sections'][0]['rows'][0]['value']);
+    }
+
+    public function test_sin_limite_de_deteccion_se_imprime_lo_medido(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.40, min: null, max: 150, estado: 'in_spec');
+
+        $this->assertSame('0.40', $this->payload->forSample($muestra)['sections'][0]['rows'][0]['value']);
+    }
+
     // ─── Qué comparte tabla ──────────────────────────────────────────────
     //
     // El informe acreditado dedica UNA página a "ENSAYOS FISICO-QUIMICOS" con

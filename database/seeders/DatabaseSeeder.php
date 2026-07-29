@@ -127,6 +127,12 @@ class DatabaseSeeder extends Seeder
             LabTestReplicatesSeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
+
+            // El límite de detección de cada método. El informe viejo no
+            // imprimía el valor medido cuando caía por debajo: imprimía
+            // "< límite". Los cortes estaban clavados en el HTML.
+            LabDetectionLimitsSeeder::class,
+
             SamplersSeeder::class,
             SignaturesSeeder::class,
             LabAnalyteMapSeeder::class,

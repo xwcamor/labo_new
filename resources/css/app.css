@@ -560,6 +560,14 @@ html, body { overflow-x: clip; }
     /* Text */
     --color-text:              #32363A;
     --color-text-muted:        #6A6D70;
+
+    /* Alto de la barra superior. Las páginas arrancan justo debajo, así que es
+       lo único que hay que descontarle al alto de la ventana para que la página
+       llegue exactamente al borde de abajo. Antes se descontaban 110px —un
+       número que no correspondía a nada— y las páginas terminaban 66px antes
+       del borde: con una lista corta, la barra de selección masiva quedaba
+       flotando a media pantalla con el fondo gris debajo. */
+    --shell-bar-h: 44px;
     --color-text-strong:       #334155;
     --color-text-dim:          #9aa0a6;
     --color-text-on-dark:      #ffffff;
@@ -1081,7 +1089,13 @@ html[data-theme="dark"] .lift:hover {
    ════════════════════════════════════════════════════════════════════════════ */
 
 /* Fondo de página gris-azulado (bleed para cubrir todo el área de contenido). */
-.sap-index { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - 110px); }
+/* Columna flexible para que la barra de selección masiva pueda irse al pie.
+   `position: sticky` sola no alcanza: solo pega el elemento mientras hay
+   scroll, así que con una lista corta —tres grupos— la barra quedaba flotando
+   a media página con el fondo gris debajo y se leía como un error. Con la
+   página en columna y `margin-top: auto` en la barra, con poco contenido baja
+   al fondo y con mucho la mantiene pegada el sticky. */
+.sap-index { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - var(--shell-bar-h, 44px)); display: flex; flex-direction: column; }
 @media (max-width: 768px) {
     .sap-index { margin: -16px; padding: 16px; }
     /* En mobile el bleed es -16px (el contenedor padea 16, no 24). */
@@ -1265,7 +1279,7 @@ html[data-theme="dark"] .lift:hover {
    Da: fondo gris, franja blanca de título full-bleed, cuerpo sin fondo blanco,
    campos apilados (label izq + input der), footer toolbar fino full-bleed.
    ════════════════════════════════════════════════════════════════════════════ */
-.sap-form { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - 110px); }
+.sap-form { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - var(--shell-bar-h, 44px)); }
 /* Franja blanca del título a borde completo. */
 .sap-form .section-header {
     background: var(--color-surface, #fff);
@@ -1317,7 +1331,7 @@ html[data-theme="dark"] .lift:hover {
    columnas a 100% (por eso es una clase aparte de .sap-form, que sí hace eso y
    rompería los layouts de las fichas). Las tarjetas del Show quedan con su estilo
    propio (blancas). Trafos NO la usa (su ficha tiene layout propio). */
-.sap-show { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - 110px); }
+.sap-show { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - var(--shell-bar-h, 44px)); }
 .sap-show .section-header {
     background: var(--color-surface, #fff);
     margin: -24px -24px 20px;
@@ -1388,7 +1402,12 @@ html[data-theme="dark"] .lift:hover {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
     position: sticky; bottom: 0; z-index: 6;
-    margin: 16px -24px 0; padding: 10px 24px 14px;
+    /* `auto` arriba: con la lista corta la barra se va al pie de la página en
+       vez de quedar pegada a la tabla con el gris debajo. Y abajo se come el
+       relleno del contenedor (-24px) para apoyarse en el borde mismo: si no,
+       quedaba una franja gris de 24px por debajo que se lee como que la barra
+       flota. */
+    margin: auto -24px -24px; padding: 10px 24px 14px;
     background: var(--color-surface, #fff);
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
     border-top: 1px solid var(--color-border-soft, #eceff2);
@@ -1398,7 +1417,7 @@ html[data-theme="dark"] .lift:hover {
 .bulk-bar__label strong { color: var(--color-primary); font-weight: 600; }
 @media (max-width: 768px) {
     .bulk-bar {
-        margin: 16px -16px 0;
+        margin: auto -16px -16px;
         padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
         flex-wrap: nowrap;
     }

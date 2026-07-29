@@ -61,44 +61,84 @@ php artisan tinker --execute="foreach (App\Models\TestFieldOption::with('field.d
 Después: generar el PDF y confirmar que el sello sale en las hojas que el
 certificado cubre y en ninguna más.
 
-### A3. `[ ]` Nueve familias sin plantilla de análisis
+### A3. `[x]` Nueve familias sin plantilla de análisis
 
 **Problema.** Partículas, sedimentos, metales, viscosidad, DBDS, inflamación,
 fluidez, inhibidor y pasivador salen con el párrafo **en blanco**. Hay 6
 plantillas de 15.
 
-**Solución.** Escribir las nueve en `diagnosis_templates`, con los umbrales del
-viejo (están transcritos en la auditoría §3.2). Va junto con A4 y A5, porque
-casi todas necesitan bandas y el valor medido.
+**Solución.** Las quince familias tienen plantilla en `diagnosis_templates.json`,
+con los textos **copiados tal cual** de los ERB del sistema anterior —dobles
+espacios, tildes faltantes y frases a medias incluidas: son los párrafos que el
+laboratorio viene firmando, y corregirlos es decisión suya, ahora sin deploy.
+Cada plantilla anota en `_origen` el archivo y las líneas de las que salió.
 
-**Cómo lo verifico.** Una muestra con esas pruebas validadas, autodiagnóstico
-generado, y las 15 filas de la página de análisis con texto. Ninguna vacía.
+**Dos siguen sin poder dispararse, y no es por el texto**: partículas y metales
+**no declaran ningún parámetro medible** (`analyte_map.json → pendientes`), así
+que no producen resultados y no hay sobre qué opinar. Las plantillas quedan
+escritas y salen solas el día que el laboratorio declare esas columnas. Mientras
+tanto el motor **no dice nada** para ellas: "no se detectó presencia de metales"
+sobre cero mediciones es la misma afirmación falsa que leer un cuadro de límites
+ausente como "cumple".
 
-### A4. `[ ]` Bandas graduadas en el autodiagnóstico
+**Cómo lo verifico.**
+```
+php artisan test --filter=DiagnosisTextTest      # 13 pruebas en verde
+```
+En pantalla: una muestra con esas pruebas validadas y el autodiagnóstico
+generado. Trece de las quince filas con texto; partículas y metales en blanco
+hasta que se declaren sus parámetros.
+
+### A4. `[x]` Bandas graduadas en el autodiagnóstico
 
 **Problema.** El motor solo distingue "ninguno / uno / varios" fuera de norma.
 El viejo tenía bandas por valor: furanos (DP 700 / 450 / 250), grado de
 polimerización (1000 / 650 / 350), pasivador (50 / 70), inhibidor (0.08 / 3).
 Hoy furanos dice lo mismo con DP 800 que con DP 200.
 
-**Solución.** Agregar `bands[]` a la plantilla (rango + texto propio), o
-resolverlo con escalones de `spec_limits`.
+**Solución.** `bands[]` en la plantilla: rango + texto propio, [min, max) con
+`max_inclusive` / `min_exclusive` para los bordes que el viejo escribía al revés
+(el escalón del pasivador era `>= 50 && <= 70`). **No se resolvió con
+`spec_limits`** y no podía resolverse así: siete de esas familias no tienen
+cuadro de límites —ni lo tenían allá—, el corte no es un criterio de aceptación
+sino una escala de interpretación, y `spec_status` solo distingue tres estados
+donde el papel necesita cuatro textos.
 
-**Cómo lo verifico.** Cuatro muestras de furanos, una por banda, tienen que dar
-cuatro párrafos distintos. Test que fije los cuatro cortes.
+Dos bandas que se pisan **no** se resuelven por orden de aparición: el párrafo
+sale vacío. Un error de datos escondido dentro de una frase firmada es peor que
+un hueco visible.
 
-### A5. `[ ]` El texto tiene que poder citar el valor medido
+Para los metales, que se nombran por presencia y no por norma, la plantilla
+declara `threshold` (el `> 0.05` que el viejo tenía en la vista de carga).
+
+**Cómo lo verifico.** `test_todas_las_bandas_del_archivo_real_dan_un_texto_propio`
+barre TODAS las familias con bandas del archivo real, una sonda por banda, y
+falla si dos devuelven el mismo párrafo o si alguna queda muda por solaparse.
+Los cuatro cortes de furanos y del grado de polimerización tienen su prueba
+propia, y el borde de los 70 ppm del pasivador también.
+
+### A5. `[x]` El texto tiene que poder citar el valor medido
 
 **Problema.** Los marcadores son `{ok} {failed} {norm} {count}`. No hay
 `{value}`. Se pierden "se detectó **7.3 ppm** de dibencil disulfuro", "punto de
 inflamación a **X °C**", el código ISO 4406 desglosado y el resultado del
 azufre por método.
 
-**Solución.** Agregar `{value}` / `{value:analito}` con su unidad al armado del
-texto.
+**Solución.** `{value}` (valor + unidad), `{value_num}` (pelado), `{unit}`, los
+tres con `:codigo` para pedir un parámetro concreto de la familia y con `[n]`
+para tomar el n-ésimo tramo de un código compuesto (el ISO 4406 es "18/16/13").
+Y `{failed_values}`, que lista los señalados **con** su valor: es lo que el
+párrafo de metales necesitaba, y de paso se va la coma colgando que el viejo
+imprimía antes de "como compuestos metálicos".
 
-**Cómo lo verifico.** El párrafo de DBDS de una muestra real tiene que traer el
-número. Test con una plantilla que use `{value}`.
+La unidad sale del parámetro, no escrita dentro de la frase. **Efecto**: el DBDS
+ahora dice `7.30 mg/kg` donde el papel viejo decía `7.3 ppm` — misma magnitud, y
+coincide con la unidad que la tabla del informe ya imprime. El signo de un valor
+censurado se conserva: ">300 °C" no se publica como "300 °C".
+
+**Cómo lo verifico.** `test_el_marcador_value_imprime_el_numero_medido_con_su_unidad`
+sobre el párrafo real del DBDS, más los decimales, el signo, el código partido y
+el pedido por código de parámetro.
 
 ### A6. `[ ]` Enlazar la fila de bancada con la prueba pedida
 

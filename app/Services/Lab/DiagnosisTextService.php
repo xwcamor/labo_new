@@ -42,6 +42,21 @@ use Illuminate\Support\Collection;
  * Si ninguna plantilla casa, NO se inventa texto: el párrafo queda vacío para
  * que lo escriba el analista. Un motor que rellena con una frase genérica es
  * peor que uno que se calla, porque el informe sale firmado igual.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ POR QUÉ NO ALCANZA CON "NINGUNO / UNO / VARIOS"                          │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Ese conteo se apoya en `spec_status`, o sea en que exista un cuadro de
+ * límites para el parámetro. Nueve de las quince familias NO tienen cuadro —ni
+ * lo tenían en el sistema anterior— y sin embargo sí tienen diagnóstico: el
+ * pasivador se lee contra 50 y 70 ppm, el grado de polimerización contra 1000,
+ * 650 y 350, el inhibidor contra 0,08 %. Allá esos cortes estaban clavados en
+ * el ERB; acá son BANDAS de la plantilla (`bands[]`), con su propio texto cada
+ * una, y el laboratorio las mueve editando datos.
+ *
+ * Y hay familias donde el párrafo tiene que CITAR el número medido ("se detectó
+ * 7,3 mg/kg de dibencil disulfuro"). Para eso están los marcadores `{value}`:
+ * el valor y su unidad salen del resultado, no escritos dentro de la frase.
  */
 class DiagnosisTextService
 {
@@ -109,7 +124,7 @@ class DiagnosisTextService
         return Result::query()
             ->where('sample_id', $sample->id)
             ->whereIn('test_definition_id', $porPrueba->keys())
-            ->with(['analyte:id,name', 'field:id,label,report_visible'])
+            ->with(['analyte:id,code,name,unit,decimals', 'field:id,label,report_visible'])
             ->get()
             ->filter(fn (Result $r) => $r->field?->report_visible ?? true)
             ->groupBy(fn (Result $r) => $porPrueba[$r->test_definition_id] ?? 'otros');
@@ -120,51 +135,290 @@ class DiagnosisTextService
      */
     private function componer(Sample $sample, string $familia, Collection $resultados): ?string
     {
-        // Un resultado SIN CRITERIO no cuenta ni como bueno ni como malo: nadie
-        // lo comparó contra nada. Meterlo en la lista de "están dentro de los
-        // valores sugeridos" sería afirmar algo que no se evaluó.
-        $dentro = $resultados->where('spec_status', 'in_spec');
-        $fuera  = $resultados->where('spec_status', 'out_of_spec');
-
-        $caso = match (true) {
-            $fuera->isEmpty()    => 'none',
-            $fuera->count() === 1 => 'one',
-            default              => 'many',
-        };
-
-        $plantilla = $this->elegir($familia, $sample, $caso);
-
-        if ($plantilla === null) {
+        // Sin un solo resultado no se opina. Parece obvio y no lo es: la
+        // plantilla de "todo en orden" es justo la que se dispararía sola con
+        // la colección vacía, y "no se detectó presencia de metales" dicho
+        // sobre cero mediciones es la misma afirmación falsa que un cuadro de
+        // límites ausente leído como "cumple".
+        if ($resultados->isEmpty()) {
             return null;
         }
 
-        return strtr($plantilla['body'], [
-            '{ok}'     => $this->lista($dentro),
-            '{failed}' => $this->lista($fuera),
-            '{norm}'   => $this->norma($resultados),
-            '{count}'  => (string) $fuera->count(),
-        ]);
+        // La primera plantilla, de la más específica a la más general, que se
+        // pueda APLICAR de verdad. No alcanza con que case la familia: si pide
+        // una banda y el valor medido no cae en ninguna, esa plantilla no
+        // aplica y se sigue buscando; si no queda ninguna, el párrafo va vacío.
+        foreach ($this->candidatas($familia, $sample) as $plantilla) {
+            $texto = $this->aplicar($plantilla, $resultados);
+
+            if ($texto !== null) {
+                return $texto;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * La plantilla más específica que case. Mismo criterio que los cuadros de
-     * límites: gana la que restringe más.
+     * Las plantillas de la familia que sirven para esta muestra, de la más
+     * específica a la más general. Mismo criterio que los cuadros de límites:
+     * gana la que restringe más.
      *
-     * @return array<string,mixed>|null
+     * @return Collection<int,array<string,mixed>>
      */
-    private function elegir(string $familia, Sample $sample, string $caso): ?array
+    private function candidatas(string $familia, Sample $sample): Collection
     {
         $aceite = $sample->equipment?->oilType?->code;
         $tipo   = $sample->equipment?->equipmentType?->code;
 
-        $candidatas = collect($this->plantillas())
-            ->filter(fn ($p) => $p['family'] === $familia && $p['case'] === $caso)
+        return collect($this->plantillas())
+            ->filter(fn ($p) => ($p['family'] ?? null) === $familia)
             ->filter(fn ($p) => empty($p['oil_types']) || in_array($aceite, $p['oil_types'], true))
-            ->filter(fn ($p) => empty($p['equipment_types']) || in_array($tipo, $p['equipment_types'], true));
+            ->filter(fn ($p) => empty($p['equipment_types']) || in_array($tipo, $p['equipment_types'], true))
+            ->sortByDesc(fn ($p) => count($p['oil_types'] ?? []) + count($p['equipment_types'] ?? []))
+            ->values();
+    }
 
-        return $candidatas
-            ->sortByDesc(fn ($p) => count($p['oil_types']) + count($p['equipment_types']))
-            ->first();
+    /**
+     * El texto de UNA plantilla, o null si esa plantilla no aplica.
+     *
+     * @param  array<string,mixed>    $plantilla
+     * @param  Collection<int,Result> $resultados
+     */
+    private function aplicar(array $plantilla, Collection $resultados): ?string
+    {
+        // Los que el párrafo tiene que llamar por su nombre. Normalmente son
+        // los que están fuera de norma; con `threshold` la plantilla cambia ese
+        // criterio por un corte de valor, que es como el sistema anterior
+        // decidía qué metales nombrar (presencia por encima de 0,05 ppm) sin
+        // que existiera cuadro de límites para ellos.
+        $senalados = $this->senalados($plantilla, $resultados);
+        $caso      = $plantilla['case'] ?? 'any';
+
+        if ($caso !== 'any' && $caso !== $this->caso($senalados)) {
+            return null;
+        }
+
+        // De qué resultado sale `{value}`: el que la plantilla declare, o el
+        // único de la familia. Con varios y sin declarar, no se elige uno al
+        // azar — se prefiere el párrafo vacío a citar el número equivocado.
+        $medido = isset($plantilla['analyte'])
+            ? $this->porCodigo($resultados, (string) $plantilla['analyte'])
+            : ($resultados->count() === 1 ? $resultados->first() : null);
+
+        $cuerpo = $plantilla['body'] ?? null;
+
+        if (! empty($plantilla['bands'])) {
+            $banda = $this->banda($plantilla['bands'], $medido);
+
+            if ($banda === null) {
+                return null;
+            }
+
+            $cuerpo = $banda['body'] ?? null;
+        }
+
+        if (! is_string($cuerpo) || $cuerpo === '') {
+            return null;
+        }
+
+        // Un resultado SIN CRITERIO no cuenta ni como bueno ni como malo: nadie
+        // lo comparó contra nada. Meterlo en la lista de "están dentro de los
+        // valores sugeridos" sería afirmar algo que no se evaluó.
+        $cuerpo = strtr($cuerpo, [
+            '{ok}'            => $this->lista($resultados->where('spec_status', Result::SPEC_IN)),
+            '{failed}'        => $this->lista($senalados),
+            '{failed_values}' => $this->listaConValor($senalados),
+            '{norm}'          => $this->norma($resultados),
+            '{count}'         => (string) $senalados->count(),
+        ]);
+
+        return $this->reemplazarValores($cuerpo, $resultados, $medido);
+    }
+
+    /**
+     * Cuántos parámetros hay que señalar, en las tres categorías que las
+     * plantillas distinguen.
+     *
+     * @param  Collection<int,Result> $senalados
+     */
+    private function caso(Collection $senalados): string
+    {
+        return match (true) {
+            $senalados->isEmpty()     => 'none',
+            $senalados->count() === 1 => 'one',
+            default                   => 'many',
+        };
+    }
+
+    /**
+     * Los resultados que el párrafo tiene que nombrar.
+     *
+     * @param  array<string,mixed>    $plantilla
+     * @param  Collection<int,Result> $resultados
+     * @return Collection<int,Result>
+     */
+    private function senalados(array $plantilla, Collection $resultados): Collection
+    {
+        if (! isset($plantilla['threshold'])) {
+            return $resultados->where('spec_status', Result::SPEC_OUT);
+        }
+
+        $umbral = (float) $plantilla['threshold'];
+
+        // "Por encima del corte" tiene que ser CIERTO, no probable. Un "<1 ppm"
+        // contra un corte de 0,05 no afirma presencia: dice que el instrumento
+        // no llegó a verlo. Solo se señala cuando TODO el intervalo posible del
+        // resultado queda por encima del corte.
+        return $resultados->filter(function (Result $r) use ($umbral) {
+            [$desde, , $desdeIncluido] = $this->intervalo($r);
+
+            return $desde !== null
+                && ($desde > $umbral || ($desde === $umbral && ! $desdeIncluido));
+        })->values();
+    }
+
+    /**
+     * La banda cuyo rango contiene al valor medido.
+     *
+     * Las bandas son [min, max): el mínimo entra y el máximo no, salvo que la
+     * banda declare `max_inclusive` / `min_exclusive`. Es la forma en que están
+     * escritos los cortes del sistema anterior (`>= 450 && < 700`), y el
+     * pasivador necesita las dos excepciones porque allá el escalón del medio
+     * era `>= 50 && <= 70` y el de arriba `> 70`.
+     *
+     * Tiene que tocar UNA sola banda. Dos bandas que se pisan son un error de
+     * datos, y resolverlo por orden de aparición lo dejaría escondido dentro de
+     * un párrafo que sale firmado. Un valor CENSURADO ("<5", ">70") tampoco es
+     * un punto sino un intervalo: si toca dos bandas, en cuál cae es una
+     * pregunta que el ensayo no respondió.
+     *
+     * @param  array<int,array<string,mixed>> $bandas
+     * @return array<string,mixed>|null
+     */
+    private function banda(array $bandas, ?Result $medido): ?array
+    {
+        if ($medido === null) {
+            return null;
+        }
+
+        [$desde, $hasta, $desdeIncluido, $hastaIncluido] = $this->intervalo($medido);
+
+        if ($desde === null && $hasta === null) {
+            return null;
+        }
+
+        $tocadas = array_values(array_filter(
+            $bandas,
+            fn ($b) => $this->seTocan(
+                $desde, $hasta, $desdeIncluido, $hastaIncluido,
+                isset($b['min']) ? (float) $b['min'] : null,
+                isset($b['max']) ? (float) $b['max'] : null,
+                ! ($b['min_exclusive'] ?? false),
+                (bool) ($b['max_inclusive'] ?? false),
+            )
+        ));
+
+        return count($tocadas) === 1 ? $tocadas[0] : null;
+    }
+
+    /**
+     * Qué valores puede tener realmente un resultado.
+     *
+     * Un número a secas es un punto. Un "<5" es todo lo que hay por debajo de
+     * 5 y un ">70" todo lo que hay por encima: tratarlos como el número que
+     * llevan al lado es el error que el sistema anterior cometía al limpiar el
+     * signo antes de convertir.
+     *
+     * @return array{0:?float,1:?float,2:bool,3:bool} desde, hasta, ¿entra el desde?, ¿entra el hasta?
+     */
+    private function intervalo(Result $resultado): array
+    {
+        if ($resultado->value_num === null) {
+            return [null, null, false, false];
+        }
+
+        $v = (float) $resultado->value_num;
+
+        return match ($resultado->qualifier) {
+            Result::QUALIFIER_LT => [null, $v, false, false],
+            Result::QUALIFIER_GT => [$v, null, false, false],
+            default              => [$v, $v, true, true],
+        };
+    }
+
+    /** ¿Se solapan dos intervalos? Los nulos son infinito. */
+    private function seTocan(
+        ?float $aDesde, ?float $aHasta, bool $aDesdeInc, bool $aHastaInc,
+        ?float $bDesde, ?float $bHasta, bool $bDesdeInc, bool $bHastaInc,
+    ): bool {
+        $porDebajo = function (?float $desde, bool $desdeInc, ?float $hasta, bool $hastaInc): bool {
+            if ($desde === null || $hasta === null) {
+                return false;               // un extremo infinito nunca corta
+            }
+
+            return $desde > $hasta || ($desde === $hasta && ! ($desdeInc && $hastaInc));
+        };
+
+        return ! $porDebajo($aDesde, $aDesdeInc, $bHasta, $bHastaInc)
+            && ! $porDebajo($bDesde, $bDesdeInc, $aHasta, $aHastaInc);
+    }
+
+    /**
+     * Los marcadores que citan el número medido.
+     *
+     *   {value}      12.4 mg/kg   — el valor con su unidad
+     *   {value_num}  12.4         — el valor pelado, para frases que ya
+     *                               escriben la unidad
+     *   {unit}       mg/kg
+     *
+     * Con `:codigo` se pide un parámetro concreto de la familia
+     * (`{value:passivator}`); sin él, el que la plantilla declaró en `analyte`.
+     * Y con `[n]` se toma el n-ésimo tramo de un código compuesto: el ISO 4406
+     * es "18/16/13" y el párrafo explica cada dígito por separado.
+     *
+     * @param  Collection<int,Result> $resultados
+     */
+    private function reemplazarValores(string $cuerpo, Collection $resultados, ?Result $medido): string
+    {
+        return (string) preg_replace_callback(
+            // `value_num` va antes que `value`: con la alternancia al revés el
+            // motor de expresiones tiene que retroceder para acertarle.
+            '/\{(value_num|value|unit)(?::([a-z0-9_]+))?(?:\[(\d+)\])?\}/i',
+            function (array $m) use ($resultados, $medido) {
+                $r = isset($m[2]) && $m[2] !== '' ? $this->porCodigo($resultados, $m[2]) : $medido;
+
+                if ($r === null) {
+                    return '—';
+                }
+
+                $unidad = (string) ($r->unit ?? $r->analyte?->unit ?? '');
+                $numero = (string) ($r->display ?? '');
+
+                if (($m[3] ?? '') !== '') {
+                    // Tramo de un código compuesto. Sin unidad: "18" de
+                    // "18/16/13" no son 18 de nada.
+                    $tramos = explode('/', $numero);
+
+                    return trim($tramos[((int) $m[3]) - 1] ?? '—');
+                }
+
+                return match (strtolower($m[1])) {
+                    'unit'      => $unidad !== '' ? $unidad : '—',
+                    'value_num' => $numero !== '' ? $numero : '—',
+                    default     => trim($numero . ' ' . $unidad) ?: '—',
+                };
+            },
+            $cuerpo,
+        );
+    }
+
+    /**
+     * @param  Collection<int,Result> $resultados
+     */
+    private function porCodigo(Collection $resultados, string $codigo): ?Result
+    {
+        return $resultados->first(fn (Result $r) => $r->analyte?->code === $codigo);
     }
 
     /**
@@ -178,23 +432,51 @@ class DiagnosisTextService
      */
     private function lista(Collection $resultados): string
     {
-        $nombres = $resultados
-            ->map(fn (Result $r) => mb_strtolower((string) ($r->analyte?->name ?? $r->field?->label)))
-            ->filter()
-            ->unique()
-            ->values();
+        return $this->enumerar($resultados->map(
+            fn (Result $r) => mb_strtolower((string) ($r->analyte?->name ?? $r->field?->label))
+        ));
+    }
 
-        if ($nombres->isEmpty()) {
+    /**
+     * "7.3 ppm de aluminio y 2.1 ppm de cobre".
+     *
+     * La misma lista, pero citando cuánto se midió de cada uno. Es lo que el
+     * párrafo de metales necesita, y en el sistema anterior se armaba con ocho
+     * variables `@str_metN` concatenadas —cada una terminada en coma— así que
+     * la frase salía impresa con una coma antes de "como compuestos metálicos".
+     *
+     * @param  Collection<int,Result> $resultados
+     */
+    private function listaConValor(Collection $resultados): string
+    {
+        return $this->enumerar($resultados->map(function (Result $r) {
+            $nombre = mb_strtolower((string) ($r->analyte?->name ?? $r->field?->label));
+            $unidad = (string) ($r->unit ?? $r->analyte?->unit ?? '');
+
+            return trim(trim($r->display . ' ' . $unidad) . ' ' . __('reports.of') . ' ' . $nombre);
+        }));
+    }
+
+    /**
+     * Une con la conjunción antes del último y sin coma colgando.
+     *
+     * @param  Collection<int,string> $partes
+     */
+    private function enumerar(Collection $partes): string
+    {
+        $partes = $partes->filter()->unique()->values();
+
+        if ($partes->isEmpty()) {
             return '—';
         }
 
-        if ($nombres->count() === 1) {
-            return $nombres->first();
+        if ($partes->count() === 1) {
+            return (string) $partes->first();
         }
 
-        $ultimo = $nombres->pop();
+        $ultimo = $partes->pop();
 
-        return $nombres->implode(', ') . ' ' . __('reports.and') . ' ' . $ultimo;
+        return $partes->implode(', ') . ' ' . __('reports.and') . ' ' . $ultimo;
     }
 
     /**

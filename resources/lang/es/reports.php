@@ -148,6 +148,9 @@ return [
     'health_index'      => 'Índice de salud',
 
     'and' => 'y',
+    // Une el valor medido con el parámetro dentro de una enumeración del
+    // análisis: "7.3 ppm DE aluminio y 2.1 ppm DE cobre".
+    'of'  => 'de',
     'analysis_title' => 'ANÁLISIS DE RESULTADOS (opiniones e interpretaciones)',
     'analysis_empty'  => 'Sin análisis cargado para esta familia de ensayos.',
     'analysis_edited' => 'Editado por el analista',

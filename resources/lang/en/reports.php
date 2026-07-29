@@ -143,6 +143,9 @@ return [
     'health_index'      => 'Health index',
 
     'and' => 'and',
+    // Joins the measured value with its parameter inside an enumeration:
+    // "7.3 ppm OF aluminium and 2.1 ppm OF copper".
+    'of'  => 'of',
     'analysis_title' => 'ANALYSIS OF RESULTS (opinions and interpretations)',
     'analysis_empty'  => 'No analysis recorded for this test family.',
     'analysis_edited' => 'Edited by the analyst',

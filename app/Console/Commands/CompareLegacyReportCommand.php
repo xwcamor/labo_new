@@ -133,8 +133,18 @@ class CompareLegacyReportCommand extends Command
                 'accreditation_note' => $tenant?->accreditation_note,
                 'disclaimer'         => $tenant?->report_disclaimer,
             ],
-            'signers'     => collect(),
+            // Los MISMOS firmantes que el papel viejo: comparar uno firmado
+            // contra otro sin firmar escondería justamente lo que cambió.
+            'signers'     => $this->firmantesModelo(),
         ])->setPaper('a4');
+
+        $pdf->render();
+        $dompdf = $pdf->getDomPDF();
+        $fuente = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
+        $dompdf->getCanvas()->page_text(
+            455.0, 812.0, __('reports.page_of', ['num' => '{PAGE_NUM}', 'total' => '{PAGE_COUNT}']),
+            $fuente, 6.5, [0.33, 0.33, 0.33],
+        );
 
         return $pdf->output();
     }
@@ -229,8 +239,10 @@ class CompareLegacyReportCommand extends Command
         $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $fuente = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
+        // Alineada con la dirección, en el mismo renglón y a la derecha. Antes
+        // caía sobre la regla roja del pie y se leía pisada.
         $dompdf->getCanvas()->page_text(
-            470.0, 812.0, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 8, [0.13, 0.15, 0.16],
+            455.0, 806.0, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 9, [0.13, 0.15, 0.16],
         );
 
         return $pdf->output();
@@ -470,6 +482,24 @@ class CompareLegacyReportCommand extends Command
      *
      * @return array<int,array{relacion:string,nombre:string,cargo:?string,imagen:?string}>
      */
+    /** Los firmantes como MODELO, que es lo que espera el blade del informe nuevo. */
+    private function firmantesModelo(): \Illuminate\Support\Collection
+    {
+        $tenantId = \App\Models\Tenant::query()->orderBy('id')->value('id');
+
+        return \App\Models\Signature::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with('user:id,name,signature,auto_sign_reports')
+            ->orderBy('sort_order')->orderBy('id')
+            ->get()
+            ->map(function ($firma) {
+                $firma->stamp = $this->firmaComoImagen($firma);
+
+                return $firma;
+            });
+    }
+
     private function firmantes(): array
     {
         $tenantId = \App\Models\Tenant::query()->orderBy('id')->value('id');
@@ -493,15 +523,31 @@ class CompareLegacyReportCommand extends Command
             ->all();
     }
 
+    /**
+     * La firma escaneada, resuelta a data-URI.
+     *
+     * `imagePath()` devuelve la ruta RELATIVA al disco público, no una ruta del
+     * sistema de archivos: preguntarle `is_file()` directamente da siempre
+     * falso y la firma no se estampa nunca. Es el mismo camino que usa el
+     * informe real.
+     */
     private function firmaComoImagen(\App\Models\Signature $firma): ?string
     {
         $ruta = $firma->imagePath();
 
-        if (! $ruta || ! is_file($ruta)) {
+        if (! $ruta) {
             return null;
         }
 
-        return 'data:image/png;base64,' . base64_encode((string) file_get_contents($ruta));
+        $absoluta = \Illuminate\Support\Facades\Storage::disk('public')->path($ruta);
+
+        if (! is_file($absoluta)) {
+            return null;
+        }
+
+        $tipo = mime_content_type($absoluta) ?: 'image/png';
+
+        return 'data:' . $tipo . ';base64,' . base64_encode((string) file_get_contents($absoluta));
     }
 
     private function num(mixed $v): string

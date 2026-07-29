@@ -1279,7 +1279,9 @@ html[data-theme="dark"] .lift:hover {
    Da: fondo gris, franja blanca de título full-bleed, cuerpo sin fondo blanco,
    campos apilados (label izq + input der), footer toolbar fino full-bleed.
    ════════════════════════════════════════════════════════════════════════════ */
-.sap-form { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - var(--shell-bar-h, 44px)); }
+/* La página en columna para que la barra de acciones baje al pie: ver el bloque
+   de `.form-footer--floating` más abajo. */
+.sap-form { background: var(--sap-page-bg, #e9edf2); margin: -24px; padding: 24px; min-height: calc(100vh - var(--shell-bar-h, 44px)); display: flex; flex-direction: column; }
 /* Franja blanca del título a borde completo. */
 .sap-form .section-header {
     background: var(--color-surface, #fff);
@@ -1318,12 +1320,30 @@ html[data-theme="dark"] .lift:hover {
 .sap-form .form-section-title--spaced { margin-top: 18px; }
 /* Asterisco de obligatorio más fuerte. */
 .sap-form .ant-form-item-required::before { color: #e0182d; font-size: 1.05em; font-weight: 700; }
-/* Footer toolbar fino full-bleed (-52 = padding .sap-form 24 + body/card 28). */
-.sap-form .form-footer--floating { margin: 12px -52px 0; padding: 8px 52px; }
+/* ── Barra de acciones: SIEMPRE al pie de la página ─────────────────────────
+   `position: sticky` solo pega el elemento MIENTRAS hay algo que scrollear.
+   Con un formulario corto la barra quedaba flotando a media página, y con uno
+   largo, al llegar al final del scroll, aparecían 48 px de gris DEBAJO de la
+   barra: el relleno inferior de la página (24) más el del cuerpo del formulario
+   (24), que la barra no alcanzaba a cubrir.
+   La cadena en columna (página → cuerpo → <form>) más `margin-top: auto` la
+   empuja al pie cuando sobra espacio; los márgenes negativos le comen esos dos
+   rellenos para que apoye en el borde real. Horizontal: -52 = 24 de la página +
+   28 del cuerpo/tarjeta.
+   Cada eslabón ENTRE la página y la barra se vuelve columna elástica. Va con
+   `:has` en vez de nombrar las clases una por una porque el envoltorio cambia
+   según la página (unas usan `.form-body`, otras una tarjeta), y así no toca
+   las que no tienen barra flotante (papeleras, editar todo). */
+.sap-form > *:has(.form-footer--floating),
+.sap-form > * > *:has(.form-footer--floating),
+.sap-form > * > * > *:has(.form-footer--floating) { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+/* Doble clase a propósito: el estilo `scoped` del componente trae su propio
+   `margin-top` y, a igual especificidad, gana el que Vite inyecta último. */
+.sap-form .form-footer.form-footer--floating { margin: auto -52px -48px; padding: 8px 52px 14px; }
 @media (max-width: 768px) {
     .sap-form { margin: -16px; padding: 16px; }
     .sap-form .section-header { margin: -16px -16px 16px; padding: 14px 16px; }
-    .sap-form .form-footer--floating { margin: 12px -32px 0; padding: 8px 16px; }
+    .sap-form .form-footer.form-footer--floating { margin: auto -32px -40px; padding: 8px 16px 14px; }
 }
 
 /* ── Ficha (Show): franja blanca del título full-bleed sobre fondo gris ──────

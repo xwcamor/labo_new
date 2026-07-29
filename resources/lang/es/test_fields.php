@@ -27,7 +27,7 @@ return [
     'is_reusable_help' => 'El valor se arrastra a la muestra siguiente. Se usa para el factor de la solución titulante o la temperatura ambiente.',
     'default_value'  => 'Valor constante',
     'report_visible' => 'Mostrar en el informe',
-    'report_visible_help' => 'En el sistema anterior esta casilla se podía marcar y no hacía nada: el informe tomaba las columnas por número. Aquí sí decide qué sale impreso.',
+    'report_visible_help' => 'Decide si esta columna sale impresa en el informe del cliente. Las columnas intermedias del cálculo normalmente no se publican.',
     'replicates'     => 'Mediciones por muestra',
     'replicates_help' => 'Cuántas veces se repite esta medición sobre la misma muestra. La rigidez dieléctrica se mide cinco o seis veces y se promedia.',
     'sort_order'     => 'Orden',

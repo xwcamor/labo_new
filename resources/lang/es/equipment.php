@@ -38,10 +38,10 @@ return [
     'external_ref'    => 'Referencia externa',
 
     // Sección de pertenencia
-    'section_owner'      => 'De quién es y dónde está',
+    'section_owner'      => 'Cliente y ubicación',
     'section_identity'   => 'Identificación',
-    'section_what'       => 'Qué es',
-    'section_physical'   => 'Datos físicos',
+    'section_what'       => 'Características',
+    'section_physical'   => 'Datos técnicos',
     'customer'           => 'Cliente',
     'customer_help'      => 'Obligatorio: la recepción de muestras solo ofrece los equipos del cliente de la entrega.',
     'location'           => 'Ubicación',

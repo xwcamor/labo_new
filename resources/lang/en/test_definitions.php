@@ -42,21 +42,21 @@ return [
     'chart_unit_help' => 'Axis label on the trend charts (e.g. ppm, mg KOH/g, kV).',
 
     // ── Quality control flags ───────────────────────────────────────────
-    'control_intro' => 'The control standard and the duplicate are the two control rows of a worksheet: the standard checks the method is measuring correctly, the duplicate that the result is repeatable. In the previous system this rule lived in the screen, so a direct request bypassed it; here the server enforces it.',
+    'control_intro' => 'The control standard checks the method is measuring correctly, the duplicate that the result is repeatable. When required, the worksheet cannot be closed without them.',
     'has_control'         => 'Runs with a control standard',
     'has_control_help'    => 'The test accepts control standard rows on its worksheet.',
     'requires_control'    => 'Requires a control standard',
     'requires_control_help' => 'The worksheet does not accept samples until at least one control standard is entered.',
     'requires_duplicate'  => 'Requires a duplicate',
     'requires_duplicate_help' => 'The worksheet does not accept samples until at least one duplicate is entered.',
-    'is_grouped'          => 'Flagged as grouped (previous system)',
-    'is_grouped_help'     => 'Flag inherited from the Rails system, where it meant "uses neither standard nor duplicate". Kept so the import stays traceable, but the two checkboxes above are what actually rules.',
+    'is_grouped'          => 'Grouped',
+    'is_grouped_help'     => 'Import flag. It decides nothing: the two checkboxes above are what rules.',
 
     'replicates'      => 'Replicates',
     'replicates_help' => 'How many times the SAME sample is measured to average. Dielectric strength is measured 5 or 6 times; every other test uses 1.',
 
     'legacy_id'      => 'Id in the previous system',
-    'legacy_id_help' => 'Identifier of this test in the Rails system. It lets the import be re-run without duplicating and keeps the historical data traceable. Read-only: it is not edited here.',
+    'legacy_id_help' => 'Source identifier of the test. It lets the import be re-run without duplicating and keeps historical data traceable. Read-only.',
 
     'sort_order' => 'Order',
     'sort_order_help' => 'Position of the test within its group. Lower comes first.',

@@ -37,10 +37,10 @@ return [
     'service_state'   => 'Service state',
     'external_ref'    => 'External reference',
 
-    'section_owner'      => 'Owner and location',
+    'section_owner'      => 'Customer and location',
     'section_identity'   => 'Identification',
-    'section_what'       => 'What it is',
-    'section_physical'   => 'Physical data',
+    'section_what'       => 'Specifications',
+    'section_physical'   => 'Technical data',
     'customer'           => 'Customer',
     'customer_help'      => 'Required: sample reception only offers equipment belonging to the delivery customer.',
     'location'           => 'Location',

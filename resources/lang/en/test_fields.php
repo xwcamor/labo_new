@@ -27,7 +27,7 @@ return [
     'is_reusable_help' => 'The value carries over to the next sample. Used for the titrant factor or the ambient temperature.',
     'default_value'  => 'Constant value',
     'report_visible' => 'Show in the report',
-    'report_visible_help' => 'In the previous system this checkbox could be ticked and did nothing: the report picked columns by number. Here it does decide what gets printed.',
+    'report_visible_help' => 'Decides whether this column is printed on the customer report. Intermediate calculation columns are normally not published.',
     'replicates'     => 'Readings per sample',
     'replicates_help' => 'How many times this reading is repeated on the same sample. Dielectric strength is measured five or six times and averaged.',
     'sort_order'     => 'Order',

@@ -42,21 +42,21 @@ return [
     'chart_unit_help' => 'Rótulo del eje en los gráficos de tendencia (ej: ppm, mg KOH/g, kV).',
 
     // ── Banderas de control de calidad ──────────────────────────────────
-    'control_intro' => 'El patrón control y el duplicado son las dos filas de control de la hoja de trabajo: el patrón verifica que el método esté midiendo bien y el duplicado, que el resultado sea repetible. En el sistema anterior esta regla vivía en la pantalla, así que un envío directo la salteaba; aquí la controla el servidor.',
+    'control_intro' => 'El patrón control verifica que el método esté midiendo bien y el duplicado, que el resultado sea repetible. Si se exigen, la hoja no se puede cerrar sin ellos.',
     'has_control'         => 'Corre con patrón control',
     'has_control_help'    => 'La prueba admite filas de patrón control en su hoja de trabajo.',
     'requires_control'    => 'Exige patrón control',
     'requires_control_help' => 'La hoja no acepta muestras hasta que tenga cargado al menos un patrón control.',
     'requires_duplicate'  => 'Exige duplicado',
     'requires_duplicate_help' => 'La hoja no acepta muestras hasta que tenga cargado al menos un duplicado.',
-    'is_grouped'          => 'Marcada como agrupada (sistema anterior)',
-    'is_grouped_help'     => 'Bandera heredada del sistema Rails: allí significaba "no usa patrón ni duplicado". Se conserva para poder rastrear la importación, pero quien manda son las dos casillas de arriba.',
+    'is_grouped'          => 'Agrupada',
+    'is_grouped_help'     => 'Marca de la importación. No decide nada: quien manda son las dos casillas de arriba.',
 
     'replicates'      => 'Repeticiones',
     'replicates_help' => 'Cuántas veces se mide la MISMA muestra para promediar. La rigidez dieléctrica se mide 5 o 6 veces; el resto de las pruebas usa 1.',
 
     'legacy_id'      => 'Id en el sistema anterior',
-    'legacy_id_help' => 'Identificador de esta prueba en el sistema Rails. Sirve para volver a correr la importación sin duplicar y para rastrear los datos históricos. Es de solo lectura: no se edita desde aquí.',
+    'legacy_id_help' => 'Identificador de origen de la prueba. Permite volver a importar sin duplicar y rastrear los datos históricos. Es de solo lectura.',
 
     'sort_order' => 'Orden',
     'sort_order_help' => 'Posición de la prueba dentro de su grupo. Menor primero.',

@@ -24,7 +24,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Textarea, Tooltip } from 'ant-design-vue';
 import {
     DeleteOutlined, EditOutlined, ExperimentOutlined, FileTextOutlined,
-    FilePdfOutlined, InboxOutlined, PlusOutlined, SolutionOutlined, ThunderboltFilled,
+    FilePdfOutlined, HistoryOutlined, InboxOutlined, PlusOutlined, SolutionOutlined,
+    ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -38,6 +39,7 @@ import SampleProgress from '@/Components/Receptions/SampleProgress.vue';
 import AssignTestsModal from '@/Components/Receptions/AssignTestsModal.vue';
 import ReportFormModal from '@/Components/Receptions/ReportFormModal.vue';
 import ReportAnalysisModal from '@/Components/Receptions/ReportAnalysisModal.vue';
+import RecordHistory from '@/Components/Common/RecordHistory.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { plainDate, testStatusColor } from './config/format';
@@ -57,10 +59,13 @@ const props = defineProps({
     equipment:  { type: Array,  default: () => [] },
     oilTypes:   { type: Array,  default: () => [] },
     nextNumber: { type: [String, null], default: null },
+    // El historial del registro, igual que en el resto de las fichas.
+    activity:    { type: Array,  default: () => [] },
+    recordAudit: { type: Object, default: null },
 });
 
 const { t } = useI18n();
-const { can } = useAuth();
+const { can, canSeeAudit } = useAuth();
 const page = usePage();
 
 const isDraft = computed(() => props.reception.status === 'draft');
@@ -285,24 +290,30 @@ const reportColumns = computed(() => [
 
         <ReceptionHeader :reception="reception" />
 
-        <!-- Borrador: todavía no hay muestras porque todavía no hay números. -->
-        <ConfirmSamplesCard
-            v-if="isDraft"
-            :reception="reception"
-            :next-number="nextNumber"
-            :disabled="!canEdit"
-        />
+        <!-- Muestras · Informes, como en el sistema anterior: lo que ENTRÓ y lo
+             que SALIÓ. Son dos trabajos distintos sobre la misma entrega
+             —cargar muestras y emitir informes— y mezclarlos en una sola tabla
+             obliga a mirar veinte filas para encontrar los tres papeles que se
+             entregaron. La tercera, Historial, es la misma de todas las fichas.
 
-        <!-- Dos pestañas, como en el sistema anterior: lo que ENTRÓ y lo que
-             SALIÓ. Son dos trabajos distintos sobre la misma entrega —cargar
-             muestras y emitir informes— y mezclarlos en una sola tabla obliga a
-             mirar veinte filas para encontrar los tres papeles que se
-             entregaron. -->
-        <Tabs v-else class="rc-tabs">
+             Las pestañas se dibujan también en BORRADOR: antes el bloque entero
+             colgaba de un `v-else` y la entrega recién registrada —justo cuando
+             uno quiere ver quién la cargó— era la única ficha del sistema sin
+             historial. -->
+        <Tabs class="rc-tabs">
         <TabPane key="samples">
             <template #tab>
                 <span><ExperimentOutlined /> {{ $t('receptions.section_samples') }} ({{ samples.length }})</span>
             </template>
+
+            <!-- Borrador: todavía no hay muestras porque todavía no hay números. -->
+            <ConfirmSamplesCard
+                v-if="isDraft"
+                :reception="reception"
+                :next-number="nextNumber"
+                :disabled="!canEdit"
+            />
+            <template v-else>
 
             <Card :body-style="{ padding: 0 }" class="rc-samples grid-card">
             <div class="rc-samples__bar">
@@ -420,6 +431,7 @@ const reportColumns = computed(() => [
                 </template>
             </ResponsiveTable>
             </Card>
+            </template>
         </TabPane>
 
         <TabPane key="reports">
@@ -517,6 +529,13 @@ const reportColumns = computed(() => [
                     </template>
                 </ResponsiveTable>
             </Card>
+        </TabPane>
+
+        <TabPane key="history">
+            <template #tab>
+                <span><HistoryOutlined /> {{ $t('global.history') }}</span>
+            </template>
+            <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
         </TabPane>
         </Tabs>
 

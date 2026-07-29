@@ -129,7 +129,8 @@ class EquipmentService
                 'customer_id', 'customer_location_id', 'customer_area_id', 'customer_substation_id',
                 'equipment_type_id', 'oil_type_id', 'brand_id', 'tap_changer_type_id',
                 'transformer_preservation_id',
-                'voltage_kv_hv', 'voltage_kv_lv', 'power_mva', 'phases', 'manufacture_year',
+                'voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv',
+                'power_mva', 'power_mva_2', 'power_mva_3', 'phases', 'manufacture_year',
                 'oil_volume', 'oil_volume_unit', 'service_state', 'is_active',
             ]));
             $clone->name       = $candidate;

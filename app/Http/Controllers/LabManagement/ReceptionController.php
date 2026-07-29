@@ -42,6 +42,8 @@ use Inertia\Inertia;
  */
 class ReceptionController extends Controller
 {
+    use \App\Traits\BuildsRecordAudit;
+
     public function __construct(
         private readonly ReceptionService $service,
         private readonly SampleProgressService $progress = new SampleProgressService(),
@@ -127,7 +129,7 @@ class ReceptionController extends Controller
             ->with('success', __('receptions.created'));
     }
 
-    public function show(Reception $reception)
+    public function show(Request $request, Reception $reception)
     {
         $reception->load(['customer:id,name', 'sampler:id,name', 'confirmer:id,name']);
 
@@ -162,6 +164,11 @@ class ReceptionController extends Controller
 
         return Inertia::render('Receptions/Show', [
             'reception' => $reception,
+            // La entrega es un registro trazable como cualquier otro: quién la
+            // registró, quién la confirmó, qué se le cambió después. El modelo
+            // ya escribía la auditoría; la ficha no la mostraba.
+            'recordAudit' => $this->recordAuditMeta($reception),
+            'activity'    => $this->recordActivity($reception, $request),
             'samples'   => $samples,
             'reports'   => $informes,
             // UNA consulta para el avance de todas las muestras.

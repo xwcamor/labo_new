@@ -186,8 +186,15 @@ class TestReportPayload
             'oil_type'   => $e->oilType?->name,
             'location'   => $e->location?->name,
             'substation' => $e->substation?->name,
+            // Las dos placas se arman en el MODELO, no acá: la ficha, el
+            // informe y los exports imprimen "500 / 220 / 33" con la misma
+            // regla. Los valores sueltos siguen viajando para quien necesite
+            // el número y no la placa.
+            'voltage'    => $e->voltage_label,
+            'power'      => $e->power_label,
             'voltage_hv' => $this->numero($e->voltage_kv_hv),
             'voltage_lv' => $this->numero($e->voltage_kv_lv),
+            'voltage_tv' => $this->numero($e->voltage_kv_tv),
             'power_mva'  => $this->numero($e->power_mva),
             'year'       => $e->manufacture_year,
 

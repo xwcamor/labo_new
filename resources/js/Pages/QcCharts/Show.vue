@@ -22,6 +22,8 @@ import QcPointsTable from '@/Components/QcCharts/QcPointsTable.vue';
 import QcDuplicatesTable from '@/Components/QcCharts/QcDuplicatesTable.vue';
 import QcPointExcludeModal from '@/Components/QcCharts/QcPointExcludeModal.vue';
 import { LIMIT_KEYS, fmtNumber } from '@/Components/QcCharts/limits';
+import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
+import RecordHistory from '@/Components/Common/RecordHistory.vue';
 
 import { useAuth } from '@/Composables/useAuth';
 import { useDateFormat } from '@/Composables/useDateFormat';
@@ -35,10 +37,14 @@ const props = defineProps({
     points:     { type: Array,  default: () => [] },
     rules:      { type: Object, default: () => ({}) },
     duplicates: { type: Array,  default: () => [] },
+    // Mover los límites de una carta reescribe el veredicto de todo lo que
+    // venga después: quién lo hizo y cuándo tiene que estar a la vista.
+    activity:    { type: Array,  default: () => [] },
+    recordAudit: { type: Object, default: null },
 });
 
 const { t } = useI18n();
-const { can } = useAuth();
+const { can, canSeeAudit } = useAuth();
 const { formatDate } = useDateFormat();
 
 const canEdit = computed(() => can('qc_charts.edit'));
@@ -114,6 +120,9 @@ const openExclusion = (point) => {
             </template>
         </SectionHeader>
 
+        <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
+            <template #general>
+
         <!-- Ficha de la carta: lote, vigencia, límites y reparto de veredictos. -->
         <Card :bodyStyle="{ padding: 14 }" class="qcs-card">
             <div class="spec-grid qcs-specs">
@@ -186,6 +195,13 @@ const openExclusion = (point) => {
             <template #title>{{ $t('qc_charts.duplicates') }}</template>
             <QcDuplicatesTable :duplicates="duplicates" :unit="unit" />
         </Card>
+
+            </template>
+
+            <template #history>
+                <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
+            </template>
+        </EntityShowTabs>
 
         <QcPointExcludeModal
             v-model:open="excludeOpen"

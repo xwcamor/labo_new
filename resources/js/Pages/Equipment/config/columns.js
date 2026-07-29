@@ -16,13 +16,14 @@ export const equipmentTableColumns = (t, { isSuper = false, isMobile = false } =
     // ya no es columna aparte, va fundido aquí).
     { title: t('equipment.name'),     dataIndex: 'name',        key: 'name',       sorter: (a, b) => a.name.localeCompare(b.name), alwaysVisible: true, mobile: { role: 'title' } },
     { title: t('equipment.serial'), dataIndex: 'serial', key: 'serial', mobile: { role: 'meta' } },
-    { title: t('equipment.tag'), dataIndex: 'tag', key: 'tag', mobile: { role: 'meta' } },
-    { title: t('equipment.voltage_kv_hv'), dataIndex: 'voltage_kv_hv', key: 'voltage_kv_hv', mobile: { role: 'meta' } },
-    { title: t('equipment.voltage_kv_lv'), dataIndex: 'voltage_kv_lv', key: 'voltage_kv_lv', mobile: { role: 'meta' } },
-    { title: t('equipment.power_mva'), dataIndex: 'power_mva', key: 'power_mva', mobile: { role: 'meta' } },
-    { title: t('equipment.phases'), dataIndex: 'phases', key: 'phases', mobile: { role: 'meta' } },
+    { title: t('equipment.tag'), dataIndex: 'tag', key: 'tag', width: 110, mobile: { role: 'meta' } },
+    // La placa completa en una columna. Tres columnas de tensión dejaban el
+    // índice con dos vacías en casi todos los equipos.
+    { title: t('equipment.voltage_label'), dataIndex: 'voltage_label', key: 'voltage_label', width: 130, mobile: { role: 'meta' } },
+    { title: t('equipment.power_label'), dataIndex: 'power_label', key: 'power_label', width: 130, mobile: { role: 'meta' } },
+    { title: t('equipment.phases'), dataIndex: 'phases', key: 'phases', width: 80, mobile: { role: 'meta' } },
     { title: t('equipment.manufacture_year'), dataIndex: 'manufacture_year', key: 'manufacture_year', mobile: { role: 'meta' } },
-    { title: t('equipment.oil_volume'), dataIndex: 'oil_volume', key: 'oil_volume', mobile: { role: 'meta' } },
+    { title: t('equipment.oil_volume'), dataIndex: 'oil_volume', key: 'oil_volume', width: 130, mobile: { role: 'meta' } },
     { title: t('equipment.external_ref'), dataIndex: 'external_ref', key: 'external_ref', mobile: { role: 'meta' } },
     ...(isSuper ? [
         { title: t('tenants.singular'), dataIndex: ['tenant', 'name'], key: 'tenant', width: 180, sorter: true, mobile: { role: 'meta', icon: ApartmentOutlined } },

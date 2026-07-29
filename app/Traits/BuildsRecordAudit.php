@@ -2,8 +2,10 @@
 
 namespace App\Traits;
 
+use App\Http\Resources\AuditLogResource;
 use App\Models\AuditLog;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
 /**
  * Arma los metadatos de auditoría de un registro (quién/cuándo creó y actualizó)
@@ -20,6 +22,34 @@ use Illuminate\Database\Eloquent\Model;
  */
 trait BuildsRecordAudit
 {
+    /**
+     * El feed de actividad del registro, ya gateado.
+     *
+     * Es el bloque que cada controller venía escribiendo a mano —la misma
+     * consulta, el mismo límite, el mismo `hasAnyRole`— y que por eso faltaba
+     * en las fichas que se armaron después: la entrega, la hoja de trabajo y la
+     * carta de control quedaron sin historial no por decisión, sino porque
+     * nadie volvió a copiar las quince líneas.
+     *
+     * @return array<int,mixed>
+     */
+    protected function recordActivity(Model $model, Request $request, int $limit = 20): array
+    {
+        if (! ($request->user()?->hasAnyRole(['super', 'admin']) ?? false)) {
+            return [];
+        }
+
+        return AuditLogResource::collection(
+            AuditLog::query()
+                ->where('auditable_type', $model->getMorphClass())
+                ->where('auditable_id', $model->getKey())
+                ->with('user:id,name,email')
+                ->orderByDesc('created_at')
+                ->limit($limit)
+                ->get(['id', 'user_id', 'event', 'old_values', 'new_values', 'created_at'])
+        )->resolve();
+    }
+
     protected function recordAuditMeta(Model $model): array
     {
         $base = AuditLog::where('auditable_type', $model->getMorphClass())

@@ -12,6 +12,9 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
+import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { useDateFormat } from '@/Composables/useDateFormat';
 
@@ -25,7 +28,11 @@ const props = defineProps({
     message: { type: Object, required: true },
     stats:   { type: Object, required: true },
     replies: { type: Array,  default: () => [] },
+    activity:    { type: Array,  default: () => [] },
+    recordAudit: { type: Object, default: null },
 });
+
+const { canSeeAudit } = useAuth();
 
 const audienceColor = computed(() => {
     if (props.message.audience_type === 'global') return 'blue';
@@ -88,6 +95,9 @@ const fmtRel = (d) => d ? dayjs(d).fromNow() : '-';
                 </Space>
             </div>
 
+            <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
+            <template #general>
+
             <Space :size="6" style="margin-bottom:16px">
                 <Tag :color="statusTag.color" :bordered="false">{{ statusTag.label }}</Tag>
                 <Tag :color="audienceColor" :bordered="false">{{ audienceLabel }}</Tag>
@@ -144,6 +154,13 @@ const fmtRel = (d) => d ? dayjs(d).fromNow() : '-';
                     </div>
                 </div>
             </div>
+
+            </template>
+
+            <template #history>
+                <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
+            </template>
+            </EntityShowTabs>
         </Card>
     </div>
 </template>

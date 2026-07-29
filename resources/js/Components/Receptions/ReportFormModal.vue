@@ -219,13 +219,13 @@ const submit = () => {
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.voltage') }}</span>
                             <Input
-                                :value="[form.voltage_kv_hv, form.voltage_kv_lv].filter(Boolean).join(' / ') || '—'"
+                                :value="form.voltage_label || '—'"
                                 disabled
                             />
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.power') }}</span>
-                            <Input :value="form.power_mva ?? '—'" disabled />
+                            <Input :value="form.power_label || '—'" disabled />
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.equipment_type') }}</span>

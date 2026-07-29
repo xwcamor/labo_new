@@ -28,6 +28,8 @@ use Inertia\Inertia;
  */
 class QcChartController extends Controller
 {
+    use \App\Traits\BuildsRecordAudit;
+
     public function index(Request $request)
     {
         $query = QcChart::query()
@@ -78,7 +80,7 @@ class QcChartController extends Controller
      * La ficha ES el gráfico: la serie de puntos con sus cinco líneas y el
      * veredicto de cada uno.
      */
-    public function show(QcChart $qc_chart)
+    public function show(Request $request, QcChart $qc_chart)
     {
         $qc_chart->load([
             'definition:id,slug,code,name,chart_unit',
@@ -93,6 +95,11 @@ class QcChartController extends Controller
 
         return Inertia::render('QcCharts/Show', [
             'chart'  => $qc_chart,
+            // Cambiar los límites de una carta reescribe el veredicto de todo
+            // lo que venga después: quién los movió y cuándo tiene que quedar
+            // a la vista, no solo en la tabla de auditoría.
+            'recordAudit' => $this->recordAuditMeta($qc_chart),
+            'activity'    => $this->recordActivity($qc_chart, $request),
             'limits' => $qc_chart->limits(),
             'points' => $points,
             // Las reglas se mandan al front para poder explicarlas en el

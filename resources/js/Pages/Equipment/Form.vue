@@ -56,9 +56,15 @@ const form = useForm({
     tap_changer_type_id:         props.equipment?.tap_changer_type_id ?? null,
     transformer_preservation_id: props.equipment?.transformer_preservation_id ?? null,
 
+    // Tres tensiones y tres potencias porque la placa real llega hasta ahí:
+    // "500 / 220 / 33 kV", "120 / 160 / 200 MVA". Las dos últimas de cada una
+    // quedan vacías en el equipo de dos devanados, que es el caso normal.
     voltage_kv_hv:    props.equipment?.voltage_kv_hv ?? null,
     voltage_kv_lv:    props.equipment?.voltage_kv_lv ?? null,
+    voltage_kv_tv:    props.equipment?.voltage_kv_tv ?? null,
     power_mva:        props.equipment?.power_mva ?? null,
+    power_mva_2:      props.equipment?.power_mva_2 ?? null,
+    power_mva_3:      props.equipment?.power_mva_3 ?? null,
     phases:           props.equipment?.phases ?? null,
     manufacture_year: props.equipment?.manufacture_year ?? null,
     oil_volume:       props.equipment?.oil_volume ?? null,
@@ -327,11 +333,32 @@ const submit = () => {
                         <InputNumber v-model:value="form.voltage_kv_lv" :min="0" style="width: 100%" />
                     </FormItem>
                     <FormItem
+                        :label="$t('equipment.voltage_kv_tv')"
+                        :validate-status="form.errors.voltage_kv_tv ? 'error' : ''"
+                        :help="form.errors.voltage_kv_tv || $t('equipment.voltage_kv_tv_help')"
+                    >
+                        <InputNumber v-model:value="form.voltage_kv_tv" :min="0" style="width: 100%" />
+                    </FormItem>
+                    <FormItem
                         :label="$t('equipment.power_mva')"
                         :validate-status="form.errors.power_mva ? 'error' : ''"
                         :help="form.errors.power_mva"
                     >
                         <InputNumber v-model:value="form.power_mva" :min="0" style="width: 100%" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('equipment.power_mva_2')"
+                        :validate-status="form.errors.power_mva_2 ? 'error' : ''"
+                        :help="form.errors.power_mva_2 || $t('equipment.power_mva_2_help')"
+                    >
+                        <InputNumber v-model:value="form.power_mva_2" :min="0" style="width: 100%" />
+                    </FormItem>
+                    <FormItem
+                        :label="$t('equipment.power_mva_3')"
+                        :validate-status="form.errors.power_mva_3 ? 'error' : ''"
+                        :help="form.errors.power_mva_3"
+                    >
+                        <InputNumber v-model:value="form.power_mva_3" :min="0" style="width: 100%" />
                     </FormItem>
                     <FormItem
                         :label="$t('equipment.phases')"

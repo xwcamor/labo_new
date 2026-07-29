@@ -66,7 +66,10 @@ trait EquipmentFieldRules
             // la banda de tensión que elige el cuadro de límites.
             'voltage_kv_hv' => ['nullable', 'numeric', 'min:0', 'max:2000'],
             'voltage_kv_lv' => ['nullable', 'numeric', 'min:0', 'max:2000'],
+            'voltage_kv_tv' => ['nullable', 'numeric', 'min:0', 'max:2000'],
             'power_mva' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'power_mva_2' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'power_mva_3' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'phases' => ['nullable', 'integer', 'min:1', 'max:3'],
             'manufacture_year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
             'oil_volume' => ['nullable', 'numeric', 'min:0'],

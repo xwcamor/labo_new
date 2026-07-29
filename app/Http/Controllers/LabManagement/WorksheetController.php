@@ -44,6 +44,8 @@ use Inertia\Inertia;
  */
 class WorksheetController extends Controller
 {
+    use \App\Traits\BuildsRecordAudit;
+
     public function __construct(
         private readonly WorksheetService $service,
         private readonly ValueCoercer $coercer = new ValueCoercer(),
@@ -167,7 +169,7 @@ class WorksheetController extends Controller
         return $salida;
     }
 
-    public function show(Worksheet $worksheet)
+    public function show(Request $request, Worksheet $worksheet)
     {
         $worksheet->load([
             'definition.fields.options',
@@ -185,6 +187,11 @@ class WorksheetController extends Controller
 
         return Inertia::render('Worksheets/Show', [
             'worksheet'   => $worksheet,
+            // En un laboratorio acreditado la trazabilidad de la bancada no es
+            // un adorno: quién cargó cada valor y cuándo se cerró la hoja es lo
+            // primero que pide una auditoría.
+            'recordAudit' => $this->recordAuditMeta($worksheet),
+            'activity'    => $this->recordActivity($worksheet, $request),
             'fields'      => $worksheet->definition->fields,
             'fieldTypes'  => config('lab_field_types'),
             // Los equipos que cada columna ofrece, indexados por columna. La

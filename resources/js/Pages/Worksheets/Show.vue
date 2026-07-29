@@ -21,6 +21,9 @@ import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
 import WorksheetHeader from '@/Components/Worksheets/WorksheetHeader.vue';
 import WorksheetGrid from '@/Components/Worksheets/WorksheetGrid.vue';
 import WorksheetActionsBar from '@/Components/Worksheets/WorksheetActionsBar.vue';
+import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
+import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { plainDate } from './config/format';
 
@@ -38,9 +41,15 @@ const props = defineProps({
     equipment:   { type: Array,  default: () => [] },
     can:         { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
+    // El historial del registro, como en el resto de las fichas. En un
+    // laboratorio acreditado es lo primero que pide una auditoría: quién cargó
+    // la bancada, quién la cerró y qué se le cambió.
+    activity:    { type: Array,  default: () => [] },
+    recordAudit: { type: Object, default: null },
 });
 
 const { t, tc } = useI18n();
+const { canSeeAudit } = useAuth();
 const page = usePage();
 
 const readonly = computed(() => !props.can.edit);
@@ -147,31 +156,42 @@ const showActions = computed(
             :message="readonlyReason"
         />
 
-        <WorksheetHeader :worksheet="worksheet" />
+        <!-- Los avisos quedan ARRIBA de las pestañas a propósito: que la hoja
+             esté cerrada o le falte un patrón no deja de ser cierto porque uno
+             esté mirando el historial. -->
+        <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
+            <template #general>
+                <WorksheetHeader :worksheet="worksheet" />
 
-        <Card :body-style="{ padding: '14px 16px' }">
-            <WorksheetGrid
-                :worksheet="worksheet"
-                :fields="fields"
-                :field-types="fieldTypes"
-                :instruments="instruments"
-                :instruments-by-field="instrumentsByField"
-                :equipment="equipment"
-                :missing="missing"
-                :readonly="readonly"
-            />
-        </Card>
+                <Card :body-style="{ padding: '14px 16px' }">
+                    <WorksheetGrid
+                        :worksheet="worksheet"
+                        :fields="fields"
+                        :field-types="fieldTypes"
+                        :instruments="instruments"
+                        :instruments-by-field="instrumentsByField"
+                        :equipment="equipment"
+                        :missing="missing"
+                        :readonly="readonly"
+                    />
+                </Card>
 
-        <!-- Pegado a la barra de acciones: el
-             recuento tiene que leerse justo antes de cerrar, no arriba de todo
-             donde ya nadie mira. Es ámbar y no rojo porque no impide validar. -->
-        <Alert
-            v-if="equipmentWarning"
-            type="warning"
-            show-icon
-            class="ws-alert ws-alert--equipment"
-            :message="equipmentWarning"
-        />
+                <!-- Pegado a la barra de acciones: el recuento tiene que leerse
+                     justo antes de cerrar, no arriba de todo donde ya nadie
+                     mira. Es ámbar y no rojo porque no impide validar. -->
+                <Alert
+                    v-if="equipmentWarning"
+                    type="warning"
+                    show-icon
+                    class="ws-alert ws-alert--equipment"
+                    :message="equipmentWarning"
+                />
+            </template>
+
+            <template #history>
+                <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
+            </template>
+        </EntityShowTabs>
 
         <WorksheetActionsBar v-if="showActions" :worksheet="worksheet" :can="can" />
     </div>

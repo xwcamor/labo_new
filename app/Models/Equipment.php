@@ -58,17 +58,28 @@ class Equipment extends Model
         'customer_id', 'customer_location_id', 'customer_area_id', 'customer_substation_id',
         'equipment_type_id', 'oil_type_id', 'brand_id', 'tap_changer_type_id',
         'transformer_preservation_id',
-        'voltage_kv_hv', 'voltage_kv_lv', 'power_mva', 'phases', 'manufacture_year',
+        'voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv',
+        'power_mva', 'power_mva_2', 'power_mva_3', 'phases', 'manufacture_year',
         'oil_volume', 'oil_volume_unit', 'service_state',
         'external_ref', 'is_active', 'tenant_id',
         'created_by', 'deleted_by', 'deleted_description',
     ];
 
+    /**
+     * Las dos placas viajan siempre. El índice serializa el paginador con
+     * `toArray()`, que no ve un accessor si no está declarado acá: sin esto las
+     * columnas Tensión y Potencia salían vacías en la tabla.
+     */
+    protected $appends = ['voltage_label', 'power_label'];
+
     protected $casts = [
         'is_active'  => 'boolean',
         'voltage_kv_hv' => 'decimal:2',
         'voltage_kv_lv' => 'decimal:2',
+        'voltage_kv_tv' => 'decimal:2',
         'power_mva' => 'decimal:2',
+        'power_mva_2' => 'decimal:2',
+        'power_mva_3' => 'decimal:2',
         'phases' => 'integer',
         'manufacture_year' => 'integer',
         'oil_volume' => 'decimal:2',
@@ -84,8 +95,75 @@ class Equipment extends Model
      */
     public function getVoltageClassAttribute(): ?float
     {
-        $values = array_filter([$this->voltage_kv_hv, $this->voltage_kv_lv], fn ($v) => $v !== null);
-        return empty($values) ? null : (float) max($values);
+        return $this->mayor($this->voltages());
+    }
+
+    /**
+     * Las placas del equipo, en orden y sin los huecos.
+     *
+     * Un transformador de tres devanados dice "500 / 220 / 33 kV" y uno con
+     * refrigeración forzada dice "120 / 160 / 200 MVA". Son las dos placas que
+     * el informe imprime tal cual; acá viven como columnas y se arman en un
+     * solo lugar para que la ficha, el informe y los exports digan lo mismo.
+     */
+    public function voltages(): array
+    {
+        return $this->presentes([$this->voltage_kv_hv, $this->voltage_kv_lv, $this->voltage_kv_tv]);
+    }
+
+    public function powers(): array
+    {
+        return $this->presentes([$this->power_mva, $this->power_mva_2, $this->power_mva_3]);
+    }
+
+    public function getVoltageLabelAttribute(): ?string
+    {
+        return $this->placa($this->voltages());
+    }
+
+    public function getPowerLabelAttribute(): ?string
+    {
+        return $this->placa($this->powers());
+    }
+
+    /**
+     * El número que se le manda a TrafoDex, que tiene UNA tensión y UNA
+     * potencia por equipo. Es el máximo — el mismo criterio que ya aplicaba el
+     * sistema viejo al exportar (`num_pot.split('/').map(&:to_f).max`).
+     */
+    public function getPowerRatingAttribute(): ?float
+    {
+        return $this->mayor($this->powers());
+    }
+
+    /** @param  list<int|float|string|null>  $valores */
+    private function presentes(array $valores): array
+    {
+        return array_values(array_map(
+            fn ($v) => (float) $v,
+            array_filter($valores, fn ($v) => $v !== null && $v !== ''),
+        ));
+    }
+
+    private function mayor(array $valores): ?float
+    {
+        return $valores === [] ? null : max($valores);
+    }
+
+    /**
+     * "500 / 220 / 33" — sin decimales cuando el valor es redondo, porque la
+     * placa dice 500 y no 500.00, pero conservándolos cuando importan (4.16).
+     */
+    private function placa(array $valores): ?string
+    {
+        if ($valores === []) {
+            return null;
+        }
+
+        return implode(' / ', array_map(
+            fn (float $v) => rtrim(rtrim(number_format($v, 2, '.', ''), '0'), '.'),
+            $valores,
+        ));
     }
 
     // ── Dónde está ──────────────────────────────────────────────────────

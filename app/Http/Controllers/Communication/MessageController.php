@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class MessageController extends Controller
 {
+    use \App\Traits\BuildsRecordAudit;
+
     public function __construct(protected MessageService $service)
     {
     }
@@ -140,6 +142,11 @@ class MessageController extends Controller
             ]),
             'stats'         => $stats,
             'replies'       => $replies,
+            // Un mensaje publicado a toda la plataforma se edita después de
+            // haberlo mandado: qué decía antes es exactamente lo que hay que
+            // poder mirar.
+            'recordAudit'   => $this->recordAuditMeta($message),
+            'activity'      => $this->recordActivity($message, $request),
         ]);
     }
 

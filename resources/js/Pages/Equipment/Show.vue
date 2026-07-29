@@ -114,17 +114,16 @@ const fmt = (d) => formatDateTimeFull(d);
                             <span class="spec-cell__label">{{ $t('equipment.tag') }}</span>
                             <span class="spec-cell__value">{{ equipment.tag }}</span>
                         </div>
+<!-- La placa entera en una sola celda, como está impresa en el equipo
+                             ("500 / 220 / 33"), en vez de tres casillas sueltas que
+                             obligan a recomponerla de memoria. -->
                         <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('equipment.voltage_kv_hv') }}</span>
-                            <span class="spec-cell__value">{{ equipment.voltage_kv_hv }}</span>
+                            <span class="spec-cell__label">{{ $t('equipment.voltage_label') }} (kV)</span>
+                            <span class="spec-cell__value">{{ equipment.voltage_label }}</span>
                         </div>
                         <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('equipment.voltage_kv_lv') }}</span>
-                            <span class="spec-cell__value">{{ equipment.voltage_kv_lv }}</span>
-                        </div>
-                        <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('equipment.power_mva') }}</span>
-                            <span class="spec-cell__value">{{ equipment.power_mva }}</span>
+                            <span class="spec-cell__label">{{ $t('equipment.power_label') }} (MVA)</span>
+                            <span class="spec-cell__value">{{ equipment.power_label }}</span>
                         </div>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('equipment.phases') }}</span>

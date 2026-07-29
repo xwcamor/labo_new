@@ -183,10 +183,22 @@
     $eqFaltante = $equipment['missing'] ?? false;
     $eq = fn ($k) => $eqFaltante ? null : ($equipment[$k] ?? null);
 
-    $tension = $eqFaltante ? null : implode(' / ', array_filter(
-        [$equipment['voltage_hv'] ?? null, $equipment['voltage_lv'] ?? null],
-        fn ($v) => $v !== null,
-    ));
+    // La placa entera, terciario incluido: "500 / 220 / 33". La arma el modelo
+    // del equipo; acá solo se elige mostrarla o dejar la raya.
+    // El informe EMITIDO imprime desde su snapshot, y los congelados antes de
+    // que existiera el terciario no traen la placa armada: en ese caso se
+    // rearma con lo que el snapshot sí guardó, en vez de imprimir una raya
+    // donde el papel original decía una tensión.
+    $placa = fn (array $vs) => implode(' / ', array_map(
+        fn ($v) => rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.'),
+        array_filter($vs, fn ($v) => $v !== null && $v !== ''),
+    )) ?: null;
+
+    $tension = $eqFaltante ? null : (($equipment['voltage'] ?? null)
+        ?: $placa([$equipment['voltage_hv'] ?? null, $equipment['voltage_lv'] ?? null]));
+
+    $potencia = $eqFaltante ? null : (($equipment['power'] ?? null)
+        ?: $placa([$equipment['power_mva'] ?? null]));
 
     $aceite = $eqFaltante ? null : implode(' ', array_filter([
         $equipment['oil_volume'] ?? null,
@@ -298,7 +310,7 @@
             <th>{{ __('reports.tag') }}</th>
             <td>{{ $o($eq('tag')) }}</td>
             <th>{{ __('reports.power') }}</th>
-            <td>{{ $o($eq('power_mva')) }}</td>
+            <td>{{ $o($potencia) }}</td>
             <th>{{ __('reports.sampling_point') }}</th>
             <td>{{ $o($sample['sampling_point']) }}</td>
         </tr>

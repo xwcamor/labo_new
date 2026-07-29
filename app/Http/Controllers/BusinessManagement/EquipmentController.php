@@ -528,7 +528,11 @@ class EquipmentController extends Controller
 
             'voltage_kv_hv'    => $m->voltage_kv_hv,
             'voltage_kv_lv'    => $m->voltage_kv_lv,
+            'voltage_kv_tv'    => $m->voltage_kv_tv,
             'power_mva'        => $m->power_mva,
+            'power_mva_2'      => $m->power_mva_2,
+            'power_mva_3'      => $m->power_mva_3,
+            // `voltage_label` y `power_label` llegan por $appends del modelo.
             'phases'           => $m->phases,
             'manufacture_year' => $m->manufacture_year,
             'oil_volume'       => $m->oil_volume,

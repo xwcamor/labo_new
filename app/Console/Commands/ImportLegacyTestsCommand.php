@@ -91,6 +91,7 @@ class ImportLegacyTestsCommand extends Command
         $run = function () use ($groups, $tests, $fields, $options, &$ambiguous, &$stats, $dry) {
             // ── Grupos ───────────────────────────────────────────────────
             $groupByLegacy = [];
+            $grupoCodigo   = [];
             foreach ($groups as $g) {
                 if (($g[2] ?? '1') === '1') continue;     // deleted
                 $name = $this->str($g[1]);
@@ -100,6 +101,7 @@ class ImportLegacyTestsCommand extends Command
                 // ESTE laboratorio: van a su workspace (ver config/lab.php).
                 $row = ['code' => Str::slug($name, '_'), 'name' => $name, 'sort_order' => (int) $g[0],
                         'tenant_id' => config('lab.seed_tenant_id')];
+                $grupoCodigo[(int) $g[0]] = $row['code'];
                 $groupByLegacy[(int) $g[0]] = $dry ? null
                     : TestGroup::updateOrCreate(['code' => $row['code']], $row + ['slug' => Str::random(22)])->id;
                 $stats['grupos']++;
@@ -113,6 +115,13 @@ class ImportLegacyTestsCommand extends Command
                 if ($deleted === '1') continue;
 
                 $name = $this->str($name);
+                // La FAMILIA del informe: qué pruebas comparten tabla. Las
+                // fisicoquímicas van todas a la misma —es el formato
+                // acreditado— y el resto se queda con la suya. Sale del GRUPO
+                // (`config('lab.report_families')`), no de una lista de
+                // códigos escrita acá.
+                $familia = config('lab.report_families')[$grupoCodigo[(int) $groupId] ?? ''] ?? null;
+
                 $row = [
                     'code'          => Str::slug($name, '_'),
                     'name'          => $name,
@@ -125,8 +134,26 @@ class ImportLegacyTestsCommand extends Command
                     'sort_order'    => (int) $pos,
                     'tenant_id'     => config('lab.seed_tenant_id'),
                 ];
-                $testByLegacy[(int) $id] = $dry ? (int) $id
-                    : TestDefinition::updateOrCreate(['legacy_id' => (int) $id], $row + ['slug' => Str::random(22)])->id;
+                if ($dry) {
+                    $testByLegacy[(int) $id] = (int) $id;
+                    $stats['pruebas']++;
+                    continue;
+                }
+
+                $prueba = TestDefinition::updateOrCreate(
+                    ['legacy_id' => (int) $id],
+                    $row + ['slug' => Str::random(22)],
+                );
+
+                // La familia se escribe UNA vez y no vuelve a tocarse: es una
+                // decisión del laboratorio, editable desde la ficha de la
+                // prueba, y reimportar no puede deshacerla. Sin familia
+                // declarada cada prueba es su propia página, que es el default.
+                if ($prueba->report_comment_group === null) {
+                    $prueba->forceFill(['report_comment_group' => $familia ?: $prueba->code])->save();
+                }
+
+                $testByLegacy[(int) $id] = $prueba->id;
                 $stats['pruebas']++;
             }
 

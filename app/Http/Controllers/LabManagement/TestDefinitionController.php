@@ -130,6 +130,26 @@ class TestDefinitionController extends Controller
      *
      * @return array<int, array{value:int, label:string, code:string}>
      */
+    /**
+     * Las familias que ya existen, para elegir en vez de tipear.
+     *
+     * Salen de la propia tabla y no de una lista escrita en el código: la
+     * familia es el nombre con el que el laboratorio agrupa sus pruebas en el
+     * informe, y no hay catálogo que la represente. El formulario también
+     * admite escribir una nueva.
+     *
+     * @return list<string>
+     */
+    protected function familyOptions(): array
+    {
+        return TestDefinition::query()
+            ->whereNotNull('report_comment_group')
+            ->distinct()
+            ->orderBy('report_comment_group')
+            ->pluck('report_comment_group')
+            ->all();
+    }
+
     protected function groupOptions(?int $keepId = null): array
     {
         return \App\Models\TestGroup::query()
@@ -205,6 +225,7 @@ class TestDefinitionController extends Controller
         return inertia('TestDefinitions/Form', [
             'testDefinition' => null,
             'groups'         => $this->groupOptions(),
+            'families'       => $this->familyOptions(),
         ]);
     }
 
@@ -256,6 +277,7 @@ class TestDefinitionController extends Controller
         return inertia('TestDefinitions/Form', [
             'testDefinition' => $this->payload($testDefinition),
             'groups'         => $this->groupOptions($testDefinition->test_group_id),
+            'families'       => $this->familyOptions(),
         ]);
     }
 
@@ -471,6 +493,8 @@ class TestDefinitionController extends Controller
             'description' => $m->description,
             'container'   => $m->container,
             'chart_unit'  => $m->chart_unit,
+            // Con qué otras pruebas comparte tabla en el informe.
+            'report_comment_group' => $m->report_comment_group,
             'has_control'        => $m->has_control,
             'requires_control'   => $m->requires_control,
             'requires_duplicate' => $m->requires_duplicate,

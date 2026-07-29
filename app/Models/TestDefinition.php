@@ -37,7 +37,7 @@ class TestDefinition extends Model
 
     protected $fillable = [
         'slug', 'name', 'code', 'test_group_id', 'description',
-        'container', 'chart_unit',
+        'container', 'chart_unit', 'report_comment_group',
         'has_control', 'requires_control', 'requires_duplicate', 'is_grouped',
         'replicates', 'is_active', 'sort_order', 'legacy_id', 'tenant_id',
         'created_by', 'deleted_by', 'deleted_description',

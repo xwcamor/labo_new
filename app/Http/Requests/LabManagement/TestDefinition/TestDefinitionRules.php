@@ -47,6 +47,11 @@ trait TestDefinitionRules
             'container'   => ['nullable', 'string', 'max:100'],
             'chart_unit'  => ['nullable', 'string', 'max:40'],
 
+            // Con qué otras pruebas comparte tabla en el informe. Texto libre
+            // acotado y no una FK: la familia AGRUPA pruebas, no hay una fila
+            // que la represente. Vacío = página propia.
+            'report_comment_group' => ['nullable', 'string', 'max:60'],
+
             'has_control'        => ['sometimes', 'boolean'],
             'requires_control'   => ['sometimes', 'boolean'],
             'requires_duplicate' => ['sometimes', 'boolean'],

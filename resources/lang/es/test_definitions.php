@@ -38,6 +38,9 @@ return [
     'description_help' => 'Para qué sirve la prueba o cómo se corre. Es texto libre para el analista, no se usa en ningún cálculo.',
     'container' => 'Envase',
     'container_help' => 'Envase en el que se debe recibir la muestra para esta prueba (ej: jeringa de vidrio, frasco ámbar).',
+    'report_comment_group' => 'Tabla del informe',
+    'report_comment_group_help' => 'Con qué otras pruebas comparte tabla en el informe. Las trece fisicoquímicas van juntas en una sola página, como en el informe acreditado; la cromatografía y los furanos tienen la suya. Vacío = página propia.',
+    'report_comment_group_own' => 'Página propia',
     'chart_unit'=> 'Unidad del gráfico',
     'chart_unit_help' => 'Rótulo del eje en los gráficos de tendencia (ej: ppm, mg KOH/g, kV).',
 

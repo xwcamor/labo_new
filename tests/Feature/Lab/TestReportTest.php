@@ -216,6 +216,66 @@ class TestReportTest extends TestCase
         $this->assertFalse($seccion['not_accredited']);
     }
 
+    // ─── Qué comparte tabla ──────────────────────────────────────────────
+    //
+    // El informe acreditado dedica UNA página a "ENSAYOS FISICO-QUIMICOS" con
+    // las trece pruebas en una sola tabla, y una a cada una de las demás. Trece
+    // páginas de una fila, todas repitiendo la cabecera entera, no es el
+    // formato acreditado — y es lo que salía mientras la columna que decide la
+    // agrupación estuvo vacía en las 29 pruebas.
+
+    public function test_las_pruebas_de_la_misma_familia_comparten_una_sola_tabla(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        // La primera prueba es fisicoquímica; la segunda también.
+        $this->prueba->forceFill(['report_comment_group' => 'fisicoquimico'])->save();
+        $rigidez = $this->pruebaHermana('rigidez', 'Rigidez Dieléctrica', 'fisicoquimico', $muestra, 64.9);
+
+        // La cromatografía NO: es su propia página.
+        $this->pruebaHermana('cromas', 'Análisis Cromatográfico', 'cromas', $muestra, 25.52);
+
+        $secciones = $this->payload->forSample($muestra)['sections'];
+
+        $this->assertCount(2, $secciones, 'Las dos fisicoquímicas van juntas; la cromatografía aparte.');
+
+        $fisico = collect($secciones)->firstWhere('family', 'fisicoquimico');
+        $this->assertCount(2, $fisico['rows']);
+        // El título de la página es el de la FAMILIA, traducible, no el de
+        // una de las pruebas que la componen.
+        $this->assertSame(__('reports.family.fisicoquimico'), $fisico['test']);
+
+        // El ítem se numera DENTRO de la página: la tabla se lee sola.
+        $this->assertSame([1, 2], array_column($fisico['rows'], 'item'));
+
+        $cromas = collect($secciones)->firstWhere('family', 'cromas');
+        $this->assertCount(1, $cromas['rows']);
+        $this->assertSame('Análisis Cromatográfico', $cromas['test']);
+
+        unset($rigidez);
+    }
+
+    public function test_dentro_de_la_tabla_cada_fila_lleva_su_propia_norma(): void
+    {
+        // Es la razón por la que la norma es por FILA y no por página: en la
+        // hoja fisicoquímica el número ácido se corre con D974 y la rigidez con
+        // D1816. Una norma por página obligaría a partirlas.
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+        $this->normaCorrida($muestra, 'ASTM D974', flag: 'A', acreditado: true);
+
+        $this->prueba->forceFill(['report_comment_group' => 'fisicoquimico'])->save();
+        $this->pruebaHermana('rigidez', 'Rigidez Dieléctrica', 'fisicoquimico', $muestra, 64.9);
+
+        $seccion = collect($this->payload->forSample($muestra)['sections'])
+            ->firstWhere('family', 'fisicoquimico');
+
+        $normas = array_column($seccion['rows'], 'method');
+        $this->assertContains('ASTM D974', $normas);
+        $this->assertContains(null, $normas, 'La segunda prueba no declaró norma: sale en raya, no hereda la de la otra.');
+    }
+
     // ─── Lo emitido se reimprime igual ───────────────────────────────────
 
     public function test_el_pdf_de_un_informe_emitido_sale_del_snapshot(): void
@@ -346,6 +406,49 @@ class TestReportTest extends TestCase
         ]);
 
         return $muestra->fresh();
+    }
+
+    /**
+     * Otra prueba validada de la MISMA muestra, con su columna y su resultado.
+     * `$familia` es lo que decide si comparte tabla con las demás.
+     */
+    private function pruebaHermana(
+        string $codigo,
+        string $nombre,
+        string $familia,
+        Sample $muestra,
+        float $valor,
+    ): TestDefinition {
+        $prueba = TestDefinition::create([
+            'slug' => Str::random(22), 'code' => $codigo, 'name' => $nombre,
+            'report_comment_group' => $familia,
+        ]);
+        $columna = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $prueba->id,
+            'code' => 'valor', 'label' => 'Valor', 'type' => 'number',
+            'role' => 'result', 'sort_order' => 1, 'decimals' => 2, 'report_visible' => true,
+        ]);
+        SampleTest::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $prueba->id,
+            'status' => SampleTest::STATUS_VALIDATED, 'tenant_id' => 1,
+        ]);
+        Result::create([
+            'sample_id' => $muestra->id,
+            'test_definition_id' => $prueba->id,
+            'test_field_id' => $columna->id,
+            'analyte_id' => $this->analito->id,
+            'value_num' => $valor,
+            'unit' => 'kV',
+            'replicate_no' => 1,
+            'measured_at' => now(),
+            'spec_status' => 'in_spec',
+            'spec_min' => 47,
+            'spec_max' => null,
+            'spec_source' => 'Mineral · 69-230 kV',
+            'tenant_id' => 1,
+        ]);
+
+        return $prueba;
     }
 
     private function resultado(

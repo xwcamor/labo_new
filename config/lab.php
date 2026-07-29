@@ -28,4 +28,32 @@ return [
 
     'seed_tenant_id' => env('LAB_SEED_TENANT_ID', 1),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Qué pruebas comparten tabla en el informe
+    |--------------------------------------------------------------------------
+    |
+    | El informe acreditado dedica UNA página a "ENSAYOS FISICO-QUIMICOS" con
+    | las trece pruebas en una sola tabla —cada fila con su propia norma: D974
+    | el número ácido, D1816 la rigidez— y una página a cada una de las demás
+    | (cromatografía, PCB, furanos…). Trece páginas de una fila cada una, todas
+    | repitiendo la cabecera entera, no es el formato acreditado.
+    |
+    | Acá se declara por GRUPO de la prueba, no con la lista de los trece
+    | códigos: si el laboratorio agrega mañana una prueba fisicoquímica, entra
+    | sola en la tabla. El grupo que no figure acá deja a cada prueba con su
+    | propia página, que es el default.
+    |
+    | Esto fija el valor INICIAL de `test_definitions.report_comment_group`
+    | cuando está vacío. A partir de ahí manda la base: el laboratorio reagrupa
+    | desde el editor de la prueba, y ni el importador ni las migraciones le
+    | pisan esa decisión.
+    |
+    */
+
+    'report_families' => [
+        // código del grupo => familia del informe
+        'fisico_quimico' => 'fisicoquimico',
+    ],
+
 ];

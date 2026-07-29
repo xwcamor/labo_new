@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
     Form, FormItem, Input, Textarea, InputNumber, Switch, Space, Alert, Select, Checkbox,
@@ -16,9 +16,32 @@ const props = defineProps({
     testDefinition: { type: Object, default: null },
     // [{ value, label, code }] — las envía el controlador ya ordenadas.
     groups:         { type: Array,  default: () => [] },
+    // Las familias que ya usan otras pruebas, para elegir en vez de tipear.
+    families:       { type: Array,  default: () => [] },
 });
 
 const isEdit = computed(() => !!props.testDefinition);
+
+/**
+ * Con qué otras pruebas comparte tabla en el informe.
+ *
+ * Se ofrecen las familias que ya existen —"fisicoquimico" agrupa las trece
+ * fisicoquímicas, como en el informe acreditado— y se admite escribir una
+ * nueva. Vacío significa página propia, que es el default.
+ */
+const familySearch = ref('');
+
+const familyOptions = computed(() => {
+    const existentes = props.families.map((f) => ({ value: f, label: f }));
+    const escrita = familySearch.value.trim();
+
+    // Lo que se está escribiendo entra como opción si todavía no existe: así se
+    // puede ABRIR una familia nueva (agrupar los tres azufres, por ejemplo) sin
+    // que haga falta tocar código ni tener ya una prueba dentro.
+    return escrita && !props.families.includes(escrita)
+        ? [...existentes, { value: escrita, label: escrita }]
+        : existentes;
+});
 
 const form = useForm({
     name:          props.testDefinition?.name ?? '',
@@ -27,6 +50,7 @@ const form = useForm({
     description:   props.testDefinition?.description ?? '',
     container:     props.testDefinition?.container ?? '',
     chart_unit:    props.testDefinition?.chart_unit ?? '',
+    report_comment_group: props.testDefinition?.report_comment_group ?? null,
     has_control:        props.testDefinition?.has_control ?? false,
     requires_control:   props.testDefinition?.requires_control ?? false,
     requires_duplicate: props.testDefinition?.requires_duplicate ?? false,
@@ -157,6 +181,24 @@ const submit = () => {
                         :help="form.errors.chart_unit"
                     >
                         <Input v-model:value="form.chart_unit" size="large" :maxlength="40" />
+                    </FormItem>
+
+                    <FormItem
+                        :label="$t('test_definitions.report_comment_group')"
+                        :tooltip="$t('test_definitions.report_comment_group_help')"
+                        :validate-status="form.errors.report_comment_group ? 'error' : ''"
+                        :help="form.errors.report_comment_group"
+                    >
+                        <Select
+                            v-model:value="form.report_comment_group"
+                            size="large"
+                            allow-clear
+                            show-search
+                            :options="familyOptions"
+                            :placeholder="$t('test_definitions.report_comment_group_own')"
+                            :filter-option="false"
+                            @search="familySearch = $event"
+                        />
                     </FormItem>
 
                     <FormItem

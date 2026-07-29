@@ -38,6 +38,9 @@ return [
     'description_help' => 'What the test is for or how it is run. Free text for the analyst; it is not used in any calculation.',
     'container' => 'Container',
     'container_help' => 'Container the sample must arrive in for this test (e.g. glass syringe, amber bottle).',
+    'report_comment_group' => 'Report table',
+    'report_comment_group_help' => 'Which other tests share a table in the report. The thirteen physicochemical tests go together on one page, as in the accredited report; chromatography and furans get their own. Empty = its own page.',
+    'report_comment_group_own' => 'Its own page',
     'chart_unit'=> 'Chart unit',
     'chart_unit_help' => 'Axis label on the trend charts (e.g. ppm, mg KOH/g, kV).',
 

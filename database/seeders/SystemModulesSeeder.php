@@ -69,6 +69,7 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Analytes',         'permission_key' => 'analytes'],
             ['name' => 'Instruments',      'permission_key' => 'instruments'],
             ['name' => 'Samplers',        'permission_key' => 'samplers'],
+            ['name' => 'Signatures',      'permission_key' => 'signatures'],
             ['name' => 'TestGroups',       'permission_key' => 'test_groups'],
             ['name' => 'TestDefinitions',  'permission_key' => 'test_definitions'],
             ['name' => 'Receptions',       'permission_key' => 'receptions'],

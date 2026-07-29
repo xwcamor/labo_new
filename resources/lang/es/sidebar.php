@@ -28,6 +28,7 @@ return [
     'analytes'           => 'Parámetros',
     'instruments'        => 'Instrumentos',
     'samplers'           => 'Muestreadores',
+    'signatures'         => 'Firmas',
 
     // Catálogos del motor de diagnóstico. La clave faltaba y el menú
     // mostraba "SIDEBAR.GROUP_DIAGNOSTICS" en crudo.

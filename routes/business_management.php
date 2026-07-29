@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\SignatureController;
 use App\Http\Controllers\BusinessManagement\SamplerController;
 use App\Http\Controllers\BusinessManagement\InstrumentController;
 use App\Http\Controllers\BusinessManagement\EquipmentController;
@@ -1021,5 +1022,79 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('samplers/{sampler}/lock',   [SamplerController::class, 'lock'])->name('samplers.lock');
         Route::post('samplers/{sampler}/unlock', [SamplerController::class, 'unlock'])->name('samplers.unlock');
+    });
+
+
+    // ── Signatures ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('signatures/trash',                  [SignatureController::class, 'trash'])->name('signatures.trash');
+        Route::post('signatures/bulk_restore',          [SignatureController::class, 'bulkRestore'])->name('signatures.bulk_restore');
+        Route::post('signatures/{slug}/restore',        [SignatureController::class, 'restore'])->name('signatures.restore');
+        Route::get('signatures/{slug}/restore',         fn () => redirect()->route('business_management.signatures.trash'));
+        Route::delete('signatures/{slug}/force_delete', [SignatureController::class, 'forceDelete'])->name('signatures.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:signatures.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('signatures/export_excel', [SignatureController::class, 'exportExcel'])->name('signatures.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('signatures/export_pdf',   [SignatureController::class, 'exportPdf'])->name('signatures.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('signatures/export_word',  [SignatureController::class, 'exportWord'])->name('signatures.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('signatures/export_csv',   [SignatureController::class, 'exportCsv'])->name('signatures.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:signatures.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('signatures/import',          [SignatureController::class, 'import'])->name('signatures.import');
+        Route::get('signatures/import_template',  [SignatureController::class, 'importTemplate'])->name('signatures.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:signatures.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('signatures/bulk_delete',     [SignatureController::class, 'bulkDelete'])->name('signatures.bulk_delete');
+        Route::post('signatures/bulk_set_active', [SignatureController::class, 'bulkSetActive'])->name('signatures.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:signatures.delete')->group(function () {
+        Route::post('signatures/undo_last_delete', [SignatureController::class, 'undoLastDelete'])->name('signatures.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:signatures.edit')->group(function () {
+        Route::get('signatures/edit_all',         [SignatureController::class, 'editAll'])->name('signatures.edit_all');
+        Route::post('signatures/edit_all/update', [SignatureController::class, 'editAllUpdate'])->name('signatures.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:signatures.create')->group(function () {
+        Route::get('signatures/create', [SignatureController::class, 'create'])->name('signatures.create');
+        Route::post('signatures',       [SignatureController::class, 'store'])->name('signatures.store');
+        Route::post('signatures/{signature}/duplicate', [SignatureController::class, 'duplicate'])->name('signatures.duplicate');
+    });
+
+    Route::middleware('permission:signatures.view')->group(function () {
+        Route::get('signatures',                [SignatureController::class, 'index'])->name('signatures.index');
+        Route::get('signatures/{signature}',  [SignatureController::class, 'show'])->name('signatures.show');
+    });
+    Route::middleware('permission:signatures.edit')->group(function () {
+        Route::get('signatures/{signature}/edit', [SignatureController::class, 'edit'])->name('signatures.edit');
+        Route::put('signatures/{signature}',      [SignatureController::class, 'update'])->name('signatures.update');
+    });
+    Route::middleware('permission:signatures.delete')->group(function () {
+        Route::get('signatures/{signature}/delete',        [SignatureController::class, 'delete'])->name('signatures.delete');
+        Route::delete('signatures/{signature}/deleteSave', [SignatureController::class, 'deleteSave'])->name('signatures.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('signatures/{signature}/lock',   [SignatureController::class, 'lock'])->name('signatures.lock');
+        Route::post('signatures/{signature}/unlock', [SignatureController::class, 'unlock'])->name('signatures.unlock');
     });
 });

@@ -1104,9 +1104,16 @@ PHP;
         $slug = Str::random(22);
         $newLowerPl = $this->snakePlural();
 
-        // permission_key es UNIQUE y obligatorio. Usamos el patron estandar
-        // `{plural}.view` que cualquier rol custom puede asignar via Spatie.
-        $permissionKey = "{$newLowerPl}.view";
+        // permission_key es el PREFIJO del módulo, no un permiso.
+        //
+        // Estuvo escribiendo "{plural}.view" —el nombre de un permiso concreto—
+        // y `RolesAndPermissionsSeeder` le concatena la acción encima, así que
+        // el módulo nuevo nacía con permisos "signatures.view.view",
+        // "signatures.view.create"… mientras sus rutas exigían
+        // "signatures.view". Resultado: el módulo recién generado devolvía
+        // "URL prohibida" a todo el mundo, incluido el admin, y no había forma
+        // de deducir por qué desde el síntoma.
+        $permissionKey = $newLowerPl;
 
         // Si el permission_key ya existe (segunda corrida del scaffold con el
         // mismo modulo limpiado), skipear para no chocar contra la unique.

@@ -92,7 +92,7 @@ class TestReportController extends Controller
                 // pantalla al abrir el código de una muestra.
                 'signers'     => $firmantes->map(fn ($f) => [
                     'title' => $f->title ?: __('reports.relation.' . $f->relation),
-                    'name'  => $f->user?->name ?? $f->name,
+                    'name'  => $f->printedName(),
                 ])->values(),
             ],
             'url'        => $request->fullUrl(),
@@ -206,11 +206,22 @@ class TestReportController extends Controller
      */
     private function firmantes(?int $tenantId): \Illuminate\Support\Collection
     {
-        return \App\Models\ReportSigner::query()
+        // Del módulo FIRMAS. Antes salían de `report_signers`, que se
+        // administraba desde una tarjeta escondida dentro de "Mi workspace":
+        // el laboratorio mantiene sus firmantes como cualquier otro catálogo.
+        return \App\Models\Signature::query()
             ->where('tenant_id', $tenantId)
-            ->with('user:id,name')
-            ->orderBy('sort_order')
-            ->get();
+            ->where('is_active', true)
+            ->with('user:id,name,signature,auto_sign_reports')
+            ->orderBy('sort_order')->orderBy('id')
+            ->get()
+            ->map(function ($firma) {
+                // La imagen viaja ya resuelta a data-URI: dompdf no sale a
+                // buscar archivos y el blade no decide de quién es la firma.
+                $firma->stamp = $this->logo($firma->imagePath());
+
+                return $firma;
+            });
     }
 
     /**

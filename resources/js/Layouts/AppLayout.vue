@@ -70,6 +70,7 @@ import {
     ProfileOutlined,
     ToolOutlined,
     UserSwitchOutlined,
+    HighlightOutlined,
     FundOutlined,
     DotChartOutlined,
 } from '@ant-design/icons-vue';
@@ -733,6 +734,11 @@ const menuStructure = computed(() => [
                 key: 'samplers', label: t('sidebar.samplers'), icon: UserSwitchOutlined,
                 href: route('business_management.samplers.index'), inertia: true,
                 visible: () => can('samplers.view'),
+            },
+            {
+                key: 'signatures', label: t('sidebar.signatures'), icon: HighlightOutlined,
+                href: route('business_management.signatures.index'), inertia: true,
+                visible: () => can('signatures.view'),
             },
         ],
     },

@@ -121,6 +121,7 @@
         .sign__title { font-size: 6.5pt; color: #555555; }
 
         .qr img { width: 62px; height: 62px; }
+        .sign__img { display: block; max-height: 34px; margin: 0 auto 1px; }
         .qr__code { font-size: 6.5pt; font-weight: bold; }
         .qr__hint { font-size: 5.5pt; color: #555555; line-height: 1.2; }
 
@@ -527,9 +528,16 @@
                         <td class="sign__lead">{{ __('reports.reported_by') }}</td>
                         @forelse ($signers as $signer)
                             <td>
+                                {{-- La imagen se estampa solo si existe. Sin
+                                     ella queda la línea para firmar a mano, que
+                                     es lo correcto: un informe no debe insinuar
+                                     una firma que nadie puso. --}}
+                                @if ($signer->stamp ?? null)
+                                    <img class="sign__img" src="{{ $signer->stamp }}" alt="">
+                                @endif
                                 <div class="sign__line"></div>
                                 <div class="sign__rel">{{ __('reports.relation.' . $signer->relation, [], null) }}</div>
-                                <div class="sign__name">{{ $signer->user?->name ?? $signer->name }}</div>
+                                <div class="sign__name">{{ $signer->printedName() }}</div>
                                 <div class="sign__title">{{ $signer->title }}</div>
                             </td>
                         @empty

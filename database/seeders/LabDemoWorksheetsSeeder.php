@@ -430,8 +430,14 @@ class LabDemoWorksheetsSeeder extends Seeder
                    + $porDefecto);
             }
 
-            $servicio->close($hoja);
-            $servicio->validate($hoja);
+            // La hoja publica sola al quedar completa. Esta llamada queda como
+            // respaldo para las que traen columnas opcionales sin llenar y por
+            // eso no dispararon la publicación al guardar la última fila.
+            // Antes había acá un `close()` que ya no existe: el estado
+            // intermedio se sacó del flujo.
+            if ($hoja->fresh()->status !== \App\Models\Worksheet::STATUS_VALIDATED) {
+                $servicio->validate($hoja->fresh());
+            }
             $hechas++;
         }
 

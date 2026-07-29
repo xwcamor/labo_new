@@ -120,6 +120,10 @@ return [
             'model'      => \App\Models\Sampler::class,
             'show_route' => 'business_management.samplers.show',
         ],
+        'signatures' => [
+            'model'      => \App\Models\Signature::class,
+            'show_route' => 'business_management.signatures.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

@@ -25,6 +25,7 @@ return [
     'analytes'           => 'Parameters',
     'instruments'        => 'Instruments',
     'samplers'           => 'Samplers',
+    'signatures'         => 'Signatures',
 
     // Diagnostic engine catalogues. The key was missing and the menu showed
     // the raw "SIDEBAR.GROUP_DIAGNOSTICS".

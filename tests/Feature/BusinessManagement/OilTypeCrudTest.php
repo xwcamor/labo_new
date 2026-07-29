@@ -16,6 +16,13 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
+/**
+ * Adaptado de TrafoDex. Se quitaron dos pruebas del motor de reglas de
+ * diagnóstico, que no existe en LaboRep: test_update_clones_rules_from_another_oil
+ * (los modelos RuleSet/Rule/RuleCondition no existen; clone_rules_from queda
+ * como no-op hasta la fase 2 de spec_sets) y test_index_exposes_has_rules_flag
+ * (has_rules es 0 fijo hasta que existan cuadros de límites).
+ */
 class OilTypeCrudTest extends TestCase
 {
     use RefreshDatabase;
@@ -69,64 +76,6 @@ class OilTypeCrudTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('oil_types', ['id' => $oil->id, 'name' => 'Prueba Editada', 'is_active' => false]);
-    }
-
-    public function test_update_clones_rules_from_another_oil(): void
-    {
-        // Aceite origen CON reglas (un cuadro de cromas mínimo).
-        $this->seed(\Database\Seeders\DiagnosticCatalogSeeder::class);
-        $cromas = \App\Models\Test::where('code', 'cromas')->value('id');
-        $var    = \App\Models\Variable::query()->value('id');
-        $source = OilType::create(['name' => 'Origen', 'code' => 'origen', 'is_active' => true]);
-        $set = \App\Models\RuleSet::create([
-            'test_id' => $cromas, 'oil_type_id' => $source->id, 'equipment_type_id' => null,
-            'standard_id' => null, 'total_weight' => 2, 'label' => 'Base', 'is_active' => true,
-        ]);
-        $rule = \App\Models\Rule::create([
-            'rule_set_id' => $set->id, 'variable_id' => $var, 'score' => 1, 'weight' => 2,
-            'priority' => 1, 'result_label' => null, 'is_active' => true,
-        ]);
-        \App\Models\RuleCondition::create([
-            'rule_id' => $rule->id, 'variable_id' => $var, 'operator' => '<=', 'value' => 100, 'sort_order' => 1,
-        ]);
-
-        // Aceite destino SIN reglas.
-        $target = OilType::create(['name' => 'Demo', 'code' => 'demo', 'is_active' => true]);
-        $this->assertDatabaseMissing('rule_sets', ['oil_type_id' => $target->id]);
-
-        // Editar el destino eligiendo copiar reglas del origen.
-        $this->put(route('business_management.oil_types.update', $target->slug), [
-            'name' => 'Demo', 'code' => 'demo', 'is_active' => true,
-            'clone_rules_from' => $source->id,
-        ])->assertRedirect()->assertSessionHasNoErrors();
-
-        // Ahora el destino tiene su propio cuadro clonado.
-        $this->assertDatabaseHas('rule_sets', ['oil_type_id' => $target->id, 'test_id' => $cromas]);
-    }
-
-    public function test_index_exposes_has_rules_flag(): void
-    {
-        $this->seed(\Database\Seeders\DiagnosticCatalogSeeder::class);
-        $cromas = \App\Models\Test::where('code', 'cromas')->value('id');
-        $var    = \App\Models\Variable::query()->value('id');
-
-        $withRules = OilType::create(['name' => 'Con Reglas', 'code' => 'con_reglas', 'is_active' => true]);
-        $set = \App\Models\RuleSet::create([
-            'test_id' => $cromas, 'oil_type_id' => $withRules->id, 'equipment_type_id' => null,
-            'standard_id' => null, 'total_weight' => 2, 'label' => 'Base', 'is_active' => true,
-        ]);
-        \App\Models\Rule::create([
-            'rule_set_id' => $set->id, 'variable_id' => $var, 'score' => 1, 'weight' => 2,
-            'priority' => 1, 'result_label' => null, 'is_active' => true,
-        ]);
-        OilType::create(['name' => 'Sin Reglas', 'code' => 'sin_reglas', 'is_active' => true]);
-
-        $this->get(route('business_management.oil_types.index'))
-            ->assertInertia(fn ($p) => $p
-                ->where('oilTypes.data', fn ($rows) => collect($rows)
-                    ->firstWhere('name', 'Con Reglas')['has_rules'] == 1
-                    && collect($rows)->firstWhere('name', 'Sin Reglas')['has_rules'] == 0)
-                ->etc());
     }
 
     public function test_name_is_unique_globally(): void

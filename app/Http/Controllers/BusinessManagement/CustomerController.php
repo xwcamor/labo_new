@@ -63,10 +63,10 @@ class CustomerController extends Controller
             ->select('customers.*')
             ->with($with)
             // Conteos de la jerarquía para las columnas del listado. locations,
-            // areas (hasManyThrough) y transformers (FK directa) van por withCount;
+            // areas (hasManyThrough) y equipment (FK directa) van por withCount;
             // substations (3 niveles) por subquery escalar. Todos respetan el
             // soft-delete (scope global de cada modelo).
-            ->withCount(['locations', 'areas'])
+            ->withCount(['locations', 'areas', 'equipment'])
             ->addSelect(['substations_count' => \App\Models\CustomerSubstation::query()
                 ->selectRaw('count(*)')
                 ->whereIn('customer_area_id', \App\Models\CustomerArea::query()
@@ -226,7 +226,14 @@ class CustomerController extends Controller
         $customer->load([
         ]);
 
-        $totalAreas = 0; $totalSubs = 0; $totalTrafos = 0;
+        // Los equipos del cliente, agrupados por subestación, en UNA consulta:
+        // el árbol los cuelga de su subestación y el total cuenta también los
+        // que no declararon ninguna (existen: el equipo recién dado de alta).
+        $porSubestacion = $customer->equipment()
+            ->get(['id', 'slug', 'name', 'serial', 'tag', 'customer_substation_id'])
+            ->groupBy('customer_substation_id');
+
+        $totalAreas = 0; $totalSubs = 0; $totalEquipos = $porSubestacion->flatten()->count();
         $nodes = [];
 
         foreach ($customer->locations as $loc) {
@@ -236,11 +243,14 @@ class CustomerController extends Controller
                 $subs = [];
                 foreach ($ar->substations as $su) {
                     $totalSubs++;
-                    // Fase 1: acá cuelga el equipment de la subestación.
-                    $trafos = [];
+                    $equipos = ($porSubestacion->get($su->id) ?? collect())
+                        ->map(fn ($e) => [
+                            'type' => 'equipment', 'id' => $e->id, 'slug' => $e->slug,
+                            'name' => $e->name ?: ($e->serial ?? $e->tag),
+                        ])->values()->all();
                     $subs[] = [
                         'type' => 'substation', 'id' => $su->id, 'slug' => $su->slug,
-                        'name' => $su->name, 'count' => count($trafos), 'children' => $trafos,
+                        'name' => $su->name, 'count' => count($equipos), 'children' => $equipos,
                     ];
                 }
                 $areas[] = ['type' => 'area', 'id' => $ar->id, 'slug' => $ar->slug, 'name' => $ar->name, 'children' => $subs];
@@ -254,7 +264,7 @@ class CustomerController extends Controller
                 'locations'    => $customer->locations->count(),
                 'areas'        => $totalAreas,
                 'substations'  => $totalSubs,
-                'transformers' => $totalTrafos,
+                'equipment'    => $totalEquipos,
             ],
         ];
     }
@@ -841,7 +851,7 @@ class CustomerController extends Controller
         $isSuper = $request->user()?->hasRole('super') ?? false;
         $allowedColumns = array_values(array_filter([
             'name', 'cod', 'country', 'address', 'is_active',
-            'locations_count', 'areas_count', 'substations_count',
+            'locations_count', 'areas_count', 'substations_count', 'equipment_count',
             $isSuper ? 'tenant' : null,
             'created_at', 'updated_at', 'creator',
         ]));

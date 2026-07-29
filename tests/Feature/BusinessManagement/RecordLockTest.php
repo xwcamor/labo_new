@@ -3,11 +3,8 @@
 namespace Tests\Feature\BusinessManagement;
 
 use App\Models\Customer;
-use App\Models\OilType;
-use App\Models\Transformer;
-use App\Models\EquipmentType;
+use App\Models\Equipment;
 use App\Models\User;
-use Database\Seeders\DiagnosticCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,8 +18,11 @@ use Tests\TestCase;
  *  - admin bloquea/desbloquea registros de su tenant;
  *  - un registro bloqueado no se edita/elimina/bulk/edit-all;
  *  - jerarquía de niveles: el admin NO saca un candado del super; el super sí;
- *  - el motor de diagnóstico sigue persistiendo caché aunque el trafo esté
- *    bloqueado (el lock NO frena escrituras internas).
+ *  - un save directo de modelo sigue funcionando con el registro bloqueado
+ *    (el lock vive en la capa de request, no en eventos de modelo).
+ * Adaptado de TrafoDex: Transformer pasó a Equipment; la parte del "motor de
+ * diagnóstico persiste caché" se reformuló como save directo (LaboRep no tiene
+ * motor de diagnóstico ni columna health_index).
  */
 class RecordLockTest extends TestCase
 {
@@ -43,11 +43,9 @@ class RecordLockTest extends TestCase
         DB::table('tenants')->insertOrIgnore([['id' => 1, 'slug' => Str::random(22), 'name' => 'Empresa 1', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]]);
         DB::table('subscriptions')->insertOrIgnore([['id' => 1, 'tenant_id' => 1, 'plan' => 'enterprise', 'status' => 'active', 'starts_at' => now()->subDay(), 'ends_at' => now()->addYear(), 'currency' => 'USD', 'payment_method' => 'manual', 'created_at' => now(), 'updated_at' => now()]]);
 
-        $this->seed(DiagnosticCatalogSeeder::class);
-
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
         foreach (['customers.view', 'customers.show', 'customers.create', 'customers.edit', 'customers.delete',
-                  'transformers.view', 'transformers.show', 'transformers.create', 'transformers.edit', 'transformers.delete',
+                  'equipment.view', 'equipment.show', 'equipment.create', 'equipment.edit', 'equipment.delete',
                   'brands.view', 'brands.show', 'brands.create', 'brands.edit', 'brands.delete'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
@@ -73,13 +71,12 @@ class RecordLockTest extends TestCase
         return $c;
     }
 
-    private function makeTransformer(): Transformer
+    private function makeEquipment(): Equipment
     {
-        $t = new Transformer();
+        $t = new Equipment();
         $t->forceFill([
-            'slug' => 'tr-' . uniqid(), 'serial' => 'S' . uniqid(), 'tag' => 'TR',
-            'oil_type_id' => OilType::where('code', 'mineral')->value('id'),
-            'equipment_type_id' => EquipmentType::where('code', 'potencia')->value('id'),
+            'slug' => 'eq-' . uniqid(), 'name' => 'Equipo ' . uniqid(),
+            'serial' => 'S' . uniqid(), 'tag' => 'TR',
             'tenant_id' => 1, 'created_by' => $this->admin->id,
         ])->save();
         return $t;
@@ -157,23 +154,23 @@ class RecordLockTest extends TestCase
         $this->assertNotNull($free->refresh()->deleted_at, 'el libre sí debe borrarse');
     }
 
-    public function test_locked_transformer_cannot_be_edited_but_engine_still_persists(): void
+    public function test_locked_equipment_cannot_be_edited_but_direct_save_still_works(): void
     {
-        $t = $this->makeTransformer();
+        $t = $this->makeEquipment();
         $t->lock($this->admin);
 
         // Edición de ficha bloqueada.
         $this->actingAs($this->admin)
-            ->putJson(route('business_management.transformers.update', $t->slug), [
-                'serial' => 'CAMBIADO', 'tag' => 'X',
+            ->putJson(route('business_management.equipment.update', $t->slug), [
+                'name' => $t->name, 'serial' => 'CAMBIADO', 'tag' => 'X',
             ])->assertForbidden();
         $this->assertNotSame('CAMBIADO', $t->refresh()->serial);
 
-        // El motor (save directo) SÍ puede actualizar caché aunque esté bloqueado:
-        // el lock se aplica en la capa de request, no en eventos de modelo.
-        $t->health_index = 77.5;
+        // Un save directo de modelo SÍ escribe aunque esté bloqueado: el lock
+        // se aplica en la capa de request, no en eventos de modelo.
+        $t->external_ref = 'REF-INTERNA';
         $t->save();
-        $this->assertEquals(77.5, $t->refresh()->health_index);
+        $this->assertSame('REF-INTERNA', $t->refresh()->external_ref);
     }
 
     public function test_catalog_brand_lock_wiring_works(): void

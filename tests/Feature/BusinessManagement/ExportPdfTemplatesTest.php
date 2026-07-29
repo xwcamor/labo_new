@@ -6,7 +6,7 @@ use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\OilType;
 use App\Models\TapChangerType;
-use App\Models\Transformer;
+use App\Models\Equipment;
 use App\Models\EquipmentType;
 use Illuminate\Support\Facades\View;
 use Tests\TestCase;
@@ -14,8 +14,9 @@ use Tests\TestCase;
 /**
  * Renderiza las plantillas blade de export PDF de cada módulo de negocio con una
  * fila de datos. Guarda contra el bug de "la vista no existe / no compila" (que
- * tiraba excepción al exportar PDF en brands, conmutador, tipo de trafo y
- * transformers). No toca la BD: usa modelos sin persistir.
+ * tiraba excepción al exportar PDF en brands, conmutador y tipo de equipo).
+ * No toca la BD: usa modelos sin persistir. Adaptado de TrafoDex: la entrada
+ * de transformers pasó a equipment (su blade real en este proyecto).
  */
 class ExportPdfTemplatesTest extends TestCase
 {
@@ -27,7 +28,7 @@ class ExportPdfTemplatesTest extends TestCase
             'brands'            => ['business_management.brands.pdf.template', 'brands', Brand::class, ['id', 'name', 'code', 'is_active', 'created_at']],
             'tap_changer_types' => ['business_management.tap_changer_types.pdf.template', 'tap_changer_types', TapChangerType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
             'equipment_types' => ['business_management.equipment_types.pdf.template', 'equipment_types', EquipmentType::class, ['id', 'name', 'code', 'is_active', 'created_at']],
-            'transformers'      => ['business_management.transformers.pdf.template', 'transformers', Transformer::class, ['id', 'serial', 'tag', 'is_active', 'created_at']],
+            'equipment'         => ['business_management.equipment.pdf.template', 'equipment', Equipment::class, ['id', 'name', 'is_active', 'created_at']],
         ];
     }
 

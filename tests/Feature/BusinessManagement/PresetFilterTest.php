@@ -3,11 +3,8 @@
 namespace Tests\Feature\BusinessManagement;
 
 use App\Models\Customer;
-use App\Models\OilType;
-use App\Models\Transformer;
-use App\Models\EquipmentType;
+use App\Models\Equipment;
 use App\Models\User;
-use Database\Seeders\DiagnosticCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +12,11 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Chips rápidos: condición de trafos (health_band) y país de clientes (country_group).
+ * Chips rápidos del índice de clientes (customer_group: activos/inactivos/con
+ * equipos/sin equipos). Adaptado de TrafoDex: se quitó
+ * test_health_band_filters_transformers — el semáforo de salud (health_rating)
+ * es del motor de diagnóstico de TrafoDex y no existe en LaboRep; los grupos
+ * with_tx/without_tx pasaron a with_eq/without_eq sobre `equipment`.
  */
 class PresetFilterTest extends TestCase
 {
@@ -36,66 +37,47 @@ class PresetFilterTest extends TestCase
         ]);
         DB::table('tenants')->insertOrIgnore([['id' => 1, 'slug' => Str::random(22), 'name' => 'Empresa 1', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]]);
 
-        $this->seed(DiagnosticCatalogSeeder::class);
-
         $this->admin = User::factory()->create(['tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
         $this->actingAs($this->admin);
     }
 
-    private function tx(?int $rating): Transformer
+    private function eq(): Equipment
     {
-        $t = (new Transformer())->forceFill([
-            'slug' => 'tr-' . uniqid(), 'serial' => Str::random(6), 'tag' => 'T',
-            'oil_type_id' => OilType::where('code', 'mineral')->value('id'),
-            'equipment_type_id' => EquipmentType::where('code', 'potencia')->value('id'),
-            'health_rating' => $rating, 'tenant_id' => 1, 'created_by' => $this->admin->id,
+        $t = (new Equipment())->forceFill([
+            'slug' => 'eq-' . uniqid(), 'name' => 'Equipo ' . uniqid(),
+            'serial' => Str::random(6), 'tag' => 'T',
+            'tenant_id' => 1, 'created_by' => $this->admin->id,
         ]);
         $t->save();
         return $t;
     }
 
-    public function test_health_band_filters_transformers(): void
-    {
-        $this->tx(4); $this->tx(3);   // buenos
-        $this->tx(2);                 // regular
-        $this->tx(1); $this->tx(0);   // malos
-        $this->tx(null);              // sin pruebas
-
-        $count = fn (string $band) => Transformer::filter(new Request(['health_band' => $band]))->count();
-
-        $this->assertSame(2, $count('good'));
-        $this->assertSame(1, $count('regular'));
-        $this->assertSame(2, $count('bad'));
-        $this->assertSame(1, $count('none'));
-        $this->assertSame(6, Transformer::count()); // sin filtro
-    }
-
-    private function customer(bool $active, bool $withTx = false): Customer
+    private function customer(bool $active, bool $withEq = false): Customer
     {
         $c = (new Customer())->forceFill([
             'slug' => 'c-' . uniqid(), 'name' => 'C' . uniqid(), 'cod' => Str::random(8),
             'country_id' => 1, 'is_active' => $active, 'tenant_id' => 1, 'created_by' => $this->admin->id,
         ]);
         $c->save();
-        if ($withTx) {
-            $t = $this->tx(4);
-            DB::table('transformers')->where('id', $t->id)->update(['customer_id' => $c->id]);
+        if ($withEq) {
+            $t = $this->eq();
+            DB::table('equipment')->where('id', $t->id)->update(['customer_id' => $c->id]);
         }
         return $c;
     }
 
     public function test_customer_group_filters(): void
     {
-        $this->customer(true, withTx: true);   // activo + con trafo
-        $this->customer(true);                 // activo, sin trafo
-        $this->customer(false);                // inactivo, sin trafo
+        $this->customer(true, withEq: true);   // activo + con equipo
+        $this->customer(true);                 // activo, sin equipo
+        $this->customer(false);                // inactivo, sin equipo
 
         $g = fn (string $group) => Customer::filter(new Request(['customer_group' => $group]))->count();
 
         $this->assertSame(2, $g('active'));
         $this->assertSame(1, $g('inactive'));
-        $this->assertSame(1, $g('with_tx'));
-        $this->assertSame(2, $g('without_tx'));
+        $this->assertSame(1, $g('with_eq'));
+        $this->assertSame(2, $g('without_eq'));
         $this->assertSame(3, Customer::count());
     }
 }

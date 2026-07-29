@@ -88,7 +88,7 @@ class CustomerExportTest extends CustomerTestCase
         $response = $this->post(route('business_management.customers.export_excel'), [
             'columns' => [
                 'name', 'cod', 'country', 'address', 'is_active',
-                'locations_count', 'areas_count', 'substations_count', 'transformers_count',
+                'locations_count', 'areas_count', 'substations_count', 'equipment_count',
                 'created_at',
             ],
             'scope'   => 'all',
@@ -123,7 +123,7 @@ class CustomerExportTest extends CustomerTestCase
         }
 
         $columns = ['id', 'name', 'cod', 'country', 'address', 'is_active',
-            'locations_count', 'areas_count', 'substations_count', 'transformers_count'];
+            'locations_count', 'areas_count', 'substations_count', 'equipment_count'];
         $job = new GenerateCustomersCsvJob($user->id, ['scope' => 'all', 'columns' => $columns]);
         $job->handle();
 

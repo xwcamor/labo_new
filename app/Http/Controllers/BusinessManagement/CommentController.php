@@ -8,8 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * CommentController — comentarios de usuario polimórficos sobre un transformador
- * o una muestra de prueba. Allowlist explícita de tipos comentables (nunca se
+ * CommentController — comentarios de usuario polimórficos sobre un equipo
+ * o una muestra. Allowlist explícita de tipos comentables (nunca se
  * acepta un FQCN del cliente). El borrado lo limita el autor o un admin/super.
  *
  * Las rutas ya están protegidas por permisos: index→comments.view,
@@ -22,6 +22,8 @@ class CommentController extends Controller
 {
     /** slug seguro → modelo comentable. */
     private const TYPES = [
+        'equipment' => \App\Models\Equipment::class,
+        'sample'    => \App\Models\Sample::class,
     ];
 
     public function index(Request $request)
@@ -55,12 +57,12 @@ class CommentController extends Controller
             'body'    => ['required', 'string', 'max:5000'],
         ]);
 
-        // Permiso por contexto: la "Nota del diagnosticador" (sobre el transformer)
+        // Permiso por contexto: la "Nota del diagnosticador" (sobre el equipo)
         // exige diagnosis_notes.create; un comentario por muestra exige
         // comments.create. Así un cargador de muestras comenta SU muestra sin poder
         // firmar la nota del especialista. (El middleware ya garantizó que tiene al
         // menos uno de los dos; aquí se hace valer el que corresponde al objeto.)
-        $perm = $data['type'] === 'transformer' ? 'diagnosis_notes.create' : 'comments.create';
+        $perm = $data['type'] === 'equipment' ? 'diagnosis_notes.create' : 'comments.create';
         abort_unless($request->user()->can($perm), 403);
 
         $model = self::TYPES[$data['type']];

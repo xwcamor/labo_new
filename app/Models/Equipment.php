@@ -31,6 +31,11 @@ class Equipment extends Model
 {
     use HasFactory, SoftDeletes, Auditable, BelongsToTenantOrGlobal, HasFavorites, \App\Traits\Lockable;
 
+    // 3ª capa de aislamiento: un usuario con clientes asignados (customer_user)
+    // solo ve los equipos de su cartera. El default del trait ya apunta a la
+    // columna `customer_id` de esta tabla; sin asignaciones no restringe nada.
+    use \App\Traits\RestrictedToAssignedCustomers;
+
     protected string $auditModule = 'equipment';
 
     protected $table = 'equipment';

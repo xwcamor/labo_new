@@ -32,7 +32,7 @@ const ICONS = {
     location: EnvironmentFilled,
     area: AppstoreFilled,
     substation: ClusterOutlined,
-    transformer: ThunderboltFilled,
+    equipment: ThunderboltFilled,
 };
 const CHILD_LEVEL = { location: 'area', area: 'substation' }; // substation: trafos via módulo
 const ADD_LABEL = { location: 'customers.add_area', area: 'customers.add_substation' };
@@ -59,7 +59,7 @@ const healthColor = (hi) => {
             <component :is="icon(node.type)" class="hnode__icon" />
 
             <!-- Transformador: hoja con link al detalle -->
-            <template v-if="node.type === 'transformer'">
+            <template v-if="node.type === 'equipment'">
                 <Link
                     :href="route('business_management.equipment.show', node.slug)"
                     class="hnode__name hnode__name--link"
@@ -74,7 +74,7 @@ const healthColor = (hi) => {
             <template v-else>
                 <span class="hnode__name">{{ node.name }}</span>
                 <span v-if="node.type === 'substation'" class="hnode__count">
-                    {{ $tc('customers.transformers_count', node.count ?? 0) }}
+                    {{ $tc('customers.equipment_count', node.count ?? 0) }}
                 </span>
 
                 <span v-if="canEdit" class="hnode__actions">
@@ -126,7 +126,7 @@ const healthColor = (hi) => {
 .hnode--location > .hnode__row > .hnode__icon { color: #0A6ED1; }
 .hnode--area > .hnode__row > .hnode__icon { color: #6A6D70; }
 .hnode--substation > .hnode__row > .hnode__icon { color: #8254c8; }
-.hnode--transformer > .hnode__row > .hnode__icon { color: #E9A23B; }
+.hnode--equipment > .hnode__row > .hnode__icon { color: #E9A23B; }
 .hnode__name { font-weight: 500; color: var(--color-text, #1f2937); }
 .hnode__name--link { color: #0A6ED1; text-decoration: none; }
 .hnode__name--link:hover { text-decoration: underline; }

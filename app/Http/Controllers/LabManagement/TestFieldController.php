@@ -370,6 +370,12 @@ class TestFieldController extends Controller
                 [
                     'sort_order'         => $position + 1,
                     'is_hidden'          => (bool) (is_array($option) ? ($option['is_hidden'] ?? false) : false),
+                    // El HECHO y el RÓTULO, por separado: la casilla decide si
+                    // el informe estampa el sello del organismo acreditador; el
+                    // texto es apenas el superíndice que se imprime junto a la
+                    // norma. Mientras fueron una sola columna, "NA" —fuera del
+                    // alcance— contaba como acreditado.
+                    'is_accredited'      => (bool) (is_array($option) ? ($option['is_accredited'] ?? false) : false),
                     'accreditation_flag' => is_array($option) ? ($option['accreditation_flag'] ?? null) : null,
                 ],
             );

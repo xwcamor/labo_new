@@ -32,7 +32,10 @@ return [
     'replicates_help' => 'How many times this reading is repeated on the same sample. Dielectric strength is measured five or six times and averaged.',
     'sort_order'     => 'Order',
     'options'        => 'Options',
-    'accreditation_flag' => 'Accreditation',
+    'is_accredited'  => 'Accredited',
+    'is_accredited_help' => 'The method is within the laboratory accredited scope. Only report pages carrying an accredited method show the accreditation body seal and the certificate paragraph.',
+    'accreditation_flag' => 'Mark',
+    'accreditation_flag_help' => 'The superscript printed next to the standard: (A), (NA).',
     'is_hidden'      => 'Hidden',
 
     // ── Column types ──────────────────────────────────────────────────────

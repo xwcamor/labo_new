@@ -214,10 +214,16 @@
 <div class="{{ $indice > 0 ? 'brk' : '' }}">
 
     {{-- ── Membrete ────────────────────────────────────────────────────────
-         El sello del organismo de acreditación va solo en las páginas de
-         RESULTADOS. La del análisis no lo lleva —el informe viejo tampoco, y
-         por la razón correcta: una opinión o interpretación queda fuera del
-         alcance acreditado. --}}
+         El sello del organismo de acreditación NO va en todas las páginas: va
+         en las que de verdad llevan un método dentro del alcance acreditado.
+         La página del análisis nunca lo lleva —una opinión o interpretación
+         queda fuera del alcance—, y una página de resultados corridos con un
+         método NO acreditado tampoco. Estampar el sello ahí no es un detalle de
+         maquetado: es afirmar por escrito una acreditación que el laboratorio
+         no tiene para ese ensayo.
+
+         El dato llega resuelto desde el payload (`section.accredited`): la
+         plantilla no interpreta rótulos. --}}
     <table class="lh">
         <tr>
             <td class="lh__logo">
@@ -234,7 +240,7 @@
                 <span class="lh__addr">{{ $letterhead['address'] }}</span>
             </td>
             <td class="lh__acc">
-                @if (($letterhead['accreditation_logo'] ?? null) && $pagina['kind'] !== 'analysis')
+                @if (($letterhead['accreditation_logo'] ?? null) && ! empty($pagina['section']['accredited']))
                     <img src="{{ $letterhead['accreditation_logo'] }}" alt="">
                 @endif
             </td>
@@ -404,21 +410,25 @@
             @if ($s['footnote'])
                 {{ $s['footnote'] }}<br>
             @endif
-            {{-- La leyenda de las marcas solo se imprime si el método de esta
-                 página lleva una: explica el superíndice de la columna NORMA, y
-                 sin superíndice no explica nada. --}}
-            @if (collect($s['rows'])->pluck('accreditation')->filter()->isNotEmpty())
+            {{-- Cada marca se explica solo si aparece en ESTA hoja: la leyenda
+                 traduce el superíndice de la columna NORMA, y una hoja donde
+                 todos los métodos están acreditados no tiene por qué explicar
+                 qué significa "no acreditado". --}}
+            @if ($s['accredited'])
                 {{ __('reports.foot_accredited') }}<br>
+            @endif
+            @if ($s['not_accredited'])
                 {{ __('reports.foot_not_accredited') }}<br>
             @endif
             <span class="foot__iso">
-                {{-- El párrafo de la acreditación es un DATO del laboratorio
-                     (organismo, certificado y alcance), no un texto de la
-                     plantilla: el número vence y otro laboratorio se acredita
-                     con otro organismo. Si está vacío no se imprime nada — un
-                     laboratorio sin acreditar no puede emitir un papel que
-                     insinúe que sí. --}}
-                @if ($letterhead['accreditation_note'] ?? null)
+                {{-- El párrafo del certificado acompaña al sello y sigue la
+                     misma regla: solo donde hay un método dentro del alcance.
+                     Es además un DATO del laboratorio (organismo, certificado y
+                     alcance), no un texto de la plantilla: el número vence y
+                     otro laboratorio se acredita con otro organismo. Vacío no
+                     imprime nada — un laboratorio sin acreditar no puede emitir
+                     un papel que insinúe que sí. --}}
+                @if ($s['accredited'] && ($letterhead['accreditation_note'] ?? null))
                     {{ $letterhead['accreditation_note'] }}<br>
                 @endif
                 {{ __('reports.footer_legend') }}
@@ -533,12 +543,25 @@
                     </tr>
                 </table>
             </td>
+            {{-- ── El QR va UNA sola vez, en la última página ───────────────
+                 Verifica el documento entero, no la hoja: repetirlo en cada
+                 página sugiere que cada hoja se verifica sola, que es
+                 justamente lo contrario de lo que dice el pie ("no se debe
+                 reproducir parcialmente"). Va al final, que es donde el informe
+                 CIERRA.
+
+                 Lo que sí va en todas las páginas es el CÓDIGO, chico, en el
+                 pie de la hoja: identifica el documento sin ocupar el ancho de
+                 un recuadro. Eso es lo que pide la ISO 17025 —identificación
+                 única en cada página—, no un QR por hoja. --}}
             <td class="strip__qr">
-                <div class="qr">
-                    <img src="{{ $verifyQr }}" alt="">
-                    <div class="qr__code">{{ $verifyCode }}</div>
-                    <div class="qr__hint">{{ __('reports.verify_hint') }}</div>
-                </div>
+                @if ($indice === count($paginas) - 1)
+                    <div class="qr">
+                        <img src="{{ $verifyQr }}" alt="">
+                        <div class="qr__code">{{ $verifyCode }}</div>
+                        <div class="qr__hint">{{ __('reports.verify_hint') }}</div>
+                    </div>
+                @endif
             </td>
         </tr>
     </table>

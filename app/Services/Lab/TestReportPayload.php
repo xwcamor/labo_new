@@ -286,6 +286,7 @@ class TestReportPayload
                     $filas[] = $fila + [
                         'method'        => $norma['label'],
                         'accreditation' => $norma['flag'],
+                        'accredited'    => $norma['accredited'],
                     ];
                 }
 
@@ -317,6 +318,16 @@ class TestReportPayload
                 // hoja que se tiene en la mano, porque es la que se fotocopia
                 // suelta.
                 'no_criteria' => count(array_filter($filas, fn ($f) => $f['status'] === null)),
+                // ¿Esta PÁGINA tiene algún método dentro del alcance
+                // acreditado? De eso depende que lleve el sello del organismo y
+                // el párrafo del certificado. Se resuelve acá y no en la
+                // plantilla porque es una afirmación sobre el alcance, no una
+                // decisión de maquetado.
+                'accredited'     => (bool) array_filter($filas, fn ($f) => ! empty($f['accredited'])),
+                'not_accredited' => (bool) array_filter(
+                    $filas,
+                    fn ($f) => empty($f['accredited']) && ! empty($f['accreditation'])
+                ),
             ];
         }
 
@@ -477,12 +488,12 @@ class TestReportPayload
      * métodos acreditados y no acreditados, y el cliente tiene derecho a saber
      * cuál le corrieron. Es un requisito de la ISO 17025, no un adorno.
      *
-     * @return array{label: ?string, flag: ?string}
+     * @return array{label: ?string, flag: ?string, accredited: bool}
      */
     private function normaDelEnsayo(Sample $sample, ?int $testDefinitionId): array
     {
         if (! $testDefinitionId) {
-            return ['label' => null, 'flag' => null];
+            return ['label' => null, 'flag' => null, 'accredited' => false];
         }
 
         $fila = \App\Models\WorksheetValue::query()
@@ -497,12 +508,16 @@ class TestReportPayload
             ->first([
                 'test_field_options.value as opcion',
                 'test_field_options.accreditation_flag as flag',
+                'test_field_options.is_accredited as acreditado',
                 'worksheet_values.value_text as texto',
             ]);
 
         return [
             'label' => $fila?->opcion ?? $fila?->texto,
             'flag'  => $fila?->flag,
+            // El HECHO, no el rótulo. Estuvieron en la misma columna y "NA"
+            // —fuera del alcance— contaba como acreditado.
+            'accredited' => (bool) ($fila?->acreditado ?? false),
         ];
     }
 

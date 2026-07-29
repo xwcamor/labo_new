@@ -211,6 +211,10 @@ class ImportLegacyTestsCommand extends Command
                     'test_field_id'      => $fieldByLegacy[(int) $fieldId],
                     'value'              => $this->str($value),
                     'accreditation_flag' => $this->str($acreditada) ?: null,
+                    // El rótulo del sistema anterior era "A" o "NA". El HECHO se
+                    // deduce de ahí una sola vez, acá; de ahí en más vive en su
+                    // propia columna y nadie vuelve a interpretar la cadena.
+                    'is_accredited'      => strtoupper(trim((string) $this->str($acreditada))) === 'A',
                     'sort_order'         => (int) $pos,
                     'is_hidden'          => $oculta === '1',
                 ]);

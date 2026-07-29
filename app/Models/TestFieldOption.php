@@ -15,9 +15,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * cargados la siguen referenciando por FK y tienen que poder mostrar con qué
  * norma se corrieron.
  *
- * `accreditation_flag` es el `applicability_flag` del sistema viejo: marca si el
- * método está dentro del alcance acreditado del laboratorio. Es un rótulo, no un
- * booleano, porque el organismo acreditador identifica el alcance con un código.
+ * La acreditación va en DOS columnas a propósito. `is_accredited` es el hecho —si
+ * el método está dentro del alcance acreditado del laboratorio— y es lo único
+ * que decide si el informe estampa el sello del organismo. `accreditation_flag`
+ * es apenas el rótulo que se imprime al lado de la norma ("A", "NA"), heredado
+ * del `applicability_flag` del sistema anterior, y queda texto libre porque cada
+ * organismo identifica su alcance con el código que quiere.
+ *
+ * Estuvieron en una sola columna y ahí se coló el error: cualquier cadena no
+ * vacía contaba como acreditada, "NA" incluido.
  */
 class TestFieldOption extends Model
 {
@@ -26,10 +32,11 @@ class TestFieldOption extends Model
     protected $table = 'test_field_options';
     protected $guarded = [];
     protected $casts = [
-        'is_hidden'  => 'boolean',
-        'sort_order' => 'integer',
-        'legacy_id'  => 'integer',
-        'locked_at'  => 'datetime',
+        'is_hidden'     => 'boolean',
+        'is_accredited' => 'boolean',
+        'sort_order'    => 'integer',
+        'legacy_id'     => 'integer',
+        'locked_at'     => 'datetime',
     ];
 
     public function field(): BelongsTo
@@ -52,6 +59,6 @@ class TestFieldOption extends Model
     /** ¿El método está dentro del alcance acreditado? */
     public function isAccredited(): bool
     {
-        return is_string($this->accreditation_flag) && trim($this->accreditation_flag) !== '';
+        return (bool) $this->is_accredited;
     }
 }

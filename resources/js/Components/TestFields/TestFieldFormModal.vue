@@ -59,6 +59,7 @@ const form = useForm({
         value: o.value,
         sort_order: o.sort_order,
         is_hidden: !!o.is_hidden,
+        is_accredited: !!o.is_accredited,
         accreditation_flag: o.accreditation_flag ?? null,
     })),
 });

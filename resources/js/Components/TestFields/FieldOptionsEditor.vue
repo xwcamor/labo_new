@@ -15,7 +15,7 @@ import { Button, Checkbox, Input, InputNumber, Tooltip } from 'ant-design-vue';
 import { EyeInvisibleOutlined, PlusOutlined } from '@ant-design/icons-vue';
 
 const props = defineProps({
-    /** [{ value, sort_order, is_hidden, accreditation_flag }] */
+    /** [{ value, sort_order, is_hidden, is_accredited, accreditation_flag }] */
     modelValue: { type: Array, default: () => [] },
 });
 
@@ -26,7 +26,10 @@ const update = (rows) => emit('update:modelValue', rows);
 const addOption = () => {
     update([
         ...props.modelValue,
-        { value: '', sort_order: props.modelValue.length + 1, is_hidden: false, accreditation_flag: null },
+        {
+            value: '', sort_order: props.modelValue.length + 1, is_hidden: false,
+            is_accredited: false, accreditation_flag: null,
+        },
     ]);
 };
 
@@ -54,6 +57,7 @@ const move = (index, delta) => {
             <div class="foe__head">
                 <span>{{ $t('test_fields.sort_order') }}</span>
                 <span>{{ $t('test_fields.options') }}</span>
+                <span>{{ $t('test_fields.is_accredited') }}</span>
                 <span>{{ $t('test_fields.accreditation_flag') }}</span>
                 <span>{{ $t('test_fields.is_hidden') }}</span>
                 <span />
@@ -79,6 +83,20 @@ const move = (index, delta) => {
                     size="small"
                     :maxlength="255"
                 />
+
+                <!-- El HECHO y el RÓTULO, separados: la casilla decide si el
+                     informe estampa el sello del organismo; el texto de al lado
+                     es apenas el superíndice que se imprime junto a la norma. -->
+                <Tooltip :title="$t('test_fields.is_accredited_help')">
+                    <Checkbox
+                        :checked="!!option.is_accredited"
+                        @change="(e) => patch(index, {
+                            is_accredited: e.target.checked,
+                            accreditation_flag: option.accreditation_flag
+                                ?? (e.target.checked ? 'A' : 'NA'),
+                        })"
+                    />
+                </Tooltip>
 
                 <Input
                     :value="option.accreditation_flag ?? ''"
@@ -122,10 +140,10 @@ const move = (index, delta) => {
 .foe__head,
 .foe__row {
     display: grid;
-    grid-template-columns: 80px minmax(160px, 1fr) minmax(120px, 0.7fr) 70px 88px;
+    grid-template-columns: 80px minmax(160px, 1fr) 78px minmax(110px, 0.6fr) 70px 88px;
     gap: 8px;
     align-items: center;
-    min-width: 560px;
+    min-width: 640px;
 }
 .foe__head {
     font-size: 0.66rem;

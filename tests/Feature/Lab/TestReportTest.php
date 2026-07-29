@@ -182,6 +182,40 @@ class TestReportTest extends TestCase
     }
 
 
+    // ─── La acreditación ─────────────────────────────────────────────────
+    //
+    // El sello del organismo acreditador es una afirmación con consecuencia
+    // legal: dice que ESE ensayo está dentro del alcance del certificado.
+    // Mientras el hecho y el rótulo vivieron en la misma columna de texto,
+    // cualquier cadena no vacía contaba como acreditada —"NA" incluido— y el
+    // informe estampaba el sello en páginas que no lo tenían.
+
+    public function test_un_metodo_no_acreditado_no_acredita_la_pagina(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+        $this->normaCorrida($muestra, 'ASTM 3612 - Método C', flag: 'NA', acreditado: false);
+
+        $seccion = $this->payload->forSample($muestra)['sections'][0];
+
+        $this->assertSame('NA', $seccion['rows'][0]['accreditation']);
+        $this->assertFalse($seccion['rows'][0]['accredited']);
+        $this->assertFalse($seccion['accredited'], 'La página no debe llevar el sello.');
+        $this->assertTrue($seccion['not_accredited']);
+    }
+
+    public function test_un_metodo_acreditado_acredita_la_pagina(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+        $this->normaCorrida($muestra, 'ASTM D974', flag: 'A', acreditado: true);
+
+        $seccion = $this->payload->forSample($muestra)['sections'][0];
+
+        $this->assertTrue($seccion['accredited']);
+        $this->assertFalse($seccion['not_accredited']);
+    }
+
     // ─── La emisión ──────────────────────────────────────────────────────
 
     public function test_emitir_deja_constancia_con_su_codigo_de_verificacion(): void
@@ -284,6 +318,39 @@ class TestReportTest extends TestCase
             'spec_max' => $max,
             'spec_source' => $estado === null ? null : 'Mineral · 69-230 kV',
             'tenant_id' => 1,
+        ]);
+    }
+
+    /**
+     * Deja escrito con qué norma se corrió el ensayo, como lo hace la bancada:
+     * una columna de rol `standard`, su opción elegida y la fila de la hoja que
+     * la apunta. El informe lee la norma DE AHÍ y no de la plantilla, porque es
+     * la que de verdad se usó.
+     */
+    private function normaCorrida(Sample $muestra, string $norma, string $flag, bool $acreditado): void
+    {
+        $columna = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->prueba->id,
+            'code' => 'norma', 'label' => 'Norma', 'type' => 'select',
+            'role' => 'standard', 'sort_order' => 2,
+        ]);
+
+        $opcion = \App\Models\TestFieldOption::create([
+            'test_field_id' => $columna->id, 'value' => $norma, 'sort_order' => 1,
+            'accreditation_flag' => $flag, 'is_accredited' => $acreditado,
+        ]);
+
+        $hoja = \App\Models\Worksheet::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->prueba->id,
+            'run_date' => now()->toDateString(), 'status' => 'validated', 'tenant_id' => 1,
+        ]);
+        $fila = \App\Models\WorksheetRow::create([
+            'worksheet_id' => $hoja->id, 'kind' => 'sample',
+            'sample_id' => $muestra->id, 'sample_code' => $muestra->code, 'position' => 1,
+        ]);
+        \App\Models\WorksheetValue::create([
+            'worksheet_row_id' => $fila->id, 'test_field_id' => $columna->id,
+            'option_id' => $opcion->id, 'replicate_no' => 1, 'value_text' => $norma,
         ]);
     }
 

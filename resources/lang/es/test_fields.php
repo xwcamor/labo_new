@@ -32,7 +32,10 @@ return [
     'replicates_help' => 'Cuántas veces se repite esta medición sobre la misma muestra. La rigidez dieléctrica se mide cinco o seis veces y se promedia.',
     'sort_order'     => 'Orden',
     'options'        => 'Opciones',
-    'accreditation_flag' => 'Acreditación',
+    'is_accredited'  => 'Acreditado',
+    'is_accredited_help' => 'El método está dentro del alcance acreditado del laboratorio. Solo las páginas del informe que llevan un método acreditado muestran el sello del organismo y el párrafo del certificado.',
+    'accreditation_flag' => 'Marca',
+    'accreditation_flag_help' => 'El superíndice que se imprime al lado de la norma: (A), (NA).',
     'is_hidden'      => 'Oculta',
 
     // ── Tipos de columna ──────────────────────────────────────────────────

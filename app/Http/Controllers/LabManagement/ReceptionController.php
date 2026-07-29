@@ -137,6 +137,15 @@ class ReceptionController extends Controller
                 'tests:id,sample_id,test_definition_id,status',
                 'tests.definition:id,code,name',
             ])
+            // Si se puede dar de baja y si hay trabajo hecho, resuelto acá: la
+            // pantalla tiene que poder DECIR por qué el botón no está, y
+            // contarlo fila por fila desde el navegador serían dos consultas
+            // por muestra.
+            ->withCount([
+                'reports as issued_reports_count' => fn ($q) => $q->where('status', 'issued'),
+                'reports as reports_count',
+                'results as results_count',
+            ])
             ->get();
 
         // Los informes de la entrega, en su propia pestaña. Son de las MUESTRAS,
@@ -272,6 +281,44 @@ class ReceptionController extends Controller
         return back()->with('success', __('receptions.tests_saved', [
             'added' => $resultado['added'], 'cancelled' => $resultado['cancelled'],
         ]));
+    }
+
+    /**
+     * Da de baja una muestra de la entrega.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ SI YA SALIÓ UN INFORME, NO SE BORRA                                  │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El cliente tiene un papel que cita ese número y el portal de verificación
+     * responde contra el registro: borrarla convierte ese papel en un documento
+     * que el propio sistema desmiente. El candado alcanza al super — no hay caso
+     * en el que borrarla sea la respuesta correcta; lo que corresponde es emitir
+     * un informe adicional que corrija.
+     *
+     * Sin informe emitido sí se puede, con su motivo, y el correlativo queda
+     * quemado: nunca se reasigna a otra muestra.
+     */
+    public function destroySample(Request $request, Reception $reception, Sample $sample): RedirectResponse
+    {
+        abort_unless($sample->reception_id === $reception->id, 404);
+
+        if ($motivo = $sample->deletionBlockedBy()) {
+            return back()->withErrors(['sample' => __('receptions.delete_blocked.' . $motivo, [
+                'code' => $sample->code,
+            ])]);
+        }
+
+        $request->validate([
+            'deleted_description' => ['required', 'string', 'min:3', 'max:1000'],
+        ]);
+
+        $sample->update([
+            'deleted_by'          => $request->user()?->id,
+            'deleted_description' => $request->input('deleted_description'),
+        ]);
+        $sample->delete();
+
+        return back()->with('success', __('receptions.sample_deleted', ['code' => $sample->code]));
     }
 
     public function destroy(Request $request, Reception $reception): RedirectResponse

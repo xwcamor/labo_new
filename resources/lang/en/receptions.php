@@ -77,6 +77,16 @@ return [
     'outstanding' => 'Outstanding',
     'report'      => 'Report',
     'report_help' => 'Opens this sample test report as a PDF. It only includes tests already validated.',
+
+    // ── Removing a sample ─────────────────────────────────────────────────
+    'delete_sample'         => 'Remove sample',
+    'delete_sample_reason'  => 'Reason for removal',
+    'delete_sample_confirm' => 'Sample :code will no longer appear in the delivery. Its number is NOT reused: it will never be assigned to another sample.',
+    'delete_sample_has_work' => 'This sample already has results. Removing it takes them out of the system; to fix a value, use the worksheet.',
+    'sample_deleted'        => 'Sample :code removed.',
+    'delete_blocked' => [
+        'issued_report' => 'Sample :code cannot be removed: a report was already issued with that number and the customer holds it. The verification portal must keep finding it. To correct it, issue an additional report.',
+    ],
     'assign_tests' => 'Assign tests',
     'assign_to_all' => 'Apply to every sample',
     'assign_to_all_hint' => 'What is ticked REPLACES the requested tests on every sample of this delivery. Tests that already have work done are kept.',

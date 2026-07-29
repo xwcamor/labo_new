@@ -318,6 +318,9 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     Route::middleware('permission:receptions.delete')->group(function () {
         Route::delete('receptions/{reception}', [ReceptionController::class, 'destroy'])->name('receptions.destroy');
         Route::delete('reports/{report}', [SampleReportController::class, 'destroy'])->name('sample_reports.destroy');
+        // Una muestra con informe EMITIDO no se borra, ni siquiera acá: el
+        // cliente tiene un papel que cita ese número.
+        Route::delete('receptions/{reception}/samples/{sample}', [ReceptionController::class, 'destroySample'])->name('receptions.samples.destroy');
     });
 
     /*

@@ -91,6 +91,16 @@ return [
     'outstanding'      => 'Pendientes',
     'report'      => 'Informe',
     'report_help' => 'Abre el informe de ensayo de esta muestra en PDF. Solo incluye los ensayos ya validados.',
+
+    // ── Baja de una muestra ───────────────────────────────────────────────
+    'delete_sample'         => 'Dar de baja la muestra',
+    'delete_sample_reason'  => 'Motivo de la baja',
+    'delete_sample_confirm' => 'La muestra :code deja de figurar en la entrega. Su correlativo NO se reutiliza: nunca se le va a asignar a otra muestra.',
+    'delete_sample_has_work' => 'Esta muestra ya tiene resultados cargados. Darla de baja los saca del sistema; si lo que quiere es corregir un valor, use la hoja de bancada.',
+    'sample_deleted'        => 'Muestra :code dada de baja.',
+    'delete_blocked' => [
+        'issued_report' => 'La muestra :code no se puede dar de baja: ya salió un informe con ese número y el cliente lo tiene en la mano. El portal de verificación tiene que seguir encontrándolo. Para corregir, emita un informe adicional.',
+    ],
     'assign_tests'     => 'Asignar pruebas',
     'assign_to_all'    => 'Aplicar a todas las muestras',
     'assign_to_all_hint' => 'Lo que se marque REEMPLAZA el pedido de todas las muestras de esta entrega. Las pruebas que ya tienen trabajo hecho se conservan.',

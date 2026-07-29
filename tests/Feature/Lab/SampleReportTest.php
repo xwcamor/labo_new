@@ -134,6 +134,28 @@ class SampleReportTest extends TestCase
         $this->assertSame('borrador', $informe->fresh()->notes);
     }
 
+    // ─── El borrado de la muestra ────────────────────────────────────────
+
+    public function test_una_muestra_con_informe_emitido_no_se_borra(): void
+    {
+        // El cliente tiene un papel que cita ese número y el portal público de
+        // verificación responde contra el registro: borrarla convertiría ese
+        // papel en un documento que el propio sistema desmiente.
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $informe->update(['status' => SampleReport::STATUS_ISSUED]);
+
+        $this->assertSame('issued_report', $muestra->fresh()->deletionBlockedBy());
+    }
+
+    public function test_un_borrador_no_traba_el_borrado_de_la_muestra(): void
+    {
+        $muestra = $this->muestra();
+        $this->service->create($muestra, [], null);
+
+        $this->assertNull($muestra->fresh()->deletionBlockedBy());
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
 
     private function muestra(): Sample

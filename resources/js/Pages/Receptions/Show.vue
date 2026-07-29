@@ -21,10 +21,10 @@
  */
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Tooltip } from 'ant-design-vue';
+import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Textarea, Tooltip } from 'ant-design-vue';
 import {
-    EditOutlined, ExperimentOutlined, FileTextOutlined, FilePdfOutlined,
-    InboxOutlined, PlusOutlined, ThunderboltFilled,
+    DeleteOutlined, EditOutlined, ExperimentOutlined, FileTextOutlined,
+    FilePdfOutlined, InboxOutlined, PlusOutlined, ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -163,6 +163,43 @@ const emitir = (report) => {
             { preserveScroll: true },
         ),
     });
+};
+
+// ── Baja de una muestra ──────────────────────────────────────────────────
+//
+// Una muestra con informe EMITIDO no se ofrece para borrar, y el motivo se
+// dice: el cliente tiene un papel que cita ese número y el portal de
+// verificación tiene que seguir encontrándolo. Con resultados cargados sí se
+// puede, pero avisando ANTES lo que se lleva puesto.
+const bajaOpen   = ref(false);
+const bajaSample = ref(null);
+const bajaReason = ref('');
+const bajaError  = ref('');
+
+const puedeBorrar = (sample) => !sample.issued_reports_count;
+
+const abrirBaja = (sample) => {
+    bajaSample.value = sample;
+    bajaReason.value = '';
+    bajaError.value = '';
+    bajaOpen.value = true;
+};
+
+const confirmarBaja = () => {
+    if (bajaReason.value.trim().length < 3) {
+        bajaError.value = t('receptions.delete_sample_reason');
+
+        return;
+    }
+
+    router.delete(
+        route('lab_management.receptions.samples.destroy', [props.reception.slug, bajaSample.value.id]),
+        {
+            data: { deleted_description: bajaReason.value.trim() },
+            preserveScroll: true,
+            onSuccess: () => { bajaOpen.value = false; },
+        },
+    );
 };
 
 const reportsOf = (sample) => props.reports.filter((r) => r.sample_id === sample.id);
@@ -350,6 +387,24 @@ const reportColumns = computed(() => [
                                     <PlusOutlined /> {{ $t('sample_reports.singular') }}
                                 </Button>
                             </Tooltip>
+                            <!-- Con un informe emitido no se ofrece el botón, y
+                                 el tooltip dice por qué: el papel ya está en
+                                 manos del cliente. -->
+                            <Tooltip
+                                v-if="canEdit"
+                                :title="puedeBorrar(record)
+                                    ? $t('receptions.delete_sample')
+                                    : $t('receptions.delete_blocked.issued_report', { code: record.code })"
+                            >
+                                <Button
+                                    size="small"
+                                    danger
+                                    :disabled="!puedeBorrar(record)"
+                                    @click="abrirBaja(record)"
+                                >
+                                    <DeleteOutlined />
+                                </Button>
+                            </Tooltip>
                         </Space>
                     </template>
                 </template>
@@ -458,6 +513,34 @@ const reportColumns = computed(() => [
             :sample="reportSample"
             :report="reportRecord"
         />
+
+        <Modal
+            v-model:open="bajaOpen"
+            :title="$t('receptions.delete_sample')"
+            :ok-text="$t('global.delete')"
+            :cancel-text="$t('global.cancel')"
+            :ok-button-props="{ danger: true }"
+            @ok="confirmarBaja"
+        >
+            <p class="rc-baja__intro">
+                {{ $t('receptions.delete_sample_confirm', { code: bajaSample?.code ?? '' }) }}
+            </p>
+
+            <!-- El aviso va ANTES, no después: si la muestra ya tiene
+                 resultados, borrarla se los lleva puestos. -->
+            <Alert
+                v-if="bajaSample?.results_count > 0"
+                type="warning"
+                show-icon
+                class="rc-baja__warn"
+                :message="$t('receptions.delete_sample_has_work')"
+            />
+
+            <label class="rc-baja__label">{{ $t('receptions.delete_sample_reason') }}</label>
+            <Textarea v-model:value="bajaReason" :rows="3" :maxlength="1000" show-count />
+
+            <p v-if="bajaError" class="rc-baja__error">{{ bajaError }}</p>
+        </Modal>
     </div>
 </template>
 
@@ -497,6 +580,11 @@ const reportColumns = computed(() => [
 .rc-muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .rc-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 .rc-empty__hint { margin-top: 4px; font-size: 0.8125rem; }
+
+.rc-baja__intro { color: var(--color-text-muted); margin-bottom: 12px; }
+.rc-baja__warn  { margin-bottom: 12px; }
+.rc-baja__label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--color-text); }
+.rc-baja__error { color: var(--color-danger-bright); margin-top: 8px; }
 
 /* Las pestañas van sobre el fondo gris de la ficha, no dentro de una tarjeta:
    así la tarjeta de la tabla queda debajo, como en el resto de las pantallas. */

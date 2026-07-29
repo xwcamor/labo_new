@@ -116,6 +116,58 @@ class Sample extends Model
         return $this->hasMany(Result::class);
     }
 
+    public function reports(): HasMany
+    {
+        return $this->hasMany(SampleReport::class);
+    }
+
+    // ── Borrado ──────────────────────────────────────────────────────────
+    //
+    // ┌──────────────────────────────────────────────────────────────────────┐
+    // │ UNA MUESTRA CON INFORME EMITIDO NO SE BORRA                          │
+    // └──────────────────────────────────────────────────────────────────────┘
+    // No es una regla de permisos: es que el cliente tiene en la mano un papel
+    // que cita ese número de muestra, y el portal público de verificación
+    // responde contra el registro. Borrarla convierte ese papel en un documento
+    // que el propio sistema desmiente —"no existe"— y el laboratorio queda sin
+    // poder sostener lo que firmó. Por eso el candado alcanza también al super:
+    // no hay caso en el que borrarla sea la respuesta correcta.
+    //
+    // El correlativo, además, nunca se reutiliza (el contador no retrocede), así
+    // que borrar tampoco libera el número para nadie.
+
+    /** ¿Salió a la calle algún informe con esta muestra? */
+    public function hasIssuedReport(): bool
+    {
+        return $this->reports()
+            ->where('status', SampleReport::STATUS_ISSUED)
+            ->exists();
+    }
+
+    /**
+     * Por qué NO se puede borrar, o null si se puede.
+     *
+     * Devuelve el motivo y no un booleano porque la pantalla tiene que poder
+     * decirlo: un botón deshabilitado sin explicación es el que termina en una
+     * llamada preguntando si el sistema se rompió.
+     */
+    public function deletionBlockedBy(): ?string
+    {
+        return $this->hasIssuedReport() ? 'issued_report' : null;
+    }
+
+    /**
+     * ¿Borrarla se lleva puesto trabajo hecho?
+     *
+     * No lo impide —el laboratorio puede haber cargado la muestra equivocada y
+     * darse cuenta con los ensayos ya corridos—, pero la pantalla tiene que
+     * avisarlo ANTES, no después.
+     */
+    public function hasWork(): bool
+    {
+        return $this->results()->exists() || $this->reports()->exists();
+    }
+
     /**
      * El cliente sale de la recepción, no de una columna propia.
      *

@@ -94,6 +94,31 @@ class SampleReport extends Model
     }
 
     /**
+     * Lo que este informe DEBE imprimir, o null si hay que calcularlo en vivo.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ UN INFORME EMITIDO SE REIMPRIME IGUAL, SIEMPRE                       │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Al emitir, el contenido queda congelado en `snapshot`. Desde ese momento
+     * el PDF sale de AHÍ: si el laboratorio corrige el TAG del equipo o llega
+     * una prueba nueva, el papel reimpreso tiene que seguir diciendo lo que
+     * decía el que el cliente tiene en la mano. Reimprimir "con lo último" un
+     * documento ya emitido no es una mejora — es un segundo documento
+     * circulando con el mismo número.
+     *
+     * El borrador, en cambio, se calcula en vivo a propósito: todavía se está
+     * corrigiendo y tiene que mostrar lo corregido.
+     */
+    public function frozenPayload(): ?array
+    {
+        if (! $this->isIssued() || ! is_array($this->snapshot) || $this->snapshot === []) {
+            return null;
+        }
+
+        return $this->snapshot;
+    }
+
+    /**
      * Los ids de las pruebas que este informe publica.
      *
      * @return array<int,int>

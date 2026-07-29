@@ -216,6 +216,59 @@ class TestReportTest extends TestCase
         $this->assertFalse($seccion['not_accredited']);
     }
 
+    // ─── Lo emitido se reimprime igual ───────────────────────────────────
+
+    public function test_el_pdf_de_un_informe_emitido_sale_del_snapshot(): void
+    {
+        // Se emite con UNA sección. Después llega otra prueba validada: la
+        // vista previa en vivo ya ve dos, pero el informe emitido tiene que
+        // seguir imprimiendo la única que se firmó. Reimprimir "con lo último"
+        // sería un segundo documento circulando con el mismo número.
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $informe = (new \App\Services\Lab\SampleReportService())->create($muestra, [], null);
+        $informe->update([
+            'status'   => \App\Models\SampleReport::STATUS_ISSUED,
+            'snapshot' => $this->payload->forSample($muestra->fresh(), $informe),
+        ]);
+
+        // La segunda prueba llega DESPUÉS de emitir.
+        $otra = TestDefinition::create([
+            'slug' => Str::random(22), 'code' => 'agua', 'name' => 'Contenido de Agua',
+        ]);
+        $columna = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $otra->id,
+            'code' => 'valor', 'label' => 'Valor', 'type' => 'number',
+            'role' => 'result', 'sort_order' => 1, 'decimals' => 0,
+            'report_visible' => true,
+        ]);
+        SampleTest::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $otra->id,
+            'status' => SampleTest::STATUS_VALIDATED, 'tenant_id' => 1,
+        ]);
+        Result::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $otra->id,
+            'test_field_id' => $columna->id, 'analyte_id' => $this->analito->id,
+            'value_num' => 18, 'unit' => 'ppm', 'replicate_no' => 1,
+            'measured_at' => now(), 'spec_status' => 'in_spec',
+            'spec_min' => null, 'spec_max' => 35, 'tenant_id' => 1,
+        ]);
+
+        // La vista previa en vivo ve las dos secciones…
+        $this->assertCount(2, $this->payload->forSample($muestra->fresh())['sections']);
+
+        // …y el PDF del informe emitido imprime la sección congelada.
+        $this->get(route('lab_management.sample_reports.pdf', $informe))->assertOk();
+
+        $log = \App\Models\AuditLog::where('event', 'report_generated')
+            ->where('auditable_id', $muestra->id)
+            ->latest('id')->first();
+
+        $this->assertSame(1, $log->new_values['sections']);
+        $this->assertSame($informe->code, $log->new_values['report']);
+    }
+
     // ─── La emisión ──────────────────────────────────────────────────────
 
     public function test_emitir_deja_constancia_con_su_codigo_de_verificacion(): void

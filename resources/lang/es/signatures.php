@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'mode_upload' => 'Subir archivo',
+    'mode_draw' => 'Dibujar',
+    'draw_hint' => 'Dibuje la firma sobre la línea, con el mouse o el dedo.',
+    'draw_clear' => 'Borrar',
+    'draw_use' => 'Usar este dibujo',
     'relation_prepared' => 'Realizado por',
     'relation_reviewed' => 'Revisado por',
     'relation_approved' => 'Aprobado por',
@@ -32,12 +37,12 @@ return [
     'trash_title'    => 'Papelera de firmas',
     'form_create_hint' => 'Completa los datos para crear un nuevo firma.',
     'empty_hint'      => 'Crea el primer firma o importa un lote desde Excel para empezar.',
-    'name_placeholder' => 'Ej: Acme, Globex, Contoso',
+    'name_placeholder' => 'Ej: RAMOS AGAPITO, JESSICA DEL ROSARIO',
 
     'name'      => 'Nombre',
-    'name_help' => 'Nombre del firma (ej: Acme, Globex, Contoso).',
+    'name_help' => 'Nombre completo del firmante, tal como se imprime bajo la línea de firma del informe.',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, vegetal_soya).',
+    'code_help' => 'Identificador interno opcional. Casi nunca hace falta: el informe usa el nombre y el cargo.',
     'sort_order' => 'Orden',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el firma no aparecerá en los selectores de otros módulos.',

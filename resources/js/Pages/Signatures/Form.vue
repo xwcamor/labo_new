@@ -1,14 +1,15 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
-    Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select, SelectOption,
+    Card, Form, FormItem, Input, Switch, Space, Alert, Row, Col, Select, SelectOption, RadioGroup, RadioButton,
 } from 'ant-design-vue';
 import { TagsOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import FormFooter from '@/Components/Common/FormFooter.vue';
+import SignatureDrawPad from '@/Components/Signatures/SignatureDrawPad.vue';
 
 defineOptions({ layout: AppLayout });
 
@@ -38,6 +39,23 @@ const form = useForm({
  * de subida se esconde para no ofrecer un camino que el informe va a ignorar.
  */
 const esExterno = computed(() => !form.user_id);
+
+// ── La imagen: subirla o dibujarla ───────────────────────────────────────
+// Dos caminos al MISMO archivo: el escaneo se sube, o el firmante presente la
+// dibuja y el trazo se convierte en el mismo PNG. `imagenLista` confirma en
+// pantalla que el archivo quedó tomado antes de guardar.
+const modoFirma = ref('upload');
+const imagenLista = ref(null);
+
+const tomarDibujo = (file) => {
+    form.image = file;
+    imagenLista.value = URL.createObjectURL(file);
+};
+
+const tomarArchivo = (e) => {
+    form.image = e.target.files?.[0] ?? null;
+    imagenLista.value = form.image ? URL.createObjectURL(form.image) : null;
+};
 
 const usuarioElegido = computed(
     () => (props.users ?? []).find((u) => u.id === form.user_id) ?? null,
@@ -177,17 +195,29 @@ const submit = () => {
                     :validate-status="form.errors.image ? 'error' : ''"
                     :help="form.errors.image"
                 >
+                    <!-- La firma vigente, si ya hay una guardada. -->
                     <img
-                        v-if="signature?.image_url"
+                        v-if="signature?.image_url && !imagenLista"
                         :src="signature.image_url"
                         alt=""
                         class="sig-preview"
                     >
+                    <!-- La nueva, apenas se sube o se dibuja: confirmación de
+                         que el archivo quedó tomado antes de guardar. -->
+                    <img v-if="imagenLista" :src="imagenLista" alt="" class="sig-preview">
+
+                    <RadioGroup v-model:value="modoFirma" size="small" class="sig-mode">
+                        <RadioButton value="upload">{{ $t('signatures.mode_upload') }}</RadioButton>
+                        <RadioButton value="draw">{{ $t('signatures.mode_draw') }}</RadioButton>
+                    </RadioGroup>
+
                     <input
+                        v-if="modoFirma === 'upload'"
                         type="file"
                         accept="image/png,image/jpeg"
-                        @change="(e) => (form.image = e.target.files?.[0] ?? null)"
+                        @change="tomarArchivo"
                     >
+                    <SignatureDrawPad v-else @done="tomarDibujo" />
                 </FormItem>
 
                 <FormItem
@@ -223,4 +253,15 @@ const submit = () => {
     font-weight: 500;
 }
 .mb-4 { margin-bottom: 16px; }
+.sig-preview {
+    display: block;
+    max-height: 90px;
+    margin-bottom: 10px;
+    border: 1px solid var(--color-border, #d9d9d9);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: #fff;
+}
+.sig-mode { display: block; margin-bottom: 10px; }
+.sig-note { margin-top: 8px; max-width: 480px; }
 </style>

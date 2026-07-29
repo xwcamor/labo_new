@@ -55,7 +55,11 @@ class TestReportController extends Controller
 
     private function render(Request $request, Sample $sample, ?\App\Models\SampleReport $report)
     {
-        $datos = $this->payload->forSample($sample, $report);
+        // Un informe EMITIDO imprime su snapshot, no el estado actual de la
+        // muestra: el papel que el cliente tiene en la mano y la reimpresión
+        // tienen que decir lo mismo aunque los datos hayan cambiado después.
+        // Solo el borrador (y la vista previa sin registro) se calcula en vivo.
+        $datos = $report?->frozenPayload() ?? $this->payload->forSample($sample, $report);
 
         $emitidoEn = now();
         $codigo    = $this->verifyCode($sample, $emitidoEn);

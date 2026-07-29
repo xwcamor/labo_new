@@ -134,6 +134,34 @@ class SampleReportTest extends TestCase
         $this->assertSame('borrador', $informe->fresh()->notes);
     }
 
+    // ─── Lo emitido se reimprime igual ───────────────────────────────────
+
+    public function test_el_borrador_no_tiene_carga_congelada(): void
+    {
+        $informe = $this->service->create($this->muestra(), [], null);
+
+        // En borrador se calcula en vivo a propósito: todavía se corrige.
+        $this->assertNull($informe->frozenPayload());
+    }
+
+    public function test_el_emitido_imprime_su_snapshot_aunque_los_datos_cambien(): void
+    {
+        // El papel que el cliente tiene en la mano y la reimpresión tienen que
+        // decir lo mismo. Reimprimir "con lo último" un documento emitido no es
+        // una mejora: es un segundo documento circulando con el mismo número.
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+
+        $congelado = ['sample' => ['code' => $muestra->code], 'sections' => [['test' => 'Número Ácido']]];
+        $informe->update(['status' => SampleReport::STATUS_ISSUED, 'snapshot' => $congelado]);
+
+        // La muestra cambia DESPUÉS de emitir…
+        $muestra->update(['description' => 'corregida después de emitir']);
+
+        // …y el informe sigue imprimiendo lo que se firmó.
+        $this->assertSame($congelado, $informe->fresh()->frozenPayload());
+    }
+
     // ─── El borrado de la muestra ────────────────────────────────────────
 
     public function test_una_muestra_con_informe_emitido_no_se_borra(): void

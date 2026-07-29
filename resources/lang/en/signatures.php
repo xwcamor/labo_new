@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'mode_upload' => 'Upload file',
+    'mode_draw' => 'Draw',
+    'draw_hint' => 'Draw the signature over the line, with the mouse or a finger.',
+    'draw_clear' => 'Clear',
+    'draw_use' => 'Use this drawing',
     'relation_prepared' => 'Prepared by',
     'relation_reviewed' => 'Reviewed by',
     'relation_approved' => 'Approved by',
@@ -32,12 +37,12 @@ return [
     'trash_title'    => 'Signatures trash',
     'form_create_hint' => 'Fill in the data to create a new signature.',
     'empty_hint'      => 'Create your first signature or import a batch from Excel.',
-    'name_placeholder' => 'E.g.: Acme, Globex, Contoso',
+    'name_placeholder' => 'E.g.: RAMOS AGAPITO, JESSICA DEL ROSARIO',
 
     'name'      => 'Name',
-    'name_help' => 'Signature name (e.g. Acme, Globex, Contoso).',
+    'name_help' => 'Full name of the signer, exactly as printed under the report signature line.',
     'code'      => 'Code',
-    'code_help' => 'Internal technical identifier (e.g. mineral, silicone, vegetable_soy).',
+    'code_help' => 'Optional internal identifier. Rarely needed: the report uses the name and the job title.',
     'sort_order' => 'Order',
     'is_active' => 'Status',
     'is_active_help' => 'If inactive, the signature will not appear in selectors of other modules.',

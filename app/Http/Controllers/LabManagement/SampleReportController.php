@@ -92,8 +92,11 @@ class SampleReportController extends Controller
     {
         $report->loadMissing(['sample', 'visibilities']);
 
-        $datos = app(\App\Services\Lab\TestReportPayload::class)
-            ->forSample($report->sample, $report);
+        // El informe emitido muestra su snapshot: esta pantalla en modo lectura
+        // existe para ver QUÉ SE FIRMÓ, y recalcularlo en vivo mostraría otra
+        // cosa si los datos cambiaron después de emitir.
+        $datos = $report->frozenPayload()
+            ?? app(\App\Services\Lab\TestReportPayload::class)->forSample($report->sample, $report);
 
         return response()->json([
             'code'     => $report->code,

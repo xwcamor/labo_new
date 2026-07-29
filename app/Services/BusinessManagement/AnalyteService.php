@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class AnalyteService
 {
+    private const MODELO = \App\Models\Analyte::class;
+
     public function create(array $data): Analyte
     {
         $analyte = new Analyte($data);
@@ -121,7 +123,12 @@ class AnalyteService
 
             $clone = new Analyte($analyte->only(['is_active', 'sort_order']));
             $clone->name       = $candidate;
-            $clone->code       = null;
+            // El código se DERIVA del nombre del duplicado. En estas tablas
+            // es obligatorio, así que dejarlo en nulo —lo que hacía el
+            // scaffold— rompía el duplicar con un error de la base en la cara
+            // del usuario. Se acota a 60 y se desempata con un sufijo si otro
+            // ya lo tiene: el índice del código es único.
+            $clone->code       = $this->codigoLibre($candidate);
             $clone->created_by = auth()->id();
             $clone->save();
 
@@ -282,5 +289,29 @@ class AnalyteService
         });
 
         return $touched;
+    }
+
+    /**
+     * Un código libre derivado de un nombre.
+     *
+     * `numero_acido`, `numero_acido_2`… El duplicado necesita uno propio porque
+     * el código es único y obligatorio; nulo no es opción y repetir el del
+     * original tampoco.
+     */
+    private function codigoLibre(string $nombre): string
+    {
+        $base = \Illuminate\Support\Str::limit(\Illuminate\Support\Str::slug($nombre, '_'), 60, '');
+        $codigo = $base;
+        $i = 2;
+
+        while (static::MODELO::withoutGlobalScopes()->where('code', $codigo)->exists()) {
+            $codigo = $base . '_' . $i++;
+
+            if ($i > 100) {
+                return $base . '_' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(4));
+            }
+        }
+
+        return $codigo;
     }
 }

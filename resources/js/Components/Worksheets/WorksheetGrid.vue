@@ -41,7 +41,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
-    Button, Dropdown, Menu, MenuItem, Input, Modal, Tag, Tooltip, Empty,
+    Button, Dropdown, Menu, MenuItem, MenuDivider, Input, Modal, Tag, Tooltip, Empty,
 } from 'ant-design-vue';
 import {
     PlusOutlined, SaveOutlined, DeleteOutlined, CalculatorOutlined,
@@ -812,18 +812,24 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                 </Button>
                 <template #overlay>
                     <Menu>
+                        <!-- La muestra NO se ofrece hasta que estén el patrón y
+                             el duplicado que la prueba exige. Ofrecerla en gris
+                             invita a hacer clic y a recibir un error; sacarla de
+                             la lista dice sin palabras qué falta hacer primero.
+                             El aviso de por qué no está va abajo del menú, que
+                             es donde se mira cuando algo no aparece. -->
                         <MenuItem
-                            v-for="kind in KINDS"
+                            v-for="kind in KINDS.filter((k) => !kindDisabled(k))"
                             :key="kind"
-                            :disabled="kindDisabled(kind)"
                             @click="startRow(kind)"
                         >
-                            <Tooltip
-                                placement="right"
-                                :title="kindDisabled(kind) ? missingReason : $t(`worksheets.kind_help.${kind}`)"
-                            >
+                            <Tooltip placement="right" :title="$t(`worksheets.kind_help.${kind}`)">
                                 <span>{{ $t(`worksheets.kind.${kind}`) }}</span>
                             </Tooltip>
+                        </MenuItem>
+                        <MenuDivider v-if="missing.length > 0" />
+                        <MenuItem v-if="missing.length > 0" disabled>
+                            <span class="ws-menu__why">{{ missingReason }}</span>
                         </MenuItem>
                     </Menu>
                 </template>
@@ -948,6 +954,7 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-row--blank     :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(rgba(19, 151, 168, 0.08), rgba(19, 151, 168, 0.08)); }
 .ws-row--new       :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(var(--tint-dirty), var(--tint-dirty)); }
 
+.ws-menu__why { font-size: 0.75rem; color: var(--color-text-muted); white-space: normal; display: block; max-width: 260px; line-height: 1.4; }
 .ws-empty { padding: 24px 8px; }
 .ws-grid__foot { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>

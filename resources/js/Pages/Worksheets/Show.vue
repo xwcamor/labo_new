@@ -20,7 +20,7 @@ import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
 import WorksheetHeader from '@/Components/Worksheets/WorksheetHeader.vue';
 import WorksheetGrid from '@/Components/Worksheets/WorksheetGrid.vue';
-import WorksheetActionsBar from '@/Components/Worksheets/WorksheetActionsBar.vue';
+import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
 import { useAuth } from '@/Composables/useAuth';
@@ -43,6 +43,8 @@ const props = defineProps({
     // muestra de la grilla.
     pendingTests: { type: Array, default: () => [] },
     can:         { type: Object, default: () => ({}) },
+    // El candado del registro (trait Lockable): quién puede ponerlo y sacarlo.
+    lock:        { type: Object, default: null },
     missing:     { type: Array,  default: () => [] },
     // El historial del registro, como en el resto de las fichas. En un
     // laboratorio acreditado es lo primero que pide una auditoría: quién cargó
@@ -109,10 +111,6 @@ const equipmentWarning = computed(() => (samplesWithoutEquipment.value === 0 ? '
 
 /** Lo que rebotó del servidor (obligatorios que faltan, hoja no editable…). */
 const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filter(Boolean));
-
-const showActions = computed(
-    () => !!props.can.delete,
-);
 </script>
 
 <template>
@@ -130,6 +128,20 @@ const showActions = computed(
                     <span class="ws-sub">{{ plainDate(worksheet.run_date) }}</span>
                     <span v-if="worksheet.analyst" class="ws-sub">{{ worksheet.analyst.name }}</span>
                 </Space>
+            </template>
+            <!-- Editar (la cabecera) / Eliminar / Bloquear: el estándar de los
+                 módulos, arriba a la derecha. Los VALORES se editan en la
+                 grilla; el candado congela grilla y cabecera. -->
+            <template #actions>
+                <EntityShowActions
+                    module="worksheets"
+                    route-prefix="lab_management"
+                    :slug="worksheet.slug"
+                    :id="worksheet.id"
+                    :can-edit="!!can.edit_header"
+                    :can-delete="!!can.delete"
+                    :lock="lock"
+                />
             </template>
         </SectionHeader>
 
@@ -196,8 +208,6 @@ const showActions = computed(
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
-
-        <WorksheetActionsBar v-if="showActions" :worksheet="worksheet" :can="can" />
     </div>
 </template>
 

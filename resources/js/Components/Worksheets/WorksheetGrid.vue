@@ -797,7 +797,7 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                 :preview="previews.new?.values?.[field.code] ?? {}"
                                 :preview-state="previews.new?.status ?? 'idle'"
                                 :preview-message="previewMessage('new', field)"
-                                :instruments="instruments"
+                                :instruments="instrumentsFor(field)"
                                 @update="(replicate, value) => setCell(newDraft, field, replicate, value)"
                             />
                         </td>

@@ -24,7 +24,7 @@ return [
     'name'      => 'Nombre',
     'name_help' => 'Nombre del grupo tal como se ve en el menú de pruebas y en el informe (ej: Físico Químico).',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico del grupo (ej: fisico_quimico). Es único en todo el sistema y no debería cambiar una vez que hay pruebas colgando de él.',
+    'code_help' => 'Se genera solo a partir del nombre y no se puede editar: es el identificador con el que las pruebas, el informe y los archivos de idioma referencian al grupo. Cambiarlo después rompería esos enlaces en silencio.',
     'sort_order' => 'Orden',
     'sort_order_help' => 'Posición del grupo en el menú de pruebas y en el informe. Menor primero.',
     'is_active' => 'Estado',

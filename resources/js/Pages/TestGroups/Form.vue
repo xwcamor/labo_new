@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
     Form, FormItem, Input, InputNumber, Switch, Space, Alert,
@@ -23,6 +23,28 @@ const form = useForm({
     code:       props.testGroup?.code ?? '',
     sort_order: props.testGroup?.sort_order ?? null,
     is_active:  props.testGroup?.is_active ?? true,
+});
+
+/**
+ * El código se DERIVA del nombre: "Fisico Quimico" → `fisico_quimico`.
+ *
+ * Es el identificador técnico con el que las pruebas, el informe y los archivos
+ * de idioma referencian al grupo, y dejarlo escribir a mano produjo un grupo
+ * llamado "67". La misma regla corre en el servidor, así que lo que se ve
+ * mientras se escribe es exactamente lo que se guarda.
+ *
+ * Al EDITAR no se recalcula: si algo ya referencia ese código, cambiarlo por
+ * debajo rompe el enlace en silencio. Por eso el campo queda de solo lectura.
+ */
+const derivarCodigo = (nombre) => (nombre ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // fuera las tildes
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+
+watch(() => form.name, (nombre) => {
+    if (!isEdit.value) form.code = derivarCodigo(nombre);
 });
 
 const submit = () => {
@@ -90,9 +112,9 @@ const submit = () => {
                     :help="form.errors.code"
                 >
                     <Input
-                        v-model:value="form.code"
+                        :value="form.code"
                         size="large"
-                        :maxlength="40"
+                        disabled
                         :placeholder="$t('test_groups.code_placeholder')"
                     />
                 </FormItem>

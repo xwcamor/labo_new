@@ -155,8 +155,12 @@ class TestGroupController extends Controller
             ->map(fn ($t) => [
                 'id'        => $t->id,
                 'slug'      => $t->slug,
-                'code'      => $t->code,
                 'name'      => $t->name,
+                // El ORDEN en el que corren dentro del grupo. Es lo que decide
+                // en qué secuencia salen las secciones del informe, así que
+                // verlo acá evita tener que abrir las trece pruebas para
+                // entender por qué el papel las imprime en ese orden.
+                'sort_order' => $t->sort_order,
                 'is_active' => (bool) $t->is_active,
             ])
             ->all();
@@ -191,10 +195,13 @@ class TestGroupController extends Controller
             }
         }
 
-        $service->create($request->validated());
+        $grupo = $service->create($request->validated());
 
+        // A la FICHA, no al listado: quien acaba de crear un grupo quiere ver
+        // cómo quedó —su código derivado, su orden— y seguir trabajando sobre
+        // él, no buscarlo otra vez en una tabla de veinte filas.
         return redirect()
-            ->route('lab_management.test_groups.index')
+            ->route('lab_management.test_groups.show', $grupo)
             ->with('success', __('test_groups.created'));
     }
 
@@ -235,7 +242,7 @@ class TestGroupController extends Controller
         $service->update($testGroup, $request->validated());
 
         return redirect()
-            ->route('lab_management.test_groups.index')
+            ->route('lab_management.test_groups.show', $testGroup)
             ->with('success', __('test_groups.saved'));
     }
 

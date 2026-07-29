@@ -27,6 +27,8 @@ return [
     'void_reason'     => 'Motivo de anulación',
     'ambient_temp_c'  => 'Temperatura ambiente',
     'ambient_humidity'=> 'Humedad ambiente',
+    // Se imprime en el bloque de condiciones de ensayo del informe.
+    'sample_temp_c'   => 'Temperatura de la muestra',
     'notes'           => 'Observaciones',
     'rows_count'      => 'Filas',
     'samples_count'   => 'Muestras',
@@ -120,6 +122,7 @@ return [
 
     // Mensajes de resultado de las acciones.
     'created'     => 'Hoja de trabajo creada.',
+    'saved'       => 'Cabecera de la hoja guardada.',
     'row_saved'   => 'Fila guardada.',
     'row_deleted' => 'Fila eliminada.',
     'validated'   => 'Hoja validada. Los patrones ya alimentan la carta de control.',

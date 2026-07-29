@@ -24,7 +24,7 @@ return [
     'name'      => 'Name',
     'name_help' => 'Group name as shown in the test menu and on the report (e.g. Physicochemical).',
     'code'      => 'Code',
-    'code_help' => 'Technical identifier of the group (e.g. physicochemical). It is unique system-wide and should not change once tests hang from it.',
+    'code_help' => 'Generated from the name and not editable: it is the identifier used by tests, the report and the language files to reference this group. Changing it later would break those links silently.',
     'sort_order' => 'Order',
     'sort_order_help' => 'Position of the group in the test menu and on the report. Lower comes first.',
     'is_active' => 'Status',

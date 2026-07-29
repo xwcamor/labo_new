@@ -67,8 +67,18 @@ const selected = computed(
             >
                 <span class="ws-instrument__opt" :class="{ 'is-risky': isRisky(instrument) }">
                     <WarningOutlined v-if="isRisky(instrument)" />
-                    {{ instrument.name }}
-                    <span v-if="instrument.code" class="ws-instrument__code">{{ instrument.code }}</span>
+                    <!-- Con display='code' las opciones dicen SOLO el código:
+                         el nombre del instrumento ya está en el encabezado de
+                         la columna ("Bureta PP-LA-01C") y repetirlo en cada
+                         opción no agrega nada y tapa el código, que es lo que
+                         distingue una bureta de la otra. -->
+                    <template v-if="display === 'code'">
+                        {{ instrument.code || instrument.name }}
+                    </template>
+                    <template v-else>
+                        {{ instrument.name }}
+                        <span v-if="instrument.code" class="ws-instrument__code">{{ instrument.code }}</span>
+                    </template>
                 </span>
             </SelectOption>
         </Select>

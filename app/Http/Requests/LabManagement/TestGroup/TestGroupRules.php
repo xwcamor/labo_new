@@ -26,13 +26,28 @@ trait TestGroupRules
         return [
             'name' => ['required', 'string', 'max:100'],
 
+            // El código no se tipea: se deriva del nombre. Se valida igual
+            // —llega del formulario, que lo muestra mientras se escribe— pero
+            // la unicidad se comprueba sobre el DERIVADO, que es lo que se va a
+            // guardar. Si no, dos nombres distintos que producen el mismo
+            // código ("Físico Químico" y "Fisico Quimico") pasarían la
+            // validación y chocarían contra el índice de la base.
             'code' => [
-                'required', 'string', 'max:40',
+                'nullable', 'string', 'max:40',
                 function ($attribute, $value, $fail) use ($ignoreId) {
+                    $derivado = \App\Models\TestGroup::codeFrom(
+                        (string) request()->input('name', '')
+                    );
+
+                    if ($derivado === '') {
+                        return;   // sin nombre, el error lo da la regla de `name`
+                    }
+
                     $exists = DB::table('test_groups')
                         ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-                        ->whereRaw('LOWER(code) = LOWER(?)', [trim((string) $value)])
+                        ->whereRaw('LOWER(code) = LOWER(?)', [$derivado])
                         ->exists();
+
                     if ($exists) {
                         $fail(__('test_groups.code_unique'));
                     }

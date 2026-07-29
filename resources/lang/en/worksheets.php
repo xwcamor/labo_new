@@ -22,6 +22,8 @@ return [
     'void_reason'     => 'Void reason',
     'ambient_temp_c'  => 'Ambient temperature',
     'ambient_humidity'=> 'Ambient humidity',
+    // Printed in the report's test-conditions block.
+    'sample_temp_c'   => 'Sample temperature',
     'notes'           => 'Notes',
     'rows_count'      => 'Rows',
     'samples_count'   => 'Samples',
@@ -107,6 +109,7 @@ return [
 
     // Action result messages.
     'created'     => 'Worksheet created.',
+    'saved'       => 'Worksheet header saved.',
     'row_saved'   => 'Row saved.',
     'row_deleted' => 'Row deleted.',
     'validated'   => 'Worksheet validated. Controls now feed the control chart.',

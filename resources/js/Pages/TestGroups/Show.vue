@@ -143,12 +143,16 @@ const fmt = (d) => formatDateTimeFull(d);
 
                     <ul v-if="tests.length" class="tests-list">
                         <li v-for="t in tests" :key="t.id" class="tests-list__item">
+                            <!-- El ORDEN en el que corren dentro del grupo: es
+                                 el que decide en qué secuencia salen las
+                                 secciones del informe. -->
+                            <span class="tests-list__order">{{ t.sort_order }}</span>
                             <component
                                 :is="can('test_definitions.view') ? Link : 'span'"
                                 :href="can('test_definitions.view') ? route('lab_management.test_definitions.show', t.slug) : undefined"
                                 class="tests-list__name"
                             >
-                                <code class="tests-list__code">{{ t.code }}</code> {{ t.name }}
+                                {{ t.name }}
                             </component>
                             <Tag v-if="!t.is_active" color="default" :bordered="false">
                                 {{ $t('global.inactive') }}
@@ -183,12 +187,15 @@ const fmt = (d) => formatDateTimeFull(d);
     border-bottom: 1px solid var(--color-border-subtle, #f2f3f5);
 }
 .tests-list__item:last-child { border-bottom: 0; }
-.tests-list__code {
-    font-family: ui-monospace, Consolas, monospace;
+.tests-list__order {
+    flex: 0 0 auto;
+    min-width: 26px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     font-size: 0.8125rem;
     color: var(--color-text-muted);
-    margin-right: 6px;
 }
+.tests-list__name { flex: 1 1 auto; }
 
 @media (max-width: 767px) {
     :deep(.ant-descriptions-item-label) {

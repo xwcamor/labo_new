@@ -1,10 +1,14 @@
 <script setup>
 /**
- * Alta de la hoja de trabajo.
+ * Alta y edición de la CABECERA de la hoja de trabajo.
  *
  * Son cinco datos y ninguno más: qué prueba, qué día, quién la corre y en qué
  * condiciones estaba la sala. Las muestras no se cargan acá — se cargan en la
  * hoja, que es donde el analista las tiene delante.
+ *
+ * Al EDITAR, la prueba no se cambia: la hoja ya tiene filas cargadas contra
+ * las columnas de esa plantilla, y moverla a otra dejaría los valores
+ * apuntando a columnas que no existen. Se muestra como texto fijo.
  */
 import { computed } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
@@ -55,6 +59,8 @@ const preselected = computed(() => {
 
 const today = new Date().toISOString().slice(0, 10);
 
+const isEdit = computed(() => !!props.worksheet?.id);
+
 const form = useForm({
     test_definition_id: props.worksheet?.test_definition_id ?? preselected.value,
     run_date:           props.worksheet?.run_date?.slice(0, 10) ?? today,
@@ -64,21 +70,39 @@ const form = useForm({
     analyst_id:         null,
     ambient_temp_c:     props.worksheet?.ambient_temp_c ?? null,
     ambient_humidity:   props.worksheet?.ambient_humidity ?? null,
+    sample_temp_c:      props.worksheet?.sample_temp_c ?? null,
     notes:              props.worksheet?.notes ?? '',
 });
 
-const currentUserName = computed(() => page.props.auth?.user?.name ?? '');
+const currentUserName = computed(() => (
+    isEdit.value
+        ? (props.worksheet?.analyst?.name ?? '')
+        : (page.props.auth?.user?.name ?? '')
+));
 
-const submit = () => form.post(route('lab_management.worksheets.store'));
+/** El nombre de la prueba de la hoja, para mostrarla fija al editar. */
+const testName = computed(() => (
+    props.worksheet?.definition?.name
+        ?? props.tests.find((t) => t.id === props.worksheet?.test_definition_id)?.name
+        ?? ''
+));
+
+const submit = () => (
+    isEdit.value
+        ? form.put(route('lab_management.worksheets.update', props.worksheet.slug))
+        : form.post(route('lab_management.worksheets.store'))
+);
 </script>
 
 <template>
-    <Head :title="$t('worksheets.create')" />
+    <Head :title="isEdit ? $t('worksheets.edit') : $t('worksheets.create')" />
 
     <div class="form-page sap-form">
         <SectionHeader
-            :back-href="route('lab_management.worksheets.index')"
-            :title="$t('worksheets.create')"
+            :back-href="isEdit
+                ? route('lab_management.worksheets.show', worksheet.slug)
+                : route('lab_management.worksheets.index')"
+            :title="isEdit ? $t('worksheets.edit') : $t('worksheets.create')"
             :subtitle="$t('worksheets.intro')"
         >
             <template #icon><ProfileOutlined /></template>
@@ -103,7 +127,14 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
 
                 <h2 class="form-section-title">{{ $t('global.general_data') }}</h2>
 
+                <!-- Al editar, la prueba se muestra y no se cambia: las filas ya
+                     cargadas apuntan a las columnas de ESTA plantilla. -->
+                <FormItem v-if="isEdit" :label="$t('worksheets.test_definition')">
+                    <Input :value="testName" size="large" disabled />
+                </FormItem>
+
                 <FormItem
+                    v-else
                     :label="$t('worksheets.test_definition')"
                     required
                     :validate-status="form.errors.test_definition_id ? 'error' : ''"
@@ -193,6 +224,23 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
                     />
                 </FormItem>
 
+                <!-- La temperatura de la MUESTRA se imprime en el bloque de
+                     condiciones de ensayo del informe; sin este campo no tenía
+                     dónde cargarse. -->
+                <FormItem
+                    :label="$t('worksheets.sample_temp_c')"
+                    :validate-status="form.errors.sample_temp_c ? 'error' : ''"
+                    :help="form.errors.sample_temp_c"
+                >
+                    <InputNumber
+                        v-model:value="form.sample_temp_c"
+                        size="large"
+                        style="width: 100%"
+                        :step="0.1"
+                        addon-after="°C"
+                    />
+                </FormItem>
+
                 <FormItem
                     :label="$t('worksheets.notes')"
                     :validate-status="form.errors.notes ? 'error' : ''"
@@ -202,8 +250,10 @@ const submit = () => form.post(route('lab_management.worksheets.store'));
                 </FormItem>
 
                 <FormFooter
-                    :cancel-href="route('lab_management.worksheets.index')"
-                    :is-edit="false"
+                    :cancel-href="isEdit
+                        ? route('lab_management.worksheets.show', worksheet.slug)
+                        : route('lab_management.worksheets.index')"
+                    :is-edit="isEdit"
                     :processing="form.processing"
                     create-label-key="worksheets.create"
                     floating

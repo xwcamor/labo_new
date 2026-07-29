@@ -24,15 +24,34 @@ class TestGroupService
 
     public function create(array $data): TestGroup
     {
+        // El orden es OBLIGATORIO en la base y el formulario puede no traerlo:
+        // se pone al final de la lista. Pedírselo al usuario para algo que el
+        // sistema sabe calcular es lo que hacía que el alta reventara con una
+        // violación de nulo en la cara.
+        $data['sort_order'] ??= (int) TestGroup::withTrashed()->max('sort_order') + 1;
+
+        // El CÓDIGO se deriva del nombre y no se tipea: es el identificador
+        // técnico con el que las pruebas, el informe y los archivos de idioma
+        // referencian al grupo. Dejarlo escribir a mano produjo un grupo
+        // llamado "67".
+        $data['code'] = TestGroup::codeFrom($data['name'] ?? '');
+
         $testGroup = new TestGroup($data);
         $testGroup->created_by = auth()->id();
         $testGroup->save();
+
         return $testGroup;
     }
 
     public function update(TestGroup $testGroup, array $data): TestGroup
     {
+        // El código NO se reescribe al renombrar el grupo. Si algo ya lo
+        // referencia —una prueba, una traducción, un cuadro de límites—,
+        // cambiarlo por debajo rompe ese enlace en silencio.
+        unset($data['code']);
+
         $testGroup->update($data);
+
         return $testGroup;
     }
 

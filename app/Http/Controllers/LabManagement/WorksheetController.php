@@ -45,6 +45,7 @@ use Inertia\Inertia;
 class WorksheetController extends Controller
 {
     use \App\Traits\BuildsRecordAudit;
+    use \App\Http\Controllers\Concerns\HandlesRecordLocking;
 
     public function __construct(
         private readonly WorksheetService $service,
@@ -122,6 +123,7 @@ class WorksheetController extends Controller
             'analyst_id'         => ['nullable', 'integer', Rule::exists('users', 'id')],
             'ambient_temp_c'     => ['nullable', 'numeric'],
             'ambient_humidity'   => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sample_temp_c'      => ['nullable', 'numeric'],
             'notes'              => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -169,6 +171,77 @@ class WorksheetController extends Controller
         return $salida;
     }
 
+    /**
+     * Editar la CABECERA de la hoja: fecha, analista, condiciones y notas.
+     *
+     * Los VALORES no se editan acá —viven en la grilla de la ficha, que es la
+     * bancada—. Esto existe porque la cabecera también se corrige (la humedad
+     * mal tipeada, el analista del turno equivocado) y porque la temperatura de
+     * la muestra se imprime en el informe y no tenía ningún campo donde
+     * cargarse.
+     */
+    public function edit(Worksheet $worksheet)
+    {
+        abort_if($worksheet->is_locked, 403, __('locks.cannot_edit_locked'));
+
+        return Inertia::render('Worksheets/Form', [
+            // Con su prueba: el formulario la muestra fija (no se cambia), y no
+            // puede depender de la lista de activas — la prueba de una hoja
+            // vieja pudo haberse desactivado después.
+            'worksheet' => $worksheet->load(['analyst:id,name', 'definition:id,name']),
+            'tests'     => TestDefinition::where('is_active', true)
+                ->with('group:id,name,sort_order')
+                ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name', 'test_group_id']),
+            'selected'  => null,
+        ]);
+    }
+
+    public function update(Request $request, Worksheet $worksheet): RedirectResponse
+    {
+        abort_if($worksheet->is_locked, 403, __('locks.cannot_edit_locked'));
+
+        // La PRUEBA no se cambia: la hoja ya tiene filas cargadas contra las
+        // columnas de esa plantilla, y moverla a otra dejaría los valores
+        // apuntando a columnas que no existen.
+        $data = $request->validate([
+            'run_date'         => ['required', 'date'],
+            'analyst_id'       => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'ambient_temp_c'   => ['nullable', 'numeric'],
+            'ambient_humidity' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sample_temp_c'    => ['nullable', 'numeric'],
+            'notes'            => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $worksheet->update($data);
+
+        return redirect()
+            ->route('lab_management.worksheets.show', $worksheet)
+            ->with('success', __('worksheets.saved'));
+    }
+
+    /** La confirmación de la baja, con su motivo — el estándar de los módulos. */
+    public function delete(Worksheet $worksheet)
+    {
+        abort_if($worksheet->is_locked, 403, __('locks.cannot_delete_locked'));
+
+        return Inertia::render('Worksheets/Delete', [
+            'worksheet' => $worksheet->load(['definition:id,name', 'analyst:id,name']),
+        ]);
+    }
+
+    // El candado del supervisor (trait Lockable): congela la grilla y la
+    // cabecera. Es el mismo candado que el bloqueo automático por antigüedad
+    // pone solo; acá se pone y se saca a mano, y queda auditado.
+    public function lock(Request $request, Worksheet $worksheet): RedirectResponse
+    {
+        return $this->applyLock($worksheet, $request);
+    }
+
+    public function unlock(Request $request, Worksheet $worksheet): RedirectResponse
+    {
+        return $this->applyUnlock($worksheet, $request);
+    }
+
     public function show(Request $request, Worksheet $worksheet)
     {
         $worksheet->load([
@@ -214,8 +287,15 @@ class WorksheetController extends Controller
                 ->with('customer:id,name')
                 ->orderBy('customer_id')->orderBy('name')
                 ->limit(2000)->get(['id', 'name', 'serial', 'tag', 'customer_id']),
+            // El candado, con quién puede ponerlo y sacarlo: es lo que dibuja
+            // el botón Bloquear del encabezado, igual que en los catálogos.
+            'lock'        => $this->lockMeta($worksheet->load('locker:id,name'), $request),
             'can'         => [
                 'edit'     => $worksheet->isEditable() && $this->allows('worksheets.edit'),
+                // Editar la CABECERA pide el permiso de edición y que el
+                // candado no esté puesto; el estado del flujo no importa (una
+                // humedad mal tipeada se corrige aunque la hoja ya publique).
+                'edit_header' => ! $worksheet->is_locked && $this->allows('worksheets.edit'),
                 // No hay botón que firme la hoja: publica sola en cuanto está
                 // completa y deja de admitir cambios cuando el candado la
                 // cierra. Lo único que queda como acción es darla de baja.

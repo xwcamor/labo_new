@@ -224,6 +224,21 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     });
 
     Route::middleware('permission:worksheets.edit')->group(function () {
+        // La CABECERA de la hoja (fecha, analista, condiciones, notas). Los
+        // valores se editan en la grilla de la ficha, no acá.
+        Route::get('worksheets/{worksheet}/edit', [WorksheetController::class, 'edit'])->name('worksheets.edit');
+        Route::put('worksheets/{worksheet}',      [WorksheetController::class, 'update'])->name('worksheets.update');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin, como en el resto de
+    // los módulos. Es el mismo candado que el bloqueo automático por antigüedad
+    // pone solo; acá se pone y se saca a mano, y queda auditado.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('worksheets/{worksheet}/lock',   [WorksheetController::class, 'lock'])->name('worksheets.lock');
+        Route::post('worksheets/{worksheet}/unlock', [WorksheetController::class, 'unlock'])->name('worksheets.unlock');
+    });
+
+    Route::middleware('permission:worksheets.edit')->group(function () {
         Route::post('worksheets/{worksheet}/rows',        [WorksheetController::class, 'saveRow'])->name('worksheets.rows.save');
         Route::delete('worksheets/{worksheet}/rows/{row}', [WorksheetController::class, 'destroyRow'])->name('worksheets.rows.destroy');
         // Vista previa del cálculo mientras el analista escribe. NO guarda nada.
@@ -246,7 +261,8 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     // más que no aportaba nada: hacía lo mismo que un borrado lógico bien
     // hecho, que es lo que tenía el sistema anterior.
     Route::middleware('permission:worksheets.delete')->group(function () {
-        Route::delete('worksheets/{worksheet}', [WorksheetController::class, 'destroy'])->name('worksheets.destroy');
+        Route::get('worksheets/{worksheet}/delete', [WorksheetController::class, 'delete'])->name('worksheets.delete');
+        Route::delete('worksheets/{worksheet}',     [WorksheetController::class, 'destroy'])->name('worksheets.destroy');
     });
 
     /*

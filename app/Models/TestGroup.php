@@ -37,6 +37,21 @@ class TestGroup extends Model
         'created_by', 'deleted_by', 'deleted_description',
     ];
 
+    /**
+     * El código técnico que le corresponde a un nombre.
+     *
+     * No se tipea: "Fisico Quimico" es `fisico_quimico`. Es el identificador
+     * con el que las pruebas, el informe y los archivos de idioma referencian
+     * al grupo, y dejarlo escribir a mano produjo un grupo llamado "67".
+     *
+     * La misma regla se aplica en el formulario mientras se escribe, así que lo
+     * que el usuario ve antes de guardar es exactamente lo que se guarda.
+     */
+    public static function codeFrom(string $nombre): string
+    {
+        return \Illuminate\Support\Str::slug(trim($nombre), '_');
+    }
+
     protected $casts = [
         'is_active'  => 'boolean',
         'sort_order' => 'integer',

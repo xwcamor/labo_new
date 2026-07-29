@@ -1,0 +1,179 @@
+<?php
+
+namespace Tests\Feature\Lab;
+
+use App\Models\Customer;
+use App\Models\Reception;
+use App\Models\Sample;
+use App\Models\SampleReport;
+use App\Models\SampleTest;
+use App\Models\TestDefinition;
+use App\Models\User;
+use App\Services\Lab\SampleReportService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+/**
+ * El informe como registro.
+ *
+ * Lo que se fija acá es lo que el sistema anterior hacía mal y le costaba
+ * dinero al laboratorio: emitir dos veces el mismo correlativo, devolver a la
+ * fila el número de un informe dado de baja, y dejar editable un papel que ya
+ * estaba en manos del cliente.
+ */
+class SampleReportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private SampleReportService $service;
+    private TestDefinition $prueba;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seedParentRows();
+        $this->service = new SampleReportService();
+
+        $this->prueba = TestDefinition::create([
+            'slug' => Str::random(22), 'code' => 'acidez', 'name' => 'Número Ácido',
+        ]);
+    }
+
+    // ─── El correlativo ──────────────────────────────────────────────────
+
+    public function test_el_primer_informe_de_la_muestra_es_el_principal(): void
+    {
+        $muestra = $this->muestra();
+
+        $primero = $this->service->create($muestra, [], null);
+        $segundo = $this->service->create($muestra, [], null);
+
+        $this->assertSame(SampleReport::KIND_PRIMARY, $primero->kind);
+        $this->assertSame(SampleReport::KIND_ADDITIONAL, $segundo->kind);
+    }
+
+    public function test_el_correlativo_no_se_repite(): void
+    {
+        $a = $this->service->create($this->muestra(), [], null);
+        $b = $this->service->create($this->muestra(), [], null);
+
+        $this->assertSame('REP-LAB-' . now()->year . '-0001', $a->code);
+        $this->assertSame('REP-LAB-' . now()->year . '-0002', $b->code);
+    }
+
+    public function test_dar_de_baja_un_informe_no_devuelve_su_numero(): void
+    {
+        // El del sistema anterior sí: buscaba el último con `where(deleted: 0)`,
+        // así que borrar el más alto hacía que el siguiente lo reemitiera. Dos
+        // clientes con papeles del mismo código y un portal de verificación que
+        // no puede decir cuál es cuál.
+        $primero = $this->service->create($this->muestra(), [], null);
+        $primero->delete();
+
+        $segundo = $this->service->create($this->muestra(), [], null);
+
+        $this->assertNotSame($primero->code, $segundo->code);
+        $this->assertSame(2, $segundo->number);
+    }
+
+    // ─── Lo que se guarda dónde ──────────────────────────────────────────
+
+    public function test_la_cabecera_se_guarda_donde_vive_cada_dato(): void
+    {
+        // El sistema anterior copiaba los cuarenta campos dentro de la fila del
+        // reporte, así que corregir el contacto del cliente había que
+        // corregirlo informe por informe.
+        $muestra = $this->muestra();
+
+        $this->service->create($muestra, [
+            'service_order'  => '700089655',
+            'contact_info'   => 'jadriazo@fmi.com',
+            'sampling_point' => 'Superior',
+            'oil_temp_c'     => 23.8,
+        ], null);
+
+        $muestra->refresh();
+
+        $this->assertSame('700089655', $muestra->reception->service_order);
+        $this->assertSame('jadriazo@fmi.com', $muestra->reception->contact_info);
+        $this->assertSame('Superior', $muestra->sampling_point);
+        $this->assertEquals(23.8, $muestra->oil_temp_c);
+    }
+
+    public function test_sin_lista_explicita_se_publican_todas_las_pruebas(): void
+    {
+        $muestra = $this->muestra();
+
+        $informe = $this->service->create($muestra, [], null);
+
+        $this->assertCount(1, $informe->visibilities()->where('is_visible', true)->get());
+    }
+
+    public function test_una_prueba_desmarcada_no_se_publica(): void
+    {
+        $muestra = $this->muestra();
+
+        $informe = $this->service->create($muestra, ['tests' => []], null);
+
+        $this->assertSame([], $informe->fresh()->visibleTestIds());
+    }
+
+    // ─── Lo emitido no se toca ───────────────────────────────────────────
+
+    public function test_un_informe_emitido_no_se_edita(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, ['notes' => 'borrador'], null);
+        $informe->update(['status' => SampleReport::STATUS_ISSUED]);
+
+        $this->service->update($informe, ['notes' => 'cambiado']);
+
+        $this->assertSame('borrador', $informe->fresh()->notes);
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────
+
+    private function muestra(): Sample
+    {
+        // El nombre del cliente es único por workspace, así que cada muestra de
+        // la prueba trae el suyo.
+        $cliente = Customer::create([
+            'slug' => Str::random(22), 'name' => 'Cliente ' . Str::random(6), 'tenant_id' => 1,
+        ]);
+        $recepcion = Reception::create([
+            'slug' => Str::random(22), 'customer_id' => $cliente->id,
+            'received_at' => now(), 'tenant_id' => 1, 'status' => Reception::STATUS_CONFIRMED,
+        ]);
+        $numero = Sample::where('tenant_id', 1)->count() + 1;
+        $muestra = Sample::create([
+            'slug' => Str::random(22), 'reception_id' => $recepcion->id,
+            'year' => 2026, 'number' => $numero,
+            'code' => Sample::formatCode(2026, $numero),
+            'tenant_id' => 1, 'is_urgent' => false,
+        ]);
+        SampleTest::create([
+            'sample_id' => $muestra->id,
+            'test_definition_id' => $this->prueba->id,
+            'status' => SampleTest::STATUS_VALIDATED,
+            'tenant_id' => 1,
+        ]);
+
+        return $muestra->fresh();
+    }
+
+    private function seedParentRows(): void
+    {
+        DB::table('languages')->insertOrIgnore([[
+            'id' => 1, 'slug' => Str::random(22), 'name' => 'Spanish',
+            'iso_code' => 'es', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+        DB::table('tenants')->insertOrIgnore([[
+            'id' => 1, 'slug' => Str::random(22), 'name' => 'Laboratorio',
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+    }
+}

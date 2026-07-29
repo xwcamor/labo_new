@@ -67,7 +67,7 @@ class TestReportPayload
     /**
      * @return array<string,mixed>
      */
-    public function forSample(Sample $sample): array
+    public function forSample(Sample $sample, ?\App\Models\SampleReport $report = null): array
     {
         $sample->loadMissing([
             'reception.customer:id,name,address',
@@ -83,10 +83,10 @@ class TestReportPayload
             'tests.definition.group:id,name,sort_order',
         ]);
 
-        $secciones = $this->secciones($sample);
+        $secciones = $this->secciones($sample, $report);
 
         return [
-            'sample'    => $this->cabeceraMuestra($sample),
+            'sample'    => $this->cabeceraMuestra($sample, $report),
             'customer'  => $this->cabeceraCliente($sample),
             'equipment' => $this->cabeceraEquipo($sample),
             'sections'  => $secciones,
@@ -98,17 +98,18 @@ class TestReportPayload
     /**
      * @return array<string,mixed>
      */
-    private function cabeceraMuestra(Sample $sample): array
+    private function cabeceraMuestra(Sample $sample, ?\App\Models\SampleReport $report = null): array
     {
         return [
             'code'         => $sample->code,
             'year'         => $sample->year,
             'number'       => $sample->number,
             // El número del INFORME es otro que el de la muestra: un informe se
-            // reemite (corrección, ampliación) sin que la muestra cambie. Si el
-            // laboratorio todavía no lo usa, la banda cae al código de muestra
-            // en vez de salir en blanco.
-            'report_number' => $sample->report_number ?: $sample->code,
+            // reemite (corrección, ampliación) sin que la muestra cambie. Sale
+            // del informe que se está imprimiendo; sin informe —vista previa
+            // desde la muestra— cae al número declarado y, en última instancia,
+            // al código de muestra, en vez de salir en blanco.
+            'report_number' => $report?->code ?: ($sample->report_number ?: $sample->code),
             'description'  => $sample->description,
             'sampling_reason' => $sample->sampling_reason,
             'sampling_point'  => $sample->sampling_point,
@@ -212,7 +213,7 @@ class TestReportPayload
      *
      * @return array<int,array<string,mixed>>
      */
-    private function secciones(Sample $sample): array
+    private function secciones(Sample $sample, ?\App\Models\SampleReport $report = null): array
     {
         // Solo las pruebas que se validaron o ya se informaron. Una prueba
         // pendiente o en proceso no tiene resultado firmado, y publicarla como
@@ -220,6 +221,15 @@ class TestReportPayload
         $pruebas = $sample->tests
             ->whereIn('status', [SampleTest::STATUS_VALIDATED, SampleTest::STATUS_REPORTED])
             ->sortBy(fn ($t) => [$t->definition?->group?->sort_order ?? 999, $t->definition?->sort_order ?? 999]);
+
+        // Y, si se está imprimiendo un informe concreto, solo las que ESE
+        // informe publica. Es lo que el emisor marcó en "Mostrar en el informe":
+        // el mismo juego de resultados puede salir completo o recortado, y la
+        // decisión es del papel, no de la muestra.
+        if ($report !== null) {
+            $visibles = $report->visibleTestIds();
+            $pruebas  = $pruebas->whereIn('id', $visibles);
+        }
 
         if ($pruebas->isEmpty()) {
             return [];

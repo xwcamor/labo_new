@@ -491,6 +491,29 @@ html, body { overflow-x: clip; }
     }
 }
 
+/* ─── Formulario de informe: a pantalla completa SIEMPRE ──────────────────
+   No es el patrón de los otros modales (centrado, ancho fijo) porque no es un
+   diálogo: son treinta campos de cabecera más la lista de ensayos. Con ancho de
+   modal quedan tres columnas y cuatro pantallas de scroll. El sistema anterior
+   usaba `modal-fullscreen` para esta misma pantalla y estaba bien.
+   No-scoped: los modales se montan en <body>, fuera del componente. */
+.rfm-fullscreen .ant-modal {
+    top: 0 !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+}
+.rfm-fullscreen .ant-modal-content {
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+}
+@media (max-width: 767px) {
+    .rfm-fullscreen .ant-modal-content { padding: 14px 16px !important; }
+}
+
 /* ─── Export/Import dialog fullscreen en mobile ───────────────────────────
    Las clases --fullscreen las setea cada dialog en wrap-class-name. En
    desktop el modal queda como modal centrado normal. En mobile (<768px) lo

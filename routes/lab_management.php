@@ -9,6 +9,7 @@ use App\Http\Controllers\LabManagement\QcChartController;
 use App\Http\Controllers\LabManagement\ReceptionController;
 use App\Http\Controllers\LabManagement\InstrumentFileController;
 use App\Http\Controllers\LabManagement\TestReportController;
+use App\Http\Controllers\LabManagement\SampleReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -296,11 +297,25 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     | constancia en el registro de auditoría.
     */
     Route::middleware('permission:receptions.view')->group(function () {
+        // La vista previa desde la muestra: el papel tal como saldría, todavía
+        // sin correlativo. Sirve para revisar antes de emitir.
         Route::get('samples/{sample}/report', [TestReportController::class, 'pdf'])->name('samples.report');
+
+        // El informe REGISTRADO, con su correlativo y sus ensayos elegidos.
+        Route::get('samples/{sample}/reports/new', [SampleReportController::class, 'create'])->name('sample_reports.create');
+        Route::get('reports/{report}/edit', [SampleReportController::class, 'edit'])->name('sample_reports.edit');
+        Route::get('reports/{report}/pdf', [TestReportController::class, 'reportPdf'])->name('sample_reports.pdf');
+    });
+
+    Route::middleware('permission:receptions.edit')->group(function () {
+        Route::post('samples/{sample}/reports', [SampleReportController::class, 'store'])->name('sample_reports.store');
+        Route::put('reports/{report}', [SampleReportController::class, 'update'])->name('sample_reports.update');
+        Route::post('reports/{report}/issue', [SampleReportController::class, 'issue'])->name('sample_reports.issue');
     });
 
     Route::middleware('permission:receptions.delete')->group(function () {
         Route::delete('receptions/{reception}', [ReceptionController::class, 'destroy'])->name('receptions.destroy');
+        Route::delete('reports/{report}', [SampleReportController::class, 'destroy'])->name('sample_reports.destroy');
     });
 
     /*

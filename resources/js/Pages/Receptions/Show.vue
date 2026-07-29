@@ -20,9 +20,12 @@
  * (emite los correlativos), asignar equipo, pedir pruebas.
  */
 import { computed, ref } from 'vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Alert, Button, Card, Space, Tag, Tooltip } from 'ant-design-vue';
-import { EditOutlined, ExperimentOutlined, FilePdfOutlined, InboxOutlined, ThunderboltFilled } from '@ant-design/icons-vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Tooltip } from 'ant-design-vue';
+import {
+    EditOutlined, ExperimentOutlined, FileTextOutlined, FilePdfOutlined,
+    InboxOutlined, PlusOutlined, ThunderboltFilled,
+} from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -33,6 +36,7 @@ import ConfirmSamplesCard from '@/Components/Receptions/ConfirmSamplesCard.vue';
 import SampleEquipmentSelect from '@/Components/Receptions/SampleEquipmentSelect.vue';
 import SampleProgress from '@/Components/Receptions/SampleProgress.vue';
 import AssignTestsModal from '@/Components/Receptions/AssignTestsModal.vue';
+import ReportFormModal from '@/Components/Receptions/ReportFormModal.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { plainDate, testStatusColor } from './config/format';
@@ -42,6 +46,8 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     reception:  { type: Object, required: true },
     samples:    { type: Array,  default: () => [] },
+    /** Los informes de las muestras de esta entrega, emitidos o en borrador. */
+    reports:    { type: Array,  default: () => [] },
     // Indexado por sample_id: { pedidas, pendientes, en_proceso, validadas, informadas }.
     progress:   { type: [Object, Array], default: () => ({}) },
     // 'equipment' y/o 'tests'. Vacío = la recepción está completa.
@@ -118,9 +124,57 @@ const columns = computed(() => [
     {
         title: t('global.actions'),
         key: 'actions',
-        width: 160,
+        width: 220,
         align: 'right',
     },
+]);
+
+// ── Informes ─────────────────────────────────────────────────────────────
+const reportOpen   = ref(false);
+const reportSample = ref(null);
+const reportRecord = ref(null);
+
+const nuevoInforme = (sample) => {
+    reportSample.value = sample;
+    reportRecord.value = null;
+    reportOpen.value = true;
+};
+
+const editarInforme = (report) => {
+    reportSample.value = null;
+    reportRecord.value = report;
+    reportOpen.value = true;
+};
+
+/**
+ * Emitir es irreversible: el papel sale con ese número y su contenido queda
+ * congelado. Se pregunta una vez, diciendo exactamente eso, en vez de dejar que
+ * se descubra después.
+ */
+const emitir = (report) => {
+    Modal.confirm({
+        title: t('sample_reports.issue'),
+        content: t('sample_reports.issue_confirm', { code: report.code }),
+        okText: t('sample_reports.issue'),
+        cancelText: t('global.cancel'),
+        onOk: () => router.post(
+            route('lab_management.sample_reports.issue', report.slug),
+            {},
+            { preserveScroll: true },
+        ),
+    });
+};
+
+const reportsOf = (sample) => props.reports.filter((r) => r.sample_id === sample.id);
+
+const reportColumns = computed(() => [
+    { title: t('sample_reports.code'), key: 'code', width: 190 },
+    { title: t('sample_reports.sample'), key: 'sample', width: 130 },
+    { title: t('sample_reports.kind'), key: 'kind', width: 110 },
+    { title: t('sample_reports.status'), key: 'status', width: 110 },
+    { title: t('sample_reports.issued_at'), key: 'issued_at', width: 130 },
+    { title: t('sample_reports.tests_count'), key: 'tests_count', width: 120, align: 'right' },
+    { title: t('global.actions'), key: 'actions', width: 230, align: 'right' },
 ]);
 </script>
 
@@ -192,7 +246,18 @@ const columns = computed(() => [
             :disabled="!canEdit"
         />
 
-        <Card v-else :body-style="{ padding: 0 }" class="rc-samples grid-card">
+        <!-- Dos pestañas, como en el sistema anterior: lo que ENTRÓ y lo que
+             SALIÓ. Son dos trabajos distintos sobre la misma entrega —cargar
+             muestras y emitir informes— y mezclarlos en una sola tabla obliga a
+             mirar veinte filas para encontrar los tres papeles que se
+             entregaron. -->
+        <Tabs v-else class="rc-tabs">
+        <TabPane key="samples">
+            <template #tab>
+                <span><ExperimentOutlined /> {{ $t('receptions.section_samples') }} ({{ samples.length }})</span>
+            </template>
+
+            <Card :body-style="{ padding: 0 }" class="rc-samples grid-card">
             <div class="rc-samples__bar">
                 <h2 class="rc-samples__title">
                     <ExperimentOutlined /> {{ $t('receptions.section_samples') }}
@@ -277,20 +342,121 @@ const columns = computed(() => [
                                     :href="route('lab_management.samples.report', record.slug)"
                                     target="_blank"
                                 >
-                                    <FilePdfOutlined /> {{ $t('receptions.report') }}
+                                    <FilePdfOutlined /> {{ $t('sample_reports.preview') }}
+                                </Button>
+                            </Tooltip>
+                            <Tooltip v-if="canEdit && hasValidated(record)" :title="$t('sample_reports.new')">
+                                <Button size="small" type="primary" @click="nuevoInforme(record)">
+                                    <PlusOutlined /> {{ $t('sample_reports.singular') }}
                                 </Button>
                             </Tooltip>
                         </Space>
                     </template>
                 </template>
             </ResponsiveTable>
-        </Card>
+            </Card>
+        </TabPane>
+
+        <TabPane key="reports">
+            <template #tab>
+                <span><FileTextOutlined /> {{ $t('sample_reports.tab') }} ({{ reports.length }})</span>
+            </template>
+
+            <Card :body-style="{ padding: 0 }" class="rc-samples grid-card">
+                <ResponsiveTable
+                    :columns="reportColumns"
+                    :data-source="reports"
+                    :pagination="false"
+                    :scroll="{ x: 'max-content' }"
+                    view="table"
+                    row-key="id"
+                >
+                    <template #empty>
+                        <div class="rc-empty">
+                            {{ $t('sample_reports.empty') }}
+                            <div class="rc-empty__hint">{{ $t('sample_reports.empty_hint') }}</div>
+                        </div>
+                    </template>
+
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'code'">
+                            <span class="rc-code">{{ record.code }}</span>
+                        </template>
+
+                        <template v-else-if="column.key === 'sample'">
+                            {{ record.sample?.code ?? '—' }}
+                        </template>
+
+                        <template v-else-if="column.key === 'kind'">
+                            <Tag :bordered="false" :color="record.kind === 'primary' ? 'blue' : 'default'">
+                                {{ $t(`sample_reports.kind_${record.kind}`) }}
+                            </Tag>
+                        </template>
+
+                        <template v-else-if="column.key === 'status'">
+                            <Tag :bordered="false" :color="record.status === 'issued' ? 'green' : 'orange'">
+                                {{ $t(`sample_reports.status_${record.status}`) }}
+                            </Tag>
+                        </template>
+
+                        <template v-else-if="column.key === 'issued_at'">
+                            {{ plainDate(record.issued_at) }}
+                        </template>
+
+                        <template v-else-if="column.key === 'tests_count'">
+                            {{ record.tests_count }}
+                        </template>
+
+                        <template v-else-if="column.key === 'actions'">
+                            <Space :size="6">
+                                <!-- Un informe emitido no se edita: el papel ya
+                                     salió con ese contenido y ese número. Lo que
+                                     corresponde es un adicional, y por eso el
+                                     botón desaparece en vez de fallar al
+                                     guardar. -->
+                                <Button
+                                    v-if="canEdit && record.status === 'draft'"
+                                    size="small"
+                                    @click="editarInforme(record)"
+                                >
+                                    <EditOutlined /> {{ $t('global.edit') }}
+                                </Button>
+                                <Button
+                                    v-if="canEdit && record.status === 'draft'"
+                                    size="small"
+                                    type="primary"
+                                    @click="emitir(record)"
+                                >
+                                    {{ $t('sample_reports.issue') }}
+                                </Button>
+                                <Tooltip :title="$t('sample_reports.download')">
+                                    <Button
+                                        size="small"
+                                        :href="route('lab_management.sample_reports.pdf', record.slug)"
+                                        target="_blank"
+                                    >
+                                        <FilePdfOutlined />
+                                    </Button>
+                                </Tooltip>
+                            </Space>
+                        </template>
+                    </template>
+                </ResponsiveTable>
+            </Card>
+        </TabPane>
+        </Tabs>
 
         <AssignTestsModal
             v-model:open="modalOpen"
             :reception="reception"
             :sample="modalSample"
             :tests="tests"
+        />
+
+        <ReportFormModal
+            v-model:open="reportOpen"
+            :sample="reportSample"
+            :report="reportRecord"
         />
     </div>
 </template>
@@ -330,4 +496,9 @@ const columns = computed(() => [
 .rc-tests { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
 .rc-muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .rc-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
+.rc-empty__hint { margin-top: 4px; font-size: 0.8125rem; }
+
+/* Las pestañas van sobre el fondo gris de la ficha, no dentro de una tarjeta:
+   así la tarjeta de la tabla queda debajo, como en el resto de las pantallas. */
+.rc-tabs :deep(.ant-tabs-nav) { margin-bottom: 12px; }
 </style>

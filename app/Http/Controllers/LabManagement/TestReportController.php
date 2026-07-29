@@ -32,11 +32,30 @@ class TestReportController extends Controller
     }
 
     /**
-     * El informe en PDF de una muestra.
+     * El PDF de un informe REGISTRADO.
+     *
+     * La diferencia con `pdf()` no es el dibujo —es la misma plantilla— sino
+     * qué se imprime: acá manda el informe. Su correlativo va en la banda, y
+     * solo salen los ensayos que ese informe publica.
+     */
+    public function reportPdf(Request $request, \App\Models\SampleReport $report)
+    {
+        $report->loadMissing(['sample', 'visibilities']);
+
+        return $this->render($request, $report->sample, $report);
+    }
+
+    /**
+     * El informe en PDF de una muestra, sin registro: la vista previa.
      */
     public function pdf(Request $request, Sample $sample)
     {
-        $datos = $this->payload->forSample($sample);
+        return $this->render($request, $sample, null);
+    }
+
+    private function render(Request $request, Sample $sample, ?\App\Models\SampleReport $report)
+    {
+        $datos = $this->payload->forSample($sample, $report);
 
         $emitidoEn = now();
         $codigo    = $this->verifyCode($sample, $emitidoEn);
@@ -60,6 +79,10 @@ class TestReportController extends Controller
             'event'          => 'report_generated',
             'new_values'     => [
                 'sample'      => $sample->code,
+                // El correlativo del papel, cuando lo hay. Es lo que el cliente
+                // cita por teléfono; sin él, la constancia no se puede cruzar
+                // con el informe que tiene en la mano.
+                'report'      => $report?->code,
                 'verify_code' => $codigo,
                 'sections'    => count($datos['sections']),
                 'notes'       => $datos['notes'],
@@ -103,7 +126,9 @@ class TestReportController extends Controller
 
         $this->numerarPaginas($pdf);
 
-        return $pdf->stream('informe-' . $sample->code . '.pdf');
+        // El archivo se llama como el papel: el correlativo del informe si lo
+        // tiene, y el de la muestra si es la vista previa.
+        return $pdf->stream('informe-' . ($report?->code ?? $sample->code) . '.pdf');
     }
 
     /**

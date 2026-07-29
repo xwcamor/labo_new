@@ -139,9 +139,21 @@ class ReceptionController extends Controller
             ])
             ->get();
 
+        // Los informes de la entrega, en su propia pestaña. Son de las MUESTRAS,
+        // no de la recepción, pero se listan acá porque es donde el laboratorio
+        // trabaja la entrega: el sistema anterior tenía las mismas dos pestañas
+        // (Muestras · Reportes) y por la misma razón.
+        $informes = \App\Models\SampleReport::query()
+            ->whereIn('sample_id', $samples->pluck('id'))
+            ->with(['sample:id,code', 'issuer:id,name'])
+            ->withCount(['visibilities as tests_count' => fn ($q) => $q->where('is_visible', true)])
+            ->orderByDesc('id')
+            ->get();
+
         return Inertia::render('Receptions/Show', [
             'reception' => $reception,
             'samples'   => $samples,
+            'reports'   => $informes,
             // UNA consulta para el avance de todas las muestras.
             'progress'  => $this->progress->receptionBreakdown($reception->id),
             'missing'   => $reception->missingData(),

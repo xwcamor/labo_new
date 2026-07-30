@@ -165,4 +165,16 @@ return [
     'footer_legend' => 'Los resultados corresponden únicamente a la muestra recibida. El valor de orientación es el criterio de aceptación aplicable a este equipo según la norma indicada en cada fila.',
     'footer_accreditation' => '(A) método acreditado · (NA) método no acreditado. La marca corresponde al método con el que se corrió este ensayo.',
     'generated_by'  => 'Emitido por: :name',
+    // Las fichas de resumen de la primera pagina del informe moderno: lo
+    // primero que se pregunta quien lo abre. Se cuentan sobre el estado
+    // congelado de cada resultado, el mismo que imprimen las tablas.
+    'sample'         => 'Muestra',
+    'sum_tests'      => 'Parametros informados',
+    'sum_tests_note' => '{0} Sin pruebas|{1} en :count prueba|[2,*] en :count pruebas',
+    'sum_out'        => 'Fuera de norma',
+    'sum_out_note'   => 'Revisar el analisis de resultados.',
+    'sum_ok_note'    => 'Todo dentro de norma.',
+    'sum_no_spec'    => 'Sin criterio',
+    'sum_no_spec_note' => 'Sin limite aplicable declarado.',
+
 ];

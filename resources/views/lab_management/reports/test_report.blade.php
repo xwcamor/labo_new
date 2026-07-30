@@ -35,105 +35,213 @@
     <meta charset="utf-8">
     <title>{{ __('reports.title') }} {{ $sample['code'] }}</title>
     <style>
-        @page { margin: 22px 26px 40px 26px; }
+        /*
+            ── LA MAQUETA MODERNA ──────────────────────────────────────────
+            Este es el formato NUEVO del informe. El clásico (la maqueta del
+            sistema anterior) vive aparte, en `legacy/report.blade.php`, y se
+            baja con el otro botón de exportar: no hay que "reproducir" nada
+            acá, y por eso este archivo puede diseñarse.
 
-        body { font-family: Helvetica; font-size: 8pt; color: #1a1a1a; margin: 0; }
+            La diferencia de fondo con el clásico no es decorativa. El clásico
+            encierra CADA dato en una celda con sus cuatro bordes y pone la
+            etiqueta en negrita adentro: todo pesa lo mismo y hay que leerlo
+            entero para encontrar un número. Acá manda la jerarquía: la
+            etiqueta es chica, gris y en versalita; el valor es el que se lee;
+            y el papel se ordena con espacio en blanco y una línea fina, no con
+            una rejilla. Las reglas verticales se eliminan a propósito — son
+            las que hacen que una tabla parezca una planilla de cálculo.
+
+            Lo que NO cambia respecto del clásico, porque es normativo: una
+            página por ensayo, la cabecera completa en todas, el descargo en
+            todas, y el veredicto leído del resultado congelado.
+        */
+
+        @page { margin: 20px 26px 42px 26px; }
+
+        body { font-family: Helvetica; font-size: 8pt; color: #101828; margin: 0; }
         p { margin: 0 0 2px 0; }
 
         /* Salto de página entre ensayos: el `.alwaysbreak` del informe viejo.
            No se pone en la primera hoja, o el PDF abre con una página en blanco. */
         .brk { page-break-before: always; }
 
-        /* ── Membrete ───────────────────────────────────────────────────── */
-        .lh { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        .lh td { vertical-align: middle; }
-        .lh__logo { width: 40%; }
-        .lh__logo img { max-height: 52px; }
-        .lh__name { font-size: 12pt; font-weight: bold; color: #354A5F; }
-        .lh__addr { font-size: 6.5pt; color: #555555; }
-        .lh__mid { width: 30%; text-align: center; font-size: 7pt; color: #555555; }
-        .lh__acc { width: 30%; text-align: right; }
-        .lh__acc img { max-height: 62px; }
+        /* ── Membrete: identidad a la izquierda, el informe a la derecha ───
+           El clásico centra el número dentro de una banda gris con borde
+           negro. Acá el número vive en una tarjeta a la derecha, que es donde
+           lo busca quien tiene el papel en la mano, y la identidad del
+           laboratorio queda sola a la izquierda sin competirle. */
+        .lh { width: 100%; border-collapse: collapse; }
+        .lh td { vertical-align: top; padding: 0; }
+        .lh__logo { width: 46%; }
+        .lh__logo img { max-height: 46px; }
+        .lh__name { font-size: 14pt; font-weight: bold; color: #1B2A3A; }
+        .lh__addr { font-size: 6.5pt; color: #5B6672; }
+        .lh__acc { width: 16%; text-align: center; }
+        .lh__acc img { max-height: 54px; }
 
-        /* ── Banda del número de informe ─────────────────────────────────── */
-        .band {
-            background: #E8E8E8; border: 1px solid #000000;
-            text-align: center; font-weight: bold; font-size: 10pt;
-            padding: 3px 0; margin-bottom: 5px;
+        /* La tarjeta del número de informe. */
+        .lh__doc { width: 38%; text-align: right; }
+        .doc {
+            display: inline-block; background: #F7F9FB; border: 1px solid #E3E8EE;
+            border-left: 3px solid #0E7490; padding: 4px 9px 5px 9px; text-align: left;
         }
+        .doc__kicker {
+            font-size: 5.5pt; color: #5B6672; letter-spacing: 1.1px; text-transform: uppercase;
+        }
+        .doc__num { font-size: 12pt; font-weight: bold; color: #1B2A3A; }
+        .doc__meta { font-size: 6pt; color: #5B6672; }
 
-        .blk { font-weight: bold; font-size: 8.5pt; margin: 5px 0 2px 0; }
+        /* La regla de marca que cierra el membrete. Un solo trazo: es lo que
+           separa la cabecera del contenido sin dibujar una caja. */
+        .rule { height: 2px; background: #1B2A3A; margin: 5px 0 9px 0; font-size: 0; }
 
-        /* ── Las dos tablas de cabecera ──────────────────────────────────── */
+        /* ── Título de sección: versalita chica + acento corto ─────────────
+           Reemplaza al `.blk` en negrita del clásico. La barrita de color hace
+           el trabajo que allá hacía el fondo gris, con una fracción de la
+           tinta y sin encajonar el texto. */
+        .blk {
+            font-size: 6.5pt; font-weight: bold; color: #1B2A3A;
+            letter-spacing: 1.2px; text-transform: uppercase;
+            border-bottom: 1px solid #E3E8EE; padding-bottom: 2px;
+            margin: 9px 0 4px 0;
+        }
+        .blk--first { margin-top: 0; }
+
+        /* ── Resumen del veredicto (solo la primera página) ────────────────
+           Esto no existe en el clásico y es lo primero que quiere saber quien
+           abre el informe: cuántos ensayos se corrieron y si alguno salió
+           fuera de norma. Las fichas se leen de un vistazo; el detalle está
+           en las páginas siguientes. */
+        .sum { width: 100%; border-collapse: separate; border-spacing: 5px 0; margin: 0 0 4px -5px; }
+        .sum td { width: 25%; vertical-align: top; }
+        .card { background: #F7F9FB; border: 1px solid #E3E8EE; padding: 5px 8px 6px 8px; }
+        .card--ok   { background: #F0FAF5; border-color: #BFE6D2; }
+        .card--bad  { background: #FEF3F2; border-color: #FBD3CE; }
+        .card__k {
+            font-size: 5.5pt; color: #5B6672; letter-spacing: 1px; text-transform: uppercase;
+        }
+        .card__v { font-size: 12pt; font-weight: bold; color: #1B2A3A; }
+        .card__v--ok  { color: #0E7A4B; }
+        .card__v--bad { color: #B42318; }
+        .card__note { font-size: 5.5pt; color: #5B6672; }
+
+        /* ── Datos: etiqueta arriba, valor abajo, sin rejilla ──────────────
+           Misma estructura de filas que el clásico (pares etiqueta/valor),
+           pero la etiqueta deja de ser una celda gris con borde: es un rótulo
+           en versalita sobre el dato. Solo queda una línea horizontal fina
+           para guiar la lectura a lo ancho. */
         table.grid { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
         table.grid th, table.grid td {
-            border: 1px solid #000000; padding: 2px 4px; text-align: left;
-            vertical-align: middle;
+            border: 0; border-bottom: 1px solid #EDF0F4;
+            padding: 3px 8px 4px 0; text-align: left; vertical-align: top;
         }
-        table.grid th { font-weight: bold; background: #F4F4F4; width: 13%; }
-        table.grid td { width: 20%; }
+        table.grid th {
+            font-weight: normal; font-size: 5.5pt; color: #5B6672;
+            letter-spacing: 0.9px; text-transform: uppercase;
+            width: 12%; padding-top: 4px;
+        }
+        table.grid td { width: 21%; color: #101828; }
+        table.grid tr:last-child th, table.grid tr:last-child td { border-bottom: 0; }
 
-        /* ── Resultados ──────────────────────────────────────────────────── */
+        /* ── Resultados ───────────────────────────────────────────────────
+           Encabezado en el azul de marca con texto blanco, filas cebradas y
+           SOLO líneas horizontales. El clásico usa borde negro en las cuatro
+           caras de cada celda; eso es lo que le da el aire de planilla. */
         table.res { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
-        table.res th, table.res td { border: 1px solid #000000; padding: 2px 4px; }
-        table.res th { background: #E8E8E8; font-weight: bold; text-align: center; }
+        table.res th, table.res td {
+            border: 0; border-bottom: 1px solid #EDF0F4; padding: 4px 6px;
+        }
+        table.res th {
+            background: #1B2A3A; color: #FFFFFF; font-weight: bold; text-align: center;
+            font-size: 6pt; letter-spacing: 0.6px; text-transform: uppercase;
+            border-bottom: 0;
+        }
+        table.res tr.zebra td { background: #F7F9FB; }
         .res__family {
-            background: #E8E8E8; border: 1px solid #000000;
-            text-align: center; font-weight: bold; font-size: 10pt; padding: 3px 0;
+            font-size: 9.5pt; font-weight: bold; color: #1B2A3A;
+            border-left: 3px solid #0E7490; padding: 1px 0 1px 7px; margin-bottom: 5px;
         }
         .c { text-align: center; }
-        .res__value { text-align: center; font-weight: bold; background: #E8E8E8; }
+        /* El valor medido es el dato que se busca: alineado a la derecha para
+           poder comparar las columnas de números de un vistazo, y sin fondo
+           gris — el énfasis lo da el cuerpo, no un recuadro. */
+        .res__value { text-align: right; font-weight: bold; font-size: 8.5pt; }
 
         /* Fuera de norma: rojo Y la palabra. El color solo no sobrevive a una
            fotocopia en blanco y negro, y este papel se fotocopia. */
-        .out { color: #C8281D; }
+        .out { color: #B42318; }
         /* Sin criterio: ni negro ni rojo. No se comparó contra nada, y eso no
            puede leerse como conforme. */
-        .none { color: #666666; font-weight: normal; }
+        .none { color: #5B6672; font-weight: normal; }
         .flag { font-size: 6pt; font-weight: normal; }
         /* De qué cuadro salió el límite. Chico, debajo del número: el cliente
            lee el número; quien audita necesita saber contra qué se lo juzgó. */
-        .crit { font-size: 6pt; color: #555555; }
+        .crit { font-size: 6pt; color: #5B6672; }
         .sup { font-size: 6pt; }
 
         /* ── Notas al pie de la página de ensayo ─────────────────────────── */
-        .foot { margin-top: 5px; font-size: 7pt; line-height: 1.35; }
-        .foot__iso { font-size: 6.5pt; font-style: italic; color: #333333; }
-        .foot__warn { margin-top: 3px; color: #8a5a00; font-size: 7pt; }
+        .foot { margin-top: 6px; font-size: 7pt; line-height: 1.35; }
+        .foot__iso { font-size: 6.5pt; font-style: italic; color: #5B6672; }
+        .foot__warn {
+            margin-top: 4px; color: #B45309; font-size: 7pt;
+            background: #FFFAEB; border-left: 3px solid #F5C86B; padding: 3px 7px;
+        }
 
         /* ── Pie: condiciones de ensayo · firmas · verificación ──────────── */
-        .strip { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .strip { width: 100%; border-collapse: collapse; margin-top: 12px; }
         .strip td { vertical-align: top; }
-        .strip__cond { width: 46%; }
-        .strip__sign { width: 39%; }
-        .strip__qr { width: 15%; text-align: center; }
+        .strip__cond { width: 44%; padding-right: 12px; }
+        .strip__sign { width: 40%; }
+        .strip__qr { width: 16%; text-align: center; }
 
-        table.cond { width: 100%; border-collapse: collapse; font-size: 7pt; }
-        table.cond td { border: 1px solid #000000; padding: 2px 4px; }
-        table.cond td.cond__k { font-weight: bold; width: 58%; }
+        /* Condiciones del ensayo: pares clave/valor sin caja, con la clave en
+           gris. Van adentro de una ficha para que se lean como un bloque. */
+        table.cond { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
+        table.cond td {
+            border: 0; border-bottom: 1px solid #EDF0F4; padding: 2px 4px 2px 0;
+        }
+        table.cond tr:last-child td { border-bottom: 0; }
+        table.cond td.cond__k { color: #5B6672; width: 58%; }
 
         table.sign { width: 100%; border-collapse: collapse; }
-        table.sign td { text-align: center; padding: 0 4px; vertical-align: bottom; border: 0; }
-        .sign__lead { font-size: 7.5pt; padding-bottom: 22px; }
-        .sign__line { border-top: 1px solid #000000; margin: 0 0 2px 0; }
-        .sign__rel { font-size: 6.5pt; color: #555555; }
+        table.sign td { text-align: center; padding: 0 5px; vertical-align: bottom; border: 0; }
+        .sign__lead { font-size: 6pt; color: #5B6672; letter-spacing: 0.9px; text-transform: uppercase; padding-bottom: 24px; }
+        .sign__line { border-top: 1px solid #98A2B3; margin: 0 0 2px 0; }
+        .sign__rel { font-size: 5.5pt; color: #5B6672; letter-spacing: 0.7px; text-transform: uppercase; }
         .sign__name { font-size: 7.5pt; font-weight: bold; }
-        .sign__title { font-size: 6.5pt; color: #555555; }
+        .sign__title { font-size: 6pt; color: #5B6672; }
 
-        .qr img { width: 62px; height: 62px; }
+        .qr { background: #F7F9FB; border: 1px solid #E3E8EE; padding: 4px 2px 3px 2px; }
+        .qr img { width: 58px; height: 58px; }
         .sign__img { display: block; max-height: 34px; margin: 0 auto 1px; }
-        .qr__code { font-size: 6.5pt; font-weight: bold; }
-        .qr__hint { font-size: 5.5pt; color: #555555; line-height: 1.2; }
+        .qr__code { font-size: 6.5pt; font-weight: bold; color: #1B2A3A; }
+        .qr__hint { font-size: 5pt; color: #5B6672; line-height: 1.2; }
 
-        /* ── Última página: análisis de resultados ───────────────────────── */
-        table.an { width: 100%; border-collapse: collapse; font-size: 8pt; }
-        table.an td { border: 1px solid #000000; padding: 4px 6px; vertical-align: top; }
-        .an__fam { background: #E8E8E8; font-weight: bold; width: 22%; vertical-align: middle; }
-        .an__empty { color: #666666; font-style: italic; }
-        .an__edited { margin-top: 3px; font-size: 6.5pt; color: #555555; font-style: italic; }
-        .notes { margin-top: 8px; border: 1px solid #E9A23B; background: #FDF6EC; padding: 5px 7px; font-size: 7pt; }
-        .scope { margin-top: 6px; font-size: 6.5pt; color: #555555; font-style: italic; }
-        .empty { border: 1px solid #000000; padding: 14px; text-align: center; color: #555555; }
+        /* ── Última página: análisis de resultados ─────────────────────────
+           El clásico lo mete en una tabla de dos columnas con bordes, con la
+           familia en una celda gris. Acá cada familia es un bloque con su
+           título y su párrafo: se lee como un texto, que es lo que es. */
+        .an__block { margin-bottom: 9px; }
+        .an__fam {
+            font-size: 6.5pt; font-weight: bold; color: #1B2A3A;
+            letter-spacing: 1.1px; text-transform: uppercase;
+            border-left: 3px solid #0E7490; padding-left: 7px; margin-bottom: 3px;
+        }
+        .an__body {
+            font-size: 8pt; line-height: 1.45; text-align: justify;
+            padding-left: 10px;
+        }
+        .an__empty { color: #5B6672; font-style: italic; }
+        .an__edited { margin-top: 3px; font-size: 6.5pt; color: #5B6672; font-style: italic; padding-left: 10px; }
+        .notes {
+            margin-top: 10px; border: 1px solid #E3E8EE; border-left: 3px solid #B45309;
+            background: #FFFAEB; padding: 5px 8px; font-size: 7pt;
+        }
+        .scope { margin-top: 8px; font-size: 6.5pt; color: #5B6672; font-style: italic; }
+        .empty {
+            background: #F7F9FB; border: 1px solid #E3E8EE;
+            padding: 16px; text-align: center; color: #5B6672;
+        }
 
         /* El código de muestra y el de verificación van en el margen inferior
            de `@page` —por eso el margen de abajo es más grande que el de
@@ -233,6 +341,25 @@
     }
 
     $paginas[] = $sections === [] ? ['kind' => 'empty'] : ['kind' => 'analysis'];
+
+    // El recuento del veredicto para las fichas de la primera página. Se cuenta
+    // sobre el estado CONGELADO de cada resultado, el mismo que se imprime: si
+    // la ficha dijera una cosa y la tabla otra, el papel se contradice.
+    $totalEnsayos = 0;
+    $fueraDeNorma = 0;
+    $sinCriterio  = 0;
+
+    foreach ($sections as $seccion) {
+        foreach ($seccion['rows'] ?? [] as $fila) {
+            $totalEnsayos++;
+
+            if (($fila['status'] ?? null) === 'out_of_spec') {
+                $fueraDeNorma++;
+            } elseif (($fila['status'] ?? null) === null || ($fila['status'] ?? null) === 'no_spec') {
+                $sinCriterio++;
+            }
+        }
+    }
 @endphp
 
 @foreach ($paginas as $indice => $pagina)
@@ -254,28 +381,80 @@
             <td class="lh__logo">
                 @if ($letterhead['logo'])
                     <img src="{{ $letterhead['logo'] }}" alt="">
+                    @if ($letterhead['name'])
+                        <div class="lh__addr">{{ $letterhead['name'] }}</div>
+                    @endif
                 @else
-                    <span class="lh__name">{{ $letterhead['name'] ?? '' }}</span>
+                    <div class="lh__name">{{ $letterhead['name'] ?? '' }}</div>
                 @endif
-            </td>
-            <td class="lh__mid">
-                @if ($letterhead['logo'] && $letterhead['name'])
-                    {{ $letterhead['name'] }}<br>
-                @endif
-                <span class="lh__addr">{{ $letterhead['address'] }}</span>
+                <div class="lh__addr">{{ $letterhead['address'] }}</div>
             </td>
             <td class="lh__acc">
                 @if (($letterhead['accreditation_logo'] ?? null) && ! empty($pagina['section']['accredited']))
                     <img src="{{ $letterhead['accreditation_logo'] }}" alt="">
                 @endif
             </td>
+            {{-- El número de informe vive acá, en su tarjeta, y no centrado en
+                 una banda: es lo que busca primero quien tiene el papel en la
+                 mano, junto con la muestra y la fecha de emisión. --}}
+            <td class="lh__doc">
+                <div class="doc">
+                    <div class="doc__kicker">{{ __('reports.header_title') }}</div>
+                    <div class="doc__num">{{ $sample['report_number'] }}</div>
+                    <div class="doc__meta">
+                        {{ __('reports.sample') }} {{ $sample['code'] }}
+                        &nbsp;·&nbsp; {{ $fecha($sample['issued_at'] ?? $generatedAt) }}
+                    </div>
+                </div>
+            </td>
         </tr>
     </table>
 
-    <div class="band">{{ __('reports.header_title') }} {{ $sample['report_number'] }}</div>
+    <div class="rule"></div>
+
+    {{-- ── Resumen del veredicto (solo la primera hoja) ──────────────────
+         No está en el formato clásico y es lo primero que se pregunta quien
+         abre el informe. Se arma con el estado congelado de cada resultado,
+         el mismo que imprimen las tablas de las páginas siguientes. --}}
+    @if ($indice === 0 && $totalEnsayos > 0)
+        <table class="sum">
+            <tr>
+                <td>
+                    <div class="card">
+                        <div class="card__k">{{ __('reports.sum_tests') }}</div>
+                        <div class="card__v">{{ $totalEnsayos }}</div>
+                        <div class="card__note">{{ trans_choice('reports.sum_tests_note', count($sections), ['count' => count($sections)]) }}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="card {{ $fueraDeNorma > 0 ? 'card--bad' : 'card--ok' }}">
+                        <div class="card__k">{{ __('reports.sum_out') }}</div>
+                        <div class="card__v {{ $fueraDeNorma > 0 ? 'card__v--bad' : 'card__v--ok' }}">{{ $fueraDeNorma }}</div>
+                        <div class="card__note">
+                            {{ $fueraDeNorma > 0 ? __('reports.sum_out_note') : __('reports.sum_ok_note') }}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="card">
+                        <div class="card__k">{{ __('reports.sum_no_spec') }}</div>
+                        <div class="card__v">{{ $sinCriterio }}</div>
+                        <div class="card__note">{{ __('reports.sum_no_spec_note') }}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="card">
+                        <div class="card__k">{{ __('reports.sampled_at') }}</div>
+                        <div class="card__v" style="font-size: 9pt">{{ $fecha($sample['sampled_at'] ?? null) }}</div>
+                        <div class="card__note">{{ $o($sample['sampling_point'] ?? null) }}</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    @endif
 
     {{-- ── Información del cliente ─────────────────────────────────────── --}}
-    <div class="blk">{{ __('reports.customer_info') }}</div>
+    <div class="blk {{ $indice === 0 && $totalEnsayos > 0 ? '' : 'blk--first' }}">{{ __('reports.customer_info') }}</div>
     <table class="grid">
         <tr>
             <th>{{ __('reports.customer_name') }}</th>
@@ -377,13 +556,14 @@
 
         {{-- ── Resultados del ensayo de esta página ────────────────────── --}}
         <div class="blk">{{ __('reports.results_title') }}</div>
+
+        {{-- El nombre del ensayo va FUERA de la tabla, como título del bloque:
+             adentro obligaba a una fila de cabecera falsa con seis columnas
+             fusionadas y hacía que la tabla arrancara con una banda gris. --}}
+        <div class="res__family">{{ \Illuminate\Support\Str::upper($s['test'] ?? '') }}</div>
+
         <table class="res">
             <thead>
-                <tr>
-                    <td colspan="6" class="res__family">
-                        {{ \Illuminate\Support\Str::upper($s['test'] ?? '') }}
-                    </td>
-                </tr>
                 <tr>
                     <th style="width: 5%">{{ __('reports.col_item') }}</th>
                     <th style="width: 20%">{{ __('reports.col_standard') }}</th>
@@ -395,7 +575,9 @@
             </thead>
             <tbody>
                 @foreach ($s['rows'] as $row)
-                    <tr>
+                    {{-- Cebra: la fila alterna reemplaza a las reglas
+                         verticales para guiar el ojo a lo ancho. --}}
+                    <tr class="{{ $loop->index % 2 === 1 ? 'zebra' : '' }}">
                         <td class="c">{{ $row['item'] }}</td>
                         {{-- La norma del MÉTODO, con su marca de acreditación.
                              Es la que el analista eligió al correr el ensayo, o
@@ -468,24 +650,27 @@
     @elseif ($pagina['kind'] === 'analysis')
 
         {{-- ── Última página: análisis de resultados ───────────────────── --}}
-        <div class="blk">{{ __('reports.analysis_title') }}</div>
-        <table class="an">
-            @foreach ($analysis as $fila)
-                <tr>
-                    <td class="an__fam">{{ \Illuminate\Support\Str::upper($fila['label'] ?? '') }}</td>
-                    <td>
-                        @if ($fila['body'])
-                            {!! nl2br(e($fila['body'])) !!}
-                            @if ($fila['edited'])
-                                <div class="an__edited">{{ __('reports.analysis_edited') }}</div>
-                            @endif
-                        @else
-                            <span class="an__empty">{{ __('reports.analysis_empty') }}</span>
-                        @endif
-                    </td>
-                </tr>
-            @endforeach
-        </table>
+        <div class="blk blk--first">{{ __('reports.analysis_title') }}</div>
+
+        {{-- Cada familia es un bloque con su título y su párrafo, no una fila
+             de una tabla con bordes: el análisis es un texto y se lee como
+             texto. Justificado y con interlínea holgada, que es lo que
+             distingue un informe de una planilla. --}}
+        @foreach ($analysis as $fila)
+            <div class="an__block">
+                <div class="an__fam">{{ \Illuminate\Support\Str::upper($fila['label'] ?? '') }}</div>
+                <div class="an__body">
+                    @if ($fila['body'])
+                        {!! nl2br(e($fila['body'])) !!}
+                    @else
+                        <span class="an__empty">{{ __('reports.analysis_empty') }}</span>
+                    @endif
+                </div>
+                @if ($fila['body'] && $fila['edited'])
+                    <div class="an__edited">{{ __('reports.analysis_edited') }}</div>
+                @endif
+            </div>
+        @endforeach
 
         {{-- Las advertencias del informe completo: cuántos resultados quedaron
              sin criterio, qué ensayos siguen pendientes, si la muestra no tiene

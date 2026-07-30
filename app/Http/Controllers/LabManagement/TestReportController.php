@@ -217,9 +217,14 @@ class TestReportController extends Controller
             6.5,
         );
 
+        // La ALTURA importa y ya estuvo mal: a 812 pt el número caía DENTRO del
+        // descargo legal —que ocupa el ancho completo del pie— y las dos cosas
+        // se leían pisadas. Va a la altura del renglón del código de muestra y
+        // del código de verificación (los `bottom: -26px` de la plantilla), que
+        // queda por debajo del descargo y libre en el centro.
         $dompdf->getCanvas()->page_text(
             (595.28 - $ancho) / 2,
-            812.0,
+            827.0,
             $texto,
             $fuente,
             6.5,

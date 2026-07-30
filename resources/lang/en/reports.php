@@ -156,4 +156,15 @@ return [
     'footer_legend' => 'Results apply only to the sample as received. The acceptance value is the criterion applicable to this equipment under the standard shown on each row.',
     'footer_accreditation' => '(A) accredited method · (NA) non-accredited method. The mark refers to the method actually used for this test.',
     'generated_by'  => 'Issued by: :name',
+    // The summary cards on the modern report's first page, counted from the
+    // frozen status of each result -- the same one the tables print.
+    'sample'         => 'Sample',
+    'sum_tests'      => 'Reported parameters',
+    'sum_tests_note' => '{0} No tests|{1} in :count test|[2,*] in :count tests',
+    'sum_out'        => 'Out of spec',
+    'sum_out_note'   => 'See the results analysis.',
+    'sum_ok_note'    => 'All within spec.',
+    'sum_no_spec'    => 'No criterion',
+    'sum_no_spec_note' => 'No applicable limit declared.',
+
 ];

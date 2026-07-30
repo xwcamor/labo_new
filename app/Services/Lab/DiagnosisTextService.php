@@ -60,6 +60,19 @@ use Illuminate\Support\Collection;
  */
 class DiagnosisTextService
 {
+    /**
+     * El idioma en el que están escritas las plantillas de `diagnosis_templates.json`.
+     *
+     * Hoy hay UNA sola redacción, en español, y es la que el laboratorio viene
+     * firmando. Todo lo que la frase intercala —el conector de la enumeración,
+     * y cualquier palabra que se agregue— tiene que resolverse en ESTE idioma y
+     * no en el ambiente, o el texto sale mezclado y así queda guardado.
+     *
+     * Cuando existan las plantillas en inglés, esto pasa a ser un campo de la
+     * plantilla y deja de ser una constante.
+     */
+    private const IDIOMA_PLANTILLAS = 'es';
+
     /** @var array<int,array<string,mixed>>|null */
     private ?array $plantillas = null;
 
@@ -476,7 +489,14 @@ class DiagnosisTextService
 
         $ultimo = $partes->pop();
 
-        return $partes->implode(', ') . ' ' . __('reports.and') . ' ' . $ultimo;
+        // El conector se resuelve en el idioma de la PLANTILLA, no en el que
+        // tenga la aplicación en ese instante. Con `__('reports.and')` a secas
+        // el papel salía diciendo "contenido de agua and rigidez dieléctrica":
+        // el cuerpo de la plantilla está en español y el conector se traducía
+        // con el idioma ambiente, que en una consola, una cola o una sesión en
+        // inglés es otro. Y el texto queda GUARDADO, así que ese engendro se
+        // congelaba y se imprimía en el informe del cliente.
+        return $partes->implode(', ') . ' ' . __('reports.and', [], self::IDIOMA_PLANTILLAS) . ' ' . $ultimo;
     }
 
     /**

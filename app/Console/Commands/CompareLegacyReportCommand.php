@@ -141,12 +141,64 @@ class CompareLegacyReportCommand extends Command
         $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $fuente = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
+        // Misma altura que en el controlador (827): a 812 el número caía dentro
+        // del descargo legal y se leía pisado.
         $dompdf->getCanvas()->page_text(
-            455.0, 812.0, __('reports.page_of', ['num' => '{PAGE_NUM}', 'total' => '{PAGE_COUNT}']),
+            455.0, 827.0, __('reports.page_of', ['num' => '{PAGE_NUM}', 'total' => '{PAGE_COUNT}']),
             $fuente, 6.5, [0.33, 0.33, 0.33],
         );
 
         return $pdf->output();
+    }
+
+    /**
+     * Los firmantes como MODELO, que es lo que espera el blade del informe
+     * moderno (el clásico los recibe ya aplanados desde su propio servicio).
+     *
+     * Van los mismos en los dos papeles: comparar uno firmado contra otro sin
+     * firmar escondería justamente lo que cambió.
+     */
+    private function firmantesModelo(): \Illuminate\Support\Collection
+    {
+        $tenantId = \App\Models\Tenant::query()->orderBy('id')->value('id');
+
+        return \App\Models\Signature::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with('user:id,name,signature,auto_sign_reports')
+            ->orderBy('sort_order')->orderBy('id')
+            ->get()
+            ->map(function ($firma) {
+                $firma->stamp = $this->firmaComoImagen($firma);
+
+                return $firma;
+            });
+    }
+
+    /**
+     * La firma escaneada, resuelta a data-URI.
+     *
+     * `imagePath()` devuelve la ruta RELATIVA al disco público, no una ruta del
+     * sistema de archivos: preguntarle `is_file()` directamente da siempre
+     * falso y la firma no se estampa nunca.
+     */
+    private function firmaComoImagen(\App\Models\Signature $firma): ?string
+    {
+        $ruta = $firma->imagePath();
+
+        if (! $ruta) {
+            return null;
+        }
+
+        $absoluta = \Illuminate\Support\Facades\Storage::disk('public')->path($ruta);
+
+        if (! is_file($absoluta)) {
+            return null;
+        }
+
+        $tipo = mime_content_type($absoluta) ?: 'image/png';
+
+        return 'data:' . $tipo . ';base64,' . base64_encode((string) file_get_contents($absoluta));
     }
 
     // ── El informe de antes ──────────────────────────────────────────────

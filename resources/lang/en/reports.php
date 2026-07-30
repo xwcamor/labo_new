@@ -56,6 +56,7 @@ return [
     'col_unit'     => 'Unit',
     'col_limit'    => 'Acceptance value (*)',
     'col_result'   => 'Result',
+    'col_status'   => 'Condition',
 
     'limit_max'   => '(max)',
     'limit_min'   => '(min)',
@@ -63,6 +64,7 @@ return [
     // A value nobody compared against anything carries the word, not just the
     // grey: colour does not survive a black and white photocopy.
     'no_criterion' => 'no criteria',
+    'in_spec'      => 'conforming',
 
     // ── Footnotes on every test page ────────────────────────────────────
     // Legend for the method accreditation marks. It explains the superscript in

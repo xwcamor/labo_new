@@ -76,9 +76,16 @@ class CompareLegacyReportCommand extends Command
         $muestra = $this->resolverMuestra();
 
         if ($muestra === null) {
-            $this->error('No encontré ninguna muestra con resultados. Corré `php artisan setup:project` primero.');
+            $this->error('No se encontró ninguna muestra con resultados. Ejecute `php artisan setup:project` primero.');
             return self::FAILURE;
         }
+
+        // El autodiagnóstico se compone al crear el informe desde la pantalla,
+        // no al imprimirlo. Sin esta llamada la comparación salía con la página
+        // de análisis en "sin análisis cargado" para todas las familias, y se
+        // leía como si el motor de diagnóstico no existiera: lo que faltaba era
+        // el paso que da la pantalla, no el texto.
+        app(\App\Services\Lab\DiagnosisTextService::class)->generate($muestra);
 
         $carpeta = rtrim((string) ($this->option('out') ?: storage_path('app/comparacion')), '/');
         if (! is_dir($carpeta)) {

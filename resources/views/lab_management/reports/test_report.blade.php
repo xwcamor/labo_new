@@ -51,9 +51,25 @@
             una rejilla. Las reglas verticales se eliminan a propósito — son
             las que hacen que una tabla parezca una planilla de cálculo.
 
-            Lo que NO cambia respecto del clásico, porque es normativo: una
-            página por ensayo, la cabecera completa en todas, el descargo en
-            todas, y el veredicto leído del resultado congelado.
+            ── UN DOCUMENTO, NO TRES IMPRESIONES ENGRAPADAS ────────────────
+            El clásico repite la ficha del cliente Y la del equipo —unas
+            treinta líneas— en cada hoja, y vuelve a firmar cada hoja. Eso
+            venía de que allá cada ensayo era una impresión independiente. Acá
+            no: la ficha del cliente y la del equipo van UNA vez, en la primera
+            página, y las siguientes llevan una banda de una línea que
+            identifica la hoja (informe · muestra · cliente · equipo). La ISO
+            17025 pide identificación única en cada página, no la ficha
+            completa; el número de informe, la muestra y el código de
+            verificación están en todas.
+
+            Las firmas van UNA vez, al cierre. Un documento firmado cuatro
+            veces no está más firmado.
+
+            Lo que NO cambia, porque es normativo: el sello de acreditación
+            solo en páginas cuyos métodos están dentro del alcance —por eso las
+            secciones se agrupan por ese estado y nunca se mezclan en una
+            hoja—, el descargo en todas, y el veredicto leído del resultado
+            congelado.
         */
 
         @page { margin: 20px 26px 42px 26px; }
@@ -143,10 +159,28 @@
         table.grid td { width: 21%; color: #101828; }
         table.grid tr:last-child th, table.grid tr:last-child td { border-bottom: 0; }
 
+        /* ── Banda de continuación (páginas 2 en adelante) ─────────────────
+           Reemplaza a las dos fichas repetidas del clásico. Una línea: quién
+           es el cliente, de qué equipo y de qué muestra. Con eso una hoja
+           suelta se identifica, que es lo que pide la norma. */
+        table.run { width: 100%; border-collapse: collapse; font-size: 6.5pt; margin-bottom: 8px; }
+        table.run td {
+            border: 0; border-top: 1px solid #EDF0F4; border-bottom: 1px solid #EDF0F4;
+            padding: 3px 10px 3px 0; vertical-align: top;
+        }
+        .run__k { color: #5B6672; letter-spacing: 0.9px; text-transform: uppercase; font-size: 5.5pt; }
+        .run__v { color: #101828; font-size: 7pt; }
+
         /* ── Resultados ───────────────────────────────────────────────────
            Encabezado en el azul de marca con texto blanco, filas cebradas y
            SOLO líneas horizontales. El clásico usa borde negro en las cuatro
-           caras de cada celda; eso es lo que le da el aire de planilla. */
+           caras de cada celda; eso es lo que le da el aire de planilla.
+
+           Y la columna ÍTEM ya no está: numerar las filas es una costumbre de
+           libro contable, no un dato del ensayo. El sujeto de la fila es el
+           ENSAYO, así que va primero y en cuerpo legible, con la norma del
+           método como rótulo chico debajo — allá ocupaba una columna entera
+           repitiendo "ASTM D3612 - Método C" once veces. */
         table.res { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
         table.res th, table.res td {
             border: 0; border-bottom: 1px solid #EDF0F4; padding: 4px 6px;
@@ -156,11 +190,27 @@
             font-size: 6pt; letter-spacing: 0.6px; text-transform: uppercase;
             border-bottom: 0;
         }
+        table.res th.l { text-align: left; }
         table.res tr.zebra td { background: #F7F9FB; }
         .res__family {
             font-size: 9.5pt; font-weight: bold; color: #1B2A3A;
             border-left: 3px solid #0E7490; padding: 1px 0 1px 7px; margin-bottom: 5px;
         }
+        /* El nombre del ensayo, y debajo la norma del método con la que se
+           corrió. Dos jerarquías en una celda en vez de dos columnas. */
+        .res__name { font-size: 8pt; }
+        .res__meth { font-size: 6pt; color: #5B6672; }
+
+        /* El veredicto como etiqueta, no como una palabra entre paréntesis
+           colgada del número. Es la columna que el informe viejo no tenía: allá
+           había que mirar el color, y el color no sobrevive a una fotocopia. */
+        .pill {
+            font-size: 5.5pt; font-weight: bold; letter-spacing: 0.7px;
+            text-transform: uppercase; padding: 2px 5px; white-space: nowrap;
+        }
+        .pill--ok   { background: #ECFDF3; color: #0E7A4B; border: 1px solid #BFE6D2; }
+        .pill--bad  { background: #FEF3F2; color: #B42318; border: 1px solid #FBD3CE; }
+        .pill--none { background: #F2F4F7; color: #5B6672; border: 1px solid #E3E8EE; }
         .c { text-align: center; }
         /* El valor medido es el dato que se busca: alineado a la derecha para
            poder comparar las columnas de números de un vistazo, y sin fondo
@@ -187,21 +237,29 @@
             background: #FFFAEB; border-left: 3px solid #F5C86B; padding: 3px 7px;
         }
 
-        /* ── Pie: condiciones de ensayo · firmas · verificación ──────────── */
-        .strip { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        .strip td { vertical-align: top; }
-        .strip__cond { width: 44%; padding-right: 12px; }
-        .strip__sign { width: 40%; }
-        .strip__qr { width: 16%; text-align: center; }
-
-        /* Condiciones del ensayo: pares clave/valor sin caja, con la clave en
-           gris. Van adentro de una ficha para que se lean como un bloque. */
-        table.cond { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
-        table.cond td {
-            border: 0; border-bottom: 1px solid #EDF0F4; padding: 2px 4px 2px 0;
+        /* ── Condiciones del ensayo: una banda horizontal bajo su tabla ────
+           Antes era una lista vertical de seis renglones metida en una columna
+           angosta del pie, lejos de la tabla que describía. Son las condiciones
+           de ESA corrida —dos ensayos de la misma muestra se corren días
+           distintos—, así que van pegadas a su propia tabla y a lo ancho, que
+           es donde hay lugar. */
+        table.cnd {
+            width: 100%; border-collapse: collapse; font-size: 6.5pt;
+            background: #F7F9FB; margin-top: 5px;
         }
-        table.cond tr:last-child td { border-bottom: 0; }
-        table.cond td.cond__k { color: #5B6672; width: 58%; }
+        table.cnd td {
+            border: 0; border-top: 1px solid #E3E8EE; border-bottom: 1px solid #E3E8EE;
+            padding: 3px 8px; vertical-align: top;
+        }
+        .cnd__k { color: #5B6672; letter-spacing: 0.8px; text-transform: uppercase; font-size: 5.5pt; }
+        .cnd__v { color: #101828; font-size: 7pt; }
+
+        /* ── Cierre: firmas · verificación ────────────────────────────────
+           Una sola vez, al final del documento. */
+        .strip { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        .strip td { vertical-align: top; }
+        .strip__sign { width: 78%; }
+        .strip__qr { width: 22%; text-align: center; }
 
         table.sign { width: 100%; border-collapse: collapse; }
         table.sign td { text-align: center; padding: 0 5px; vertical-align: bottom; border: 0; }
@@ -331,13 +389,55 @@
         ? __('equipment.service_states.' . $equipment['service_state'])
         : null;
 
-    // Las páginas del informe: una por ensayo y, al final, el análisis de
-    // resultados. Se arma la lista para escribir la cabecera UNA vez en el
-    // código fuente y dibujarla N veces en el papel.
+    // Las páginas del informe. El clásico gastaba una hoja por ensayo: tres
+    // ensayos de cuatro filas cada uno salían en tres páginas con dos tercios
+    // en blanco, porque cada una repetía las dos fichas completas. Acá las
+    // secciones se AGRUPAN y fluyen.
+    //
+    // El corte no es arbitrario: se agrupan las CONSECUTIVAS que comparten el
+    // estado de acreditación. Es la única restricción real de maquetado que
+    // tiene este papel — el sello del organismo acreditador se estampa por
+    // página, así que una hoja no puede llevar a la vez un método dentro del
+    // alcance y uno fuera: el sello afirmaría una acreditación que el
+    // laboratorio no tiene para ese ensayo. Agrupando por ese estado, el sello
+    // sigue siendo verdadero incluso si dompdf parte el grupo en dos hojas.
+    //
+    // El segundo corte es de espacio. DomPDF no mide antes de maquetar, así que
+    // el presupuesto de filas es un tope CONSERVADOR, no un cálculo: si un grupo
+    // se pasara, dompdf lo parte solo y la hoja de continuación sale sin
+    // membrete —lo cual ya pasaba con una tabla larga en el formato anterior—,
+    // pero con el tope no llega a ese caso. La primera página lleva mucho menos
+    // porque arriba tiene las fichas del cliente y del equipo.
+    $TOPE_PRIMERA = 9;
+    $TOPE_RESTO   = 24;
+
     $paginas = [];
+    $grupo = null;
+    $filasEnGrupo = 0;
 
     foreach ($sections as $seccion) {
-        $paginas[] = ['kind' => 'test', 'section' => $seccion];
+        $acreditada = (bool) ($seccion['accredited'] ?? false);
+        $filas = count($seccion['rows'] ?? []) + 2;   // +2: el título y la banda de condiciones
+        $tope = $paginas === [] ? $TOPE_PRIMERA : $TOPE_RESTO;
+
+        $cambiaAcreditacion = $grupo !== null && $grupo['accredited'] !== $acreditada;
+        $noEntra = $grupo !== null && $filasEnGrupo > 0 && $filasEnGrupo + $filas > $tope;
+
+        if ($grupo === null || $cambiaAcreditacion || $noEntra) {
+            if ($grupo !== null) {
+                $paginas[] = $grupo;
+            }
+
+            $grupo = ['kind' => 'test', 'accredited' => $acreditada, 'sections' => []];
+            $filasEnGrupo = 0;
+        }
+
+        $grupo['sections'][] = $seccion;
+        $filasEnGrupo += $filas;
+    }
+
+    if ($grupo !== null) {
+        $paginas[] = $grupo;
     }
 
     $paginas[] = $sections === [] ? ['kind' => 'empty'] : ['kind' => 'analysis'];
@@ -390,7 +490,7 @@
                 <div class="lh__addr">{{ $letterhead['address'] }}</div>
             </td>
             <td class="lh__acc">
-                @if (($letterhead['accreditation_logo'] ?? null) && ! empty($pagina['section']['accredited']))
+                @if (($letterhead['accreditation_logo'] ?? null) && ! empty($pagina['accredited']))
                     <img src="{{ $letterhead['accreditation_logo'] }}" alt="">
                 @endif
             </td>
@@ -453,8 +553,39 @@
         </table>
     @endif
 
+    {{-- ── Páginas 2 en adelante: banda de continuación ──────────────────
+         El clásico repite acá las dos fichas completas —cliente y equipo, unas
+         treinta líneas— porque allá cada ensayo era una impresión aparte. Este
+         informe es UN documento: las fichas van una vez, en la primera hoja, y
+         las siguientes llevan esta línea. Lo que la norma pide de una hoja
+         suelta es poder identificarla, y con el informe, la muestra, el cliente
+         y el equipo queda identificada. --}}
+    @if ($indice > 0)
+        <table class="run">
+            <tr>
+                <td style="width: 34%">
+                    <div class="run__k">{{ __('reports.customer_name') }}</div>
+                    <div class="run__v">{{ $o($customer['name']) }}</div>
+                </td>
+                <td style="width: 22%">
+                    <div class="run__k">{{ __('reports.tag') }}</div>
+                    <div class="run__v">{{ $o($eq('tag') ?? $eq('serial')) }}</div>
+                </td>
+                <td style="width: 22%">
+                    <div class="run__k">{{ __('reports.sample') }}</div>
+                    <div class="run__v">{{ $sample['code'] }}</div>
+                </td>
+                <td style="width: 22%">
+                    <div class="run__k">{{ __('reports.sampled_at') }}</div>
+                    <div class="run__v">{{ $fecha($sample['sampled_at']) }}</div>
+                </td>
+            </tr>
+        </table>
+    @endif
+
+    @if ($indice === 0)
     {{-- ── Información del cliente ─────────────────────────────────────── --}}
-    <div class="blk {{ $indice === 0 && $totalEnsayos > 0 ? '' : 'blk--first' }}">{{ __('reports.customer_info') }}</div>
+    <div class="blk {{ $totalEnsayos > 0 ? '' : 'blk--first' }}">{{ __('reports.customer_info') }}</div>
     <table class="grid">
         <tr>
             <th>{{ __('reports.customer_name') }}</th>
@@ -552,27 +683,27 @@
             <td>{{ $temp($sample['relative_humidity']) }}</td>
         </tr>
     </table>
+    @endif
 
     @if ($pagina['kind'] === 'test')
-        @php $s = $pagina['section']; @endphp
 
-        {{-- ── Resultados del ensayo de esta página ────────────────────── --}}
-        <div class="blk">{{ __('reports.results_title') }}</div>
+        {{-- ── Resultados de los ensayos de esta página ────────────────── --}}
+        <div class="blk {{ $indice === 0 ? '' : 'blk--first' }}">{{ __('reports.results_title') }}</div>
 
+        @foreach ($pagina['sections'] as $s)
         {{-- El nombre del ensayo va FUERA de la tabla, como título del bloque:
              adentro obligaba a una fila de cabecera falsa con seis columnas
              fusionadas y hacía que la tabla arrancara con una banda gris. --}}
-        <div class="res__family">{{ \Illuminate\Support\Str::upper($s['test'] ?? '') }}</div>
+        <div class="res__family" style="{{ $loop->first ? '' : 'margin-top: 13px' }}">{{ \Illuminate\Support\Str::upper($s['test'] ?? '') }}</div>
 
         <table class="res">
             <thead>
                 <tr>
-                    <th style="width: 5%">{{ __('reports.col_item') }}</th>
-                    <th style="width: 20%">{{ __('reports.col_standard') }}</th>
-                    <th style="width: 28%">{{ __('reports.col_test') }}</th>
+                    <th class="l" style="width: 34%">{{ __('reports.col_test') }}</th>
                     <th style="width: 10%">{{ __('reports.col_unit') }}</th>
-                    <th style="width: 21%">{{ __('reports.col_limit') }}</th>
-                    <th style="width: 16%">{{ __('reports.col_result') }}</th>
+                    <th style="width: 22%">{{ __('reports.col_limit') }}</th>
+                    <th style="width: 15%">{{ __('reports.col_result') }}</th>
+                    <th style="width: 19%">{{ __('reports.col_status') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -580,15 +711,16 @@
                     {{-- Cebra: la fila alterna reemplaza a las reglas
                          verticales para guiar el ojo a lo ancho. --}}
                     <tr class="{{ $loop->index % 2 === 1 ? 'zebra' : '' }}">
-                        <td class="c">{{ $row['item'] }}</td>
-                        {{-- La norma del MÉTODO, con su marca de acreditación.
-                             Es la que el analista eligió al correr el ensayo, o
-                             sea la que de verdad se usó. No es la norma del
-                             CRITERIO: esa va al pie, en las condiciones. --}}
-                        <td class="c">
-                            {{ $o($row['method'] ?? null) }}@if (!empty($row['accreditation']))<sup class="sup">({{ $row['accreditation'] }})</sup>@endif
+                        {{-- El ensayo, y debajo la norma del MÉTODO con su marca
+                             de acreditación: la que el analista eligió al
+                             correrlo, o sea la que de verdad se usó. No es la
+                             norma del CRITERIO — esa va con las condiciones. --}}
+                        <td>
+                            <div class="res__name">{{ $o($row['analyte']) }}</div>
+                            @if ($row['method'] ?? null)
+                                <div class="res__meth">{{ $row['method'] }}@if (!empty($row['accreditation']))<sup class="sup">({{ $row['accreditation'] }})</sup>@endif</div>
+                            @endif
                         </td>
-                        <td>{{ $o($row['analyte']) }}</td>
                         <td class="c">{{ $o($row['unit']) }}</td>
                         <td class="c">
                             {{ $row['limit'] }}
@@ -596,17 +728,18 @@
                                 <div class="crit">{{ $row['criterion'] }}</div>
                             @endif
                         </td>
+                        {{-- El número, sin la palabra colgada al lado: el
+                             veredicto tiene su propia columna. --}}
                         <td class="res__value">
+                            <span class="{{ $row['status'] === 'out_of_spec' ? 'out' : ($row['status'] === null ? 'none' : '') }}">{{ $row['value'] }}</span>
+                        </td>
+                        <td class="c">
                             @if ($row['status'] === 'out_of_spec')
-                                <span class="out">{{ $row['value'] }}
-                                    <span class="flag">({{ __('reports.out_of_spec') }})</span>
-                                </span>
+                                <span class="pill pill--bad">{{ __('reports.out_of_spec') }}</span>
                             @elseif ($row['status'] === null)
-                                <span class="none">{{ $row['value'] }}
-                                    <span class="flag">({{ __('reports.no_criterion') }})</span>
-                                </span>
+                                <span class="pill pill--none">{{ __('reports.no_criterion') }}</span>
                             @else
-                                {{ $row['value'] }}
+                                <span class="pill pill--ok">{{ __('reports.in_spec') }}</span>
                             @endif
                         </td>
                     </tr>
@@ -614,11 +747,56 @@
             </tbody>
         </table>
 
-        {{-- ── Notas al pie ───────────────────────────────────────────── --}}
+        {{-- ── Condiciones de ESTA corrida, pegadas a su tabla ───────────
+             Son las de la hoja de bancada que produjo estos resultados. Van acá
+             y no en el pie porque dos ensayos de la misma muestra se corren
+             días distintos y con el laboratorio en otro estado: puestas en el
+             pie de la página, no se sabía a qué tabla pertenecían. --}}
+        @php
+            $cnd = [
+                ['k' => __('reports.cond_standard'),     'v' => $o($s['conditions']['standard'])],
+                ['k' => __('reports.cond_run_date'),     'v' => $fecha($s['conditions']['run_date'])],
+                ['k' => __('reports.cond_sample_temp'),  'v' => $temp($s['conditions']['sample_temp_c'], ' °C')],
+                ['k' => __('reports.cond_lab_temp'),     'v' => $temp($s['conditions']['ambient_temp_c'], ' °C')],
+                ['k' => __('reports.cond_lab_humidity'), 'v' => $temp($s['conditions']['ambient_humidity'], ' %HR')],
+            ];
+
+            // La presión solo si hay dato: un renglón fijo en raya sugiere que
+            // alguien olvidó cargarla, cuando puede ser que ese ensayo no la
+            // registre. La cromatografía sí —un volumen de gas depende de la
+            // presión a la que se midió— y es parte de su trazabilidad.
+            if ($s['conditions']['lab_pressure_hpa'] !== null) {
+                $cnd[] = ['k' => __('reports.cond_lab_pressure'), 'v' => $temp($s['conditions']['lab_pressure_hpa'], ' hPa')];
+            }
+        @endphp
+        <table class="cnd">
+            <tr>
+                @foreach ($cnd as $par)
+                    <td style="width: {{ round(100 / count($cnd), 2) }}%">
+                        <div class="cnd__k">{{ $par['k'] }}</div>
+                        <div class="cnd__v">{{ $par['v'] }}</div>
+                    </td>
+                @endforeach
+            </tr>
+        </table>
+        @endforeach
+
+        {{-- ── Notas al pie ─────────────────────────────────────────────
+             Las marcas y advertencias se resuelven sobre TODAS las secciones de
+             la hoja: la leyenda explica los superíndices que de verdad
+             aparecieron en ella, ni uno más. --}}
+        @php
+            $secciones     = $pagina['sections'];
+            $notasAlPie    = array_filter(array_map(fn ($x) => $x['footnote'] ?? null, $secciones));
+            $hayAcreditado = (bool) array_filter($secciones, fn ($x) => ! empty($x['accredited']));
+            $haySinAcred   = (bool) array_filter($secciones, fn ($x) => ! empty($x['not_accredited']));
+            $sinCriterioEnHoja = array_sum(array_map(fn ($x) => (int) ($x['no_criteria'] ?? 0), $secciones));
+        @endphp
+        @php $s = ['accredited' => $hayAcreditado, 'not_accredited' => $haySinAcred, 'no_criteria' => $sinCriterioEnHoja]; @endphp
         <div class="foot">
-            @if ($s['footnote'])
-                {{ $s['footnote'] }}<br>
-            @endif
+            @foreach ($notasAlPie as $nota)
+                {{ $nota }}<br>
+            @endforeach
             {{-- Cada marca se explica solo si aparece en ESTA hoja: la leyenda
                  traduce el superíndice de la columna NORMA, y una hoja donde
                  todos los métodos están acreditados no tiene por qué explicar
@@ -699,51 +877,16 @@
 
     @endif
 
-    {{-- ── Pie de página: condiciones de ensayo · firma · verificación ───
-         Va en TODAS las páginas, como el "Reportado por:" del informe viejo.
-         Las condiciones son las de la hoja de bancada que produjo ESTOS
-         resultados: dos ensayos de la misma muestra se corren días distintos y
-         con el laboratorio en otro estado. --}}
+    {{-- ── Cierre del documento: firmas + verificación ───────────────────
+         UNA vez, en la última página. El informe viejo firmaba cada hoja porque
+         cada hoja era una impresión independiente; un documento firmado cuatro
+         veces no está más firmado. El QR verifica el documento entero, no la
+         hoja, y por eso acompaña a la firma en el cierre. Lo que va en TODAS las
+         páginas es el código de verificación, chico, en el margen inferior:
+         identificación única por página, que es lo que pide la ISO 17025. --}}
+    @if ($indice === count($paginas) - 1)
     <table class="strip">
         <tr>
-            <td class="strip__cond">
-                @if ($pagina['kind'] === 'test')
-                    <table class="cond">
-                        <tr>
-                            <td class="cond__k">{{ __('reports.cond_standard') }}</td>
-                            <td>{{ $o($pagina['section']['conditions']['standard']) }}</td>
-                        </tr>
-                        <tr>
-                            <td class="cond__k">{{ __('reports.cond_run_date') }}</td>
-                            <td>{{ $fecha($pagina['section']['conditions']['run_date']) }}</td>
-                        </tr>
-                        <tr>
-                            <td class="cond__k">{{ __('reports.cond_sample_temp') }}</td>
-                            <td>{{ $temp($pagina['section']['conditions']['sample_temp_c'], ' °C') }}</td>
-                        </tr>
-                        <tr>
-                            <td class="cond__k">{{ __('reports.cond_lab_temp') }}</td>
-                            <td>{{ $temp($pagina['section']['conditions']['ambient_temp_c'], ' °C') }}</td>
-                        </tr>
-                        <tr>
-                            <td class="cond__k">{{ __('reports.cond_lab_humidity') }}</td>
-                            <td>{{ $temp($pagina['section']['conditions']['ambient_humidity'], ' %HR') }}</td>
-                        </tr>
-                        {{-- La presión del laboratorio. Solo se dibuja la fila si
-                             hay dato: un renglón fijo en raya sugiere que alguien
-                             olvidó cargarlo, cuando puede ser que ese ensayo no
-                             la registre. La cromatografía sí la registra —un
-                             volumen de gas depende de la presión a la que se
-                             midió— y es parte de la trazabilidad del ensayo. --}}
-                        @if ($pagina['section']['conditions']['lab_pressure_hpa'] !== null)
-                            <tr>
-                                <td class="cond__k">{{ __('reports.cond_lab_pressure') }}</td>
-                                <td>{{ $temp($pagina['section']['conditions']['lab_pressure_hpa'], ' hPa') }}</td>
-                            </tr>
-                        @endif
-                    </table>
-                @endif
-            </td>
             <td class="strip__sign">
                 <table class="sign">
                     <tr>
@@ -773,28 +916,16 @@
                     </tr>
                 </table>
             </td>
-            {{-- ── El QR va UNA sola vez, en la última página ───────────────
-                 Verifica el documento entero, no la hoja: repetirlo en cada
-                 página sugiere que cada hoja se verifica sola, que es
-                 justamente lo contrario de lo que dice el pie ("no se debe
-                 reproducir parcialmente"). Va al final, que es donde el informe
-                 CIERRA.
-
-                 Lo que sí va en todas las páginas es el CÓDIGO, chico, en el
-                 pie de la hoja: identifica el documento sin ocupar el ancho de
-                 un recuadro. Eso es lo que pide la ISO 17025 —identificación
-                 única en cada página—, no un QR por hoja. --}}
             <td class="strip__qr">
-                @if ($indice === count($paginas) - 1)
-                    <div class="qr">
-                        <img src="{{ $verifyQr }}" alt="">
-                        <div class="qr__code">{{ $verifyCode }}</div>
-                        <div class="qr__hint">{{ __('reports.verify_hint') }}</div>
-                    </div>
-                @endif
+                <div class="qr">
+                    <img src="{{ $verifyQr }}" alt="">
+                    <div class="qr__code">{{ $verifyCode }}</div>
+                    <div class="qr__hint">{{ __('reports.verify_hint') }}</div>
+                </div>
             </td>
         </tr>
     </table>
+    @endif
 
 </div>
 @endforeach

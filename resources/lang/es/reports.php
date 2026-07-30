@@ -56,6 +56,10 @@ return [
     'col_unit'     => 'Unidad',
     'col_limit'    => 'Valor de orientación (*)',
     'col_result'   => 'Resultado',
+    // El veredicto tiene su propia columna en la maqueta moderna. En el informe
+    // clásico no existía: había que mirar el color del número, y el color no
+    // sobrevive a una fotocopia en blanco y negro.
+    'col_status'   => 'Condición',
 
     'limit_max'   => '(máximo)',
     'limit_min'   => '(mínimo)',
@@ -63,6 +67,9 @@ return [
     // El valor que nadie comparó contra nada lleva la palabra, no solo el
     // gris: el color no sobrevive a una fotocopia en blanco y negro.
     'no_criterion' => 'sin criterio',
+    // "Conforme", no "aprobado": el laboratorio informa que el valor cumple el
+    // criterio de aceptación, no que el equipo esté bien.
+    'in_spec'      => 'conforme',
 
     // ── Las notas al pie de cada página de ensayo ───────────────────────
     // La leyenda de las marcas de acreditación del método. Explica el
@@ -177,5 +184,5 @@ return [
     'sum_no_spec'    => 'Sin criterio',
     'sum_no_spec_note' => 'Sin limite aplicable declarado.',
 
-    'cond_lab_pressure' => 'Presion atmosferica lab',
+    'cond_lab_pressure' => 'Presión atmosférica lab',
 ];

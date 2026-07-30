@@ -124,6 +124,12 @@ class LabDemoWorksheetsSeeder extends Seeder
             $hojas += $this->campanas('numero_acido', $equipos, $pedidos, fn (int $i, int $c) => $this->acidez($i, $c));
             $hojas += $this->campanas('contenido_de_agua', $equipos, $pedidos, fn (int $i, int $c) => $this->agua($i, $c));
             $hojas += $this->campanas('rigidez_dielectrica', $equipos, $pedidos, fn (int $i, int $c) => $this->rigidez($i, $c));
+            // Furanos entra para que la muestra de demostración tenga las TRES
+            // familias que el informe imprime (fisicoquímico, cromatografía y
+            // furanos). Con una sola familia el informe no se puede evaluar: el
+            // conteo de páginas, el bloque de diagnóstico y la conclusión son
+            // justamente lo que cambia cuando hay varias.
+            $hojas += $this->campanas('furanos', $equipos, $pedidos, fn (int $i, int $c) => $this->furanos($i, $c));
 
             $this->command?->info(sprintf(
                 'Demostración: %d equipos, %d recepciones, %d muestras, %d hojas validadas, %d resultados.',
@@ -324,6 +330,7 @@ class LabDemoWorksheetsSeeder extends Seeder
         $servicio = new ReceptionService();
         $pruebas = TestDefinition::whereIn('code', [
             'analisis_cromatografico', 'numero_acido', 'contenido_de_agua', 'rigidez_dielectrica',
+            'furanos',
         ])->pluck('id', 'code');
 
         // Una recepción es de UN cliente, así que los equipos se agrupan por
@@ -723,6 +730,34 @@ class LabDemoWorksheetsSeeder extends Seeder
             'temperatura_ambiente_oc'     => round(21 + $this->azar(0, 4), 1),
             'temperatura_muestra_oc'      => round(23 + $this->azar(0, 3), 1),
             'humedad_ambiente'            => round(55 + $this->azar(0, 10), 0),
+        ];
+    }
+
+    /**
+     * Furanos: los cinco compuestos en ppb.
+     *
+     * El grado de polimerización del papel NO se carga: lo calcula el servidor
+     * con la correlación de Chendong sobre el 2-FAL, que es la fórmula portada
+     * del sistema anterior. Si esa cadena estuviera rota, la columna quedaría
+     * vacía en el informe y se vería.
+     *
+     * El 2-FAL sube con la edad del papel, y por eso sube con el equipo y con la
+     * campaña: es el único parámetro del informe que no vuelve a bajar cuando se
+     * regenera el aceite, porque mide el papel y no el aceite. Los otros cuatro
+     * compuestos quedan en trazas, que es lo normal.
+     *
+     * @return array<string,mixed>
+     */
+    private function furanos(int $equipo, int $campana): array
+    {
+        $fal = 240 + $equipo * 170 + $campana * 35 + $this->azar(0, 60);
+
+        return [
+            'furfuraldehido_2'               => round($fal, 1),
+            'hidroxi_metil_furfuraldehido_5' => round(12 + $this->azar(0, 18), 1),
+            'acetilfurano_2'                 => round($this->azar(0, 6), 1),
+            'metil_2_furfuraldehido_5'       => round(4 + $this->azar(0, 9), 1),
+            'furfuril_alcohol_2'             => round(8 + $this->azar(0, 22), 1),
         ];
     }
 

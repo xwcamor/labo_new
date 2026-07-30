@@ -39,6 +39,7 @@ class TestDefinition extends Model
         'slug', 'name', 'code', 'test_group_id', 'description',
         'container', 'chart_unit', 'report_comment_group',
         'has_control', 'requires_control', 'requires_duplicate', 'is_grouped',
+        'qc_policy_set_at',
         'replicates', 'is_active', 'sort_order', 'legacy_id', 'tenant_id',
         'created_by', 'deleted_by', 'deleted_description',
     ];
@@ -49,6 +50,10 @@ class TestDefinition extends Model
         'requires_control'   => 'boolean',
         'requires_duplicate' => 'boolean',
         'is_grouped'         => 'boolean',
+        // Cuándo el laboratorio decidió el control de calidad de esta prueba.
+        // Mientras sea nulo, el sembrador de fábrica puede escribirla; una vez
+        // escrita, la fila es del laboratorio y el seeder no la vuelve a tocar.
+        'qc_policy_set_at'   => 'datetime',
         'replicates'         => 'integer',
         'sort_order'         => 'integer',
         'legacy_id'          => 'integer',

@@ -24,7 +24,7 @@ class TestDefinitionService
 
     public function create(array $data): TestDefinition
     {
-        $testDefinition = new TestDefinition($this->conOrden($data));
+        $testDefinition = new TestDefinition($this->conCalibracion($this->conOrden($data)));
         $testDefinition->created_by = auth()->id();
         $testDefinition->save();
         return $testDefinition;
@@ -32,8 +32,41 @@ class TestDefinitionService
 
     public function update(TestDefinition $testDefinition, array $data): TestDefinition
     {
-        $testDefinition->update($this->conOrden($data, $testDefinition));
+        $testDefinition->update($this->conCalibracion($this->conOrden($data, $testDefinition)));
         return $testDefinition;
+    }
+
+    /**
+     * Marca que el control de calidad de la prueba lo decidió una persona.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ HACE FALTA LA MARCA                                          │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * `requires_control = false` significa dos cosas incompatibles: "nadie lo
+     * configuró" y "el supervisor decidió que esta prueba no lleva patrón". Sin
+     * distinguirlas, el sembrador de fábrica no puede refrescar los valores sin
+     * pisar decisiones — y lo haría en silencio: el laboratorio se enteraría
+     * cuando una hoja que venía publicándose se niegue a publicarse.
+     *
+     * En cuanto alguien toca una de las tres casillas desde la ficha, la fila
+     * pasa a ser suya y el seeder no la vuelve a escribir.
+     *
+     * @param  array<string,mixed>  $data
+     * @return array<string,mixed>
+     */
+    private function conCalibracion(array $data): array
+    {
+        $casillas = ['requires_control', 'requires_duplicate', 'is_grouped'];
+
+        foreach ($casillas as $casilla) {
+            if (array_key_exists($casilla, $data)) {
+                $data['qc_policy_set_at'] = now();
+
+                break;
+            }
+        }
+
+        return $data;
     }
 
     /**

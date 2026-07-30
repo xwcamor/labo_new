@@ -49,11 +49,13 @@ return [
     'has_control'         => 'Corre con patrón control',
     'has_control_help'    => 'La prueba admite filas de patrón control en su hoja de trabajo.',
     'requires_control'    => 'Exige patrón control',
-    'requires_control_help' => 'La hoja no acepta muestras hasta que tenga cargado al menos un patrón control.',
+    'requires_control_help' => 'La hoja no se publica sin al menos un patrón control cargado. En el sistema anterior la regla era la misma, pero vivía dentro del HTML del formulario y terminó desactivada.',
     'requires_duplicate'  => 'Exige duplicado',
-    'requires_duplicate_help' => 'La hoja no acepta muestras hasta que tenga cargado al menos un duplicado.',
-    'is_grouped'          => 'Agrupada',
-    'is_grouped_help'     => 'Marca de la importación. No decide nada: quien manda son las dos casillas de arriba.',
+    'requires_duplicate_help' => 'La hoja no se publica sin al menos un duplicado cargado.',
+    // El nombre viene del sistema anterior, donde su formulario la rotulaba
+    // exactamente así: "No usa Duplicados / No usa Patrón Control".
+    'is_grouped'          => 'Exenta de patrón y duplicado',
+    'is_grouped_help'     => 'La prueba no lleva control de calidad por corrida. Marcarla apaga las dos casillas de arriba. Los valores reales de esta exención en el sistema anterior solo existen en su base de producción, así que acá vienen todas SIN exención: márquelas usted.',
 
     'replicates'      => 'Repeticiones',
     'replicates_help' => 'Cuántas veces se mide la MISMA muestra para promediar. La rigidez dieléctrica se mide 5 o 6 veces; el resto de las pruebas usa 1.',

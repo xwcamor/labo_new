@@ -125,6 +125,11 @@ class DatabaseSeeder extends Seeder
             // formulario (`2.times` / `4.times` por rango de índice), no en la
             // base, así que la importación no tenía de dónde sacarlo.
             LabTestReplicatesSeeder::class,
+            // Qué control de calidad exige cada prueba (patrón y duplicado). El
+            // mecanismo que lo hace valer ya existía —la hoja no se publica sin
+            // ellos—; lo que faltaba era el dato, y sin dato no se disparaba
+            // nunca: cualquier hoja se publicaba sin control de calidad.
+            LabTestQcPolicySeeder::class,
             LabTestFormulasSeeder::class,
             LabInstrumentsSeeder::class,
 

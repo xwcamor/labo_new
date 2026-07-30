@@ -67,6 +67,23 @@ const form = useForm({
  */
 const onRequiresControl = (checked) => {
     if (checked) form.has_control = true;
+    // Y no se puede exigir lo que la prueba está exenta de correr.
+    if (checked) form.is_grouped = false;
+};
+
+/**
+ * La EXENCIÓN apaga las dos exigencias.
+ *
+ * En el sistema anterior esta casilla se llamaba `is_grouped` y su formulario la
+ * rotulaba "No usa Duplicados / No usa Patrón Control": era la única
+ * configuración por prueba del control de calidad. Acá hace lo mismo, y apaga las
+ * dos casillas en vez de dejar guardado un estado contradictorio ("exenta" y
+ * "exige patrón" a la vez) que después nadie sabría cómo leer.
+ */
+const onExempt = (checked) => {
+    if (!checked) return;
+    form.requires_control = false;
+    form.requires_duplicate = false;
 };
 
 const submit = () => {
@@ -242,7 +259,10 @@ const submit = () => {
                         </div>
 
                         <div class="flag flag--legacy">
-                            <Checkbox v-model:checked="form.is_grouped">
+                            <Checkbox
+                                v-model:checked="form.is_grouped"
+                                @change="onExempt($event.target.checked)"
+                            >
                                 {{ $t('test_definitions.is_grouped') }}
                             </Checkbox>
                             <span class="flag__help">{{ $t('test_definitions.is_grouped_help') }}</span>

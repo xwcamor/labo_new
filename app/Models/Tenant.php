@@ -252,10 +252,32 @@ class Tenant extends Model
         return $this->belongsTo(User::class, 'system_user_id');
     }
 
-    /** Firmantes de informes del workspace (slots ordenados, escalable a N). */
+    /**
+     * Los firmantes de los informes del workspace.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ UNA SOLA FUENTE: EL MÓDULO FIRMAS                                    │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Había DOS lugares donde se configuraba quién firma un informe, heredados de
+     * dos etapas distintas del proyecto:
+     *
+     *   · `report_signers`, una tabla pelada que se administraba desde una
+     *     tarjeta dentro de "Mi workspace". La usaba el flujo de aprobación y el
+     *     gate del menú "Aprobaciones".
+     *   · `signatures`, el módulo FIRMAS: catálogo completo con su pantalla, su
+     *     papelera, su auditoría y su candado. Es el que el informe IMPRIME.
+     *
+     * O sea que el papel se firmaba con una lista y el flujo de aprobación
+     * gateaba con la otra: un laboratorio podía cargar sus firmas en el módulo y
+     * el menú "Aprobaciones" no aparecerle nunca, o al revés. Se consolidó en el
+     * módulo Firmas, que es el que ya cumplía el estándar de los demás catálogos.
+     */
     public function reportSigners()
     {
-        return $this->hasMany(ReportSigner::class)->orderBy('sort_order');
+        return $this->hasMany(Signature::class)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     /** Aprobador de informes del workspace (usuario del sistema; opcional). */

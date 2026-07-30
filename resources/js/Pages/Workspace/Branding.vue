@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
-import { Card, Input, Textarea, Button, Form, FormItem, Alert, Select, SelectOption, Tag, Switch } from 'ant-design-vue';
-import { BankOutlined, PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, CameraOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Card, Input, Textarea, Button, Form, FormItem, Alert, Tag, Switch } from 'ant-design-vue';
+import { BankOutlined, CameraOutlined, HighlightOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -24,28 +24,22 @@ const form = useForm({
     report_disclaimer: props.workspace.report_disclaimer ?? '',
     require_report_approval: props.workspace.require_report_approval ?? false,
     notify_approval_by_email: props.workspace.notify_approval_by_email ?? false,
-    // Flujo de firmas: N slots con cargo (Supervisor, Auditor, …), en orden.
-    signers: props.signers.map((s) => ({ user_id: s.user_id, name: s.name ?? '', title: s.title, relation: s.relation ?? 'approved' })),
 });
 
-// Estado por slot (calculado en el server para los existentes; para filas
-// nuevas/cambiadas se muestra al guardar).
-const statusOf = (i) => props.signers[i] && props.signers[i].user_id === form.signers[i]?.user_id
-    ? props.signers[i].status : null;
+/**
+ * El estado de la firma de cada firmante, calculado en el servidor.
+ *
+ * Es lo único que el admin viene a mirar acá: si la firma va a salir ESTAMPADA
+ * en el papel o si va a quedar una línea para firmar a mano. Depende de dos
+ * cosas del usuario —tener imagen de firma cargada y haber activado la
+ * auto-firma— y ninguna de las dos se administra desde el módulo Firmas, así que
+ * verlo junto a la lista es lo que evita descubrirlo en el PDF.
+ */
 const STATUS_TAG = {
     ready:        { color: 'success' },
     no_autosign:  { color: 'warning' },
     no_signature: { color: 'warning' },
     external:     { color: 'default' },
-};
-
-const RELATIONS = ['prepared', 'reviewed', 'approved', 'authorized', 'verified', 'endorsed'];
-const addSigner = () => { if (form.signers.length < 8) form.signers.push({ user_id: null, name: '', title: '', relation: 'approved' }); };
-const removeSigner = (i) => form.signers.splice(i, 1);
-const moveSigner = (i, dir) => {
-    const j = i + dir;
-    if (j < 0 || j >= form.signers.length) return;
-    [form.signers[i], form.signers[j]] = [form.signers[j], form.signers[i]];
 };
 
 const submit = () => form.put(route('workspace.update'), { preserveScroll: true });
@@ -203,56 +197,43 @@ const onLogoPicked = (e) => {
                     </div>
                 </FormItem>
 
-                <!-- ── Flujo de firmas: N slots con cargo ─────────────────── -->
-                <FormItem :label="t('tenants.signers_label')" :tooltip="t('tenants.signers_help')">
-                    <p class="ws-hint">{{ t('tenants.signers_help') }}</p>
+                <!-- ── Quiénes firman los informes ────────────────────────
+                     SOLO LECTURA. Acá había un editor con su propia lista de
+                     firmantes, mientras el informe imprimía la del módulo
+                     FIRMAS: dos listas para lo mismo, y el flujo de aprobación
+                     gateaba con una y el papel se firmaba con la otra. Un
+                     laboratorio podía cargar sus firmas en el módulo y no ver
+                     nunca la bandeja de Aprobaciones.
 
-                    <div v-for="(s, i) in form.signers" :key="i" class="signer-row">
-                        <span class="signer-row__n">{{ i + 1 }}</span>
-                        <Select
-                            v-model:value="s.relation"
-                            class="signer-row__relation"
-                            :placeholder="t('approvals.relation.approved')"
-                        >
-                            <SelectOption v-for="r in RELATIONS" :key="r" :value="r">{{ t('approvals.relation.' + r) }}</SelectOption>
-                        </Select>
-                        <Input
-                            v-model:value="s.title"
-                            class="signer-row__title"
-                            :placeholder="t('tenants.signer_title_placeholder')"
-                            :maxlength="120"
-                            :status="form.errors[`signers.${i}.title`] ? 'error' : ''"
-                        />
-                        <Select
-                            v-model:value="s.user_id"
-                            class="signer-row__user"
-                            allow-clear show-search option-filter-prop="children"
-                            :placeholder="t('tenants.signer_user_placeholder')"
-                            :status="form.errors[`signers.${i}.user_id`] ? 'error' : ''"
-                        >
-                            <SelectOption v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</SelectOption>
-                        </Select>
-                        <Input
-                            v-if="!s.user_id"
-                            v-model:value="s.name"
-                            class="signer-row__name"
-                            :placeholder="t('tenants.signer_external_placeholder')"
-                            :maxlength="120"
-                            :status="form.errors[`signers.${i}.name`] ? 'error' : ''"
-                        />
-                        <Tag v-else-if="statusOf(i)" :color="STATUS_TAG[statusOf(i)].color" class="signer-row__status">
-                            {{ t('tenants.signer_status_' + statusOf(i)) }}
-                        </Tag>
-                        <span class="signer-row__actions">
-                            <Button size="small" type="text" :disabled="i === 0" @click="moveSigner(i, -1)"><ArrowUpOutlined /></Button>
-                            <Button size="small" type="text" :disabled="i === form.signers.length - 1" @click="moveSigner(i, 1)"><ArrowDownOutlined /></Button>
-                            <Button size="small" type="text" danger @click="removeSigner(i)"><DeleteOutlined /></Button>
-                        </span>
+                     Se muestra igual, porque es parte de cómo sale el papel del
+                     workspace y porque cada fila dice si la firma va a salir
+                     ESTAMPADA o solo como línea para firmar a mano — que es lo
+                     que el admin viene a mirar acá. Editarla es un clic al
+                     módulo. -->
+                <FormItem :label="t('tenants.signers_label')">
+                    <p class="ws-hint">{{ t('tenants.signers_managed_in_module') }}</p>
+
+                    <div v-if="!signers.length" class="ws-signers__empty">
+                        {{ t('tenants.signers_empty') }}
                     </div>
 
-                    <Button type="dashed" block :disabled="form.signers.length >= 8" @click="addSigner">
-                        <PlusOutlined /> {{ t('tenants.signers_add') }}
-                    </Button>
+                    <div v-for="(s, i) in signers" :key="s.id" class="signer-row signer-row--ro">
+                        <span class="signer-row__n">{{ i + 1 }}</span>
+                        <span class="signer-row__relation-ro">{{ t('approvals.relation.' + s.relation) }}</span>
+                        <span class="signer-row__who">
+                            <b>{{ s.name }}</b>
+                            <span class="signer-row__title-ro">{{ s.title }}</span>
+                        </span>
+                        <Tag :color="STATUS_TAG[s.status].color" class="signer-row__status">
+                            {{ t('tenants.signer_status_' + s.status) }}
+                        </Tag>
+                    </div>
+
+                    <Link :href="route('business_management.signatures.index')">
+                        <Button type="dashed" block>
+                            <HighlightOutlined /> {{ t('tenants.signers_go_to_module') }}
+                        </Button>
+                    </Link>
                 </FormItem>
 
                 <FormFooter
@@ -288,6 +269,18 @@ const onLogoPicked = (e) => {
 .ws-logo-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ws-logo-meta .ws-hint { margin: 0; max-width: 420px; }
 .signer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+/* La fila de solo lectura: sin controles, y el nombre es lo que pesa. */
+.signer-row--ro {
+    padding: 8px 10px; border: 1px solid var(--color-border-soft, #eceff2); border-radius: 6px;
+}
+.signer-row__relation-ro { color: var(--color-text-muted, #6A6D70); font-size: 0.8rem; min-width: 110px; }
+.signer-row__who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.signer-row__title-ro { color: var(--color-text-muted, #6A6D70); font-size: 0.8rem; }
+.ws-signers__empty {
+    padding: 14px; margin-bottom: 8px; text-align: center;
+    color: var(--color-text-muted, #6A6D70);
+    border: 1px dashed var(--color-border, #d4d8dd); border-radius: 6px;
+}
 .signer-row__n { width: 18px; text-align: right; color: var(--color-text-muted, #9aa0a6); font-size: 0.82rem; }
 .signer-row__relation { flex: 0 0 150px; }
 .signer-row__title { flex: 0 0 190px; }

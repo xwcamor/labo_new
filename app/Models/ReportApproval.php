@@ -37,6 +37,6 @@ class ReportApproval extends Model
 
     public function signer()
     {
-        return $this->belongsTo(ReportSigner::class, 'report_signer_id');
+        return $this->belongsTo(Signature::class, 'report_signer_id');
     }
 }

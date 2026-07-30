@@ -403,8 +403,15 @@ class HandleInertiaRequests extends Middleware
         // usuario del workspace, no solo firmantes).
         $requires = (bool) ($user->tenant?->require_report_approval ?? false);
 
-        $isSigner = \App\Models\ReportSigner::where('tenant_id', $user->tenant_id)
-            ->where('user_id', $user->id)->exists();
+        // El módulo FIRMAS es la única fuente de quién firma. Antes esto miraba
+        // `report_signers`, que era OTRA lista: el informe se firmaba con una y el
+        // menú se gateaba con la otra, así que un laboratorio con sus firmas
+        // cargadas podía no ver nunca la bandeja de aprobaciones.
+        $isSigner = \App\Models\Signature::withoutGlobalScopes()
+            ->where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
 
         // "Mis solicitudes": las que ESTE usuario envió a aprobación. Drive del
         // menú propio (visible si tiene alguna) + badge de pendientes.

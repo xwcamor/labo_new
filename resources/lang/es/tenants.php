@@ -66,12 +66,13 @@ return [
     'require_approval_label' => 'Exigir aprobación de informes',
     'require_approval_help'  => 'Si está activo, los informes pasan por un flujo borrador→aprobación: cada firmante revisa y firma, y el informe queda oficial recién cuando todos aprueban. Si está apagado, el informe se genera y auto-firma como hasta ahora.',
     'notify_email_help'      => 'Avisar a los firmantes también por correo (además de la campana). Si está apagado, el aviso es solo dentro de la app.',
-    'signers_label'      => 'Flujo de firmas',
-    'signers_help'       => 'Define quiénes firman los informes y con qué cargo (Supervisor, Auditor, Jefe de Laboratorio, …). Cada uno sale como línea de firma en el PDF, en este orden. Si el firmante es usuario del sistema y activó la auto-firma en su perfil, su firma sale estampada; si no, la línea queda para firma a mano.',
-    'signers_add'        => 'Agregar firmante',
-    'signer_title_placeholder'    => 'Cargo (ej: Supervisor)',
-    'signer_user_placeholder'     => 'Usuario del sistema…',
-    'signer_external_placeholder' => 'Nombre del firmante externo',
+    'signers_label'      => 'Quiénes firman los informes',
+    // El editor de esta lista se fue al módulo Firmas: acá había OTRA lista de
+    // firmantes mientras el informe imprimía la del módulo, y el flujo de
+    // aprobación gateaba con una y el papel se firmaba con la otra.
+    'signers_managed_in_module' => 'Los firmantes se administran en el módulo Firmas. Acá se ven para saber cómo va a salir el papel: si el firmante es usuario del sistema y activó la auto-firma en su perfil, su firma sale estampada; si no, queda la línea para firmar a mano.',
+    'signers_go_to_module'      => 'Administrar en el módulo Firmas',
+    'signers_empty'             => 'Sin firmantes cargados. El informe saldría sin ninguna línea de firma.',
     'signer_status_ready'        => 'Firma automática',
     'signer_status_no_autosign'  => 'Sin auto-firma',
     'signer_status_no_signature' => 'Sin firma cargada',

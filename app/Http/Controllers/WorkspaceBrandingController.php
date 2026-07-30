@@ -41,12 +41,17 @@ class WorkspaceBrandingController extends Controller
                 'require_report_approval' => (bool) $tenant->require_report_approval,
                 'notify_approval_by_email' => (bool) $tenant->notify_approval_by_email,
             ],
-            // Flujo de firmas del workspace (N slots con cargo). Cada fila trae
-            // el estado de la firma para que el admin VEA si saldrá estampada.
+            // Los firmantes se ADMINISTRAN en el módulo Firmas, no acá: esta
+            // pantalla tenía su propia lista mientras el informe imprimía la del
+            // módulo, o sea dos listas para lo mismo. Se siguen MOSTRANDO —de
+            // solo lectura— porque son parte de lo que define cómo sale el papel
+            // del workspace, y porque cada fila dice si la firma va a salir
+            // estampada o solo como línea para firmar a mano.
             'signers' => $tenant->reportSigners->map(fn ($s) => [
                 'id'       => $s->id,
+                'slug'     => $s->slug,
                 'user_id'  => $s->user_id,
-                'name'     => $s->name,
+                'name'     => $s->printedName(),
                 'title'    => $s->title,
                 'relation' => $s->relation ?: 'approved',
                 'status'  => $s->user_id
@@ -75,14 +80,6 @@ class WorkspaceBrandingController extends Controller
             'report_disclaimer' => ['nullable', 'string', 'max:2000'],
             'require_report_approval' => ['nullable', 'boolean'],
             'notify_approval_by_email' => ['nullable', 'boolean'],
-            'signers'           => ['nullable', 'array', 'max:8'],
-            'signers.*.user_id' => [
-                'nullable', 'integer',
-                \Illuminate\Validation\Rule::exists('users', 'id')->where('tenant_id', $tenant->id),
-            ],
-            'signers.*.name'    => ['nullable', 'string', 'max:120', 'required_without:signers.*.user_id'],
-            'signers.*.title'   => ['required', 'string', 'max:120'],
-            'signers.*.relation'=> ['nullable', \Illuminate\Validation\Rule::in(\App\Models\ReportSigner::RELATIONS)],
         ]);
 
         $tenant->update(\Illuminate\Support\Arr::only($data, ['address', 'report_disclaimer']) + [
@@ -90,17 +87,20 @@ class WorkspaceBrandingController extends Controller
             'notify_approval_by_email' => (bool) ($data['notify_approval_by_email'] ?? false),
         ]);
 
-        // Sync de slots: se reemplaza la lista completa (orden = posición).
-        $tenant->reportSigners()->delete();
-        foreach (array_values($data['signers'] ?? []) as $i => $s) {
-            $tenant->reportSigners()->create([
-                'user_id'    => $s['user_id'] ?? null,
-                'name'       => ($s['user_id'] ?? null) ? null : ($s['name'] ?? null),
-                'title'      => $s['title'],
-                'relation'   => $s['relation'] ?? 'approved',
-                'sort_order' => $i + 1,
-            ]);
-        }
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ LOS FIRMANTES YA NO SE ADMINISTRAN ACÁ                            │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Esta pantalla mantenía su propia lista de firmantes (`report_signers`)
+        // mientras el informe imprimía la del módulo FIRMAS: dos listas para lo
+        // mismo, y el flujo de aprobación gateaba con una y el papel se firmaba
+        // con la otra. Se consolidó en el módulo Firmas, que es un catálogo
+        // completo —pantalla propia, papelera, auditoría, candado— y el que el
+        // informe ya usaba.
+        //
+        // El bloque que estaba acá hacía `reportSigners()->delete()` y volvía a
+        // crear la lista. Con la relación apuntando ahora al catálogo, eso habría
+        // borrado las firmas del workspace cada vez que alguien guardara la
+        // dirección o el descargo legal.
 
         return back()->with('success', __('global.updated_success'));
     }

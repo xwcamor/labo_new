@@ -55,50 +55,102 @@ class WorkspaceBrandingTest extends TestCase
         $this->put(route('workspace.update'), [
             'address'           => 'Av. Siempre Viva 742, Lima',
             'report_disclaimer' => 'Los resultados aplican solo a la muestra ensayada.',
-            'signers'           => [['user_id' => null, 'name' => 'Ing. María García', 'title' => 'Jefa de Laboratorio']],
         ])->assertRedirect();
 
         $t = Tenant::find(1);
         $this->assertSame('Av. Siempre Viva 742, Lima', $t->address);
         $this->assertNotNull($t->report_disclaimer);
-        $this->assertSame('Ing. María García', $t->reportSigners()->first()->name);
     }
 
-    public function test_signers_flow_is_saved_in_order_and_rejects_cross_tenant(): void
+    /**
+     * Los firmantes salen del MÓDULO FIRMAS, no de esta pantalla.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ QUÉ SE CONSOLIDÓ Y POR QUÉ                                           │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Había DOS lugares donde se configuraba quién firma un informe:
+     *
+     *   · `report_signers`, una tabla pelada con su editor dentro de esta
+     *     pantalla. La usaba el flujo de aprobación y el gate del menú
+     *     "Aprobaciones".
+     *   · `signatures`, el módulo FIRMAS: catálogo completo, con pantalla propia,
+     *     papelera, auditoría y candado. Es el que el informe IMPRIME.
+     *
+     * O sea que el papel se firmaba con una lista y el flujo de aprobación
+     * gateaba con la otra: un laboratorio con sus firmas cargadas en el módulo
+     * podía no ver nunca la bandeja de Aprobaciones. Se consolidó en el módulo.
+     *
+     * Este test reemplaza al que probaba el editor retirado. Lo que fija ahora es
+     * que la pantalla LEA del catálogo y que NO lo escriba: la relación
+     * `reportSigners()` apunta al catálogo, y el bloque que estaba acá hacía
+     * `->delete()` sobre ella antes de recrear la lista — habría borrado las
+     * firmas del workspace cada vez que alguien guardara la dirección.
+     */
+    public function test_los_firmantes_se_leen_del_modulo_firmas(): void
     {
-        DB::table('tenants')->insertOrIgnore([['id' => 2, 'slug' => Str::random(22), 'name' => 'Otra Empresa', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]]);
-        $outsider = User::factory()->create(['tenant_id' => 2, 'country_id' => 1, 'locale_id' => 1]);
-        $insider  = User::factory()->create(['tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $interno = User::factory()->create([
+            'tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1, 'name' => 'Ing. Ana Supervisora',
+        ]);
+
+        \App\Models\Signature::create([
+            'slug' => Str::random(22), 'tenant_id' => 1, 'name' => 'Ing. Ana Supervisora',
+            'title' => 'Supervisor', 'relation' => 'reviewed', 'user_id' => $interno->id,
+            'sort_order' => 1, 'is_active' => true,
+        ]);
+        \App\Models\Signature::create([
+            'slug' => Str::random(22), 'tenant_id' => 1, 'name' => 'C.P. Pedro Auditor',
+            'title' => 'Auditor', 'relation' => 'approved', 'user_id' => null,
+            'sort_order' => 2, 'is_active' => true,
+        ]);
 
         $this->actingAs($this->makeUser('admin'));
 
-        // Usuario de OTRO tenant como firmante → rechazado, no se guarda nada.
-        $this->put(route('workspace.update'), [
-            'signers' => [['user_id' => $outsider->id, 'title' => 'Auditor']],
-        ])->assertSessionHasErrors('signers.0.user_id');
-        $this->assertSame(0, Tenant::find(1)->reportSigners()->count());
+        $props = $this->get(route('workspace.edit'))->viewData('page')['props'];
 
-        // Flujo válido: usuario propio + externo, con cargos, en orden.
+        $this->assertCount(2, $props['signers']);
+        $this->assertSame(['Supervisor', 'Auditor'], collect($props['signers'])->pluck('title')->all());
+        // El externo se marca como tal: en el papel es una línea para firmar a
+        // mano, y el admin tiene que poder verlo antes de emitir.
+        $this->assertSame('external', $props['signers'][1]['status']);
+    }
+
+    public function test_guardar_el_workspace_no_toca_las_firmas(): void
+    {
+        // El bloque retirado hacía `reportSigners()->delete()`. Con la relación
+        // apuntando al catálogo, guardar la dirección habría dado de baja todas
+        // las firmas del laboratorio, en silencio.
+        \App\Models\Signature::create([
+            'slug' => Str::random(22), 'tenant_id' => 1, 'name' => 'Ing. Ana Supervisora',
+            'title' => 'Supervisor', 'relation' => 'reviewed', 'sort_order' => 1, 'is_active' => true,
+        ]);
+
+        $this->actingAs($this->makeUser('admin'));
+
         $this->put(route('workspace.update'), [
-            'signers' => [
-                ['user_id' => $insider->id, 'title' => 'Supervisor'],
-                ['user_id' => null, 'name' => 'C.P. Pedro Auditor', 'title' => 'Auditor'],
-            ],
+            'address' => 'Otra dirección 123',
         ])->assertRedirect();
 
-        $signers = Tenant::find(1)->reportSigners;
-        $this->assertCount(2, $signers);
-        $this->assertSame(['Supervisor', 'Auditor'], $signers->pluck('title')->all());
-        $this->assertSame($insider->id, $signers[0]->user_id);
-        $this->assertSame('C.P. Pedro Auditor', $signers[1]->name);
+        $this->assertSame(1, Tenant::find(1)->reportSigners()->count());
+    }
 
-        // Slot sin usuario NI nombre → rechazado. Slot sin cargo → rechazado.
-        $this->put(route('workspace.update'), [
-            'signers' => [['user_id' => null, 'name' => '', 'title' => 'Supervisor']],
-        ])->assertSessionHasErrors('signers.0.name');
-        $this->put(route('workspace.update'), [
-            'signers' => [['user_id' => $insider->id, 'title' => '']],
-        ])->assertSessionHasErrors('signers.0.title');
+    public function test_solo_los_firmantes_del_modulo_ven_la_bandeja_de_aprobaciones(): void
+    {
+        // El gate del menú mira el MISMO catálogo con el que se firma. Antes
+        // miraba `report_signers`, o sea otra lista.
+        $firmante = $this->makeUser('admin');
+        $this->actingAs($firmante);
+
+        $props = $this->get(route('workspace.edit'))->viewData('page')['props'];
+        $this->assertFalse($props['approvals']['is_signer'] ?? false);
+
+        \App\Models\Signature::create([
+            'slug' => Str::random(22), 'tenant_id' => 1, 'name' => $firmante->name,
+            'title' => 'Jefe de Laboratorio', 'relation' => 'approved',
+            'user_id' => $firmante->id, 'sort_order' => 1, 'is_active' => true,
+        ]);
+
+        $props = $this->get(route('workspace.edit'))->viewData('page')['props'];
+        $this->assertTrue($props['approvals']['is_signer']);
     }
 
     public function test_admin_updates_workspace_logo(): void

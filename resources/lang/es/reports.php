@@ -161,10 +161,12 @@ return [
     'analysis_title' => 'ANÁLISIS DE RESULTADOS (opiniones e interpretaciones)',
     'analysis_empty'  => 'Sin análisis cargado para esta familia de ensayos.',
     'analysis_edited' => 'Editado por el analista',
-    // El título de la PÁGINA cuando varias pruebas la comparten. Sale de
-    // `test_definitions.report_comment_group`; si una familia no tiene texto
-    // acá, se imprime su clave —feo, pero visible— en vez de una página sin
-    // título.
+    // RESPALDO del título de página cuando varias pruebas la comparten y NO
+    // tienen grupo asignado en el catálogo. El título normal es el nombre del
+    // grupo (Grupos de pruebas), que el laboratorio edita; esta lista solo
+    // cubre a las pruebas huérfanas de grupo. Si tampoco hay texto acá, se
+    // imprime la clave de la familia —feo, pero visible— en vez de una página
+    // sin título.
     'family' => [
         'azufre_corrosivo' => 'AZUFRE CORROSIVO',
         'fisicoquimico' => 'ENSAYOS FISICO-QUIMICOS',

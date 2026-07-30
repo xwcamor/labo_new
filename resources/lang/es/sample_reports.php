@@ -3,6 +3,12 @@
 return [
     'no_criteria' => 'Sin criterio',
     'analysis_title' => 'Análisis de resultados',
+    // El bloque de firmantes del panel izquierdo. La lista sale del módulo
+    // Firmas y acá solo se MUESTRA: quien revisa el análisis responde por lo
+    // que sale con su firma, y si falta un firmante tiene que notarse antes
+    // de emitir, no en el PDF.
+    'signers_title' => 'Firmantes del informe',
+    'signers_empty' => 'No hay firmantes activos. El informe saldría sin firmas: cárguelos en el módulo Firmas.',
     'analysis_tab' => 'Resultados y diagnóstico',
     'analysis_intro' => 'El texto lo propone el sistema a partir de qué parámetros quedaron dentro y fuera de norma, para el aceite y el tipo de equipo de esta muestra. Corríjalo si el caso lo pide: lo que se corrige a mano no se vuelve a pisar solo.',
     'autodiagnose' => 'Diagnóstico automático',

@@ -92,6 +92,16 @@ class SampleReportController extends Controller
     {
         $report->loadMissing(['sample', 'visibilities']);
 
+        // El BORRADOR compone el autodiagnóstico al abrirse, sin que haya que
+        // pulsar nada: la pantalla existe para revisar el texto propuesto, y
+        // abrirla vacía obligaba a un clic extra que además pisa lo editado (el
+        // botón "Diagnóstico automático" queda para RE-generar a propósito).
+        // Esta llamada respeta lo escrito a mano (`pisarEditados: false`) y no
+        // toca los emitidos, que muestran su snapshot.
+        if ($report->isDraft()) {
+            app(\App\Services\Lab\DiagnosisTextService::class)->generate($report->sample);
+        }
+
         // El informe emitido muestra su snapshot: esta pantalla en modo lectura
         // existe para ver QUÉ SE FIRMÓ, y recalcularlo en vivo mostraría otra
         // cosa si los datos cambiaron después de emitir.
@@ -107,6 +117,22 @@ class SampleReportController extends Controller
             'sections' => $datos['sections'],
             'analysis' => $datos['analysis'],
             'notes'    => $datos['notes'],
+            // Quiénes van a firmar el papel: la lista del módulo Firmas, en su
+            // orden. Se muestra acá porque el que revisa el análisis es el que
+            // responde por lo que sale con su firma — y si falta un firmante,
+            // que se note ANTES de emitir, no en el PDF.
+            'signers'  => \App\Models\Signature::query()
+                ->where('tenant_id', $report->sample->tenant_id)
+                ->where('is_active', true)
+                ->with('user:id,name')
+                ->orderBy('sort_order')->orderBy('id')
+                ->get()
+                ->map(fn ($firma) => [
+                    'id'       => $firma->id,
+                    'relation' => $firma->relation,
+                    'name'     => $firma->printedName(),
+                    'title'    => $firma->title,
+                ])->values(),
         ]);
     }
 

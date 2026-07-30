@@ -308,8 +308,9 @@ class TestReportTest extends TestCase
 
         $fisico = collect($secciones)->firstWhere('family', 'fisicoquimico');
         $this->assertCount(2, $fisico['rows']);
-        // El título de la página es el de la FAMILIA, traducible, no el de
-        // una de las pruebas que la componen.
+        // Estas pruebas no tienen grupo en el catálogo, así que el título cae
+        // al respaldo del archivo de idioma. El caso normal —con grupo— se fija
+        // en el test siguiente.
         $this->assertSame(__('reports.family.fisicoquimico'), $fisico['test']);
 
         // El ítem se numera DENTRO de la página: la tabla se lee sola.
@@ -320,6 +321,33 @@ class TestReportTest extends TestCase
         $this->assertSame('Análisis Cromatográfico', $cromas['test']);
 
         unset($rigidez);
+    }
+
+    public function test_el_titulo_de_la_pagina_compartida_es_el_grupo_del_catalogo(): void
+    {
+        // "¿De dónde inventaste esa palabra?": el título de una página con
+        // varias pruebas salía de una lista escrita a mano en el archivo de
+        // idioma, una palabra del sistema que el laboratorio no podía cambiar
+        // desde ninguna pantalla. El título es el nombre del GRUPO del catálogo
+        // (Grupos de pruebas), que sí es suyo y sí se edita.
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $grupo = \App\Models\TestGroup::create([
+            'slug' => Str::random(22), 'name' => 'Fisico Quimico',
+            'code' => 'fisico_quimico', 'sort_order' => 1, 'tenant_id' => 1,
+        ]);
+
+        $this->prueba->forceFill([
+            'report_comment_group' => 'fisicoquimico',
+            'test_group_id'        => $grupo->id,
+        ])->save();
+        $this->pruebaHermana('rigidez', 'Rigidez Dieléctrica', 'fisicoquimico', $muestra, 64.9);
+
+        $fisico = collect($this->payload->forSample($muestra)['sections'])
+            ->firstWhere('family', 'fisicoquimico');
+
+        $this->assertSame('Fisico Quimico', $fisico['test']);
     }
 
     public function test_dentro_de_la_tabla_cada_fila_lleva_su_propia_norma(): void

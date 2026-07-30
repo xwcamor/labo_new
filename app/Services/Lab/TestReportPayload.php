@@ -323,10 +323,15 @@ class TestReportPayload
             }
 
             // El título de la página. Con una sola prueba es su nombre; con
-            // varias, el de la familia (que el laboratorio traduce).
+            // varias, el nombre del GRUPO del catálogo ("Fisico Quimico", el
+            // que el laboratorio edita en Grupos de pruebas). Antes salía de
+            // una lista escrita a mano en el archivo de idioma
+            // (`reports.family.*`): una palabra que el sistema inventó y que
+            // el laboratorio no podía cambiar desde ninguna pantalla. Esa
+            // lista queda solo de respaldo para pruebas sin grupo asignado.
             $titulo = count($bloque['tests']) === 1
                 ? $bloque['tests'][0]->definition?->name
-                : __('reports.family.' . $familia);
+                : ($bloque['group'] ?: __('reports.family.' . $familia));
 
             $secciones[] = [
                 'test'   => $titulo,

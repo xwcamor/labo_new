@@ -155,6 +155,25 @@ const guardar = () => {
                                 />
                                 {{ s.test }}
                             </button>
+
+                            <!-- Quiénes van a firmar el informe: la lista del
+                                 módulo Firmas, en su orden. Se muestra acá
+                                 porque quien revisa el análisis responde por lo
+                                 que sale con su firma — y si falta un firmante,
+                                 que se note ANTES de emitir, no en el PDF. La
+                                 lista se administra en el módulo, no acá. -->
+                            <div v-if="data.signers?.length" class="ran__signers">
+                                <div class="ran__signers-title">{{ $t('sample_reports.signers_title') }}</div>
+                                <div v-for="f in data.signers" :key="f.id" class="ran__signer">
+                                    <span class="ran__signer-rel">{{ $t('reports.relation.' + f.relation) }}</span>
+                                    <span class="ran__signer-name">{{ f.name }}</span>
+                                    <span v-if="f.title" class="ran__signer-title">{{ f.title }}</span>
+                                </div>
+                            </div>
+                            <div v-else class="ran__signers">
+                                <div class="ran__signers-title">{{ $t('sample_reports.signers_title') }}</div>
+                                <p class="ran__signers-empty">{{ $t('sample_reports.signers_empty') }}</p>
+                            </div>
                         </nav>
 
                         <div v-if="seccionActiva" class="ran__panel">
@@ -232,7 +251,11 @@ const guardar = () => {
 </template>
 
 <style scoped>
-.ran { display: flex; flex-direction: column; min-height: calc(100vh - 120px); }
+/* El modal es de pantalla completa con 20px de relleno arriba y abajo
+   (`.rfm-fullscreen .ant-modal-content`): el alto mínimo descuenta ESO, no un
+   número inventado. Con el descuento viejo (120px) sobraban ~80px debajo del
+   pie y la barra quedaba flotando a media altura en vez de apoyada abajo. */
+.ran { display: flex; flex-direction: column; min-height: calc(100dvh - 40px); }
 
 .ran__head { padding: 0 0 12px; border-bottom: 1px solid var(--color-border); }
 .ran__title {
@@ -278,8 +301,31 @@ const guardar = () => {
 .ran__foot {
     position: sticky; bottom: 0;
     display: flex; justify-content: flex-end; gap: 10px;
-    padding: 12px 0;
+    /* Sangra hasta los bordes del modal (que tiene 20px/24px de relleno):
+       apoyada en el borde mismo, no flotando con una franja blanca debajo.
+       `margin-top: auto` la empuja al pie cuando el contenido es corto. */
+    margin: auto -24px -20px;
+    padding: 12px 24px 16px;
     background: var(--color-surface, #fff);
     border-top: 1px solid var(--color-border);
 }
+@media (max-width: 767px) {
+    .ran__foot { margin: auto -16px -14px; padding: 12px 16px; }
+}
+
+/* ── Firmantes (módulo Firmas), debajo del índice de familias ─────────── */
+.ran__signers {
+    margin-top: 18px; padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+.ran__signers-title {
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+.ran__signer { display: flex; flex-direction: column; padding: 6px 10px 8px; }
+.ran__signer-rel  { font-size: 0.68rem; text-transform: uppercase; color: var(--color-text-muted); }
+.ran__signer-name { font-size: 0.8125rem; font-weight: 600; color: var(--color-text); }
+.ran__signer-title { font-size: 0.72rem; color: var(--color-text-muted); }
+.ran__signers-empty { font-size: 0.75rem; color: #b45309; margin: 0; padding: 0 10px; }
 </style>

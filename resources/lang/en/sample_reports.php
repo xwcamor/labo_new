@@ -3,6 +3,8 @@
 return [
     'no_criteria' => 'No criterion',
     'analysis_title' => 'Result analysis',
+    'signers_title' => 'Report signers',
+    'signers_empty' => 'No active signers. The report would go out unsigned: add them in the Signatures module.',
     'analysis_tab' => 'Results and diagnosis',
     'analysis_intro' => 'The text is proposed by the system from which parameters fell inside or outside the limits, for this sample oil and equipment type. Correct it if the case calls for it: what is corrected by hand is not overwritten automatically.',
     'autodiagnose' => 'Automatic diagnosis',

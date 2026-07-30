@@ -692,7 +692,11 @@ class TestReportPayload
         $max = $resultado->spec_max;
 
         if ($min === null && $max === null) {
-            return '—';
+            // Sin números, el criterio puede ser CUALITATIVO: el de la condición
+            // visual es la frase `Brillante y Claro`. Ese texto viaja congelado
+            // con el resultado, así que se imprime en vez de la raya — decir que
+            // no hay criterio cuando el cuadro lo tiene es peor que no tenerlo.
+            return ($resultado->spec_display ?? '') !== '' ? $resultado->spec_display : '—';
         }
 
         $n = fn ($v) => rtrim(rtrim(number_format((float) $v, 6, '.', ''), '0'), '.');

@@ -49,7 +49,7 @@ class SpecEvaluator
      * quien materializa lo guarde EN LA MISMA operación, sin una segunda
      * escritura por fila.
      *
-     * @return array{spec_status:?string,spec_min:?float,spec_max:?float,spec_source:?string}
+     * @return array{spec_status:?string,spec_min:?float,spec_max:?float,spec_display:?string,spec_source:?string}
      */
     public function verdictFor(
         ?SpecSet $set,
@@ -59,10 +59,11 @@ class SpecEvaluator
         ?string $qualifier = null,
     ): array {
         $vacio = [
-            'spec_status' => null,
-            'spec_min'    => null,
-            'spec_max'    => null,
-            'spec_source' => null,
+            'spec_status'  => null,
+            'spec_min'     => null,
+            'spec_max'     => null,
+            'spec_display' => null,
+            'spec_source'  => null,
         ];
 
         if (! $set) {
@@ -88,6 +89,21 @@ class SpecEvaluator
             'spec_status' => $estado,
             'spec_min'    => $limite->min_value !== null ? (float) $limite->min_value : null,
             'spec_max'    => $limite->max_value !== null ? (float) $limite->max_value : null,
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ EL TEXTO DEL LÍMITE, TAL COMO LO ESCRIBIÓ EL LABORATORIO      │
+            // └──────────────────────────────────────────────────────────────┘
+            // `0.50 - máximo`, `40.0 - mínimo`, `Brillante y Claro`. Es lo que
+            // el informe imprime en la columna del valor de orientación, y es
+            // un DATO: los dos decimales de `0.50` los escribió el laboratorio,
+            // y el criterio de la condición visual es una frase que ningún par
+            // mínimo/máximo puede representar.
+            //
+            // Rearmarlo desde los números perdía las tres cosas (el cero, la
+            // frase, y el `16` que un cuadro trae sin la palabra "máximo"), así
+            // que viaja congelado con el resultado. Sin `display` se cae a los
+            // números, que es el comportamiento anterior.
+            'spec_display' => $limite->display
+                ?: ($limite->text_value ?: $this->limiteComoTexto($limite)),
             // De qué salió el límite. La norma si el cuadro la declara; si no,
             // el nombre del cuadro — que es lo que el sistema anterior tenía, y
             // decirlo así es más honesto que citar una norma que nadie asignó.
@@ -151,6 +167,26 @@ class SpecEvaluator
      * El sistema anterior limpiaba el signo antes de convertir a número
      * (`@pcb_value.split.join.to_f`), así que ">75" y "75" quedaban iguales.
      */
+    /**
+     * El respaldo cuando el límite no trae su texto escrito.
+     *
+     * Reproduce lo que el informe hacía antes de que el texto viajara con el
+     * resultado. Un límite sembrado sin `display` —una fila cargada a mano, o un
+     * cuadro nuevo— sigue imprimiendo algo legible en vez de una raya.
+     */
+    private function limiteComoTexto(SpecLimit $limite): ?string
+    {
+        if ($limite->max_value !== null) {
+            return rtrim(rtrim(number_format((float) $limite->max_value, 2, '.', ''), '0'), '.') . ' - máximo';
+        }
+
+        if ($limite->min_value !== null) {
+            return rtrim(rtrim(number_format((float) $limite->min_value, 2, '.', ''), '0'), '.') . ' - mínimo';
+        }
+
+        return null;
+    }
+
     private function verdictForNumber(SpecLimit $limite, float $valor, ?string $qualifier): ?string
     {
         $tieneMin = $limite->min_value !== null;

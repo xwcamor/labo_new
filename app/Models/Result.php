@@ -46,7 +46,7 @@ class Result extends Model
         'tenant_id', 'equipment_id', 'analyte_id', 'measured_at',
         'worksheet_row_id', 'test_definition_id', 'test_field_id', 'sample_id',
         'value_num', 'value_text', 'qualifier', 'unit', 'replicate_no',
-        'spec_status', 'spec_min', 'spec_max', 'spec_source',
+        'spec_status', 'spec_min', 'spec_max', 'spec_display', 'spec_source',
     ];
 
     /**

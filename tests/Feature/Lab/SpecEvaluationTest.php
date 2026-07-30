@@ -253,6 +253,88 @@ class SpecEvaluationTest extends TestCase
         );
     }
 
+    // ─── El TEXTO del valor de orientación ───────────────────────────────
+
+    /**
+     * El texto del límite es un DATO y viaja congelado con el resultado.
+     *
+     * El informe lo rearmaba desde `spec_min`/`spec_max`, y así perdía lo que el
+     * laboratorio había escrito: `47.0 - mínimo` salía `47 - mínimo`, porque el
+     * formateador recorta el cero. Ese cero está en el cuadro a propósito. Es el
+     * mismo criterio que el veredicto: el papel dice contra qué se juzgó ESA
+     * muestra, no lo que el cuadro diga hoy.
+     */
+    public function test_el_texto_del_limite_se_congela_tal_como_lo_escribio_el_laboratorio(): void
+    {
+        $cuadro = $this->makeSet('mineral', ['oil_type_id' => 1]);
+        $this->makeLimit($cuadro, 'rig', [
+            'operator' => '>=', 'min_value' => 47.0, 'display' => '47.0 - mínimo',
+        ]);
+
+        $veredicto = $this->evaluator->verdictFor(
+            $cuadro->fresh()->load('limits'),
+            Analyte::withoutGlobalScopes()->where('code', 'rig')->value('id'),
+            50.0,
+        );
+
+        $this->assertSame('47.0 - mínimo', $veredicto['spec_display']);
+    }
+
+    /**
+     * Un criterio CUALITATIVO también tiene texto, y es el único que tiene.
+     *
+     * La condición visual se juzga contra una frase: no hay mínimo ni máximo que
+     * rearmar. Rearmando desde los números, esa fila imprimía una raya — o sea,
+     * el papel decía que no había criterio cuando el cuadro sí lo tenía.
+     */
+    public function test_un_limite_de_texto_lleva_su_frase_y_no_una_raya(): void
+    {
+        $cuadro = $this->makeSet('mineral', ['oil_type_id' => 1]);
+        $this->makeLimit($cuadro, 'color', [
+            'operator' => 'text', 'text_value' => 'Brillante y Claro',
+            'display'  => 'Brillante y Claro',
+        ]);
+
+        $veredicto = $this->evaluator->verdictFor(
+            $cuadro->fresh()->load('limits'),
+            Analyte::withoutGlobalScopes()->where('code', 'color')->value('id'),
+            null,
+            'brillante y claro',
+        );
+
+        $this->assertSame('Brillante y Claro', $veredicto['spec_display']);
+        $this->assertNull($veredicto['spec_min']);
+        $this->assertNull($veredicto['spec_max']);
+    }
+
+    /** Un límite sin texto escrito sigue imprimiendo algo legible. */
+    public function test_sin_texto_escrito_el_limite_se_arma_desde_el_numero(): void
+    {
+        $cuadro = $this->makeSet('mineral', ['oil_type_id' => 1]);
+        $this->makeLimit($cuadro, 'wat', ['operator' => '<=', 'max_value' => 25.0]);
+
+        $veredicto = $this->evaluator->verdictFor(
+            $cuadro->fresh()->load('limits'),
+            Analyte::withoutGlobalScopes()->where('code', 'wat')->value('id'),
+            10.0,
+        );
+
+        $this->assertSame('25 - máximo', $veredicto['spec_display']);
+    }
+
+    /** Sin cuadro no se inventa criterio: tampoco un texto de límite. */
+    public function test_sin_cuadro_no_hay_texto_de_limite(): void
+    {
+        $veredicto = $this->evaluator->verdictFor(
+            null,
+            Analyte::withoutGlobalScopes()->where('code', 'acid')->value('id'),
+            0.10,
+        );
+
+        $this->assertNull($veredicto['spec_display']);
+        $this->assertNull($veredicto['spec_status']);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
 
     private function verdict(SpecSet $cuadro, string $analyte, float $valor, ?string $qualifier = null): ?string

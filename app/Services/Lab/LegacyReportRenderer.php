@@ -627,8 +627,34 @@ class LegacyReportRenderer
         return ['tipo' => 'analisis', 'anab' => false, 'familias' => $familias];
     }
 
+    /**
+     * El valor de orientación impreso: el TEXTO que escribió el laboratorio.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ SE LEE, NO SE REARMA                                                 │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Acá se reconstruía la frase desde `spec_max`/`spec_min`, y eso perdía tres
+     * cosas que el papel anterior sí imprimía:
+     *
+     *   · `0.50 - máximo` salía `0.5 - máximo`. Los dos decimales los escribió
+     *     el laboratorio en su cuadro; recortarlos es corregirle la mano.
+     *   · La condición visual, cuyo criterio es la FRASE `Brillante y Claro`, no
+     *     tiene mínimo ni máximo, así que caía en la raya de abajo: el papel
+     *     decía que no había criterio cuando el cuadro sí lo tenía.
+     *   · Un cuadro trae el límite de acetileno escrito `16`, sin la palabra
+     *     "máximo". Ninguna reconstrucción desde el número puede dar eso.
+     *
+     * El texto viaja congelado en el resultado (`results.spec_display`) por la
+     * misma razón que el veredicto: el papel dice contra qué se juzgó ESA
+     * muestra, no contra lo que el cuadro diga hoy. Los resultados anteriores a
+     * la columna caen al comportamiento de antes, que es lo que ya imprimían.
+     */
     private function orientacionVieja(Result $r): string
     {
+        if (($r->spec_display ?? '') !== '') {
+            return $r->spec_display;
+        }
+
         if ($r->spec_max !== null) {
             return $this->num($r->spec_max) . ' - máximo';
         }

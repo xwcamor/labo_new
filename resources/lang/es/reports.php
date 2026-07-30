@@ -108,7 +108,11 @@ return [
     'cond_lab_humidity'  => 'Humedad relativa lab',
 
     'page_of' => 'Página :num de :total',
-    'reported_by' => 'Reportado por:',
+    // 'reported_by' se quitó: era el rótulo "Reportado por:" que iba a la
+    // IZQUIERDA del bloque de firmas del informe moderno. Sobraba porque cada
+    // firma ya dice su relación debajo de la línea, y con dos firmantes de
+    // relaciones distintas el rótulo único directamente mentía. Era el vestigio
+    // del papel viejo, que tenía UNA sola firma y podía rotularla de una vez.
 
     // ── La última página ────────────────────────────────────────────────
     // El título y el "sin análisis" viven más abajo, con el resto de las claves
@@ -131,14 +135,6 @@ return [
     'verify_code' => 'Código',
     'verify_hint' => 'Verifique este informe escaneando el código',
     'no_signers'  => 'Firma',
-    'relation'    => [
-        'prepared'  => 'Realizado por',
-        'reviewed'  => 'Revisado por',
-        'approved'  => 'Aprobado por',
-        'authorized'=> 'Autorizado por',
-        'verified'  => 'Verificado por',
-        'endorsed'  => 'Avalado por',
-    ],
     'verify_sample'    => 'Muestra',
     'verify_equipment' => 'Equipo',
     'verify_sections'  => 'Ensayos informados',

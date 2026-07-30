@@ -127,7 +127,7 @@ class ReportRequestController extends Controller
             'rejected_by'    => $rejection?->title,
             'signers'        => $r->approvals->map(fn ($a) => [
                 'title'    => $a->title,
-                'relation' => __('approvals.relation.' . ($a->relation ?: 'approved')),
+                'relation' => \App\Support\SignerRelation::label($a->relation),
                 'status'   => $a->status,
             ])->values(),
             'transformers'   => $r->instances->map(fn ($ins) => [

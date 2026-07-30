@@ -29,36 +29,65 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 3mm 10mm 30mm 10mm; }
-        /* El papel viejo APRIETA la letra para que cada ensayo entre en una
-           sola hoja: 10px de cuerpo con celdas de .3rem, y las tablas de
-           cabecera todavía más chicas. Si esto se agranda, la cromatografía se
-           parte en dos páginas y deja de ser el mismo papel. */
-        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 9px; margin: 0; }
+        /* ── EL TAMAÑO DEL PAPEL VIEJO ─────────────────────────────────────
+           Acá había un cuerpo de 9px con un comentario que decía que el papel
+           viejo "aprieta la letra". Estaba mal: el informe original NO fijaba
+           tamaño en su plantilla, así que heredaba el `body { font-size: 1rem }`
+           de Bootstrap —16px— con celdas de `.table-sm` a `.3rem`. Nuestro 9px
+           era poco más de la mitad, y por eso el papel se veía diminuto al lado
+           del que el laboratorio conoce.
+           
+           11px es el punto donde el cuerpo se lee y cada prueba SIGUE entrando
+           en una hoja, que es la condición que no se puede perder: verificado
+           contando las páginas del informe de las 29 pruebas. Subirlo más parte
+           la cromatografía en dos, y ahí deja de ser el mismo papel. */
+        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 11px; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
         .grid, .grid td, .grid th { border: 1px solid #343a40; }
-        .grid td, .grid th { padding: 2.2px 3px; }
+        .grid td, .grid th { padding: 3px 4px; }
         .c { text-align: center; }
         .r { text-align: right; }
         .bar { background-color: #E8E8E8; }
         .red { color: #dc3545; }
-        .sec { font-size: 10px; font-weight: bold; padding-top: 4px; display: block; }
-        .ttl { font-size: 12px; font-weight: bold; }
+        .sec { font-size: 12px; font-weight: bold; padding-top: 4px; display: block; }
+        .ttl { font-size: 14px; font-weight: bold; }
         .brk { page-break-before: always; }
-        .legend { font-size: 7px; font-style: italic; }
-        .cond { width: 420px; }
-        .cond td { border: 1px solid #343a40; padding: 2.2px 3px; }
+        .legend { font-size: 8.5px; font-style: italic; }
+        .cond td { border: 1px solid #343a40; padding: 3px 4px; }
+        /* La grilla de relaciones de gases y su leyenda de fórmulas: dieciocho
+           renglones de números cortos, donde el interlineado del cuerpo pesa más
+           que el tamaño de la letra. */
+        .rel td { padding: 2px 4px; line-height: 1.2; }
+        .rel__def { font-size: 9.5px; }
         .foot { position: fixed; bottom: -26mm; left: 0; right: 0; }
-        .foot .legal { font-size: 7px; text-align: justify; }
-        .foot .company { font-size: 10px; text-align: center; font-weight: bold;
+        .foot .legal { font-size: 8px; text-align: justify; }
+        .foot .company { font-size: 11px; text-align: center; font-weight: bold;
                          border-bottom: 1px solid #dc3545; padding-bottom: 2px; margin-top: 4px; }
-        .foot .addr { font-size: 9px; margin-top: 3px; }
-        .sign { margin-top: 10px; }
-        .sign td { vertical-align: bottom; text-align: center; padding: 0 6px; }
+        .foot .addr { font-size: 10px; margin-top: 3px; }
+        /* ── LAS FIRMAS: DOS POR FILA ──────────────────────────────────────
+           Antes se repartían las N firmas en UNA fila, dividiendo el ancho por
+           N: con una sola, la línea de firma cruzaba la hoja entera; con cuatro,
+           cada nombre entraba en 130 px y se partía en tres renglones.
+           
+           Ahora van de dos en dos, y la LÍNEA tiene ancho fijo centrada en su
+           celda. De ahí sale solo el comportamiento que se pide: una firma
+           queda centrada en la hoja con su línea corta, dos quedan a izquierda y
+           derecha, tres dejan la última a la izquierda, cuatro forman 2×2. */
+        .sign { margin-top: 12px; }
+        .sign td { vertical-align: bottom; text-align: center; padding: 6px 6px 0; width: 50%; }
+        .sign .box { width: 230px; margin: 0 auto; }
         .sign .line { border-top: 1px solid #343a40; margin: 2px 0 3px; }
-        .sign .stamp { height: 34px; }
-        .sign .rel { font-size: 8px; color: #555; }
-        .sign .who { font-weight: bold; }
-        .sign .role { font-size: 8px; color: #555; }
+        .sign .stamp { height: 38px; }
+        .sign .rel { font-size: 8.5px; color: #555; }
+        .sign .who { font-weight: bold; font-size: 11px; }
+        .sign .role { font-size: 8.5px; color: #555; }
+        /* La variante de la hoja de cromatografía: la misma rejilla de dos por
+           fila, pero dentro de una columna que ocupa poco más de la mitad de la
+           hoja, así que la caja se angosta para que el nombre no se parta. */
+        .sign--side { margin-top: 0; }
+        .sign--side .box { width: 165px; }
+        .sign--side .stamp { height: 32px; }
+        .sign--side .who { font-size: 10px; }
     </style>
 </head>
 <body>
@@ -82,6 +111,20 @@
 </div>
 
 @foreach ($paginas as $i => $pagina)
+@php
+    /* ── DÓNDE VA LA FIRMA EN ESTA HOJA ────────────────────────────────────
+       Debajo del cuadro de condiciones en todas las pruebas, MENOS en la
+       cromatografía: esa hoja lleva además la grilla de RELACIONES (totales,
+       ratios, porcentajes y la leyenda de las fórmulas), y con el cuerpo a
+       11 px el bloque de firmas la empujaba a una segunda página. El sistema
+       anterior resolvía lo mismo del mismo modo —`_report_cromas.erb` pone el
+       cuadro de condiciones en un `col-5` y la firma en el `col-7` de al
+       lado, mientras `_report_physicals.erb` la deja abajo—, así que además
+       de recuperar el alto reproduce el papel que el laboratorio conoce.
+       La grilla de relaciones solo la trae la hoja de cromatografía, así que
+       es la condición que identifica esa hoja sin nombrar la prueba. */
+    $firmasAlLado = ! empty($pagina['relaciones']) && ! empty($firmantes);
+@endphp
 <div @if($i > 0) class="brk" @endif>
 
     {{-- Logos. El sello ANAB SOLO en las secciones que el programador eligió:
@@ -165,8 +208,12 @@
             <table class="grid" style="margin-top:6px">
                 @foreach ($pagina['familias'] as $fam)
                     <tr>
-                        <td class="bar" style="width:28%; vertical-align:middle; padding:.75rem">{{ $fam['titulo'] }}</td>
-                        <td style="padding:.75rem">{{ $fam['texto'] }}</td>
+                        {{-- El relleno era de `.75rem`, copiado del original,
+                             que tenía un puñado de familias. Hoy son trece y con
+                             ese alto la tabla empujaba las firmas a una segunda
+                             hoja, donde quedaba una firma sola y sin contexto. --}}
+                        <td class="bar" style="width:28%; vertical-align:middle; padding:5px 8px">{{ $fam['titulo'] }}</td>
+                        <td style="padding:5px 8px">{{ $fam['texto'] }}</td>
                     </tr>
                 @endforeach
             </table>
@@ -241,41 +288,38 @@
         @endif
 
         @if (! empty($pagina['relaciones']))
+            {{-- LAS RELACIONES DE GASES, EN CUATRO COLUMNAS.
+                 El original las apilaba en dos filas de dos columnas: totales
+                 arriba, ratios abajo. Eso hace que el bloque mida lo que suman
+                 las dos filas —diez renglones— aunque la columna de al lado
+                 quede en blanco. En una sola fila mide lo que la columna más
+                 larga, siete, y esos tres renglones son parte de lo que hace
+                 que la hoja de cromatografía siga entrando en una página. --}}
             <div><b>RELACIONES</b></div>
-            <table class="grid">
+            <table class="grid rel">
                 <tr>
-                    <td style="width:50%">
-                        @foreach ($pagina['relaciones']['totales'] as $etiqueta => $valor)
-                            <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
-                        @endforeach
-                    </td>
-                    <td>
-                        @foreach ($pagina['relaciones']['porcentaje_total'] as $etiqueta => $valor)
-                            <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
-                        @endforeach
-                    </td>
+                    @foreach (['totales', 'ratios', 'porcentaje_total', 'porcentajes'] as $grupo)
+                        <td style="width:25%">
+                            @foreach ($pagina['relaciones'][$grupo] as $etiqueta => $valor)
+                                <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
+                            @endforeach
+                        </td>
+                    @endforeach
                 </tr>
                 <tr>
-                    <td>
-                        @foreach ($pagina['relaciones']['ratios'] as $etiqueta => $valor)
-                            <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
-                        @endforeach
-                    </td>
-                    <td>
-                        @foreach ($pagina['relaciones']['porcentajes'] as $etiqueta => $valor)
-                            <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
-                        @endforeach
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <table>
+                    <td colspan="4">
+                        {{-- La leyenda de las fórmulas. Los anchos son más
+                             holgados que los `col-1`/`col-3` del original
+                             porque acá el cuerpo es más chico que el ancho de
+                             columna: con 8% y 25% cada fórmula se partía en dos
+                             renglones y la leyenda medía el doble. --}}
+                        <table class="rel__def">
                             <tr>
-                                <td style="width:8%"><b>TGC</b><br><b>TGC-CO</b></td>
-                                <td style="width:25%">= CO+H2+CH4+C2H6+C2H4+C2H2<br>= H2+CH4+C2H6+C2H4+C2H2</td>
-                                <td style="width:8%"><b>%GAS</b><br><b>TGC(%)</b></td>
-                                <td style="width:25%">= GAS/(TGC-CO)x100<br>= TGC/TG x100</td>
-                                <td style="width:8%"><b>TG</b><br><b>TGC</b></td>
+                                <td style="width:7%"><b>TGC</b><br><b>TGC-CO</b></td>
+                                <td style="width:26%">= CO+H2+CH4+C2H6+C2H4+C2H2<br>= H2+CH4+C2H6+C2H4+C2H2</td>
+                                <td style="width:7%"><b>%GAS</b><br><b>TGC(%)</b></td>
+                                <td style="width:22%">= GAS/(TGC-CO)x100<br>= TGC/TG x100</td>
+                                <td style="width:6%"><b>TG</b><br><b>TGC</b></td>
                                 <td>= Total de Gases<br>= Total de Gases Combustibles</td>
                             </tr>
                         </table>
@@ -284,34 +328,35 @@
             </table>
         @endif
 
-        <br>
-        <table class="cond">
-            @foreach ($pagina['condiciones'] as $etiqueta => $valor)
-                <tr><td>{{ $etiqueta }}</td><td>{{ $valor }}</td></tr>
-            @endforeach
-        </table>
+        @unless ($firmasAlLado)<br>@endunless
+        @if ($firmasAlLado)
+            {{-- La hoja de cromatografía: condiciones a la izquierda, firmas a
+                 la derecha. Ver el comentario de `$firmasAlLado` más arriba. --}}
+            <table><tr>
+                <td style="width:42%; vertical-align:top">
+                    @include('lab_management.reports.legacy._condiciones', [
+                        'condiciones' => $pagina['condiciones'], 'ancho' => '100%',
+                    ])
+                </td>
+                <td style="vertical-align:bottom">
+                    @include('lab_management.reports.legacy._firmas', [
+                        'firmantes' => $firmantes, 'compacto' => true,
+                    ])
+                </td>
+            </tr></table>
+        @else
+            @include('lab_management.reports.legacy._condiciones', [
+                'condiciones' => $pagina['condiciones'],
+            ])
+        @endif
     @endif
 
     {{-- Las firmas de quienes aprobaron el informe. El papel viejo tenía UNA
          ("Reportado por:"); el laboratorio hoy mantiene una lista con su
          relación y su cargo, y todas van al pie de cada hoja. --}}
-    @if (! empty($firmantes))
-        <table class="sign"><tr>
-            @foreach ($firmantes as $f)
-                <td style="width:{{ (int) (100 / max(count($firmantes), 1)) }}%">
-                    @if ($f['imagen'])
-                        <img src="{{ $f['imagen'] }}" class="stamp">
-                    @else
-                        <br><br>
-                    @endif
-                    <div class="line"></div>
-                    <div class="rel">{{ $f['relacion'] }}</div>
-                    <div class="who">{{ $f['nombre'] }}</div>
-                    <div class="role">{{ $f['cargo'] }}</div>
-                </td>
-            @endforeach
-        </tr></table>
-    @endif
+    @unless ($firmasAlLado)
+        @include('lab_management.reports.legacy._firmas', ['firmantes' => $firmantes])
+    @endunless
 
 </div>
 @endforeach

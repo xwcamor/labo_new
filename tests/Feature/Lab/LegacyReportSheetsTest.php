@@ -210,4 +210,80 @@ class LegacyReportSheetsTest extends TestCase
             'family' => 'metales', 'conditions' => [], 'rows' => [],
         ]));
     }
+
+    // ─── El orden fijo del fisicoquímico ─────────────────────────────────
+
+    /**
+     * La hoja del fisicoquímico imprime sus trece parámetros SIEMPRE en el
+     * mismo orden, y ese orden lo declara una constante del renderizador donde
+     * la clave de cada entrada es el código del analito.
+     *
+     * De las trece claves, CINCO estaban mal escritas —`fp*` con otro nombre,
+     * `rig`/`rig_ep` invertidos, `visual` por `con`— y el efecto era que la hoja
+     * imprimía SEIS filas de trece sin decir nada: el parámetro medido y
+     * validado simplemente no aparecía en el papel. Un código mal escrito no
+     * rompe nada visible, así que se fija acá contra la lista de analitos del
+     * seed, que es de dónde salen los códigos reales.
+     */
+    public function test_los_codigos_del_fisicoquimico_existen_en_el_catalogo(): void
+    {
+        $renderer = new \App\Services\Lab\LegacyReportRenderer();
+        $constante = (new \ReflectionClass($renderer))->getConstant('FIQUIS');
+
+        $catalogo = json_decode(
+            file_get_contents(database_path('seeders/data/analytes.json')),
+            true,
+        );
+        $codigos = array_column($catalogo['fiqui'], 'code');
+
+        foreach (array_keys($constante) as $codigo) {
+            $this->assertContains(
+                $codigo,
+                $codigos,
+                "El código «{$codigo}» de la hoja del fisicoquímico no existe en el "
+                . 'catálogo de analitos: esa fila nunca se va a imprimir.',
+            );
+        }
+
+        // Y los trece, no seis: la hoja del sistema anterior tenía trece ítems
+        // numerados y el laboratorio los conoce por su número.
+        $this->assertCount(13, $constante);
+        $this->assertSame(range(1, 13), array_column($constante, 0));
+    }
+
+    // ─── Dónde va la firma en cada hoja ──────────────────────────────────
+
+    /**
+     * La firma va debajo del cuadro de condiciones, salvo en la hoja de
+     * cromatografía, que la lleva AL LADO.
+     *
+     * No es una preferencia estética: la hoja de cromatografía es la única que
+     * además de la tabla de resultados lleva la grilla de relaciones de gases, y
+     * con la firma debajo se derramaba a una segunda página. Ahí se rompe la
+     * regla que el laboratorio da por sentada —una hoja por prueba— y el cliente
+     * recibe una página huérfana con dos firmas y ningún resultado.
+     *
+     * El sistema anterior resolvía lo mismo del mismo modo: `_report_cromas.erb`
+     * pone el cuadro en un `col-5` y la firma en el `col-7` de al lado, mientras
+     * `_report_physicals.erb` la deja abajo.
+     */
+    public function test_solo_la_hoja_de_cromatografia_lleva_la_firma_al_costado(): void
+    {
+        $blade = file_get_contents(
+            resource_path('views/lab_management/reports/legacy/report.blade.php'),
+        );
+
+        // La condición es la presencia de la grilla de relaciones, que solo trae
+        // la cromatografía. Si alguien la cambia por el nombre de la familia, el
+        // día que la familia se renombre la hoja vuelve a partirse en dos.
+        $this->assertStringContainsString(
+            '$firmasAlLado = ! empty($pagina[\'relaciones\'])',
+            $blade,
+        );
+
+        // Y el bloque de firmas está UNA sola vez en la plantilla —es un
+        // parcial—, así que no puede quedar dibujado en los dos lugares.
+        $this->assertSame(1, substr_count($blade, '\'compacto\' => true'));
+        $this->assertStringContainsString('@unless ($firmasAlLado)', $blade);
+    }
 }

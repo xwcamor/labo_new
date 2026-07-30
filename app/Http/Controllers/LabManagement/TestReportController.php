@@ -142,7 +142,7 @@ class TestReportController extends Controller
                 // recorre igual. Guardarlos como lista de textos rompía esa
                 // pantalla al abrir el código de una muestra.
                 'signers'     => $firmantes->map(fn ($f) => [
-                    'title' => $f->title ?: __('reports.relation.' . $f->relation),
+                    'title' => $f->title ?: \App\Support\SignerRelation::label($f->relation),
                     'name'  => $f->printedName(),
                 ])->values(),
             ],

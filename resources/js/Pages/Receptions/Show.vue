@@ -45,6 +45,7 @@ import ReportAnalysisModal from '@/Components/Receptions/ReportAnalysisModal.vue
 import CollapsibleTags from '@/Components/Common/CollapsibleTags.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
+import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
 import { plainDate, testStatusColor } from './config/format';
@@ -467,7 +468,35 @@ const confirmarDesbloqueo = () => {
              colgaba de un `v-else` y la entrega recién registrada —justo cuando
              uno quiere ver quién la cargó— era la única ficha del sistema sin
              historial. -->
-        <Tabs v-model:activeKey="tabActiva" class="rc-tabs">
+        <!-- ── ARRIBA: el registro. ABAJO: el trabajo. ─────────────────────
+             La ficha quedaba con CUATRO pestañas al mismo nivel —Muestras,
+             Informes, Detalles, Historial— y eso mezcla dos cosas distintas: dos
+             de ellas son el REGISTRO de la entrega (sus datos y su auditoría,
+             igual que en todos los módulos del sistema) y las otras dos son el
+             TRABAJO que cuelga de ella.
+
+             Ahora son dos bloques. Arriba `EntityShowTabs`, el mismo componente
+             que usan Laboratorios, Instrumentos y el resto: Detalles ·
+             Historial. Abajo, las dos pestañas de trabajo. Así la ficha se lee
+             como cualquier otra del sistema y no hay que aprenderla aparte. -->
+        <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
+            <template #general>
+                <ReceptionHeader :reception="reception" />
+            </template>
+            <template #history>
+                <RecordHistory
+                    :record-audit="recordAudit"
+                    :activity="activity"
+                    :can-see-activity="canSeeAudit"
+                />
+            </template>
+        </EntityShowTabs>
+
+        <!-- Lo que CUELGA de la entrega: lo que entró y lo que salió. Son dos
+             trabajos distintos sobre la misma entrega —cargar muestras y emitir
+             informes— y mezclarlos en una tabla obliga a mirar veinte filas para
+             encontrar los tres papeles que se entregaron. -->
+        <Tabs v-model:activeKey="tabActiva" class="rc-tabs rc-tabs--work">
         <TabPane key="samples">
             <template #tab>
                 <span><ExperimentOutlined /> {{ $t('receptions.section_samples') }} ({{ samples.length }})</span>
@@ -778,29 +807,6 @@ const confirmarDesbloqueo = () => {
             </Card>
         </TabPane>
 
-        <!-- Detalles: la ficha de la entrega. Estaba SIEMPRE visible arriba de
-             las pestañas, y por eso esta era la única pantalla Show del sistema
-             sin su pestaña "Detalles": ocupaba media pantalla en la vista donde
-             se trabaja (Muestras) y no se podía plegar.
-
-             Va después de las dos de trabajo y no primera, que es donde el resto
-             de los módulos la pone: acá se entra a cargar muestras y a emitir
-             informes, y obligar a un clic cada vez para llegar a eso sería
-             cambiar una molestia por otra. -->
-        <TabPane key="details">
-            <template #tab>
-                <span><FileTextOutlined /> {{ $t('global.details') }}</span>
-            </template>
-
-            <ReceptionHeader :reception="reception" />
-        </TabPane>
-
-        <TabPane key="history">
-            <template #tab>
-                <span><HistoryOutlined /> {{ $t('global.history') }}</span>
-            </template>
-            <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
-        </TabPane>
         </Tabs>
 
         <AssignTestsModal
@@ -943,4 +949,7 @@ const confirmarDesbloqueo = () => {
 /* Las pestañas van sobre el fondo gris de la ficha, no dentro de una tarjeta:
    así la tarjeta de la tabla queda debajo, como en el resto de las pantallas. */
 .rc-tabs :deep(.ant-tabs-nav) { margin-bottom: 12px; }
+/* El bloque de trabajo se separa del registro: son dos grupos de pestañas y sin
+   aire entre ellos se leen como un solo juego de seis. */
+.rc-tabs--work { margin-top: 6px; }
 </style>

@@ -130,11 +130,15 @@ class TestReportLayoutTest extends TestCase
             $this->seccion('Cromatografía', acreditada: false),
         ]);
 
-        $this->assertSame(1, substr_count($html, __('reports.reported_by')));
+        // Se cuenta el BLOQUE de firmas, no un rótulo suelto: el rótulo
+        // "Reportado por:" que iba a la izquierda se quitó —cada firma dice su
+        // propia relación debajo de la línea— y anclar el test a un texto que
+        // puede desaparecer hace que el test caiga por el motivo equivocado.
+        $this->assertSame(1, substr_count($html, '<table class="sign">'));
         $this->assertSame(1, substr_count($html, __('reports.verify_hint')));
 
         // Y en el CIERRE: después del último salto de página no hay otro.
-        $posFirma = strpos($html, __('reports.reported_by'));
+        $posFirma = strpos($html, '<table class="sign">');
         $posUltimoSalto = strrpos($html, 'class="brk"');
         $this->assertGreaterThan($posUltimoSalto, $posFirma);
     }

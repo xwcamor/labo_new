@@ -25,7 +25,8 @@ use Illuminate\Support\Str;
 class Signature extends Model
 {
     /**
-     * Con qué relación firma. Lista cerrada y traducible (`reports.relation.*`):
+     * Con qué relación firma. Lista cerrada y traducible (`approvals.relation.*`,
+     * vía `App\Support\SignerRelation`):
      * es lo que se imprime sobre la línea y tiene que decir lo mismo en los dos
      * idiomas. Texto libre acá daría "Aprobado por", "aprobado" y "APROBÓ" como
      * tres relaciones distintas en el mismo informe.

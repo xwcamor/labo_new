@@ -100,7 +100,9 @@ return [
     'cond_lab_humidity'  => 'Lab relative humidity',
 
     'page_of' => 'Page :num of :total',
-    'reported_by' => 'Reported by:',
+    // 'reported_by' was removed: it labelled the whole signature block on the
+    // modern report, and each signature already states its own relation under
+    // the line.
 
     // ── The last page ───────────────────────────────────────────────────
     // The title and the "no analysis" line live further down, with the rest of
@@ -119,14 +121,6 @@ return [
     'verify_code' => 'Code',
     'verify_hint' => 'Verify this report by scanning the code',
     'no_signers'  => 'Signature',
-    'relation'    => [
-        'prepared'  => 'Prepared by',
-        'reviewed'  => 'Reviewed by',
-        'approved'  => 'Approved by',
-        'authorized'=> 'Authorized by',
-        'verified'  => 'Verified by',
-        'endorsed'  => 'Endorsed by',
-    ],
     'verify_sample'    => 'Sample',
     'verify_equipment' => 'Equipment',
     'verify_sections'  => 'Reported tests',

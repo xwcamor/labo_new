@@ -256,8 +256,14 @@
         .strip__qr { width: 22%; text-align: center; }
 
         table.sign { width: 100%; border-collapse: collapse; }
-        table.sign td { text-align: center; padding: 0 5px; vertical-align: bottom; border: 0; }
-        .sign__lead { font-size: 6pt; color: #5B6672; letter-spacing: 0.9px; text-transform: uppercase; padding-bottom: 24px; }
+        table.sign td { text-align: center; padding: 6px 5px 0; vertical-align: bottom; border: 0; width: 50%; }
+        /* La línea de firma tiene ancho FIJO y va centrada en su celda: es lo que
+           hace que una sola firma quede centrada en la hoja sin una raya que la
+           cruce de lado a lado. */
+        .sign__box { width: 190px; margin: 0 auto; }
+        /* El espacio de la firma a mano, cuando no hay imagen estampada. Mismo
+           alto que la imagen, para que las dos variantes alineen su línea. */
+        .sign__gap { height: 34px; }
         .sign__line { border-top: 1px solid #98A2B3; margin: 0 0 2px 0; }
         .sign__rel { font-size: 5.5pt; color: #5B6672; letter-spacing: 0.7px; text-transform: uppercase; }
         .sign__name { font-size: 7.5pt; font-weight: bold; }
@@ -912,32 +918,62 @@
     <table class="strip">
         <tr>
             <td class="strip__sign">
+                {{-- ── LAS FIRMAS: DOS POR FILA ───────────────────────────
+                     Acá había una celda a la IZQUIERDA que decía "REPORTADO
+                     POR:" y después las firmas. Sobra por dos razones: cada
+                     firma ya dice su relación debajo de la línea —"Elaborado
+                     por", "Aprobado por"—, así que el rótulo de la izquierda la
+                     repetía y con dos firmantes de relaciones distintas
+                     directamente mentía; y era el vestigio del papel viejo, que
+                     tenía UNA sola firma y por eso podía rotularla de una vez.
+
+                     Las firmas van de dos en dos, con la línea de ancho fijo
+                     centrada en su celda: una queda centrada en la hoja, dos a
+                     izquierda y derecha, tres dejan la última a la izquierda,
+                     cuatro forman 2×2. --}}
                 <table class="sign">
-                    <tr>
-                        <td class="sign__lead">{{ __('reports.reported_by') }}</td>
-                        @forelse ($signers as $signer)
-                            <td>
-                                {{-- La imagen se estampa solo si existe. Sin
-                                     ella queda la línea para firmar a mano, que
-                                     es lo correcto: un informe no debe insinuar
-                                     una firma que nadie puso. --}}
-                                @if ($signer->stamp ?? null)
-                                    <img class="sign__img" src="{{ $signer->stamp }}" alt="">
-                                @endif
-                                <div class="sign__line"></div>
-                                <div class="sign__rel">{{ __('reports.relation.' . $signer->relation, [], null) }}</div>
-                                <div class="sign__name">{{ $signer->printedName() }}</div>
-                                <div class="sign__title">{{ $signer->title }}</div>
+                    @forelse (array_chunk($signers->all(), 2) as $fila)
+                        <tr>
+                            @foreach ($fila as $signer)
+                                <td @if ($signers->count() === 1) style="width:100%" @endif>
+                                    <div class="sign__box">
+                                        {{-- La imagen se estampa solo si existe.
+                                             Sin ella queda la línea para firmar a
+                                             mano, que es lo correcto: un informe
+                                             no debe insinuar una firma que nadie
+                                             puso. --}}
+                                        @if ($signer->stamp ?? null)
+                                            <img class="sign__img" src="{{ $signer->stamp }}" alt="">
+                                        @else
+                                            <div class="sign__gap"></div>
+                                        @endif
+                                        <div class="sign__line"></div>
+                                        <div class="sign__rel">{{ \App\Support\SignerRelation::label($signer->relation) }}</div>
+                                        <div class="sign__name">{{ $o($signer->printedName()) }}</div>
+                                        <div class="sign__title">{{ $o($signer->title) }}</div>
+                                    </div>
+                                </td>
+                            @endforeach
+                            {{-- La fila impar deja su celda vacía a la derecha,
+                                 para que la firma sobrante quede a la IZQUIERDA
+                                 y no centrada. --}}
+                            @if (count($fila) === 1 && $signers->count() > 1)
+                                <td></td>
+                            @endif
+                        </tr>
+                    @empty
+                        {{-- Sin firmantes cargados el informe no inventa ninguno:
+                             deja el espacio para firmar a mano. --}}
+                        <tr>
+                            <td style="width:100%">
+                                <div class="sign__box">
+                                    <div class="sign__gap"></div>
+                                    <div class="sign__line"></div>
+                                    <div class="sign__rel">{{ __('reports.no_signers') }}</div>
+                                </div>
                             </td>
-                        @empty
-                            {{-- Sin firmantes cargados el informe no inventa
-                                 ninguno: deja el espacio para firmar a mano. --}}
-                            <td>
-                                <div class="sign__line"></div>
-                                <div class="sign__rel">{{ __('reports.no_signers') }}</div>
-                            </td>
-                        @endforelse
-                    </tr>
+                        </tr>
+                    @endforelse
                 </table>
             </td>
             <td class="strip__qr">

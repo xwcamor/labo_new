@@ -90,7 +90,7 @@ class ReportApprovalController extends Controller
         return [
             'approval_id'    => $a->id,
             'status'         => $a->status,
-            'relation'       => __('approvals.relation.' . ($a->relation ?: 'approved')),
+            'relation'       => \App\Support\SignerRelation::label($a->relation),
             'title'          => $a->title,
             'reason'         => $a->reason,
             'acted_at'       => $a->acted_at?->toIso8601String(),

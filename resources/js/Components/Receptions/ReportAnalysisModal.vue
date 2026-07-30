@@ -165,7 +165,7 @@ const guardar = () => {
                             <div v-if="data.signers?.length" class="ran__signers">
                                 <div class="ran__signers-title">{{ $t('sample_reports.signers_title') }}</div>
                                 <div v-for="f in data.signers" :key="f.id" class="ran__signer">
-                                    <span class="ran__signer-rel">{{ $t('reports.relation.' + f.relation) }}</span>
+                                    <span class="ran__signer-rel">{{ $t('approvals.relation.' + f.relation) }}</span>
                                     <span class="ran__signer-name">{{ f.name }}</span>
                                     <span v-if="f.title" class="ran__signer-title">{{ f.title }}</span>
                                 </div>

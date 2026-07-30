@@ -32,21 +32,49 @@ use Illuminate\Support\Facades\Storage;
  */
 class LegacyReportRenderer
 {
-    /** Cómo rotulaba el informe viejo cada parámetro: nombre, unidad e ítem. */
+    /**
+     * Cómo rotulaba el informe viejo cada parámetro: nombre, unidad e ítem.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ LA CLAVE ES EL CÓDIGO DEL ANALITO, Y CINCO ESTABAN MAL               │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Los resultados vienen indexados por `analytes.code`, así que una clave que
+     * no existe no da error: la fila simplemente NO SE IMPRIME. La tabla de
+     * fisicoquímico salía con 6 de 13 filas y nada avisaba — ni un hueco, ni un
+     * cero, ni un log: cinco parámetros medidos y validados no llegaban al papel.
+     *
+     * Los cinco que estaban mal, con el código real al lado:
+     *
+     *     rig877 → rig_ep      col → color      ten  → ift
+     *     den    → dens        r25 → rho25       r100 → rho100
+     *
+     * Venían del prefijo que usaba la tabla del sistema anterior
+     * (`rem_report_details.rig_val`, `r25_val`…), no del catálogo de parámetros de
+     * este sistema. El informe moderno no tenía el problema porque no usa un mapa:
+     * recorre los resultados que hay.
+     *
+     * `con` (condición visual) ya estaba bien y se deja como estaba.
+     *
+     * Dos de las trece filas siguen sin salir, y NO por este error: tensión
+     * interfacial y condición visual todavía no declaran qué parámetro alimenta su
+     * columna de resultado —decisión pendiente del laboratorio, anotada en
+     * `analyte_map.json`—, así que no producen resultado alguno. Sus filas
+     * aparecen solas en cuanto se declare, sin tocar este archivo.
+     */
     private const FIQUIS = [
         'acid'   => [1,  'Número Ácido',                          'mgKOH/g '],
         'fp25'   => [2,  'Factor de Potencia 25°C,60HZ',          '% '],
         'fp90'   => [3,  'Factor de Potencia 90°C,60HZ',          '% '],
         'fp100'  => [4,  'Factor de Potencia 100°C,60HZ',         '% '],
         'rig'    => [5,  'Rigidez Dieléctrica',                   'kV/2.0mm '],
-        'rig877' => [6,  'Rigidez Dieléctrica Electrodos planos', 'kV/2.0mm '],
-        'ten'    => [7,  'Tension Interfacial',                   'mN/m '],
+        'rig_ep' => [6,  'Rigidez Dieléctrica Electrodos planos', 'kV/2.0mm '],
+        'ift'    => [7,  'Tension Interfacial',                   'mN/m '],
         'wat'    => [8,  'Contenido de Agua',                     'ppm '],
-        'col'    => [9,  'Color',                                 '- '],
+        'color'  => [9,  'Color',                                 '- '],
         'con'    => [10, 'Condición Visual',                      '- '],
-        'den'    => [11, 'Densidad Relativa (15 °C/15 °C)',       '- '],
-        'r25'    => [12, 'Resistividad Volumétrica 25º',          'omh*cm'],
-        'r100'   => [13, 'Resistividad Volumétrica 100º',         'omh*cm'],
+        'dens'   => [11, 'Densidad Relativa (15 °C/15 °C)',       '- '],
+        'rho25'  => [12, 'Resistividad Volumétrica 25º',          'omh*cm'],
+        'rho100' => [13, 'Resistividad Volumétrica 100º',         'omh*cm'],
     ];
 
     /** Los gases, con su límite de detección clavado en el HTML del viejo. */
@@ -220,10 +248,22 @@ class LegacyReportRenderer
         $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $fuente = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
-        // Alineada con la dirección, en el mismo renglón y a la derecha. Antes
-        // caía sobre la regla roja del pie y se leía pisada.
+
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ EN EL MISMO RENGLÓN DE LA DIRECCIÓN, DEBAJO DE LA REGLA ROJA      │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Estaba en y=806, que cae sobre el NOMBRE de la empresa —el renglón de
+        // la regla roja—, un renglón más arriba. La Y de acá no es un número
+        // elegido a ojo: se midió con `pdftotext -bbox` sobre el PDF generado,
+        // donde la dirección arranca en yMin 823.3, y `page_text` deja el texto
+        // ~1.9 pt más abajo de la Y que se le pasa.
+        //
+        // Se dibuja sobre el lienzo y no en el HTML porque dompdf solo sustituye
+        // {PAGE_NUM} y {PAGE_COUNT} acá: dentro de un elemento `position: fixed`
+        // los imprimiría literales. El viejo lo resolvía con el JavaScript de
+        // wkhtmltopdf, que dompdf no tiene.
         $dompdf->getCanvas()->page_text(
-            455.0, 806.0, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 9, [0.13, 0.15, 0.16],
+            455.0, 821.4, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 10, [0.13, 0.15, 0.16],
         );
 
         return $pdf->output();
@@ -679,7 +719,7 @@ class LegacyReportRenderer
             ->map(fn ($f) => [
                 // La RELACIÓN (Aprobado por / Revisado por) y el CARGO son dos
                 // cosas distintas: el papel viejo solo tenía "Reportado por".
-                'relacion' => __('reports.relation.' . $f->relation),
+                'relacion' => \App\Support\SignerRelation::label($f->relation),
                 'nombre'   => $f->printedName(),
                 'cargo'    => $f->title,
                 'imagen'   => $this->firmaComoImagen($f),

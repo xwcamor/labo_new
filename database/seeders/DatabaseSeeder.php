@@ -138,6 +138,11 @@ class DatabaseSeeder extends Seeder
             // "< límite". Los cortes estaban clavados en el HTML.
             LabDetectionLimitsSeeder::class,
 
+            // Las cartas de control del patrón: la pantalla "Tendencias" del
+            // sistema anterior. Ocho pruebas la tenían (la cromatografía con nueve
+            // gráficos, uno por gas) y son las que se siembran, ni una más.
+            LabQcChartsSeeder::class,
+
             SamplersSeeder::class,
             SignaturesSeeder::class,
             LabAnalyteMapSeeder::class,

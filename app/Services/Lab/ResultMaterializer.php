@@ -86,13 +86,31 @@ class ResultMaterializer
             foreach ($rows as $row) {
                 $equipmentId = $this->equipmentFor($row);
 
-                if ($equipmentId === null) {
-                    // Sin equipo el resultado no se puede consultar por nadie.
-                    // Se informa para que la interfaz lo muestre, en vez de
-                    // escribir una fila huérfana que nunca aparece.
-                    $skipped[] = ['row' => $row->id, 'reason' => 'sin_equipo'];
-                    continue;
-                }
+                // ┌──────────────────────────────────────────────────────────┐
+                // │ SIN EQUIPO EL RESULTADO SE ESCRIBE IGUAL                 │
+                // └──────────────────────────────────────────────────────────┘
+                // Antes acá había una compuerta: sin equipo la fila se SALTEABA
+                // y el resultado no se escribía nunca. Estaba mal, y la corrige
+                // el propio laboratorio (2026-07-30):
+                //
+                //   "cuando se ingresan los datos de croma es con el número que
+                //    le ponemos y luego ese número lo asociamos a un
+                //    transformador o a lo que sea. En el reporte no
+                //    necesariamente; a veces solamente es el dato de la muestra
+                //    nada más, o datos de un cilindro."
+                //
+                // O sea: el equipo se asocia DESPUÉS, y a veces no se asocia
+                // nunca —una muestra de un cilindro de aceite nuevo no viene de
+                // ningún equipo y se informa igual—. Con la compuerta puesta,
+                // ese ensayo se corría, se cargaba, y el resultado se descartaba
+                // en silencio: el trabajo del analista desaparecía.
+                //
+                // El informe busca los resultados por MUESTRA (`sample_id`), no
+                // por equipo, así que llegan al papel sin problema. Lo único que
+                // un resultado sin equipo no puede hacer es alimentar la
+                // tendencia de ese equipo —no hay equipo— ni tomar los límites
+                // que dependen de su clase de tensión. `results.equipment_id`
+                // es nullable desde su migración justamente para esto.
 
                 foreach ($resultFields as $field) {
                     $written += $this->writeField($worksheet, $row, $field, $equipmentId);
@@ -150,7 +168,7 @@ class ResultMaterializer
         Worksheet $worksheet,
         WorksheetRow $row,
         TestField $field,
-        int $equipmentId,
+        ?int $equipmentId,
     ): int {
         $written = 0;
         $replicates = max(1, (int) $field->replicates);

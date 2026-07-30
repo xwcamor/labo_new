@@ -129,7 +129,10 @@ return [
     'deleted'     => 'Hoja dada de baja. Sus valores quedan guardados con el motivo.',
 
     // ── Equipo del que se tomó la muestra ─────────────────────────────────
-    // Sin este enlace el resultado no se escribe: no se puede consultar por
+    // El enlace es OPCIONAL, y lo confirmó el laboratorio: el número de muestra
+    // se asocia al transformador después, y hay muestras que no vienen de ningún
+    // equipo (un cilindro de aceite nuevo, un envase suelto). El resultado se
+    // escribe y se informa igual. Lo que no se puede
     // equipo y no llega al informe del cliente. Se avisa, no se obliga: el
     // analista a veces carga la bancada antes de que el ingreso de la muestra
     // esté registrado.
@@ -138,8 +141,13 @@ return [
     'equipment_no_customer' => 'Sin cliente',
     'equipment_placeholder'    => 'Buscar por nombre, serie o etiqueta',
     'equipment_missing'        => 'Sin equipo',
-    'equipment_missing_help'   => 'Mientras la muestra no indique de qué equipo es, este ensayo no va a aparecer en el informe del cliente ni en la tendencia del equipo.',
-    'equipment_missing_count'  => '{0} Todas las muestras indican su equipo.|{1} 1 muestra sin equipo: ese ensayo no va a aparecer en el informe del cliente.|[2,*] :count muestras sin equipo: esos ensayos no van a aparecer en el informe del cliente.',
+    // El resultado SE INFORMA sin equipo: lo confirmo el laboratorio (2026-07-30).
+    // El numero de muestra se asocia a un transformador despues, y a veces no se
+    // asocia nunca — una muestra de un cilindro de aceite nuevo no viene de
+    // ningun equipo. Lo que se pierde sin el enlace es la TENDENCIA del equipo y
+    // los limites que dependen de su clase de tension, no el informe.
+    'equipment_missing_help'   => 'Sin equipo el resultado se informa igual, pero no alimenta la tendencia de ningun equipo y no puede tomar los limites que dependen de su clase de tension. Si la muestra viene de un cilindro o de un envase suelto, es correcto dejarlo vacio.',
+    'equipment_missing_count'  => '{0} Todas las muestras indican su equipo.|{1} 1 muestra sin equipo: su resultado se informa, pero sin tendencia por equipo ni limites por clase de tension.|[2,*] :count muestras sin equipo: sus resultados se informan, pero sin tendencia por equipo ni limites por clase de tension.',
     'equipment_na_short'       => 'No aplica',
     'equipment_not_applicable' => 'El patrón control, el duplicado y el blanco de reactivos son controles del método, no muestras de un cliente: no provienen de un equipo.',
 

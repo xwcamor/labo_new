@@ -137,8 +137,13 @@ const openReception = (record) => router.visit(
  * sistema anterior (Series · Trabajos · Datos · Informes) pero derivados en la
  * consulta del listado, nunca cacheados:
  *
- *   equipo   → muestras sin equipo enlazado (sin el enlace, el resultado no
- *              llega al informe ni a la tendencia del equipo)
+ *   equipo   → muestras sin equipo enlazado. OJO: esto NO es un error por sí
+ *              solo. El laboratorio confirmó (2026-07-30) que el número de
+ *              muestra se asocia al transformador DESPUÉS, y que hay muestras
+ *              que no vienen de ningún equipo —un cilindro de aceite nuevo, un
+ *              envase suelto— y se informan igual. El chip avisa de lo que
+ *              falta ENLAZAR, no de un ensayo perdido: su resultado se escribe
+ *              y sale en el informe de cualquier manera.
  *   pruebas  → muestras sin ningún ensayo pedido (un frasco que nadie procesa)
  *   datos    → ensayos pedidos que siguen sin cargarse o a medio cargar
  *   informes → muestras que todavía no tienen su informe emitido

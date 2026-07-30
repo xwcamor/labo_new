@@ -178,20 +178,43 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame(0, Result::count());
     }
 
-    public function test_una_fila_sin_equipo_se_informa_en_vez_de_escribirse_huerfana(): void
+    public function test_una_fila_sin_equipo_escribe_su_resultado_igual(): void
     {
-        // Una fila con el equipo en nulo queda fuera de toda consulta y nadie
-        // se entera. Es peor que no escribirla.
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ ESTE TEST AFIRMABA LO CONTRARIO, Y ESTABA MAL                    │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Antes decía que una fila sin equipo NO producía resultado, y el
+        // materializador la salteaba. Lo corrigió el propio laboratorio
+        // (2026-07-30):
+        //
+        //   "cuando se ingresan los datos de croma es con el número que le
+        //    ponemos y luego ese número lo asociamos a un transformador o a lo
+        //    que sea. En el reporte no necesariamente; a veces solamente es el
+        //    dato de la muestra nada más, o datos de un cilindro."
+        //
+        // El equipo se asocia DESPUÉS, y a veces nunca: una muestra de un
+        // cilindro de aceite nuevo no viene de ningún equipo y se informa igual.
+        // Con la compuerta puesta, ese ensayo se corría, se cargaba, y el
+        // resultado se descartaba en silencio.
+        //
+        // El informe busca por MUESTRA, no por equipo, así que el resultado
+        // llega al papel. Lo único que no puede hacer es alimentar la tendencia
+        // de un equipo que no existe.
         $w = $this->hoja();
         $this->service->saveRow($w, ['kind' => WorksheetRow::KIND_SAMPLE], [
             'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '1.20',
         ]);
         $this->service->validate($w);
 
-        $this->assertSame(0, Result::count());
+        $this->assertGreaterThan(0, Result::count());
 
+        // Y se escribe SIN equipo, no con un equipo inventado.
+        $this->assertNotNull(Result::first());
+        $this->assertNull(Result::first()->equipment_id);
+
+        // Nada quedó salteado: no hay trabajo perdido que reportar.
         $informe = $this->materializer->forWorksheet($w->fresh());
-        $this->assertSame('sin_equipo', $informe['skipped'][0]['reason']);
+        $this->assertSame([], $informe['skipped']);
     }
 
     public function test_rematerializar_actualiza_y_no_duplica(): void

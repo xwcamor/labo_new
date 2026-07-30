@@ -94,7 +94,7 @@ return [
     // anterior mostraba como iconos por fila (Series · Trabajos · Datos ·
     // Informes), derivados en la consulta del listado.
     'prog_equipment'         => 'Equipo',
-    'prog_equipment_pending' => ':count muestra(s) sin equipo enlazado. Sin el enlace, el resultado no llega al informe ni a la tendencia del equipo.',
+    'prog_equipment_pending' => ':count muestra(s) todavia sin equipo enlazado. Su resultado se informa igual; lo que falta es la tendencia por equipo y los limites por clase de tension. Si la muestra viene de un cilindro o un envase suelto, no hay nada que enlazar.',
     'prog_equipment_done'    => 'Todas las muestras indican su equipo.',
     'prog_tests'             => 'Pruebas',
     'prog_tests_pending'     => ':count muestra(s) sin ningún ensayo pedido.',

@@ -79,7 +79,7 @@ return [
     // The per-row progress checks (the old system's four icons: Series ·
     // Jobs · Data · Reports), derived in the listing query.
     'prog_equipment'         => 'Equipment',
-    'prog_equipment_pending' => ':count sample(s) with no equipment linked. Without the link, the result never reaches the customer report or the equipment trend.',
+    'prog_equipment_pending' => ':count sample(s) not linked to equipment yet. Their results are reported anyway; what is missing is the per-equipment trend and the voltage-class limits. If the sample comes from a drum or a loose container, there is nothing to link.',
     'prog_equipment_done'    => 'Every sample states its equipment.',
     'prog_tests'             => 'Tests',
     'prog_tests_pending'     => ':count sample(s) with no tests requested.',

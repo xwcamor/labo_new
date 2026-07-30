@@ -160,6 +160,10 @@ return [
     // El acceso al editor de columnas desde la bancada. Avisa el alcance: lo
     // que se cambia es la PRUEBA, no esta hoja — vale para todas sus hojas.
     'configure_columns_hint' => 'Define las columnas de la prueba :test. El cambio vale para todas sus hojas de trabajo, no solo para esta.',
+    'constants'       => 'Valores constantes',
+    'constants_title' => 'Valores constantes · :test',
+    'constants_hint'  => 'Los valores que se repiten en cada corrida de :test: el factor del titulante, la temperatura de la sala. Se cambian acá sin salir de la hoja.',
+    'constants_scope' => 'Son de la prueba, no de esta hoja: el cambio vale para todas sus hojas de acá en adelante. Las filas ya cargadas conservan el valor con el que se calcularon.',
 
     'empty'          => 'Todavía no hay hojas de trabajo.',
     'empty_rows'     => 'La hoja no tiene filas. Agregue el patrón control para empezar.',

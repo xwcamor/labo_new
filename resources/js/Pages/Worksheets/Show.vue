@@ -10,16 +10,17 @@
  * patrón y duplicado— vivían en el HTML, y un envío directo las salteaba a las
  * cuatro.
  */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Alert, Button, Card, Space, Tooltip } from 'ant-design-vue';
-import { ProfileOutlined, TableOutlined } from '@ant-design/icons-vue';
+import { ControlOutlined, ProfileOutlined, TableOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
 import WorksheetHeader from '@/Components/Worksheets/WorksheetHeader.vue';
 import WorksheetGrid from '@/Components/Worksheets/WorksheetGrid.vue';
+import WorksheetConstantsModal from '@/Components/Worksheets/WorksheetConstantsModal.vue';
 import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import EntityShowTabs from '@/Components/Common/EntityShowTabs.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
@@ -54,7 +55,21 @@ const props = defineProps({
 });
 
 const { t, tc } = useI18n();
-const { canSeeAudit, isSuper } = useAuth();
+const { can, canSeeAudit, isSuper } = useAuth();
+
+/**
+ * Los VALORES CONSTANTES de la prueba, a un clic de la grilla.
+ *
+ * El sistema anterior le colgaba a cada prueba su pantalla de «Valores
+ * Constantes», al lado de «Muestras»: el analista la abría sin salir de lo que
+ * estaba haciendo. Acá esos valores viven dentro del editor de columnas, entre
+ * el tipo, la unidad, los decimales y la fórmula, así que cambiar el factor de
+ * KOH de un lote nuevo obligaba a salir de la hoja y buscarlo. El botón solo
+ * aparece si la prueba TIENE constantes: en las veintitrés que no las usan
+ * sería un botón que abre una tabla vacía.
+ */
+const constantes = computed(() => props.fields.filter((f) => f.is_reusable));
+const constantsOpen = ref(false);
 const page = usePage();
 
 const readonly = computed(() => !props.can.edit);
@@ -143,6 +158,16 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                      chica queda solo el icono: el texto se lo come el ancho y
                      el tooltip ya dice qué hace. -->
                 <Tooltip
+                    v-if="constantes.length > 0 && worksheet.definition?.slug"
+                    :title="$t('worksheets.constants_hint', { test: worksheet.definition.name })"
+                >
+                    <Button class="ws-cfg-btn" @click="constantsOpen = true">
+                        <template #icon><ControlOutlined /></template>
+                        <span class="ws-cfg-btn__label">{{ $t('worksheets.constants') }}</span>
+                    </Button>
+                </Tooltip>
+
+                <Tooltip
                     v-if="isSuper && worksheet.definition?.slug"
                     :title="$t('worksheets.configure_columns_hint', { test: worksheet.definition.name })"
                 >
@@ -228,6 +253,14 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                 <RecordHistory :record-audit="recordAudit" :activity="activity" :can-see-activity="canSeeAudit" />
             </template>
         </EntityShowTabs>
+
+        <WorksheetConstantsModal
+            v-if="worksheet.definition"
+            v-model:open="constantsOpen"
+            :definition="worksheet.definition"
+            :fields="fields"
+            :can-edit="can('test_definitions.edit')"
+        />
     </div>
 </template>
 

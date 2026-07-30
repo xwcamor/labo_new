@@ -143,6 +143,10 @@ return [
     'no_edit_permission' => 'You do not have permission to enter values in this worksheet.',
 
     'configure_columns_hint' => 'Defines the columns of the :test test. The change applies to every worksheet of that test, not just this one.',
+    'constants'       => 'Constant values',
+    'constants_title' => 'Constant values · :test',
+    'constants_hint'  => 'The values that repeat on every :test run: the titrant factor, the room temperature. Change them here without leaving the sheet.',
+    'constants_scope' => 'They belong to the test, not to this sheet: the change applies to every sheet of that test from now on. Rows already loaded keep the value they were calculated with.',
 
     'empty'          => 'No worksheets yet.',
     'empty_rows'     => 'The worksheet has no rows. Add the control standard to start.',

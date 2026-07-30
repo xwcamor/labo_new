@@ -153,6 +153,11 @@ return [
     'missing_tests'      => 'Hay muestras sin pruebas pedidas.',
     'nothing_missing'    => 'La recepción está completa.',
 
+    // La descarga en Excel de la entrega y el aviso de la baja.
+    'download_hint' => 'Descarga las muestras de esta entrega en Excel, con su equipo, lo que se les pidió y en qué van.',
+    'delete_confirmed_warning' => 'Esta entrega ya emitió sus números de muestra.',
+    'delete_confirmed_detail'  => 'Darla de baja NO devuelve los correlativos: esos :count números no se le asignan nunca a otra muestra. Los resultados que ya tengan sus muestras salen del sistema junto con ellas.',
+
     'created' => 'Recepción registrada.',
     'saved'   => 'Recepción actualizada.',
     'deleted' => 'Recepción eliminada.',

@@ -43,6 +43,26 @@ use Inertia\Inertia;
 class ReceptionController extends Controller
 {
     use \App\Traits\BuildsRecordAudit;
+    use \App\Http\Controllers\Concerns\HandlesRecordLocking;
+
+    /**
+     * El candado de la recepción (super → nivel sistema; admin → su workspace).
+     *
+     * El modelo ya usaba el trait `Lockable` —tiene las columnas y todo— pero no
+     * había rutas ni botón: el candado existía y no se podía poner. Una recepción
+     * confirmada con sus correlativos emitidos es justamente el registro que hay
+     * que poder congelar.
+     */
+    public function lock(Request $request, Reception $reception): RedirectResponse
+    {
+        return $this->applyLock($reception, $request);
+    }
+
+    /** Saca el candado (un admin no puede quitar el candado del super). */
+    public function unlock(Request $request, Reception $reception): RedirectResponse
+    {
+        return $this->applyUnlock($reception, $request);
+    }
 
     public function __construct(
         private readonly ReceptionService $service,
@@ -191,6 +211,9 @@ class ReceptionController extends Controller
             // ya escribía la auditoría; la ficha no la mostraba.
             'recordAudit' => $this->recordAuditMeta($reception),
             'activity'    => $this->recordActivity($reception, $request),
+            // El candado: el modelo usa `Lockable` desde el principio, pero la
+            // ficha no traía su estado y por eso el botón no existía.
+            'lock'        => $this->lockMeta($reception->load('locker:id,name'), $request),
             'samples'   => $samples,
             'reports'   => $informes,
             // UNA consulta para el avance de todas las muestras.
@@ -351,8 +374,44 @@ class ReceptionController extends Controller
         return back()->with('success', __('receptions.sample_deleted', ['code' => $sample->code]));
     }
 
+    /**
+     * La entrega en Excel: sus muestras con el equipo, lo pedido y el avance.
+     *
+     * Es la descarga que el sistema anterior tenía y que el laboratorio adjunta
+     * a un correo cuando el cliente pregunta en qué van sus muestras. Sin ella la
+     * respuesta era una captura de pantalla.
+     */
+    public function export(Reception $reception): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $nombre = 'recepcion-' . ($reception->code ?: $reception->id) . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\LabManagement\Receptions\ReceptionSamplesExport($reception),
+            $nombre,
+        );
+    }
+
+    /**
+     * La confirmación de la baja, con su motivo — el estándar de los módulos.
+     *
+     * Faltaba: la ficha solo ofrecía "Editar", así que la única forma de dar de
+     * baja una entrega era desde el listado. Y una entrega CONFIRMADA se avisa
+     * aparte: sus correlativos ya están emitidos y no se reutilizan, así que la
+     * baja no los devuelve al pozo.
+     */
+    public function delete(Reception $reception)
+    {
+        abort_if($reception->is_locked, 403, __('locks.cannot_delete_locked'));
+
+        return Inertia::render('Receptions/Delete', [
+            'reception' => $reception->loadCount('samples')->load('customer:id,name'),
+        ]);
+    }
+
     public function destroy(Request $request, Reception $reception): RedirectResponse
     {
+        abort_if($reception->is_locked, 403, __('locks.cannot_delete_locked'));
+
         $request->validate([
             'deleted_description' => ['required', 'string', 'min:3', 'max:1000'],
         ]);

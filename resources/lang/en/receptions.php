@@ -123,6 +123,10 @@ return [
     'missing_equipment' => 'Some samples have no equipment assigned.',
     'missing_tests' => 'Some samples have no tests requested.',
     'nothing_missing' => 'The reception is complete.',
+    'download_hint' => 'Downloads this delivery\'s samples as Excel, with their equipment, what was requested and where they stand.',
+    'delete_confirmed_warning' => 'This delivery already issued its sample numbers.',
+    'delete_confirmed_detail'  => 'Removing it does NOT return the numbers: those :count numbers are never assigned to another sample. Any results their samples hold leave the system with them.',
+
     'created' => 'Reception logged.',
     'saved' => 'Reception updated.',
     'deleted' => 'Reception deleted.',

@@ -335,7 +335,24 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::put('reports/{report}/analysis', [SampleReportController::class, 'saveAnalysis'])->name('sample_reports.analysis.save');
     });
 
+    // La descarga en Excel va con el permiso de LECTURA: es la misma
+    // información de la pantalla, en un archivo.
+    Route::middleware('permission:receptions.view')->group(function () {
+        Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
+    });
+
+    /*
+     * El candado de la recepción. Va con `receptions.edit`: congelar un registro
+     * es una decisión de quien lo administra, no una baja.
+     */
+    Route::middleware('permission:receptions.edit')->group(function () {
+        Route::post('receptions/{reception}/lock',   [ReceptionController::class, 'lock'])->name('receptions.lock');
+        Route::post('receptions/{reception}/unlock', [ReceptionController::class, 'unlock'])->name('receptions.unlock');
+    });
+
     Route::middleware('permission:receptions.delete')->group(function () {
+        // La pantalla de confirmación va con el mismo permiso que la baja.
+        Route::get('receptions/{reception}/delete', [ReceptionController::class, 'delete'])->name('receptions.delete');
         Route::delete('receptions/{reception}', [ReceptionController::class, 'destroy'])->name('receptions.destroy');
         Route::delete('reports/{report}', [SampleReportController::class, 'destroy'])->name('sample_reports.destroy');
     });

@@ -21,11 +21,14 @@
  */
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Alert, Button, Card, Modal, Space, Tabs, TabPane, Tag, Textarea, Tooltip } from 'ant-design-vue';
 import {
-    DeleteOutlined, EditOutlined, ExperimentOutlined, FileTextOutlined,
-    FilePdfOutlined, HistoryOutlined, InboxOutlined, PlusOutlined, SolutionOutlined,
-    ThunderboltFilled,
+    Alert, Button, Card, Dropdown, Menu, MenuItem, Modal, Space, Tabs, TabPane,
+    Tag, Textarea, Tooltip,
+} from 'ant-design-vue';
+import {
+    DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined,
+    FileTextOutlined, FilePdfOutlined, HistoryOutlined, InboxOutlined,
+    LockOutlined, PlusOutlined, SolutionOutlined, ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -40,6 +43,7 @@ import AssignTestsModal from '@/Components/Receptions/AssignTestsModal.vue';
 import ReportFormModal from '@/Components/Receptions/ReportFormModal.vue';
 import ReportAnalysisModal from '@/Components/Receptions/ReportAnalysisModal.vue';
 import CollapsibleTags from '@/Components/Common/CollapsibleTags.vue';
+import EntityShowActions from '@/Components/Common/EntityShowActions.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
@@ -63,6 +67,8 @@ const props = defineProps({
     // El historial del registro, igual que en el resto de las fichas.
     activity:    { type: Array,  default: () => [] },
     recordAudit: { type: Object, default: null },
+    /** { is_locked, can_lock, can_unlock, lock_scope } — el candado del registro. */
+    lock:        { type: Object, default: null },
 });
 
 const { t } = useI18n();
@@ -314,11 +320,33 @@ const reportColumns = computed(() => [
                 </Space>
             </template>
             <template #actions>
-                <Link v-if="canEdit" :href="route('lab_management.receptions.edit', reception.slug)">
-                    <Button>
-                        <EditOutlined /> {{ $t('global.edit') }}
+                <!-- Descargar la entrega en Excel: sus muestras con el equipo,
+                     las pruebas pedidas y el avance. El sistema anterior lo
+                     tenía y es lo que el laboratorio manda por correo cuando el
+                     cliente pregunta "¿en qué van mis muestras?". -->
+                <Tooltip :title="$t('receptions.download_hint')">
+                    <Button
+                        :href="route('lab_management.receptions.export', reception.slug)"
+                        download
+                    >
+                        <template #icon><DownloadOutlined /></template>
+                        <span class="rc-hide-sm">{{ $t('global.download') }}</span>
                     </Button>
-                </Link>
+                </Tooltip>
+                <!-- Editar / Eliminar / Bloquear: el estándar de los módulos.
+                     Esta ficha solo tenía "Editar", así que la baja había que
+                     buscarla en el listado y el candado —que el modelo ya
+                     soportaba— no se podía poner desde ninguna parte. -->
+                <EntityShowActions
+                    module="receptions"
+                    route-prefix="lab_management"
+                    :slug="reception.slug"
+                    :id="reception.id"
+                    :can-edit="canEdit"
+                    :can-delete="canDelete"
+                    :can-see-audit="canSeeAudit"
+                    :lock="lock"
+                />
             </template>
         </SectionHeader>
 
@@ -580,28 +608,40 @@ const reportColumns = computed(() => [
                                 >
                                     {{ $t('sample_reports.issue') }}
                                 </Button>
-                                <!-- Las DOS plantillas del informe: la clásica
-                                     (la maqueta del sistema anterior, que los
-                                     clientes reconocen) y la moderna. Mismos
-                                     datos; la elección es de quien exporta. -->
-                                <Tooltip :title="$t('sample_reports.download_modern')">
-                                    <Button
-                                        size="small"
-                                        :href="route('lab_management.sample_reports.pdf', record.slug)"
-                                        target="_blank"
-                                    >
-                                        <FilePdfOutlined /> {{ $t('sample_reports.template_modern') }}
-                                    </Button>
-                                </Tooltip>
-                                <Tooltip :title="$t('sample_reports.download_legacy')">
-                                    <Button
-                                        size="small"
-                                        :href="route('lab_management.sample_reports.pdf_legacy', record.slug)"
-                                        target="_blank"
-                                    >
-                                        <FilePdfOutlined /> {{ $t('sample_reports.template_legacy') }}
-                                    </Button>
-                                </Tooltip>
+                                <!-- UN botón de descarga con las dos plantillas
+                                     adentro. Antes eran dos botones con su
+                                     rótulo, y en una fila que ya tiene cinco
+                                     acciones eso es media pantalla gastada en
+                                     decir dos veces "PDF". La elección de
+                                     plantilla no es una acción distinta: es cómo
+                                     se quiere el mismo papel. -->
+                                <Dropdown :trigger="['click']">
+                                    <Tooltip :title="$t('sample_reports.download')">
+                                        <Button size="small">
+                                            <DownloadOutlined />
+                                        </Button>
+                                    </Tooltip>
+                                    <template #overlay>
+                                        <Menu>
+                                            <MenuItem key="modern">
+                                                <a
+                                                    :href="route('lab_management.sample_reports.pdf', record.slug)"
+                                                    target="_blank"
+                                                >
+                                                    <FilePdfOutlined /> {{ $t('sample_reports.template_modern') }}
+                                                </a>
+                                            </MenuItem>
+                                            <MenuItem key="legacy">
+                                                <a
+                                                    :href="route('lab_management.sample_reports.pdf_legacy', record.slug)"
+                                                    target="_blank"
+                                                >
+                                                    <FilePdfOutlined /> {{ $t('sample_reports.template_legacy') }}
+                                                </a>
+                                            </MenuItem>
+                                        </Menu>
+                                    </template>
+                                </Dropdown>
                                 <!-- Solo el BORRADOR se elimina: el emitido es
                                      un papel que el cliente ya cita. -->
                                 <Tooltip
@@ -611,6 +651,20 @@ const reportColumns = computed(() => [
                                     <Button size="small" danger @click="abrirBajaInforme(record)">
                                         <DeleteOutlined />
                                     </Button>
+                                </Tooltip>
+                                <!-- EMITIDO = CANDADO. El informe emitido no se
+                                     edita ni se borra: su contenido quedó
+                                     congelado y el cliente tiene un papel que
+                                     cita ese número. El candado lo dice con un
+                                     icono en el lugar donde estaban Editar y
+                                     Eliminar, en vez de dejar el hueco y que
+                                     parezca que la fila perdió sus acciones. --><Tooltip
+                                    v-if="record.status !== 'draft'"
+                                    :title="$t('sample_reports.issued_is_final')"
+                                >
+                                    <Tag color="gold" :bordered="false" class="rc-lock">
+                                        <LockOutlined />
+                                    </Tag>
                                 </Tooltip>
                             </Space>
                         </template>

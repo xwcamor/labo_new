@@ -98,6 +98,14 @@ return [
     // El semáforo de avance del listado: los cuatro chequeos que el sistema
     // anterior mostraba como iconos por fila (Series · Trabajos · Datos ·
     // Informes), derivados en la consulta del listado.
+    // La etapa de la barra de avance de cada muestra (el semáforo). Cuatro y
+    // no tres: "a medio ensayar" es el estado más frecuente de la semana y
+    // meterlo en rojo o en amarillo mentiría en las dos direcciones.
+    'stage_not_started'     => 'Sin ensayos cargados',
+    'stage_in_progress'     => 'Ensayos en curso',
+    'stage_awaiting_report' => 'Ensayada — falta emitir el informe',
+    'stage_reported'        => 'Informada',
+
     'prog_equipment'         => 'Equipo',
     'prog_equipment_pending' => ':count muestra(s) todavia sin equipo enlazado. Su resultado se informa igual; lo que falta es la tendencia por equipo y los limites por clase de tension. Si la muestra viene de un cilindro o un envase suelto, no hay nada que enlazar.',
     'prog_equipment_done'    => 'Todas las muestras indican su equipo.',

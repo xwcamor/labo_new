@@ -94,7 +94,7 @@ class InstrumentController extends Controller
             'exportLimits' => \App\Models\Setting::getExportLimits('instruments'),
             'filters' => [
                 'name'         => array_values($names),
-                'code'         => $request->get('code', ''),
+                'description'  => $request->get('description', ''),
                 'brand'        => $request->get('brand', ''),
                 'location'     => $request->get('location', ''),
                 // Vigente / por vencer / vencida / sin fecha. Es el filtro que
@@ -288,12 +288,12 @@ class InstrumentController extends Controller
 
         $instruments = Instrument::onlyTrashed()
             ->with('deleter:id,name,email')
-            // El buscador de la papelera también mira el CÓDIGO: es como el
-            // laboratorio nombra sus equipos, y buscar "PP-LA-01C" acá tiene
-            // que encontrarlo igual que en el listado principal.
+            // El buscador de la papelera también mira la DESCRIPCIÓN: el
+            // nombre es el código de calibración, y quien busca escribe tanto
+            // "PP-LA-01C" como "bureta". Igual que en el listado principal.
             ->when($name !== '', fn ($q) => $q->where(function ($qq) use ($name) {
                 $qq->where('name', 'like', "%{$name}%")
-                   ->orWhere('code', 'like', "%{$name}%");
+                   ->orWhere('description', 'like', "%{$name}%");
             }))
             ->orderByDesc('deleted_at')
             ->paginate($perPage)
@@ -334,7 +334,7 @@ class InstrumentController extends Controller
 
         $instruments = Instrument::query()
             ->filter($request)
-            ->select('instruments.id', 'instruments.slug', 'instruments.name', 'instruments.code', 'instruments.is_active')
+            ->select('instruments.id', 'instruments.slug', 'instruments.name', 'instruments.description', 'instruments.is_active')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -437,8 +437,8 @@ class InstrumentController extends Controller
         $base = [
             'id'         => $m->id,
             'slug'       => $m->slug,
-            'name'       => $m->name,
-            'code'       => $m->code,
+            'name'        => $m->name,
+            'description' => $m->description,
             'brand'      => $m->brand,
             'model'      => $m->model,
             'serial'     => $m->serial,
@@ -728,7 +728,7 @@ class InstrumentController extends Controller
         // tenant. Gate de seguridad real (no basta ocultarla en el front).
         $isSuper = $request->user()?->hasRole('super') ?? false;
         $allowedColumns = array_values(array_filter([
-            'code', 'name', 'brand', 'model', 'serial',
+            'name', 'description', 'brand', 'model', 'serial',
             'calibrated_at', 'calibration_due_at', 'calibration_status',
             'calibration_certificate', 'location', 'notes',
             'sort_order', 'is_active',

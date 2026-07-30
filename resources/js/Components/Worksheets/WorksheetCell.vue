@@ -16,7 +16,7 @@
 import { computed } from 'vue';
 import { Input, Select, SelectOption, DatePicker, Tooltip } from 'ant-design-vue';
 import {
-    CalculatorOutlined, LoadingOutlined, WarningOutlined,
+    LoadingOutlined, WarningOutlined,
 } from '@ant-design/icons-vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
 import { numText } from '@/Pages/Worksheets/config/format';
@@ -112,11 +112,12 @@ const computedHelp = computed(() => {
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
             <Tooltip :title="$t(computedHelp)">
                 <span class="ws-computed">
-                    <!-- El rótulo "Calculado" vive en el ENCABEZADO de la
-                         columna, no en cada celda: repetido fila por fila le
-                         sacaba a la columna más ancho que el número mismo. Acá
-                         queda el icono, que dice lo mismo en 14 px. -->
-                    <CalculatorOutlined class="ws-computed__icon" />
+                    <!-- Sin icono de calculadora: el rótulo "Calculado" ya está
+                         en el ENCABEZADO de la columna. Repetirlo fila por fila
+                         —aunque sea en 14 px— es decir treinta veces algo que
+                         se dice una, y le come ancho al número, que es lo único
+                         que el analista viene a leer. El tooltip de la celda
+                         sigue explicando de dónde sale el valor. -->
                     <LoadingOutlined v-if="previewState === 'loading'" class="ws-computed__wait" />
                     <span
                         v-else
@@ -174,10 +175,10 @@ const computedHelp = computed(() => {
     </div>
 
     <!-- ── Instrumento ──────────────────────────────────────────────────────
-         `display="code"`: la celda cerrada muestra SOLO el código del equipo
-         (PP-LA-01C-100). El nombre ("Bureta PP-LA-01C-100") repite el código y
-         obliga a una columna el doble de ancha; el desplegable abierto y el
-         tooltip sí lo dicen entero, que es donde hace falta. -->
+         `display="name"`: la celda cerrada muestra SOLO el nombre del equipo
+         (PP-LA-01C-100). Agregarle la descripción ("Bureta") repite lo que ya
+         dice el encabezado de la columna y obliga a una columna el doble de
+         ancha; el desplegable abierto sí la dice, que es donde hace falta. -->
     <div v-else-if="field.type === 'instrument'" class="ws-cell ws-cell--instrument">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
@@ -185,7 +186,7 @@ const computedHelp = computed(() => {
                 :instruments="instruments"
                 :value="valueAt(r)"
                 :disabled="disabled"
-                display="code"
+                display="name"
                 @update:value="set(r, $event)"
             />
         </div>
@@ -256,7 +257,6 @@ const computedHelp = computed(() => {
 }
 
 .ws-computed { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.ws-computed__icon { color: var(--color-text-muted); font-size: 0.8rem; }
 .ws-computed__value {
     font-family: ui-monospace, Consolas, monospace;
     font-weight: 600;

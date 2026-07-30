@@ -73,9 +73,9 @@ class InstrumentService
                 'auditable_id'   => $locked->id,
                 'event'          => 'force_deleted',
                 'old_values'     => [
-                    'name' => $locked->name,
-                    'code' => $locked->code,
-                    'slug' => $locked->slug,
+                    'name'        => $locked->name,
+                    'description' => $locked->description,
+                    'slug'        => $locked->slug,
                 ],
                 'new_values'     => null,
                 'url'            => request()?->fullUrl(),
@@ -93,11 +93,16 @@ class InstrumentService
     /**
      * Clona el instrumento. Sufijo "(copia)" con sanity guard de 100 intentos.
      *
-     * NO se copian ni el `code` ni el `serial` ni NADA de la calibración: el
-     * duplicado sirve para dar de alta el segundo equipo igual al primero
-     * (misma marca, mismo modelo, misma ubicación), y arrastrarle el
-     * certificado del original diría que un equipo está calibrado cuando
-     * todavía no se calibró. Eso es exactamente lo que ISO 17025 no permite.
+     * NO se copian ni el `serial` ni NADA de la calibración: el duplicado sirve
+     * para dar de alta el segundo equipo igual al primero (mismo tipo, misma
+     * marca, mismo modelo, misma ubicación), y arrastrarle el certificado del
+     * original diría que un equipo está calibrado cuando todavía no se calibró.
+     * Eso es exactamente lo que ISO 17025 no permite.
+     *
+     * El NOMBRE sí se sufija, porque es el código de calibración y es único: la
+     * copia queda como "PP-LA-01C-100 (copia)" y el laboratorio le escribe el
+     * código real del equipo nuevo. La DESCRIPCIÓN se copia tal cual — dos
+     * buretas son las dos "Bureta", y eso es correcto.
      */
     public function duplicate(Instrument $instrument): ?Instrument
     {
@@ -124,10 +129,9 @@ class InstrumentService
             }
 
             $clone = new Instrument($instrument->only([
-                'is_active', 'sort_order', 'brand', 'model', 'location', 'notes',
+                'is_active', 'sort_order', 'description', 'brand', 'model', 'location', 'notes',
             ]));
             $clone->name       = $candidate;
-            $clone->code       = null;
             $clone->created_by = auth()->id();
             $clone->save();
 

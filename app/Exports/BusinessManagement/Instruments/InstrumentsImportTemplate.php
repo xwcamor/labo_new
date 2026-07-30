@@ -13,12 +13,13 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
  * Plantilla XLSX descargable para importar el inventario de instrumentos.
  *
  * El caso real es una planilla de calibración que el laboratorio ya tiene: por
- * eso las columnas son las de esa planilla (código, equipo, marca, modelo,
- * serie, fechas y certificado) y no un par nombre/código.
+ * eso las columnas son las de esa planilla (nombre del equipo, tipo, marca,
+ * modelo, serie, fechas y certificado).
  *
- * `code` es la clave: el importador busca por ahí, así que volver a subir la
- * misma planilla con las fechas nuevas ACTUALIZA los equipos en vez de
- * duplicarlos. Es el flujo esperado cada vez que se recalibra el laboratorio.
+ * `name` —el código de calibración, PP-LA-01C-100— es la clave: el importador
+ * busca por ahí, así que volver a subir la misma planilla con las fechas nuevas
+ * ACTUALIZA los equipos en vez de duplicarlos. Es el flujo esperado cada vez que
+ * se recalibra el laboratorio.
  *
  * No incluye is_active: toda alta importada nace activa (el estado se gestiona
  * desde la interfaz). Los tips van como comentarios de celda, no como filas,
@@ -28,7 +29,7 @@ class InstrumentsImportTemplate implements FromArray, WithEvents
 {
     /** Columnas de la plantilla, en orden. */
     public const COLUMNS = [
-        'code', 'name', 'brand', 'model', 'serial',
+        'name', 'description', 'brand', 'model', 'serial',
         'calibrated_at', 'calibration_due_at', 'calibration_certificate', 'location',
     ];
 
@@ -36,9 +37,9 @@ class InstrumentsImportTemplate implements FromArray, WithEvents
     {
         return [
             self::COLUMNS,
-            ['PP-LA-01C', 'Bureta',             'Brand',          'B-25',    'SN-11021', '2026-03-12', '2027-03-12', 'CAL-2026-118', 'Laboratorio de aceites'],
-            ['PP-LA-02C', 'Balanza analítica',  'Mettler Toledo', 'ME204',   'SN-77410', '2026-01-30', '2027-01-30', 'CAL-2026-034', 'Laboratorio de aceites'],
-            ['PP-LA-03C', 'Cromatógrafo',       'Agilent',        '7890B',   'SN-30512', '2025-11-05', '2026-11-05', 'CAL-2025-902', 'Sala de cromatografía'],
+            ['PP-LA-01C-023', 'Bureta',            'Brand',          'B-25',  'SN-11021', '2026-03-12', '2027-03-12', 'CAL-2026-118', 'Laboratorio de aceites'],
+            ['PP-LA-01C-056', 'Balanza analítica', 'Mettler Toledo', 'ME204', 'SN-77410', '2026-01-30', '2027-01-30', 'CAL-2026-034', 'Laboratorio de aceites'],
+            ['PP-LA-01C-107', 'Cromatógrafo',      'Agilent',        '7890B', 'SN-30512', '2025-11-05', '2026-11-05', 'CAL-2025-902', 'Sala de cromatografía'],
         ];
     }
 
@@ -66,8 +67,8 @@ class InstrumentsImportTemplate implements FromArray, WithEvents
                 // Tooltips en los encabezados que se prestan a confusión
                 // (triangulo rojo en la celda, no ensucia los datos).
                 $tips = [
-                    'code'               => __('instruments.code_help'),
                     'name'               => __('instruments.name_help'),
+                    'description'        => __('instruments.description_help'),
                     'calibrated_at'      => __('instruments.calibrated_at_help'),
                     'calibration_due_at' => __('instruments.calibration_due_at_help'),
                 ];

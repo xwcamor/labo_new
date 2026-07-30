@@ -23,9 +23,17 @@ use Illuminate\Support\Str;
  * había forma de saber si el equipo seguía vigente. Acá es una entidad con su
  * calibración, y la hoja de trabajo lo referencia por FK.
  *
- * CLAVE NATURAL = `code` (PP-LA-01C), NO el nombre: dos buretas se llaman las
- * dos "Bureta" y son equipos distintos. El índice único parcial de la tabla es
- * (tenant_id, LOWER(code)) — las reglas de los FormRequests lo replican.
+ * EL NOMBRE ES EL CÓDIGO DE CALIBRACIÓN (PP-LA-01C-100). En el laboratorio el
+ * instrumento se identifica por ahí: es lo que el analista dice, lo que va en la
+ * hoja de bancada y lo que hace trazable el resultado. `description` es el TIPO
+ * de equipo ("Bureta", "Balanza analítica") y es opcional: tres buretas
+ * comparten esa palabra y son tres equipos distintos, así que no puede ser la
+ * identidad. El índice único parcial de la tabla es (tenant_id, LOWER(name)) —
+ * las reglas de los FormRequests lo replican.
+ *
+ * Hasta 2026-07-30 estaba al revés (`name` = "Bureta", `code` = PP-LA-01C-100) y
+ * cada capa tenía que aclarar en un comentario que la clave natural NO era el
+ * nombre. Ver la migración `rename_instrument_code_to_name`.
  */
 class Instrument extends Model
 {
@@ -34,7 +42,7 @@ class Instrument extends Model
     protected string $auditModule = 'instruments';
 
     protected $fillable = [
-        'slug', 'name', 'code', 'is_active', 'sort_order', 'tenant_id',
+        'slug', 'name', 'description', 'is_active', 'sort_order', 'tenant_id',
         // Trazabilidad metrológica.
         'brand', 'model', 'serial',
         'calibrated_at', 'calibration_due_at', 'calibration_certificate',
@@ -187,8 +195,8 @@ class Instrument extends Model
 
     /**
      * scopeFilter — filtros del listado sobre la tabla instruments.
-     * Soporta name (multi-tag accent-insensitive), code/brand/model/serial/
-     * location (substring), is_active, estado de calibración, rangos de
+     * Soporta name (multi-tag accent-insensitive), description/brand/model/
+     * serial/location (substring), is_active, estado de calibración, rangos de
      * fecha/id, filtros avanzados y favoritos.
      */
     public function scopeFilter($query, $request)
@@ -204,20 +212,20 @@ class Instrument extends Model
                 foreach ($names as $name) {
                     $needle = LikeQuery::contains((string) $name);
                     if ($isPgsql) {
-                        // El buscador rápido escribe el código tanto como el
-                        // nombre: acá la clave natural es el código, así que
-                        // buscar "PP-LA-01C" tiene que encontrar el equipo.
+                        // El nombre es el código (PP-LA-01C-100), pero quien
+                        // busca escribe también el tipo de equipo ("bureta"):
+                        // las dos cosas tienen que encontrarlo.
                         $qq->orWhereRaw("unaccent(lower({$tbl}.name)) LIKE unaccent(lower(?))", [$needle])
-                           ->orWhereRaw("lower({$tbl}.code) LIKE lower(?)", [$needle]);
+                           ->orWhereRaw("unaccent(lower({$tbl}.description)) LIKE unaccent(lower(?))", [$needle]);
                     } else {
                         $qq->orWhereRaw("{$tbl}.name LIKE ? ESCAPE '\\'", [$needle])
-                           ->orWhereRaw("{$tbl}.code LIKE ? ESCAPE '\\'", [$needle]);
+                           ->orWhereRaw("{$tbl}.description LIKE ? ESCAPE '\\'", [$needle]);
                     }
                 }
             });
         });
 
-        foreach (['code', 'brand', 'model', 'serial', 'location'] as $field) {
+        foreach (['description', 'brand', 'model', 'serial', 'location'] as $field) {
             $query->when($request->filled($field), function ($q) use ($request, $tbl, $field) {
                 $q->whereRaw(
                     config('database.default') === 'pgsql'
@@ -292,7 +300,7 @@ class Instrument extends Model
             // Orden por workspace: nombre vía left join (nulls = global).
             $query->leftJoin('tenants', "{$tbl}.tenant_id", '=', 'tenants.id')
                   ->orderBy('tenants.name', $direction);
-        } elseif (in_array($sort, ['id', 'name', 'code', 'brand', 'model', 'serial', 'location', 'calibrated_at', 'calibration_due_at', 'is_active', 'sort_order', 'created_at', 'updated_at']) && in_array($direction, ['asc', 'desc'])) {
+        } elseif (in_array($sort, ['id', 'name', 'description', 'brand', 'model', 'serial', 'location', 'calibrated_at', 'calibration_due_at', 'is_active', 'sort_order', 'created_at', 'updated_at']) && in_array($direction, ['asc', 'desc'])) {
             $query->orderBy("{$tbl}.{$sort}", $direction);
         }
 
@@ -305,8 +313,8 @@ class Instrument extends Model
     public static function filterSchema(): array
     {
         return [
-            ['key' => 'code',               'label' => __('instruments.code'),               'type' => 'string',  'operators' => ['=', '!=', 'contains']],
-            ['key' => 'name',               'label' => __('instruments.name'),               'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'name',               'label' => __('instruments.name'),                'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'description',        'label' => __('instruments.description'),        'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'brand',              'label' => __('instruments.brand'),              'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'model',              'label' => __('instruments.model'),              'type' => 'string',  'operators' => ['=', '!=', 'contains']],
             ['key' => 'serial',             'label' => __('instruments.serial'),             'type' => 'string',  'operators' => ['=', '!=', 'contains']],

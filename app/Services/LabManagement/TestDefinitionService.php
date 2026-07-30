@@ -24,7 +24,7 @@ class TestDefinitionService
 
     public function create(array $data): TestDefinition
     {
-        $testDefinition = new TestDefinition($data);
+        $testDefinition = new TestDefinition($this->conOrden($data));
         $testDefinition->created_by = auth()->id();
         $testDefinition->save();
         return $testDefinition;
@@ -32,8 +32,51 @@ class TestDefinitionService
 
     public function update(TestDefinition $testDefinition, array $data): TestDefinition
     {
-        $testDefinition->update($data);
+        $testDefinition->update($this->conOrden($data, $testDefinition));
         return $testDefinition;
+    }
+
+    /**
+     * El ORDEN es opcional en el formulario, y sin esto la prueba nueva se caía
+     * al guardar.
+     *
+     * La columna es NOT NULL con `default(0)`, pero un default de base solo
+     * actúa cuando la columna NO viaja en el INSERT: el formulario mandaba
+     * `sort_order = null` explícito y Postgres rechazaba la fila con una
+     * violación de not-null que llegaba a la pantalla como error 500. Dejar el
+     * campo vacío es lo normal —el laboratorio no quiere pensar la posición de
+     * cada prueba—, así que el hueco lo llena el servidor.
+     *
+     * Se pone AL FINAL de su grupo, no en 0: una prueba nueva que aparece
+     * primera en el desplegable, delante de las que el laboratorio ya venía
+     * usando, es un cambio de orden que nadie pidió.
+     *
+     * @param  array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    private function conOrden(array $data, ?TestDefinition $existente = null): array
+    {
+        // Al editar, un campo que no viene en el envío no se toca. Solo se
+        // resuelve el que llegó explícitamente vacío.
+        if (! array_key_exists('sort_order', $data) || $data['sort_order'] !== null) {
+            return $data;
+        }
+
+        // Si ya tenía posición y el envío la vacía, se conserva: vaciar el campo
+        // en el formulario de edición no es pedir que la prueba se mueva.
+        if ($existente && $existente->sort_order !== null) {
+            $data['sort_order'] = $existente->sort_order;
+
+            return $data;
+        }
+
+        $grupo = $data['test_group_id'] ?? $existente?->test_group_id;
+
+        $data['sort_order'] = (int) TestDefinition::withTrashed()
+            ->when($grupo, fn ($q) => $q->where('test_group_id', $grupo))
+            ->max('sort_order') + 1;
+
+        return $data;
     }
 
     /**

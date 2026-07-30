@@ -122,6 +122,8 @@ class LabSeedersTest extends TestCase
     {
         // En el sistema viejo el equipo era el TEXTO de una opción, con el
         // código de calibración adentro del nombre y sin fecha de vencimiento.
+        // Hoy ese código ES el nombre del instrumento, y el tipo de equipo
+        // ("Balanza analítica") vive en su descripción.
         // Son 24 y no 25 porque el importador ya no revive las opciones que el
         // laboratorio había dado de baja.
         $this->assertSame(24, Instrument::withoutGlobalScopes()->count());
@@ -133,19 +135,19 @@ class LabSeedersTest extends TestCase
         // PP-LA-01C-056 aparece en Número Ácido y en Contenido de Agua.
         $this->assertSame(
             1,
-            Instrument::withoutGlobalScopes()->where('code', 'PP-LA-01C-056')->count()
+            Instrument::withoutGlobalScopes()->where('name', 'PP-LA-01C-056')->count()
         );
 
         // La errata del volcado ('PP-LA-01C-100.') queda unificada.
         $this->assertSame(
             0,
-            Instrument::withoutGlobalScopes()->where('code', 'like', '%.')->count()
+            Instrument::withoutGlobalScopes()->where('name', 'like', '%.')->count()
         );
 
         // La calibración se siembra vacía: inventarla sería inventar
         // trazabilidad.
         $this->assertNull(
-            Instrument::withoutGlobalScopes()->where('code', 'PP-LA-01C-056')->value('calibrated_at')
+            Instrument::withoutGlobalScopes()->where('name', 'PP-LA-01C-056')->value('calibrated_at')
         );
     }
 

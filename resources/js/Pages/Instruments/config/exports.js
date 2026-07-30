@@ -11,8 +11,8 @@
  * (seguridad real); esto es solo para no listarla en el ExportDialog.
  */
 export const instrumentsExportableColumns = (t, { isSuper = false } = {}) => [
-    { key: 'code',       label: t('instruments.code'),   default: true  },
-    { key: 'name',       label: t('instruments.name'),   default: true  },
+    { key: 'name',        label: t('instruments.name'),        default: true  },
+    { key: 'description', label: t('instruments.description'), default: true  },
     { key: 'brand',      label: t('instruments.brand'),  default: true  },
     { key: 'model',      label: t('instruments.model'),  default: true  },
     { key: 'serial',     label: t('instruments.serial'), default: true  },

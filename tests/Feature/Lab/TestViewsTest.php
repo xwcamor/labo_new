@@ -99,7 +99,9 @@ class TestViewsTest extends TestCase
         $sql = $this->sql();
 
         $this->assertStringContainsString('o.value END) AS "norma"', $sql);
-        $this->assertStringContainsString('i.code END) AS "equipo"', $sql);
+        // `i.name`: el nombre del instrumento ES su código de calibración
+        // (PP-LA-01C-100), que es lo que hace trazable el resultado.
+        $this->assertStringContainsString('i.name END) AS "equipo"', $sql);
         $this->assertStringContainsString('v.value_text END) AS "no_de_muestra"', $sql);
         $this->assertStringContainsString('v.value_num', $sql);
     }

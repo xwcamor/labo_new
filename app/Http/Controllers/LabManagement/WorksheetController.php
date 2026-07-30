@@ -167,7 +167,7 @@ class WorksheetController extends Controller
 
             if ($propios->isNotEmpty()) {
                 $salida[$field->id] = $propios->map(fn ($i) => $i->only([
-                    'id', 'name', 'code', 'calibration_due_at',
+                    'id', 'name', 'description', 'calibration_due_at',
                 ]))->values();
             }
         }
@@ -254,12 +254,12 @@ class WorksheetController extends Controller
             // Qué equipos ofrece CADA columna. Sin esto la grilla ofrecía todos
             // los del laboratorio en todas las columnas de equipo, y en la
             // columna "Bureta" del Número Ácido aparecía el Colorímetro.
-            'definition.fields.instruments:id,name,code,calibration_due_at',
+            'definition.fields.instruments:id,name,description,calibration_due_at',
             'analyst:id,name',
             'validator:id,name',
             'rows' => fn ($q) => $q->orderBy('position')->orderBy('id'),
             'rows.values',
-            'rows.instrument:id,name,code',
+            'rows.instrument:id,name,description',
             'rows.equipment:id,name,serial,tag',
         ]);
 
@@ -281,7 +281,7 @@ class WorksheetController extends Controller
             // porque ofrecer de más es mejor que no ofrecer nada.
             'instrumentsByField' => $this->instrumentsByField($worksheet),
             'instruments' => Instrument::where('is_active', true)
-                ->orderBy('code')->get(['id', 'name', 'code', 'calibration_due_at']),
+                ->orderBy('name')->get(['id', 'name', 'description', 'calibration_due_at']),
             // Los equipos del workspace, para que el analista indique de cuál
             // es cada muestra. El scope por workspace lo aplica el modelo.
             // Con su CLIENTE: el desplegable los agrupa por empresa. Una lista

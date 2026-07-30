@@ -50,6 +50,15 @@ class TestGroupService
         // cambiarlo por debajo rompe ese enlace en silencio.
         unset($data['code']);
 
+        // Vaciar el orden en el formulario de edición NO es pedir que el grupo se
+        // mueva, y la columna es NOT NULL: sin esto el guardado reventaba con una
+        // violación de nulo. El default de la base no cubre este caso — solo
+        // actúa cuando la columna no viaja en la sentencia, y acá viaja en null.
+        if (array_key_exists('sort_order', $data) && $data['sort_order'] === null) {
+            $data['sort_order'] = $testGroup->sort_order
+                ?? ((int) TestGroup::withTrashed()->max('sort_order') + 1);
+        }
+
         $testGroup->update($data);
 
         return $testGroup;

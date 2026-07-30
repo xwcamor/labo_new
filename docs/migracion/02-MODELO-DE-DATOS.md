@@ -87,7 +87,10 @@ Uno por tabla, todos generados con `php artisan make:module` (clon de `Brand`):
 `countries`, `containers`, `report_reasons`, `instruments`.
 
 `instruments` es nuevo y necesario para ISO 17025: qué equipo de medición se
-usó, su código interno, fecha de calibración y vencimiento.
+usó, su fecha de calibración y su vencimiento. Su **nombre es el código de
+calibración** (`PP-LA-01C-100`) —así lo llama el laboratorio, y es único por
+workspace— y la `description` es el tipo de equipo ("Bureta"), que se repite
+entre equipos distintos y por eso no puede identificarlos.
 
 ---
 

@@ -30,8 +30,8 @@ class GenerateInstrumentsCsvJob extends BaseInstrumentExportJob
 
             $headings = [
                 'id'         => __('instruments.id'),
-                'name'       => __('instruments.name'),
-                'code'       => __('instruments.code'),
+                'name'        => __('instruments.name'),
+                'description' => __('instruments.description'),
                 'sort_order' => __('instruments.sort_order'),
                 'is_active'  => __('instruments.is_active'),
                 'slug'       => 'Slug',
@@ -47,8 +47,8 @@ class GenerateInstrumentsCsvJob extends BaseInstrumentExportJob
                 foreach ($instruments as $instrument) {
                     $row = array_map(fn ($col) => match ($col) {
                         'id'         => $instrument->id,
-                        'name'       => $instrument->name,
-                        'code'       => $instrument->code ?? '',
+                        'name'        => $instrument->name,
+                        'description' => $instrument->description ?? '',
                         'sort_order' => $instrument->sort_order ?? '',
                         'is_active'  => $instrument->is_active ? '1' : '0',
                         'slug'       => $instrument->slug,

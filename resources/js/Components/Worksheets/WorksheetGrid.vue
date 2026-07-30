@@ -180,15 +180,15 @@ const displayValue = (field, value) => {
         return (field.options ?? []).find((o) => Number(o.id) === Number(value.option_id))?.value ?? '';
     }
 
-    // El CÓDIGO, no el nombre: es lo que identifica al equipo sin ambigüedad y
-    // lo que entra en una celda de tabla. El nombre completo ("Bureta
-    // PP-LA-01C-100") repite el código y se come el ancho de la columna.
+    // El NOMBRE (PP-LA-01C-100): identifica al equipo sin ambigüedad y entra en
+    // una celda de tabla. Agregarle la descripción ("Bureta") repite lo que ya
+    // dice el encabezado de la columna y se come su ancho.
     if (storage === 'instrument_id') {
         const instrument = props.instruments.find(
             (i) => Number(i.id) === Number(value.instrument_id),
         );
 
-        return instrument?.code || instrument?.name || '';
+        return instrument?.name || '';
     }
 
     if (storage === 'value_num') {

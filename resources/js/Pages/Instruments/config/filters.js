@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
  */
 export const instrumentsFilterFields = (t) => [
     { key: 'name',           label: t('instruments.filter_name'), type: 'tags' },
-    { key: 'code',           label: t('instruments.code'),        type: 'text' },
+    { key: 'description',    label: t('instruments.description'), type: 'text' },
     { key: 'brand',          label: t('instruments.brand'),       type: 'text' },
     { key: 'location',       label: t('instruments.location'),    type: 'text' },
     { key: 'calibration_status', label: t('instruments.calibration_status'), type: 'select', options: [
@@ -31,7 +31,7 @@ export const instrumentsFilterFields = (t) => [
 /** Estado vacío del form de filtros (también usado por clearFilters). */
 export const instrumentsEmptyFilters = () => ({
     name: [],
-    code: '',
+    description: '',
     brand: '',
     location: '',
     calibration_status: null,
@@ -44,7 +44,7 @@ export const instrumentsEmptyFilters = () => ({
 /** Backend payload → form local (dates ISO → dayjs). */
 export const hydrateInstrumentsFilters = (server) => ({
     name:       Array.isArray(server.name) ? server.name : [],
-    code:       server.code || '',
+    description: server.description || '',
     brand:      server.brand || '',
     location:   server.location || '',
     calibration_status: server.calibration_status ?? null,
@@ -61,7 +61,7 @@ export const hydrateInstrumentsFilters = (server) => ({
 /** Form local → request params para Inertia reload. */
 export const instrumentsFiltersToQuery = (f) => ({
     name:           f.name?.length ? f.name : undefined,
-    code:           f.code || undefined,
+    description:    f.description || undefined,
     brand:          f.brand || undefined,
     location:       f.location || undefined,
     calibration_status: f.calibration_status || undefined,
@@ -77,7 +77,7 @@ export const instrumentsFiltersToQuery = (f) => ({
 export const instrumentsFiltersSummary = (f, t) => {
     const parts = [];
     if (f.name?.length)  parts.push(`${t('instruments.filter_name')}: ${f.name.join(', ')}`);
-    if (f.code)          parts.push(`${t('instruments.code')}: ${f.code}`);
+    if (f.description)   parts.push(`${t('instruments.description')}: ${f.description}`);
     if (f.brand)         parts.push(`${t('instruments.brand')}: ${f.brand}`);
     if (f.location)      parts.push(`${t('instruments.location')}: ${f.location}`);
     if (f.calibration_status) {
@@ -99,7 +99,7 @@ export const instrumentsFiltersSummary = (f, t) => {
  */
 export const serializeSavedFilters = (f) => ({
     name:           f.name ?? [],
-    code:           f.code ?? '',
+    description:    f.description ?? '',
     brand:          f.brand ?? '',
     location:       f.location ?? '',
     calibration_status: f.calibration_status ?? null,
@@ -115,7 +115,7 @@ export const serializeSavedFilters = (f) => ({
 
 export const deserializeSavedFilters = (f = {}) => ({
     name:           Array.isArray(f.name) ? f.name : [],
-    code:           f.code ?? '',
+    description:    f.description ?? '',
     brand:          f.brand ?? '',
     location:       f.location ?? '',
     calibration_status: f.calibration_status ?? null,

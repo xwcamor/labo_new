@@ -206,6 +206,44 @@ class WorksheetRoutesTest extends TestCase
         ]);
     }
 
+    /**
+     * La ficha lista los instrumentos, y CON UNO CARGADO.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ LA TABLA NO PUEDE ESTAR VACÍA ACÁ                            │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Este caso existe por un 500 que la suite entera dejó pasar. Al renombrar
+     * `instruments.code` → `name` quedó un `get(['id','name','code'])` sin
+     * corregir, y en Postgres la ficha de la bancada devolvía "Undefined
+     * column: code". Los ocho casos de este archivo siguieron verdes: en SQLite
+     * —la base de los tests— una consulta con una columna inexistente sobre una
+     * tabla VACÍA devuelve cero filas sin protestar. Con una fila cargada, sí
+     * protesta.
+     *
+     * O sea: un caso que solo prueba el camino con la tabla vacía no prueba la
+     * consulta. Por eso acá se carga un instrumento y se afirma que llega con
+     * el nombre y la descripción que la grilla espera.
+     */
+    public function test_la_ficha_lista_los_instrumentos_con_su_nombre_y_descripcion(): void
+    {
+        // El nombre del instrumento es su código de calibración; la descripción
+        // es el tipo de equipo y se repite entre equipos distintos.
+        \App\Models\Instrument::create([
+            'slug' => Str::random(22), 'name' => 'PP-LA-01C-100',
+            'description' => 'Bureta', 'is_active' => true, 'tenant_id' => 1,
+        ]);
+
+        $worksheet = $this->makeWorksheet();
+
+        $this->actingAs($this->userWith(['worksheets.view']))
+            ->get(route('lab_management.worksheets.show', $worksheet))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('instruments', 1)
+                ->where('instruments.0.name', 'PP-LA-01C-100')
+                ->where('instruments.0.description', 'Bureta'));
+    }
+
     public function test_la_ficha_ofrece_las_pruebas_que_esta_hoja_espera(): void
     {
         $worksheet = $this->makeWorksheet();

@@ -206,8 +206,8 @@ abstract class BaseInstrumentExportJob implements ShouldQueue
             $names = is_array($f['name']) ? $f['name'] : [$f['name']];
             $out[] = ['label' => __('instruments.name'), 'value' => implode(', ', $names)];
         }
-        if (!empty($f['code'])) {
-            $out[] = ['label' => __('instruments.code'), 'value' => (string) $f['code']];
+        if (!empty($f['description'])) {
+            $out[] = ['label' => __('instruments.description'), 'value' => (string) $f['description']];
         }
         if (isset($f['is_active']) && $f['is_active'] !== '' && $f['is_active'] !== null) {
             $bool = filter_var($f['is_active'], FILTER_VALIDATE_BOOLEAN);

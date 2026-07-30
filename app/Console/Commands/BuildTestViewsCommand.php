@@ -156,7 +156,10 @@ class BuildTestViewsCommand extends Command
             $expresion = match ($campo->type) {
                 'number', 'computed' => 'v.value_num',
                 'select'             => 'o.value',
-                'instrument'         => 'i.code',
+                // El NOMBRE del instrumento es su código de calibración
+                // (PP-LA-01C-100): es lo que hace trazable el resultado y lo
+                // que la exportación del laboratorio trae en esa columna.
+                'instrument'         => 'i.name',
                 default              => 'v.value_text',
             };
 

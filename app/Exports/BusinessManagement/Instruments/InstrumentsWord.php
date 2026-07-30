@@ -53,8 +53,8 @@ class InstrumentsWord
 
         $this->columnDefs = [
             'id'         => ['heading' => __('instruments.id'),        'value' => fn($c) => (string) $c->id],
-            'code'       => ['heading' => __('instruments.code'),      'value' => fn($c) => (string) $c->code],
-            'name'       => ['heading' => __('instruments.name'),      'value' => fn($c) => (string) $c->name],
+            'name'        => ['heading' => __('instruments.name'),        'value' => fn($c) => (string) $c->name],
+            'description' => ['heading' => __('instruments.description'), 'value' => fn($c) => (string) ($c->description ?? '')],
             'brand'      => ['heading' => __('instruments.brand'),     'value' => fn($c) => (string) ($c->brand ?? '')],
             'model'      => ['heading' => __('instruments.model'),     'value' => fn($c) => (string) ($c->model ?? '')],
             'serial'     => ['heading' => __('instruments.serial'),    'value' => fn($c) => (string) ($c->serial ?? '')],

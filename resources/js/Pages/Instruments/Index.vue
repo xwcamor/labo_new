@@ -527,22 +527,24 @@ const goDelete = (record) => router.visit(route('business_management.instruments
                         @toggle="toggleFavorite"
                     />
 
-                    <!-- El CÓDIGO en su propia columna: es un identificador de
-                         ancho fijo y mezclado con el nombre desalineaba la
-                         lectura de arriba abajo, que es como se busca un
-                         instrumento en la bancada. -->
-                    <template v-else-if="column.key === 'code'">
-                        <code class="lead__code">{{ record.code }}</code>
+                    <!-- El NOMBRE es el código de calibración: monoespaciado y
+                         en su propia columna. Es un identificador de ancho fijo,
+                         y mezclado con la descripción desalineaba la lectura de
+                         arriba abajo, que es como se busca un instrumento en la
+                         bancada. -->
+                    <template v-else-if="column.key === 'name'">
+                        <code class="lead__code">{{ record.name }}</code>
                     </template>
 
-                    <template v-else-if="column.key === 'name'">
+                    <template v-else-if="column.key === 'description'">
                         <div class="lead">
                             <div class="lead__txt">
                                 <!-- Sin hipervínculo: la fila ya tiene su botón
-                                     de ver en Acciones, y un nombre azul
+                                     de ver en Acciones, y un texto azul
                                      subrayado en cada fila compite con lo que
                                      de verdad hay que leer. -->
-                                <span class="lead__name">{{ record.name }}</span>
+                                <span v-if="record.description" class="lead__name">{{ record.description }}</span>
+                                <span v-else class="muted">—</span>
                                 <span v-if="record.brand || record.model" class="lead__sub">
                                     {{ [record.brand, record.model].filter(Boolean).join(' · ') }}
                                 </span>

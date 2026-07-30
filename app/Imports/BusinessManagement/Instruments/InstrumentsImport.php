@@ -13,18 +13,20 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
  * Importa instrumentos desde .xlsx/.csv.
  *
  * Columnas (ver InstrumentsImportTemplate):
- *   code                     obligatorio, clave natural, único por workspace
- *   name                     obligatorio, max 255 (SE REPITE a propósito)
+ *   name                     obligatorio, clave natural, único por workspace
+ *                            (es el código de calibración: PP-LA-01C-100)
+ *   description              opcional — el tipo de equipo ("Bureta"), SE REPITE
+ *                            a propósito entre equipos distintos
  *   brand, model, serial     opcionales, max 100
  *   calibrated_at            opcional, fecha
  *   calibration_due_at       opcional, fecha (no anterior a calibrated_at)
  *   calibration_certificate  opcional, max 150
  *   location                 opcional, max 150
  *
- * LA CLAVE ES `code`, NO EL NOMBRE. El scaffold buscaba por nombre porque
- * clonaba un catálogo; acá eso fusionaría las tres buretas del laboratorio en
- * un solo registro y les pisaría la calibración entre sí. Por eso también hay
- * una sola capa de dedup en archivo (por código) y no dos.
+ * LA CLAVE ES EL NOMBRE, que es el código de calibración — NO la descripción.
+ * Buscar por la descripción fusionaría las tres buretas del laboratorio en un
+ * solo registro y les pisaría la calibración entre sí. Por eso también hay una
+ * sola capa de dedup en archivo (por nombre) y no dos.
  *
  * El import NO maneja is_active: toda alta nace activa. El estado se gestiona
  * desde la interfaz / acciones masivas.
@@ -35,10 +37,10 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
  * global scope (Instrument::create autorellena su tenant).
  *
  * Protección de duplicados (per-tenant):
- *   1. En archivo: código normalizado (trim+lower) detecta repetidos del mismo
+ *   1. En archivo: nombre normalizado (trim+lower) detecta repetidos del mismo
  *      envío.
  *   2. En aplicación: búsqueda case-insensitive contra la tabla.
- *   3. En base: índice único parcial (tenant_id, LOWER(code)).
+ *   3. En base: índice único parcial (tenant_id, LOWER(name)).
  *
  * Enforce `Tenant::maxRecordsPerModule()`: las filas que crearían un registro
  * por encima del límite del plan se marcan como error; las que actualizan uno
@@ -85,47 +87,18 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
         DB::beginTransaction();
 
         try {
-            $seenInFileByCode = [];
+            $seenInFileByName = [];
             $newRecordsCount  = 0;
 
             foreach ($rows as $i => $row) {
                 $absoluteRow = $i + 2; // +2 = fila de encabezado + índice desde 0.
-
-                $code = $this->str($row['code'] ?? null);
-                if ($code === null) {
-                    $this->errors[] = [
-                        'row'     => $absoluteRow,
-                        'message' => __('instruments.code_required'),
-                        'value'   => '—',
-                    ];
-                    continue;
-                }
-                if (mb_strlen($code) > 255) {
-                    $this->errors[] = [
-                        'row'     => $absoluteRow,
-                        'message' => __('imports.err_code_too_long'),
-                        'value'   => mb_substr($code, 0, 30) . '…',
-                    ];
-                    continue;
-                }
-
-                $codeKey = mb_strtolower($code);
-                if (isset($seenInFileByCode[$codeKey])) {
-                    $this->errors[] = [
-                        'row'     => $absoluteRow,
-                        'message' => __('imports.err_duplicate_in_file', ['row' => $seenInFileByCode[$codeKey]]),
-                        'value'   => $code,
-                    ];
-                    continue;
-                }
-                $seenInFileByCode[$codeKey] = $absoluteRow;
 
                 $name = $this->str($row['name'] ?? null);
                 if ($name === null) {
                     $this->errors[] = [
                         'row'     => $absoluteRow,
                         'message' => __('imports.err_name_required'),
-                        'value'   => $code,
+                        'value'   => '—',
                     ];
                     continue;
                 }
@@ -138,6 +111,17 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
+                $nameKey = mb_strtolower($name);
+                if (isset($seenInFileByName[$nameKey])) {
+                    $this->errors[] = [
+                        'row'     => $absoluteRow,
+                        'message' => __('imports.err_duplicate_in_file', ['row' => $seenInFileByName[$nameKey]]),
+                        'value'   => $name,
+                    ];
+                    continue;
+                }
+                $seenInFileByName[$nameKey] = $absoluteRow;
+
                 $calibratedAt = $this->date($row['calibrated_at'] ?? null);
                 $dueAt        = $this->date($row['calibration_due_at'] ?? null);
 
@@ -148,13 +132,13 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
                     $this->errors[] = [
                         'row'     => $absoluteRow,
                         'message' => __('instruments.due_before_calibrated'),
-                        'value'   => $code,
+                        'value'   => $name,
                     ];
                     continue;
                 }
 
                 $attributes = [
-                    'name'                    => $name,
+                    'description'             => $this->str($row['description'] ?? null, 2000),
                     'brand'                   => $this->str($row['brand'] ?? null, 100),
                     'model'                   => $this->str($row['model'] ?? null, 100),
                     'serial'                  => $this->str($row['serial'] ?? null, 100),
@@ -164,7 +148,7 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
                     'location'                => $this->str($row['location'] ?? null, 150),
                 ];
 
-                $existing = $this->findExistingByCode($code);
+                $existing = $this->findExistingByName($name);
 
                 if ($existing) {
                     // Registro BLOQUEADO (Lockable): el import no lo pisa. Se
@@ -226,14 +210,14 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
                             $this->errors[] = [
                                 'row'     => $absoluteRow,
                                 'message' => __('plans.limit_records_reached', ['max' => $this->maxRecords]),
-                                'value'   => $code,
+                                'value'   => $name,
                             ];
                             continue;
                         }
                     }
 
                     Instrument::create($attributes + [
-                        'code'       => $code,
+                        'name'       => $name,
                         'is_active'  => true,
                         'created_by' => Auth::id(),
                         // tenant_id lo autorellena BelongsToTenantOrGlobal;
@@ -315,10 +299,10 @@ class InstrumentsImport implements ToCollection, WithHeadingRow
      * Búsqueda por código, case-insensitive y per-tenant (el global scope de
      * BelongsToTenantOrGlobal limita al workspace del actor).
      */
-    protected function findExistingByCode(string $code): ?Instrument
+    protected function findExistingByName(string $name): ?Instrument
     {
         return Instrument::query()
-            ->whereRaw('LOWER(instruments.code) = LOWER(?)', [trim($code)])
+            ->whereRaw('LOWER(instruments.name) = LOWER(?)', [trim($name)])
             ->first();
     }
 }

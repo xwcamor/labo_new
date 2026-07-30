@@ -18,8 +18,8 @@ return [
     'trash_title'    => 'Instruments trash',
     'form_create_hint' => 'Fill in the equipment data and its latest calibration.',
     'empty_hint'      => 'Create your first instrument or import the inventory from Excel.',
-    'name_placeholder' => 'E.g.: Burette, Analytical balance, Chromatograph',
-    'code_placeholder' => 'E.g.: PP-LA-01C',
+    'name_placeholder'        => 'E.g.: PP-LA-01C-100',
+    'description_placeholder' => 'E.g.: 10 mL class A digital burette',
 
     // ── Form and detail sections ────────────────────────────────────────
     'section_identification' => 'Identification',
@@ -27,9 +27,9 @@ return [
     'section_extra'          => 'Additional data',
 
     'name'      => 'Name',
-    'name_help' => 'What the equipment is called (e.g. Burette). It may repeat: two burettes share the same name.',
-    'code'      => 'Code',
-    'code_help' => 'Internal code the laboratory uses to identify the equipment, the same one on its calibration certificate (e.g. PP-LA-01C). It is not repeated inside the laboratory.',
+    'name_help' => 'The name the laboratory identifies the equipment by: the same code printed on its calibration certificate (e.g. PP-LA-01C-100). It is not repeated inside the laboratory.',
+    'description'      => 'Description',
+    'description_help' => 'What the equipment is (e.g. Burette, Analytical balance). It may repeat: three burettes share the same description, which is why it cannot identify them.',
     'brand'     => 'Brand',
     'brand_help'=> 'Equipment manufacturer (e.g. Mettler Toledo, Megger).',
     'model'     => 'Model',
@@ -55,7 +55,7 @@ return [
     'tests_help' => 'Which tests offer this instrument. It comes from the template columns: the bench only offers each column its own instruments.',
     'is_active' => 'Status',
     'is_active_help' => 'If inactive, the instrument will not be offered on worksheets.',
-    'filter_name' => 'Name or code',
+    'filter_name' => 'Name or description',
 
     // ── Calibration status ──────────────────────────────────────────────
     'calibration_status'  => 'Calibration',
@@ -92,14 +92,13 @@ return [
     'export_no_limit_hint'      => 'No limit — recommended for large datasets.',
 
     'name_required'            => 'The name field is required.',
-    'code_required'            => 'The instrument code is required.',
-    'code_unique'              => 'An instrument with this code already exists.',
+    'name_unique'              => 'An instrument with this name already exists.',
     'due_before_calibrated'    => 'The due date cannot be earlier than the calibration date.',
     'is_active_required'       => 'The status field is required.',
-    'import_super_blocked'     => 'A super without an assigned workspace cannot import (code matching could update records from another workspace).',
+    'import_super_blocked'     => 'A super without an assigned workspace cannot import (name matching could update records from another workspace).',
 
     'edit_all_title'    => 'Instruments — Edit All',
-    'edit_all_subtitle' => 'Edit name and status of several instruments at once. Code and calibration are edited on each equipment page.',
+    'edit_all_subtitle' => 'Edit name and status of several instruments at once. Description and calibration are edited on each equipment page.',
     'edit_all_changes'  => '{0} No changes|{1} 1 pending change|[2,*] :count pending changes',
     'edit_all_save_all' => 'Save all',
     'edit_all_discard'  => 'Discard changes',
@@ -114,7 +113,7 @@ return [
         'step1_title' => 'Welcome to Instruments',
         'step1_body'  => 'This is the lab bench equipment and the status of its calibration. Quick tour in under a minute.',
         'step2_title' => 'Filters',
-        'step2_body'  => 'Search by name, code, brand or location, and filter by calibration status: valid, due soon or expired.',
+        'step2_body'  => 'Search by name, description, brand or location, and filter by calibration status: valid, due soon or expired.',
         'step3_title' => 'Saved views',
         'step3_body'  => 'Save your favorite filter + columns + sort combo and reapply with one click. Per-user.',
         'step4_title' => 'Columns',

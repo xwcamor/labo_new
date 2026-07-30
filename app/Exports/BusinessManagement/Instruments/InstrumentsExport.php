@@ -50,8 +50,8 @@ class InstrumentsExport implements FromCollection, WithEvents, WithTitle
         $tz = $this->tz;
         $this->columnDefs = [
             'id'         => ['heading' => __('instruments.id'),        'value' => fn($c, $i) => $c->id],
-            'code'       => ['heading' => __('instruments.code'),      'value' => fn($c, $i) => $c->code],
-            'name'       => ['heading' => __('instruments.name'),      'value' => fn($c, $i) => $c->name],
+            'name'        => ['heading' => __('instruments.name'),        'value' => fn($c, $i) => $c->name],
+            'description' => ['heading' => __('instruments.description'), 'value' => fn($c, $i) => $c->description ?? ''],
             'brand'      => ['heading' => __('instruments.brand'),     'value' => fn($c, $i) => $c->brand ?? ''],
             'model'      => ['heading' => __('instruments.model'),     'value' => fn($c, $i) => $c->model ?? ''],
             'serial'     => ['heading' => __('instruments.serial'),    'value' => fn($c, $i) => $c->serial ?? ''],

@@ -23,8 +23,8 @@ const isEdit = computed(() => !!props.instrument);
 // de calendario, no un instante — meter zona horaria acá corre el vencimiento
 // un día para quien esté en otro huso.
 const form = useForm({
-    name:       props.instrument?.name ?? '',
-    code:       props.instrument?.code ?? '',
+    name:        props.instrument?.name ?? '',
+    description: props.instrument?.description ?? '',
     brand:      props.instrument?.brand ?? '',
     model:      props.instrument?.model ?? '',
     serial:     props.instrument?.serial ?? '',
@@ -70,24 +70,10 @@ const submit = () => {
 
                 <h2 class="form-section-title">{{ $t('instruments.section_identification') }}</h2>
                 <div class="form-grid">
-                    <!-- El código va PRIMERO: es la clave natural del equipo, lo
-                         que figura en su hoja de calibración. -->
+                    <!-- El NOMBRE va PRIMERO: es el código de calibración, o
+                         sea la identidad del equipo, y es lo único obligatorio
+                         de este bloque. -->
                     <FormItem
-                        :label="$t('instruments.code')"
-                        :tooltip="$t('instruments.code_help')"
-                        required
-                        :validate-status="form.errors.code ? 'error' : ''"
-                        :help="form.errors.code"
-                    >
-                        <Input
-                            v-model:value="form.code"
-                            :maxlength="255"
-                            autofocus
-                            :placeholder="$t('instruments.code_placeholder')"
-                        />
-                    </FormItem>
-                    <FormItem
-                        class="form-grid__wide"
                         :label="$t('instruments.name')"
                         :tooltip="$t('instruments.name_help')"
                         required
@@ -97,8 +83,22 @@ const submit = () => {
                         <Input
                             v-model:value="form.name"
                             :maxlength="255"
-                            showCount
+                            autofocus
                             :placeholder="$t('instruments.name_placeholder')"
+                        />
+                    </FormItem>
+                    <FormItem
+                        class="form-grid__wide"
+                        :label="$t('instruments.description')"
+                        :tooltip="$t('instruments.description_help')"
+                        :validate-status="form.errors.description ? 'error' : ''"
+                        :help="form.errors.description"
+                    >
+                        <Input
+                            v-model:value="form.description"
+                            :maxlength="2000"
+                            showCount
+                            :placeholder="$t('instruments.description_placeholder')"
                         />
                     </FormItem>
                     <FormItem

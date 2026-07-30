@@ -11,11 +11,12 @@ use Illuminate\Support\Facades\DB;
  *
  * DOS DECISIONES QUE NO SON DEL SCAFFOLD:
  *
- *   1. La clave natural es `code` (PP-LA-01C), no el nombre. Dos buretas se
- *      llaman las dos "Bureta" y son equipos distintos, así que `name` NO es
- *      único. El índice de la tabla es (tenant_id, LOWER(code)) parcial sobre
- *      los no borrados: la regla lo replica tal cual, incluido ignorar los
- *      soft-deleted y el propio registro al editar.
+ *   1. El NOMBRE es el código de calibración (PP-LA-01C-100) y es la identidad
+ *      del equipo, así que va único por workspace. La `description` ("Bureta")
+ *      NO lo es: tres buretas comparten esa palabra y son tres equipos
+ *      distintos. El índice de la tabla es (tenant_id, LOWER(name)) parcial
+ *      sobre los no borrados, y la regla lo replica tal cual, incluido ignorar
+ *      los soft-deleted y el propio registro al editar.
  *
  *   2. `calibration_due_at` no puede ser anterior a `calibrated_at`. Un
  *      certificado que vence antes de emitirse es un error de tipeo, y si
@@ -28,22 +29,25 @@ trait InstrumentRules
     protected function instrumentRules(?int $ignoreId = null): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-
-            'code' => [
+            'name' => [
                 'required', 'string', 'max:255',
                 function ($attribute, $value, $fail) use ($ignoreId) {
                     $exists = DB::table('instruments')
                         ->whereNull('deleted_at')
                         ->where('tenant_id', auth()->user()?->tenant_id)
                         ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-                        ->whereRaw('LOWER(code) = LOWER(?)', [trim((string) $value)])
+                        ->whereRaw('LOWER(name) = LOWER(?)', [trim((string) $value)])
                         ->exists();
                     if ($exists) {
-                        $fail(__('instruments.code_unique'));
+                        $fail(__('instruments.name_unique'));
                     }
                 },
             ],
+
+            // El tipo de equipo. Opcional a propósito: el equipo se identifica
+            // por su nombre, y obligar a describirlo es lo que llevaba a que
+            // doce filas dijeran "Bureta" y esa fuera la columna principal.
+            'description' => ['nullable', 'string', 'max:2000'],
 
             'brand'  => ['nullable', 'string', 'max:100'],
             'model'  => ['nullable', 'string', 'max:100'],

@@ -626,9 +626,10 @@ class LabDemoWorksheetsSeeder extends Seeder
             ->filter()
             ->all();
 
+        // Por NOMBRE: el nombre del instrumento ES su código de calibración.
         return $cache[$columna->id] = Instrument::withoutGlobalScopes()
             ->where('tenant_id', self::TENANT_ID)
-            ->whereIn('code', $codigos)
+            ->whereIn('name', $codigos)
             ->orderBy('id')
             ->value('id');
     }

@@ -196,28 +196,31 @@ class LabInstrumentsSeeder extends Seeder
     }
 
     /**
-     * Da de alta el equipo si no está. Devuelve 1 si lo creó.
-     *
-     * NO refresca el nombre de uno que ya exista: el laboratorio puede haberlo
-     * precisado desde la pantalla ("Balanza analítica" → "Balanza Mettler
-     * XPE205"), y ese dato vale más que el nuestro.
-     *
-     * @param array<string,mixed> $detalle
+     * El id del equipo con ese nombre (su código de calibración), en el
+     * workspace.
      */
-    /** El id del equipo con ese código, dentro del workspace. */
     private function idDe(string $codigo): ?int
     {
         return Instrument::withoutGlobalScopes()
             ->where('tenant_id', self::TENANT_ID)
-            ->where('code', $codigo)
+            ->where('name', $codigo)
             ->value('id');
     }
 
+    /**
+     * Da de alta el equipo si no está. Devuelve 1 si lo creó.
+     *
+     * NO refresca la descripción de uno que ya exista: el laboratorio puede
+     * haberla precisado desde la pantalla ("Balanza analítica" → "Balanza
+     * Mettler XPE205"), y ese dato vale más que el nuestro.
+     *
+     * @param array<string,mixed> $detalle
+     */
     private function registrar(string $codigo, string $nombre, array $detalle): int
     {
         $existente = Instrument::withoutGlobalScopes()
             ->where('tenant_id', self::TENANT_ID)
-            ->where('code', $codigo)
+            ->where('name', $codigo)
             ->first();
 
         if ($existente) {
@@ -225,9 +228,12 @@ class LabInstrumentsSeeder extends Seeder
         }
 
         Instrument::create([
-            'slug'      => Str::random(22),
-            'code'      => $codigo,
-            'name'      => $nombre,
+            'slug'        => Str::random(22),
+            // El nombre ES el código de calibración; la descripción es el tipo
+            // de equipo, y sale de instruments.json porque del código no se
+            // puede deducir.
+            'name'        => $codigo,
+            'description' => $nombre,
             'tenant_id' => self::TENANT_ID,
             'is_active' => true,
             // La calibración se siembra VACÍA a propósito. El sistema viejo no

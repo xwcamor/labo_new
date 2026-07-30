@@ -18,18 +18,21 @@ return [
     'trash_title'    => 'Papelera de instrumentos',
     'form_create_hint' => 'Complete los datos del equipo y de su última calibración.',
     'empty_hint'      => 'Cree el primer instrumento o importe el inventario desde Excel para empezar.',
-    'name_placeholder' => 'Ej: Bureta, Balanza analítica, Cromatógrafo',
-    'code_placeholder' => 'Ej: PP-LA-01C',
+    'name_placeholder'        => 'Ej: PP-LA-01C-100',
+    'description_placeholder' => 'Ej: Bureta digital de 10 mL, clase A',
 
     // ── Secciones del formulario y de la ficha ──────────────────────────
     'section_identification' => 'Identificación',
     'section_calibration'    => 'Calibración',
     'section_extra'          => 'Datos adicionales',
 
+    // El NOMBRE es el código de calibración: así se llama el equipo en el
+    // laboratorio, es lo que el analista elige en la bancada y lo que hace
+    // trazable el resultado. La DESCRIPCIÓN es el tipo de equipo y se repite.
     'name'      => 'Nombre',
-    'name_help' => 'Cómo se llama el equipo (ej: Bureta). Puede repetirse: dos buretas se llaman las dos igual.',
-    'code'      => 'Código',
-    'code_help' => 'Código interno con el que el laboratorio identifica el equipo, el mismo que figura en su certificado de calibración (ej: PP-LA-01C). No se repite dentro del laboratorio.',
+    'name_help' => 'Con qué nombre identifica el laboratorio al equipo: el mismo código que figura en su certificado de calibración (ej: PP-LA-01C-100). No se repite dentro del laboratorio.',
+    'description'      => 'Descripción',
+    'description_help' => 'Qué equipo es (ej: Bureta, Balanza analítica). Puede repetirse: tres buretas se describen las tres igual, y por eso no alcanza para identificarlas.',
     'brand'     => 'Marca',
     'brand_help'=> 'Fabricante del equipo (ej: Mettler Toledo, Megger).',
     'model'     => 'Modelo',
@@ -55,7 +58,7 @@ return [
     'tests_help' => 'En qué pruebas se ofrece este instrumento. Sale de las columnas de la plantilla: la bancada solo ofrece los instrumentos de cada columna.',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el instrumento no aparecerá para elegir en las hojas de trabajo.',
-    'filter_name' => 'Nombre o código',
+    'filter_name' => 'Nombre o descripción',
 
     // ── Estado de calibración ───────────────────────────────────────────
     'calibration_status'  => 'Calibración',
@@ -93,16 +96,15 @@ return [
     'export_no_limit_hint'      => 'Sin límite — recomendado para conjuntos grandes.',
 
     // Validation
-    'name_required'            => 'El campo nombre es obligatorio.',
-    'code_required'            => 'El código del instrumento es obligatorio.',
-    'code_unique'              => 'Ya existe un instrumento con este código.',
+    'name_required'            => 'El nombre del instrumento es obligatorio.',
+    'name_unique'              => 'Ya existe un instrumento con este nombre.',
     'due_before_calibrated'    => 'El vencimiento no puede ser anterior a la fecha de calibración.',
     'is_active_required'       => 'El campo estado es obligatorio.',
-    'import_super_blocked'     => 'Un super sin workspace asignado no puede importar (la búsqueda por código podría actualizar registros de otro workspace).',
+    'import_super_blocked'     => 'Un super sin workspace asignado no puede importar (la búsqueda por nombre podría actualizar registros de otro workspace).',
 
     // Edit All
     'edit_all_title'    => 'Instrumentos — Editar Todo',
-    'edit_all_subtitle' => 'Edite el nombre y el estado de varios instrumentos a la vez. El código y la calibración se editan en la ficha de cada equipo.',
+    'edit_all_subtitle' => 'Edite el nombre y el estado de varios instrumentos a la vez. La descripción y la calibración se editan en la ficha de cada equipo.',
     'edit_all_changes'  => '{0} Sin cambios|{1} 1 cambio pendiente|[2,*] :count cambios pendientes',
     'edit_all_save_all' => 'Guardar todo',
     'edit_all_discard'  => 'Descartar cambios',
@@ -118,7 +120,7 @@ return [
         'step1_title' => 'Bienvenido a Instrumentos',
         'step1_body'  => 'Acá vive el equipamiento de bancada del laboratorio y el estado de su calibración. Le mostramos los puntos clave en menos de 1 minuto.',
         'step2_title' => 'Filtros',
-        'step2_body'  => 'Busque por nombre, código, marca o ubicación, y filtre por estado de calibración: vigente, por vencer o vencida.',
+        'step2_body'  => 'Busque por nombre, descripción, marca o ubicación, y filtre por estado de calibración: vigente, por vencer o vencida.',
         'step3_title' => 'Vistas guardadas',
         'step3_body'  => 'Guarde su combinación favorita de filtros, columnas y orden, y aplíquela después con un clic. Cada usuario tiene las suyas.',
         'step4_title' => 'Columnas',

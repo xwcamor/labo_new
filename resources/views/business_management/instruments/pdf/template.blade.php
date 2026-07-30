@@ -62,8 +62,8 @@
     @php
         $headings = [
             'id'         => __('instruments.id'),
-            'code'       => __('instruments.code'),
-            'name'       => __('instruments.name'),
+            'name'        => __('instruments.name'),
+            'description' => __('instruments.description'),
             'brand'      => __('instruments.brand'),
             'model'      => __('instruments.model'),
             'serial'     => __('instruments.serial'),

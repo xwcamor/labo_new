@@ -12,15 +12,15 @@ class InstrumentFactory extends Factory
 
     public function definition(): array
     {
-        // El nombre NO es unique a propósito: en el laboratorio real hay tres
-        // equipos llamados "Bureta". Lo único es el código, y por eso es lo
-        // único que la factory garantiza distinto en cada fila.
+        // El NOMBRE es el código de calibración y es único; la DESCRIPCIÓN es el
+        // tipo de equipo y se repite a propósito — en el laboratorio real hay
+        // tres equipos descritos como "Bureta".
         $calibrated = $this->faker->dateTimeBetween('-10 months', '-1 month');
 
         return [
             'slug'   => Str::random(22),
-            'code'   => strtoupper($this->faker->unique()->bothify('PP-LA-##?')),
-            'name'   => $this->faker->randomElement([
+            'name'   => strtoupper($this->faker->unique()->bothify('PP-LA-01C-##?')),
+            'description' => $this->faker->randomElement([
                 'Bureta', 'Balanza analítica', 'Cromatógrafo', 'Titulador Karl Fischer',
                 'Equipo de rigidez dieléctrica', 'Viscosímetro',
             ]),
@@ -35,16 +35,16 @@ class InstrumentFactory extends Factory
         ];
     }
 
-    /** Helper para tests que necesitan un nombre específico (asserts por nombre). */
+    /** Helper para tests que fijan el nombre (la clave natural del equipo). */
     public function named(string $name): self
     {
         return $this->state(fn () => ['name' => $name]);
     }
 
-    /** Helper para tests que fijan el código (la clave natural del equipo). */
-    public function coded(string $code): self
+    /** Helper para tests que fijan la descripción (el tipo de equipo). */
+    public function described(string $description): self
     {
-        return $this->state(fn () => ['code' => $code]);
+        return $this->state(fn () => ['description' => $description]);
     }
 
     /** Helper para crear instrumentos inactivos en tests de filtro. */

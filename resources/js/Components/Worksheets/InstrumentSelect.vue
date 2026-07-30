@@ -9,6 +9,8 @@
  *
  * En el sistema viejo esto era un `select` de textos como "Bureta PP-LA-01C",
  * con el código de calibración metido adentro del nombre y sin ninguna fecha.
+ * Hoy el NOMBRE del instrumento ES ese código (PP-LA-01C-100) y la descripción
+ * ("Bureta") es un dato aparte.
  */
 import { computed } from 'vue';
 import { Select, SelectOption, Tooltip } from 'ant-design-vue';
@@ -20,16 +22,16 @@ const props = defineProps({
     value:       { type: [Number, String, null], default: null },
     disabled:    { type: Boolean, default: false },
     /**
-     * Qué se ve con la celda CERRADA: 'name' muestra "Bureta PP-LA-01C-100",
-     * 'code' solo "PP-LA-01C-100".
+     * Qué se ve con la celda CERRADA: 'full' muestra "PP-LA-01C-100 Bureta",
+     * 'name' solo "PP-LA-01C-100".
      *
-     * En la grilla del analista el nombre repetido en cada fila estiraba la
+     * En la grilla del analista la descripción repetida en cada fila estiraba la
      * columna hasta que la fila no entraba en la pantalla, y no aportaba nada:
-     * el nombre del instrumento ya está en el encabezado de la columna. El
-     * desplegable ABIERTO sigue mostrando nombre + código + el aviso de
-     * calibración, que es donde el analista elige.
+     * el tipo de equipo ya está en el encabezado de la columna ("Bureta
+     * PP-LA-01C"). El desplegable ABIERTO sigue mostrando nombre + descripción +
+     * el aviso de calibración, que es donde el analista elige.
      */
-    display:     { type: String,  default: 'name' },
+    display:     { type: String,  default: 'full' },
 });
 
 const emit = defineEmits(['update:value']);
@@ -45,14 +47,14 @@ const selected = computed(
 </script>
 
 <template>
-    <div class="ws-instrument" :class="{ 'ws-instrument--compact': display === 'code' }">
+    <div class="ws-instrument" :class="{ 'ws-instrument--compact': display === 'name' }">
         <Select
             :value="value ?? undefined"
             :disabled="disabled"
             allow-clear
             show-search
             option-filter-prop="label"
-            :option-label-prop="display === 'code' ? 'title' : 'children'"
+            :option-label-prop="display === 'name' ? 'title' : 'children'"
             size="small"
             class="ws-instrument__select"
             :class="{ 'ws-instrument__select--risky': isRisky(selected) }"
@@ -62,23 +64,21 @@ const selected = computed(
                 v-for="instrument in instruments"
                 :key="instrument.id"
                 :value="instrument.id"
-                :label="`${instrument.name} ${instrument.code ?? ''}`"
-                :title="instrument.code || instrument.name"
+                :label="`${instrument.name} ${instrument.description ?? ''}`"
+                :title="instrument.name"
             >
                 <span class="ws-instrument__opt" :class="{ 'is-risky': isRisky(instrument) }">
                     <WarningOutlined v-if="isRisky(instrument)" />
-                    <!-- Con display='code' las opciones dicen SOLO el código:
-                         el nombre del instrumento ya está en el encabezado de
-                         la columna ("Bureta PP-LA-01C") y repetirlo en cada
-                         opción no agrega nada y tapa el código, que es lo que
-                         distingue una bureta de la otra. -->
-                    <template v-if="display === 'code'">
-                        {{ instrument.code || instrument.name }}
-                    </template>
-                    <template v-else>
-                        {{ instrument.name }}
-                        <span v-if="instrument.code" class="ws-instrument__code">{{ instrument.code }}</span>
-                    </template>
+                    <!-- Con display='name' las opciones dicen SOLO el nombre:
+                         el tipo de equipo ya está en el encabezado de la columna
+                         ("Bureta PP-LA-01C") y repetirlo en cada opción no
+                         agrega nada y tapa el nombre, que es lo que distingue
+                         una bureta de la otra. -->
+                    {{ instrument.name }}
+                    <span
+                        v-if="display !== 'name' && instrument.description"
+                        class="ws-instrument__desc"
+                    >{{ instrument.description }}</span>
                 </span>
             </SelectOption>
         </Select>
@@ -99,12 +99,12 @@ const selected = computed(
 
 <style scoped>
 .ws-instrument { display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
-/* Mostrando solo el código, 170px sobran y son 170px que le faltan al resto
-   de la fila. */
+/* Mostrando solo el nombre, 170px sobran y son 170px que le faltan al resto de
+   la fila. */
 .ws-instrument--compact { min-width: 120px; }
 .ws-instrument__select { width: 100%; }
 .ws-instrument__opt { display: inline-flex; align-items: center; gap: 6px; }
-.ws-instrument__code { color: var(--color-text-muted); font-size: 0.75rem; }
+.ws-instrument__desc { color: var(--color-text-muted); font-size: 0.75rem; }
 .ws-instrument__opt.is-risky { color: var(--color-warning); }
 .ws-instrument__warn {
     display: inline-flex; align-items: center; gap: 4px;

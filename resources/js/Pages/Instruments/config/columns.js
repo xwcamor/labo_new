@@ -14,11 +14,11 @@ import { ApartmentOutlined, CalendarOutlined, EnvironmentOutlined, ExperimentOut
  */
 export const instrumentsTableColumns = (t, { isSuper = false, isMobile = false } = {}) => [
     { title: '★',                      dataIndex: 'is_favorite', key: 'favorite',   width: 52,  align: 'center', alwaysVisible: true, mobile: { role: 'pin' } },
-    // El CÓDIGO va en su propia columna. Es un identificador de ancho fijo
-    // (PP-LA-01C-056) y mezclado dentro del nombre desalineaba la lectura de
-    // arriba abajo, que es como se busca un instrumento en la bancada.
-    { title: t('instruments.code'),     dataIndex: 'code',        key: 'code',       width: 170, sorter: (a, b) => (a.code || '').localeCompare(b.code || ''), alwaysVisible: true, mobile: { role: 'subtitle' } },
-    { title: t('instruments.name'),     dataIndex: 'name',        key: 'name',       sorter: (a, b) => (a.name || '').localeCompare(b.name || ''), alwaysVisible: true, mobile: { role: 'title' } },
+    // El NOMBRE es el código de calibración (PP-LA-01C-056): identificador de
+    // ancho fijo, primera columna, y es por donde se busca un instrumento en la
+    // bancada. La DESCRIPCIÓN va después y se repite entre equipos.
+    { title: t('instruments.name'),        dataIndex: 'name',        key: 'name',        width: 170, sorter: (a, b) => (a.name || '').localeCompare(b.name || ''), alwaysVisible: true, mobile: { role: 'title' } },
+    { title: t('instruments.description'), dataIndex: 'description', key: 'description', sorter: (a, b) => (a.description || '').localeCompare(b.description || ''), alwaysVisible: true, mobile: { role: 'subtitle' } },
     // PARA QUÉ SIRVE. Es la pregunta que el módulo no contestaba: la relación
     // columna-instrumento ya estaba en los datos del laboratorio y la pantalla
     // la ignoraba, así que 24 equipos se veían como una lista plana.

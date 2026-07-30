@@ -62,7 +62,7 @@ const calDetail = computed(() => {
             <template #icon><ToolOutlined /></template>
             <template #subtitle>
                 <Space :size="6">
-                    <Tag v-if="instrument.code" :bordered="false">{{ instrument.code }}</Tag>
+                    <Tag v-if="instrument.description" :bordered="false">{{ instrument.description }}</Tag>
                     <Tag v-if="isDeleted" color="red" :bordered="false">{{ $t('global.deleted') }}</Tag>
                     <Tag v-else :color="instrument.is_active ? 'success' : 'default'" :bordered="false">
                         {{ instrument.is_active ? $t('global.active') : $t('global.inactive') }}
@@ -141,12 +141,12 @@ const calDetail = computed(() => {
                             <span class="spec-cell__value">{{ instrument.slug }}</span>
                         </div>
                         <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('instruments.code') }}</span>
-                            <span class="spec-cell__value"><code>{{ instrument.code || '—' }}</code></span>
+                            <span class="spec-cell__label">{{ $t('instruments.name') }}</span>
+                            <span class="spec-cell__value"><code>{{ instrument.name }}</code></span>
                         </div>
                         <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('instruments.name') }}</span>
-                            <span class="spec-cell__value">{{ instrument.name }}</span>
+                            <span class="spec-cell__label">{{ $t('instruments.description') }}</span>
+                            <span class="spec-cell__value">{{ instrument.description || '—' }}</span>
                         </div>
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('instruments.brand') }}</span>

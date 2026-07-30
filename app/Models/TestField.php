@@ -142,7 +142,7 @@ class TestField extends Model
     {
         return $this->belongsToMany(Instrument::class, 'test_field_instrument')
             ->withPivot(['is_default', 'sort_order'])
-            ->orderBy('instruments.code');
+            ->orderBy('instruments.name');
     }
 
     public function options(): HasMany

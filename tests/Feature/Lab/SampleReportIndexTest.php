@@ -217,6 +217,67 @@ class SampleReportIndexTest extends TestCase
         $this->assertSame(0, $props['reports']['total']);
     }
 
+
+    // ─── El desbloqueo, por la ruta ──────────────────────────────────────
+
+    /**
+     * Desbloquear un informe emitido pide admin o super, no solo poder editar.
+     *
+     * En el sistema anterior las dos acciones —emitir y desbloquear— estaban bajo
+     * el MISMO permiso (el 42), así que cualquiera que pudiera cargar un informe
+     * podía desbloquear uno ya entregado al cliente.
+     */
+    public function test_sin_ser_admin_no_se_desbloquea_un_informe(): void
+    {
+        Permission::firstOrCreate(['name' => 'receptions.edit', 'guard_name' => 'web']);
+
+        $informe = $this->informe([]);
+
+        $rol = Role::create(['name' => 'analista_'.Str::random(6), 'guard_name' => 'web', 'description' => 'Prueba']);
+        $rol->syncPermissions(Permission::whereIn('name', ['receptions.view', 'receptions.edit'])->get());
+
+        $analista = User::factory()->create(['tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $analista->assignRole($rol);
+
+        $this->actingAs($analista)
+            ->post(route('lab_management.sample_reports.unissue', $informe->slug), [
+                'reason' => 'Quiero corregir un valor',
+            ])
+            // El proyecto convierte el 403 en una redirección al tablero.
+            ->assertRedirect(route('dashboard_management.dashboards.index'));
+
+        $this->assertSame(SampleReport::STATUS_ISSUED, $informe->fresh()->status);
+    }
+
+    public function test_el_desbloqueo_exige_motivo(): void
+    {
+        Permission::firstOrCreate(['name' => 'receptions.edit', 'guard_name' => 'web']);
+
+        $informe = $this->informe([]);
+
+        $rol = Role::create(['name' => 'admin', 'guard_name' => 'web', 'description' => 'Prueba']);
+        $rol->syncPermissions(Permission::whereIn('name', ['receptions.view', 'receptions.edit'])->get());
+
+        $admin = User::factory()->create(['tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $admin->assignRole($rol);
+
+        // Sin motivo: rebota y el informe sigue emitido.
+        $this->actingAs($admin)
+            ->post(route('lab_management.sample_reports.unissue', $informe->slug), ['reason' => ''])
+            ->assertSessionHasErrors('reason');
+
+        $this->assertSame(SampleReport::STATUS_ISSUED, $informe->fresh()->status);
+
+        // Con motivo: vuelve a borrador.
+        $this->actingAs($admin)
+            ->post(route('lab_management.sample_reports.unissue', $informe->slug), [
+                'reason' => 'La rigidez estaba mal tipeada',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(SampleReport::STATUS_DRAFT, $informe->fresh()->status);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
 
     private function usuario(int $tenant = 1): User

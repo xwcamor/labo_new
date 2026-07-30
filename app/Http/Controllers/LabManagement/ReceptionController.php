@@ -197,12 +197,44 @@ class ReceptionController extends Controller
         // no de la recepción, pero se listan acá porque es donde el laboratorio
         // trabaja la entrega: el sistema anterior tenía las mismas dos pestañas
         // (Muestras · Reportes) y por la misma razón.
+        // Las columnas son las del "Listado de Nº de Reportes" del sistema
+        // anterior: además del correlativo y el estado, el equipo del que salió
+        // la muestra —serie y tipo—, el fluido, la razón del análisis y las TRES
+        // fechas (recepción, emisión, entrega). Esta pestaña traía seis columnas
+        // y faltaban justamente las que se usan para encontrar un informe cuando
+        // el cliente llama citando el transformador y no el número.
         $informes = \App\Models\SampleReport::query()
             ->whereIn('sample_id', $samples->pluck('id'))
-            ->with(['sample:id,code', 'issuer:id,name'])
+            ->with([
+                'sample:id,code,sampling_reason,equipment_id,oil_type_id,reception_id',
+                'sample.equipment:id,serial,tag,equipment_type_id',
+                'sample.equipment.equipmentType:id,name',
+                'sample.oilType:id,name',
+                'sample.equipment.oilType:id,name',
+                'issuer:id,name',
+            ])
             ->withCount(['visibilities as tests_count' => fn ($q) => $q->where('is_visible', true)])
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            // Se aplanan acá y no en la pantalla: la tabla ORDENA por estas
+            // columnas, y una ruta anidada (`sample.equipment.serial`) no se
+            // puede ordenar ni buscar como celda.
+            ->map(function ($informe) use ($reception) {
+                $muestra = $informe->sample;
+
+                return array_merge($informe->toArray(), [
+                    'sample_code'      => $muestra?->code,
+                    'sampling_reason'  => $muestra?->sampling_reason,
+                    'equipment_serial' => $muestra?->equipment?->serial,
+                    'equipment_tag'    => $muestra?->equipment?->tag,
+                    'equipment_type'   => $muestra?->equipment?->equipmentType?->name,
+                    // El fluido de LA MUESTRA cuando lo declara, y si no el del
+                    // equipo: se puede recibir aceite nuevo de un transformador
+                    // que tiene otro cargado.
+                    'oil_type'         => $muestra?->oilType?->name ?? $muestra?->equipment?->oilType?->name,
+                    'received_at'      => $reception->received_at?->toDateString(),
+                ]);
+            });
 
         return Inertia::render('Receptions/Show', [
             'reception' => $reception,

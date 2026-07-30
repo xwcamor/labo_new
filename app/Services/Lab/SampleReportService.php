@@ -168,6 +168,72 @@ class SampleReportService
     }
 
     /**
+     * Desbloquear un informe emitido: vuelve a borrador para poder corregirlo.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EXISTE PORQUE EL LABORATORIO LO NECESITA, Y CUESTA CARO               │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El sistema anterior tenía este botón ("Desbloquear": ponía `state = 1` y
+     * borraba la firma) y se usa: se emite un informe con un dato mal cargado y
+     * hay que corregirlo antes de que salga del laboratorio.
+     *
+     * Lo que NO hace, y es lo que lo distingue de "editar":
+     *
+     *   · El correlativo NO se libera. El informe conserva su número; si el
+     *     papel ya está en manos del cliente, ese número sigue siendo el suyo.
+     *     El sistema anterior tampoco lo liberaba, pero por otro motivo (no
+     *     tenía a dónde devolverlo), y como su buscador de último número
+     *     filtraba por `deleted=0`, borrar el más alto sí lo reemitía.
+     *   · El snapshot se BORRA. Es la fotocopia de lo que se firmó: si el
+     *     informe vuelve a ser editable, conservarla dejaría un papel firmado
+     *     que ya no corresponde a los datos. Al reemitirse se saca una nueva.
+     *   · Pide MOTIVO y queda auditado. Un informe que salió y volvió es
+     *     justamente lo que una auditoría pregunta.
+     *
+     * Los ensayos vuelven de "informado" a "validado" y la entrega se reabre
+     * sola: eso ya lo resuelve el recálculo de estados, no se toca acá.
+     *
+     * Devuelve `false` si el informe no estaba emitido.
+     *
+     * @param  array<string,mixed>  $rastro
+     */
+    public function unissue(SampleReport $informe, ?int $userId, string $motivo, array $rastro = []): bool
+    {
+        if (! $informe->isIssued()) {
+            return false;
+        }
+
+        DB::transaction(function () use ($informe, $userId, $motivo, $rastro) {
+            $codigoAnterior = $informe->code;
+
+            $informe->update([
+                'status'    => SampleReport::STATUS_DRAFT,
+                'issued_by' => null,
+                'snapshot'  => null,
+            ]);
+
+            // Los ensayos vuelven de "informado" a "validado" —salvo los que
+            // otro informe emitido siga publicando— y la muestra y la entrega
+            // recalculan su estado: la entrega cerrada se reabre sola.
+            app(SampleProgressService::class)->markUnreported($informe);
+
+            \App\Models\AuditLog::create(array_merge([
+                'user_id'        => $userId,
+                'auditable_type' => SampleReport::class,
+                'auditable_id'   => $informe->id,
+                'event'          => 'report_unissued',
+                'new_values'     => [
+                    'code'   => $codigoAnterior,
+                    'reason' => $motivo,
+                ],
+                'module'         => 'samples',
+            ], $rastro));
+        });
+
+        return true;
+    }
+
+    /**
      * Reparte la cabecera del formulario a donde vive cada dato.
      *
      * @param array<string,mixed> $datos

@@ -103,6 +103,19 @@ return [
     'created' => 'Informe :code creado como borrador.',
     'saved'   => 'Informe guardado.',
     'issued'  => 'Informe :code emitido.',
+    // El candado al revés. Se dice con todas las letras lo que NO devuelve: el
+    // número. El sistema anterior tenía este botón ("Desbloquear") y no avisaba
+    // nada.
+    'unlock'          => 'Desbloquear',
+    'unlock_title'    => 'Desbloquear el informe :code',
+    'unlock_intro'    => 'El informe vuelve a borrador y se puede corregir. Su número NO cambia: si el cliente ya tiene el papel, ese código sigue siendo el de este informe. La copia congelada de lo que se firmó se descarta, y al reemitirlo se saca una nueva.',
+    'unlock_warning'  => 'Este informe ya salió del laboratorio.',
+    'unlock_reason'   => 'Motivo del desbloqueo',
+    'unlock_reason_help' => 'Queda en el registro de auditoría. Un informe que salió y volvió es lo primero que se pregunta en una auditoría.',
+    'unissue_reason_required' => 'Indique el motivo del desbloqueo (al menos 5 caracteres).',
+    'unissued'        => 'Informe :code desbloqueado. Vuelve a ser un borrador.',
+    'not_issued'      => 'El informe no está emitido.',
+    'unlock_forbidden' => 'Solo un administrador desbloquea un informe emitido.',
     'deleted' => 'Informe dado de baja.',
     'already_issued'      => 'El informe ya está emitido.',
     'issued_is_final'     => 'Un informe emitido no se edita. Emita un informe adicional.',

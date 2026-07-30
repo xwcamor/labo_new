@@ -166,6 +166,51 @@ class SampleProgressService
     }
 
     /**
+     * Lo contrario de `markReported`: el informe volvió a borrador, así que sus
+     * ensayos dejan de estar informados.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ NO SE DEGRADA LO QUE OTRO INFORME SIGUE PUBLICANDO                    │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Una muestra puede tener varios informes: el principal y uno adicional por
+     * una prueba que llegó tarde. Al desbloquear uno, sus ensayos vuelven a
+     * "validado" SALVO los que otro informe todavía emitido también publica —
+     * esos siguen informados, porque siguen impresos en un papel que está en la
+     * calle.
+     *
+     * Sin ese filtro, desbloquear el adicional degradaba ensayos que el informe
+     * principal ya había publicado, y la entrega se reabría por un ensayo que en
+     * realidad estaba entregado.
+     */
+    public function markUnreported(SampleReport $informe): void
+    {
+        $suyos = $informe->visibilities()->where('is_visible', true)->pluck('sample_test_id')->all();
+
+        if ($suyos === []) {
+            return;
+        }
+
+        // Los que OTRO informe emitido de la misma muestra sigue publicando.
+        $publicadosPorOtro = \App\Models\SampleReportTest::query()
+            ->where('is_visible', true)
+            ->whereIn('sample_test_id', $suyos)
+            ->whereHas('report', fn ($q) => $q
+                ->where('id', '!=', $informe->id)
+                ->where('status', SampleReport::STATUS_ISSUED))
+            ->pluck('sample_test_id')
+            ->all();
+
+        SampleTest::whereIn('id', array_values(array_diff($suyos, $publicadosPorOtro)))
+            ->where('status', SampleTest::STATUS_REPORTED)
+            ->update([
+                'status'     => SampleTest::STATUS_VALIDATED,
+                'updated_at' => now(),
+            ]);
+
+        $this->refreshSample($informe->sample()->first());
+    }
+
+    /**
      * Recalcula el estado de UNA muestra a partir de sus pruebas pedidas.
      *
      * Es una sola consulta agregada, y se llama desde los eventos de arriba —

@@ -91,6 +91,17 @@ const canDelete = computed(() => can('receptions.delete'));
  */
 const canDeleteSample = computed(() => hasRole('super', 'admin'));
 
+/**
+ * Quién abre el candado de un informe emitido.
+ *
+ * Emitir alcanza con `receptions.edit` —es el trabajo del día—; DESbloquear pide
+ * admin o super, porque es admitir que salió un papel con un error y decidir
+ * corregirlo. En el sistema anterior las dos acciones estaban bajo el mismo
+ * permiso, así que cualquiera que pudiera cargar un informe podía desbloquear uno
+ * ya entregado. El controlador lo verifica igual del lado del servidor.
+ */
+const canUnlock = computed(() => hasRole('super', 'admin'));
+
 const title = computed(
     () => props.reception.code || `${t('receptions.singular')} #${props.reception.id}`,
 );
@@ -169,6 +180,17 @@ const columns = computed(() => [
         align: 'right',
     },
 ]);
+
+/**
+ * Qué pestaña está abierta.
+ *
+ * Vive como estado y no como el `defaultActiveKey` de Ant porque hay UNA acción
+ * que tiene que cambiarla: al guardar un informe la ficha salta a "Informes".
+ * Antes el modal se cerraba y la pantalla volvía a "Muestras" —la pestaña donde
+ * uno estaba parado—, así que el informe recién creado no se veía y parecía que
+ * no se había guardado.
+ */
+const tabActiva = ref('samples');
 
 // ── Informes ─────────────────────────────────────────────────────────────
 const reportOpen   = ref(false);
@@ -288,16 +310,71 @@ const confirmarBaja = () => {
 
 const reportsOf = (sample) => props.reports.filter((r) => r.sample_id === sample.id);
 
+/**
+ * Las columnas de la pestaña Informes.
+ *
+ * Son las del "Listado de Nº de Reportes" del sistema anterior. Antes eran seis
+ * y faltaban justamente las que se usan para ENCONTRAR un informe: el cliente
+ * llama citando el transformador ("el de la serie TR-99887") y no el número de
+ * informe, así que sin la serie, el tipo de equipo y la razón del análisis había
+ * que abrir muestra por muestra.
+ */
 const reportColumns = computed(() => [
-    { title: t('sample_reports.code'), key: 'code', width: 190 },
-    { title: t('sample_reports.sample'), key: 'sample', width: 130 },
-    { title: t('sample_reports.kind'), key: 'kind', width: 110 },
-    { title: t('sample_reports.status'), key: 'status', width: 110 },
-    { title: t('sample_reports.issued_at'), key: 'issued_at', width: 130 },
-    { title: t('sample_reports.tests_count'), key: 'tests_count', width: 120, align: 'right' },
+    // `dataIndex` en las columnas de texto puro: sin él Ant no sabe de qué
+    // propiedad de la fila sacar la celda, y las cuatro columnas nuevas salían
+    // VACÍAS —encabezado dibujado y celda en blanco, que se lee como un dato que
+    // falta y no como una columna mal cableada—.
+    { title: t('sample_reports.col_sample_code'), key: 'sample', dataIndex: 'sample_code', width: 130 },
+    { title: t('sample_reports.status'), key: 'status', dataIndex: 'status', width: 110 },
+    { title: t('sample_reports.col_code'), key: 'code', dataIndex: 'code', width: 180 },
+    { title: t('sample_reports.col_equipment_serial'), key: 'equipment_serial', dataIndex: 'equipment_serial', width: 170 },
+    { title: t('sample_reports.col_equipment_type'), key: 'equipment_type', dataIndex: 'equipment_type', width: 150 },
+    { title: t('sample_reports.col_oil_type'), key: 'oil_type', dataIndex: 'oil_type', width: 140 },
+    { title: t('sample_reports.col_received_at'), key: 'received_at', dataIndex: 'received_at', width: 120 },
+    { title: t('sample_reports.col_issued_at'), key: 'issued_at', dataIndex: 'issued_at', width: 120 },
+    { title: t('sample_reports.col_delivered_at'), key: 'delivered_at', dataIndex: 'delivered_at', width: 120 },
+    { title: t('sample_reports.col_sampling_reason'), key: 'sampling_reason', dataIndex: 'sampling_reason', width: 170 },
+    { title: t('sample_reports.kind'), key: 'kind', dataIndex: 'kind', width: 110 },
+    { title: t('sample_reports.tests_count'), key: 'tests_count', dataIndex: 'tests_count', width: 110, align: 'right' },
     // Ancho para las dos plantillas de exportación + editar/emitir/eliminar.
-    { title: t('global.actions'), key: 'actions', width: 360, align: 'right' },
+    { title: t('global.actions'), key: 'actions', width: 300, align: 'right' },
 ]);
+
+// ── El candado del informe emitido ───────────────────────────────────────
+/**
+ * Desbloquear un informe emitido lo devuelve a borrador para corregirlo.
+ *
+ * El sistema anterior tenía este botón y no avisaba de nada. Acá se dice lo que
+ * NO devuelve —el número— y se pide el motivo, que queda en la auditoría: un
+ * informe que salió y volvió es lo primero que una auditoría pregunta.
+ */
+const unlockOpen   = ref(false);
+const unlockRecord = ref(null);
+const unlockReason = ref('');
+const unlockError  = ref('');
+
+const abrirDesbloqueo = (report) => {
+    unlockRecord.value = report;
+    unlockReason.value = '';
+    unlockError.value = '';
+    unlockOpen.value = true;
+};
+
+const confirmarDesbloqueo = () => {
+    if (unlockReason.value.trim().length < 5) {
+        unlockError.value = t('sample_reports.unissue_reason_required');
+        return;
+    }
+
+    router.post(
+        route('lab_management.sample_reports.unissue', unlockRecord.value.slug),
+        { reason: unlockReason.value.trim() },
+        {
+            preserveScroll: true,
+            onSuccess: () => { unlockOpen.value = false; },
+        },
+    );
+};
 </script>
 
 <template>
@@ -380,8 +457,6 @@ const reportColumns = computed(() => [
             />
         </template>
 
-        <ReceptionHeader :reception="reception" />
-
         <!-- Muestras · Informes, como en el sistema anterior: lo que ENTRÓ y lo
              que SALIÓ. Son dos trabajos distintos sobre la misma entrega
              —cargar muestras y emitir informes— y mezclarlos en una sola tabla
@@ -392,7 +467,7 @@ const reportColumns = computed(() => [
              colgaba de un `v-else` y la entrega recién registrada —justo cuando
              uno quiere ver quién la cargó— era la única ficha del sistema sin
              historial. -->
-        <Tabs class="rc-tabs">
+        <Tabs v-model:activeKey="tabActiva" class="rc-tabs">
         <TabPane key="samples">
             <template #tab>
                 <span><ExperimentOutlined /> {{ $t('receptions.section_samples') }} ({{ samples.length }})</span>
@@ -554,7 +629,7 @@ const reportColumns = computed(() => [
                         </template>
 
                         <template v-else-if="column.key === 'sample'">
-                            {{ record.sample?.code ?? '—' }}
+                            <span class="rc-code">{{ record.sample_code ?? '—' }}</span>
                         </template>
 
                         <template v-else-if="column.key === 'kind'">
@@ -569,8 +644,12 @@ const reportColumns = computed(() => [
                             </Tag>
                         </template>
 
-                        <template v-else-if="column.key === 'issued_at'">
-                            {{ plainDate(record.issued_at) }}
+                        <!-- Las tres fechas del sistema anterior: cuándo entró,
+                             cuándo salió el informe y cuándo se entregó. -->
+                        <template
+                            v-else-if="['received_at', 'issued_at', 'delivered_at'].includes(column.key)"
+                        >
+                            {{ plainDate(record[column.key]) || '—' }}
                         </template>
 
                         <template v-else-if="column.key === 'tests_count'">
@@ -652,25 +731,68 @@ const reportColumns = computed(() => [
                                         <DeleteOutlined />
                                     </Button>
                                 </Tooltip>
-                                <!-- EMITIDO = CANDADO. El informe emitido no se
-                                     edita ni se borra: su contenido quedó
-                                     congelado y el cliente tiene un papel que
-                                     cita ese número. El candado lo dice con un
-                                     icono en el lugar donde estaban Editar y
-                                     Eliminar, en vez de dejar el hueco y que
-                                     parezca que la fila perdió sus acciones. --><Tooltip
+                                <!-- EMITIDO = CANDADO, Y EL CANDADO SE ABRE.
+                                     El informe emitido no se edita ni se borra:
+                                     su contenido quedó congelado y el cliente
+                                     tiene un papel que cita ese número. El
+                                     candado lo dice con un icono en el lugar
+                                     donde estaban Editar y Eliminar, en vez de
+                                     dejar el hueco y que parezca que la fila
+                                     perdió sus acciones.
+
+                                     Y se puede DESBLOQUEAR, como en el sistema
+                                     anterior: se emite un informe con un dato mal
+                                     cargado y hay que corregirlo antes de que
+                                     salga del laboratorio. Solo admin o super, y
+                                     con motivo. Para el resto el candado sigue
+                                     siendo solo un cartel. -->
+                                <Tooltip
                                     v-if="record.status !== 'draft'"
-                                    :title="$t('sample_reports.issued_is_final')"
+                                    :title="canUnlock
+                                        ? $t('sample_reports.unlock')
+                                        : $t('sample_reports.issued_is_final')"
                                 >
-                                    <Tag color="gold" :bordered="false" class="rc-lock">
+                                    <Button
+                                        v-if="canUnlock"
+                                        size="small"
+                                        class="rc-unlock"
+                                        @click="abrirDesbloqueo(record)"
+                                    >
+                                        <LockOutlined />
+                                    </Button>
+                                    <Tag v-else color="gold" :bordered="false" class="rc-lock">
                                         <LockOutlined />
                                     </Tag>
                                 </Tooltip>
                             </Space>
                         </template>
+
+                        <!-- Respaldo. Sin esta rama, una columna que no tenga su
+                             `v-if` arriba se dibuja VACÍA aunque la fila traiga
+                             el dato, y una celda en blanco se lee como un dato
+                             que falta. Es lo que pasó al agregar las cuatro
+                             columnas del equipo. -->
+                        <template v-else>{{ record[column.dataIndex] ?? '—' }}</template>
                     </template>
                 </ResponsiveTable>
             </Card>
+        </TabPane>
+
+        <!-- Detalles: la ficha de la entrega. Estaba SIEMPRE visible arriba de
+             las pestañas, y por eso esta era la única pantalla Show del sistema
+             sin su pestaña "Detalles": ocupaba media pantalla en la vista donde
+             se trabaja (Muestras) y no se podía plegar.
+
+             Va después de las dos de trabajo y no primera, que es donde el resto
+             de los módulos la pone: acá se entra a cargar muestras y a emitir
+             informes, y obligar a un clic cada vez para llegar a eso sería
+             cambiar una molestia por otra. -->
+        <TabPane key="details">
+            <template #tab>
+                <span><FileTextOutlined /> {{ $t('global.details') }}</span>
+            </template>
+
+            <ReceptionHeader :reception="reception" />
         </TabPane>
 
         <TabPane key="history">
@@ -692,12 +814,39 @@ const reportColumns = computed(() => [
             v-model:open="reportOpen"
             :sample="reportSample"
             :report="reportRecord"
+            @saved="tabActiva = 'reports'"
         />
 
         <ReportAnalysisModal
             v-model:open="analysisOpen"
             :report="analysisReport"
         />
+
+        <!-- Desbloquear un informe emitido. El aviso va PRIMERO: lo que importa
+             no es que vuelva a editable, es que el número no cambia y que el
+             papel que el cliente tiene en la mano cita ese número. -->
+        <Modal
+            v-model:open="unlockOpen"
+            :title="$t('sample_reports.unlock_title', { code: unlockRecord?.code ?? '' })"
+            :ok-text="$t('sample_reports.unlock')"
+            :cancel-text="$t('global.cancel')"
+            @ok="confirmarDesbloqueo"
+        >
+            <Alert type="warning" show-icon class="rc-alert">
+                <template #message>{{ $t('sample_reports.unlock_warning') }}</template>
+                <template #description>{{ $t('sample_reports.unlock_intro') }}</template>
+            </Alert>
+
+            <label class="rc-baja__label">{{ $t('sample_reports.unlock_reason') }}</label>
+            <Textarea
+                v-model:value="unlockReason"
+                :rows="3"
+                :maxlength="500"
+                show-count
+                :placeholder="$t('sample_reports.unlock_reason_help')"
+            />
+            <div v-if="unlockError" class="rc-baja__error">{{ unlockError }}</div>
+        </Modal>
 
         <Modal
             v-model:open="bajaOpen"
@@ -785,7 +934,10 @@ const reportColumns = computed(() => [
 
 .rc-baja__intro { color: var(--color-text-muted); margin-bottom: 12px; }
 .rc-baja__warn  { margin-bottom: 12px; }
-.rc-baja__label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--color-text); }
+.rc-baja__label { display: block; font-weight: 600; margin: 14px 0 6px; color: var(--color-text); }
+/* El candado que se abre. Ámbar como el cartel que reemplaza, para que se lea
+   igual "está emitido" y no como una acción cualquiera de la fila. */
+.rc-unlock { color: #b45309; border-color: #f5c86b; }
 .rc-baja__error { color: var(--color-danger-bright); margin-top: 8px; }
 
 /* Las pestañas van sobre el fondo gris de la ficha, no dentro de una tarjeta:

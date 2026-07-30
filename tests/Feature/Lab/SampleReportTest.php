@@ -246,6 +246,110 @@ class SampleReportTest extends TestCase
         $this->assertNull($muestra->fresh()->deletionBlockedBy());
     }
 
+
+    // ─── El candado se abre ──────────────────────────────────────────────
+
+    /**
+     * Desbloquear devuelve el informe a borrador SIN devolver el número.
+     *
+     * El sistema anterior tenía este botón ("Desbloquear": `state = 1` y borraba
+     * la firma) y el laboratorio lo usa: se emite con un dato mal cargado y hay
+     * que corregirlo antes de que salga. Lo que acá se fija es lo que NO cambia.
+     */
+    public function test_desbloquear_vuelve_a_borrador_y_conserva_el_numero(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $this->service->issue($informe->fresh(), null);
+
+        $codigo = $informe->fresh()->code;
+
+        $this->assertTrue($this->service->unissue($informe->fresh(), null, 'Dato mal cargado'));
+
+        $informe->refresh();
+        $this->assertSame(SampleReport::STATUS_DRAFT, $informe->status);
+        // El número es lo que el cliente cita: no se libera ni se reasigna.
+        $this->assertSame($codigo, $informe->code);
+        // El snapshot se descarta: es la fotocopia de lo que se firmó, y si el
+        // informe vuelve a ser editable dejaría un papel firmado que ya no
+        // corresponde a los datos.
+        $this->assertNull($informe->snapshot);
+    }
+
+    public function test_desbloquear_devuelve_los_ensayos_a_validado_y_reabre_la_entrega(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $this->service->issue($informe->fresh(), null);
+
+        $this->assertSame(Reception::STATUS_CLOSED, $muestra->reception->fresh()->status);
+
+        $this->service->unissue($informe->fresh(), null, 'Corrección de un valor');
+
+        $this->assertSame(SampleTest::STATUS_VALIDATED, $muestra->tests()->first()->fresh()->status);
+        $this->assertSame(Reception::STATUS_CONFIRMED, $muestra->reception->fresh()->status);
+    }
+
+    public function test_desbloquear_no_degrada_lo_que_otro_informe_emitido_publica(): void
+    {
+        // Una muestra con DOS informes emitidos sobre el mismo ensayo (el
+        // principal y un adicional). Desbloquear el adicional no puede degradar
+        // un ensayo que el principal sigue publicando: ese ensayo está impreso en
+        // un papel que está en la calle.
+        $muestra = $this->muestra();
+
+        $principal = $this->service->create($muestra, [], null);
+        $this->service->issue($principal->fresh(), null);
+
+        $adicional = $this->service->create($muestra, [], null);
+        $this->service->issue($adicional->fresh(), null);
+
+        $this->service->unissue($adicional->fresh(), null, 'Se emitió por error');
+
+        $this->assertSame(SampleTest::STATUS_REPORTED, $muestra->tests()->first()->fresh()->status);
+        $this->assertSame(Reception::STATUS_CLOSED, $muestra->reception->fresh()->status);
+    }
+
+    public function test_un_borrador_no_se_desbloquea(): void
+    {
+        $informe = $this->service->create($this->muestra(), [], null);
+
+        $this->assertFalse($this->service->unissue($informe, null, 'Motivo cualquiera'));
+    }
+
+    public function test_el_desbloqueo_queda_en_la_auditoria_con_su_motivo(): void
+    {
+        // Un informe que salió y volvió es lo primero que una auditoría pregunta.
+        $informe = $this->service->create($this->muestra(), [], null);
+        $this->service->issue($informe->fresh(), null);
+
+        $this->service->unissue($informe->fresh(), null, 'La rigidez estaba mal tipeada');
+
+        $registro = \App\Models\AuditLog::where('event', 'report_unissued')
+            ->where('auditable_id', $informe->id)
+            ->first();
+
+        $this->assertNotNull($registro);
+        $this->assertSame('La rigidez estaba mal tipeada', $registro->new_values['reason']);
+        // El código queda registrado: es el que el cliente tiene en la mano.
+        $this->assertSame($informe->code, $registro->new_values['code']);
+    }
+
+    public function test_un_informe_desbloqueado_se_puede_reemitir(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $this->service->issue($informe->fresh(), null);
+        $this->service->unissue($informe->fresh(), null, 'Corrección');
+
+        $this->assertTrue($this->service->issue($informe->fresh(), null));
+
+        $informe->refresh();
+        $this->assertSame(SampleReport::STATUS_ISSUED, $informe->status);
+        // Y se saca una copia congelada NUEVA, con los datos corregidos.
+        $this->assertNotNull($informe->snapshot);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
 
     private function muestra(): Sample

@@ -154,11 +154,24 @@ class DatabaseSeeder extends Seeder
             // ── Clientes reales (los activos del sistema viejo) en Empresa 1. ─
             CustomersSeeder::class,
 
-            // ── Demostración: equipos, hojas de trabajo cargadas y validadas,
-            //    resultados y cartas de control. Va DESPUÉS de los clientes
-            //    porque los equipos cuelgan de ellos. Es lo único de todo el
-            //    seed que son datos inventados, y está marcado como tal.
-            LabDemoWorksheetsSeeder::class,
+            // ── Demostración: UNA muestra, con TODAS las pruebas del catálogo
+            //    corridas y validadas, y su informe emitido.
+            //
+            //    Acá corría antes `LabDemoWorksheetsSeeder`: seis campañas de
+            //    muestreo sobre seis equipos, 37 muestras, 600 resultados y 31
+            //    informes. Sirve para evaluar los listados y el tablero, pero para
+            //    lo que el seed base tiene que habilitar —abrir el informe en PDF
+            //    y verlo completo— era ruido: había que averiguar cuál de las 37
+            //    muestras traía las pruebas que interesaban, y ninguna las traía
+            //    todas.
+            //
+            //    Esta siembra UNA (`FULL-REM-01`, con las 29 pruebas validadas), y
+            //    es la que abre el informe con sus quince hojas. Va DESPUÉS de los
+            //    clientes porque su equipo cuelga de uno.
+            //
+            //    La demostración grande sigue existiendo y se corre a pedido:
+            //        php artisan db:seed --class=LabDemoWorksheetsSeeder
+            LabFullReportSeeder::class,
 
             // Fase 12: acá entra la migración de los datos históricos del
             // laboratorio (equipos, muestras, resultados e informes emitidos),

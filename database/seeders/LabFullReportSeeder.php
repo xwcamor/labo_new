@@ -180,11 +180,14 @@ class LabFullReportSeeder extends Seeder
                 }
             }
 
+            $informe = $this->informe($muestra, $analista);
+
             $this->command?->info(sprintf(
-                'Informe completo: muestra %s con %d de %d pruebas cargadas y validadas.',
+                'Informe completo: muestra %s con %d de %d pruebas cargadas y validadas → informe %s.',
                 $muestra->code,
                 $hechas,
                 $pruebas->count(),
+                $informe?->code ?? '(ya existía)',
             ));
 
             if ($sinResultado !== []) {
@@ -197,6 +200,113 @@ class LabFullReportSeeder extends Seeder
         } finally {
             Auth::logout();
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // El equipo
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * El transformador del que se tomó la muestra.
+     *
+     * Uno solo, y con la chapa COMPLETA porque el informe la imprime entera en el
+     * bloque "Información del equipo": si faltara la mitad, el papel de
+     * demostración saldría con media docena de rayas y no se podría juzgar la
+     * maqueta.
+     *
+     * Los tres datos que NO son decorativos son el tipo de equipo, el tipo de
+     * aceite y la clase de tensión: de ellos depende qué cuadro de límites le
+     * toca. Un transformador de potencia, mineral, en servicio y de 138 kV cae en
+     * el cuadro más usado del laboratorio, que es el que conviene mostrar.
+     */
+    private function equipo(): ?Equipment
+    {
+        $cliente = \App\Models\Customer::withoutGlobalScopes()
+            ->where('tenant_id', self::TENANT_ID)
+            ->orderBy('id')
+            ->first();
+
+        if (! $cliente) {
+            return null;
+        }
+
+        return Equipment::withoutGlobalScopes()->updateOrCreate(
+            ['external_ref' => self::MARCA . '-EQ-01', 'tenant_id' => self::TENANT_ID],
+            [
+                'slug'              => Str::random(22),
+                'name'              => 'Transformador de potencia ' . self::MARCA,
+                'tag'               => 'T-01',
+                'serial'            => self::MARCA . '-SN-1000',
+                'customer_id'       => $cliente->id,
+                'equipment_type_id' => 1,   // potencia
+                'oil_type_id'       => 1,   // mineral
+                'voltage_kv_hv'     => 138.0,
+                'voltage_kv_lv'     => 13.8,
+                'power_mva'         => 30.0,
+                'power_mva_2'       => 40.0,
+                'power_mva_3'       => 50.0,
+                'phases'            => 3,
+                'manufacture_year'  => 2005,
+                // La locación tiene que ser del MISMO cliente dueño del equipo:
+                // una de otro cliente no sería un hueco menos, sería un dato falso
+                // impreso en el informe.
+                'customer_location_id' => \App\Models\CustomerLocation::withoutGlobalScopes()
+                    ->where('customer_id', $cliente->id)->orderBy('id')->value('id'),
+                'brand_id' => \App\Models\Brand::withoutGlobalScopes()->orderBy('id')->value('id'),
+                'transformer_preservation_id' => \App\Models\TransformerPreservation::withoutGlobalScopes()
+                    ->orderBy('id')->value('id'),
+                'tap_changer_type_id' => \App\Models\TapChangerType::withoutGlobalScopes()
+                    ->orderBy('id')->value('id'),
+                'oil_brand'       => 'Nynas',
+                'oil_volume'      => 12500,
+                'oil_volume_unit' => 'L',
+                'service_state'   => 'in_service',
+                'is_active'       => true,
+            ],
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // El informe
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * El informe de la muestra, emitido.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ EMITIDO Y NO EN BORRADOR                                     │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Emitido es el estado en que el papel existe de verdad: tiene correlativo
+     * (`REP-LAB-año-NNNN`, que es lo que sale impreso en la cabecera), tiene
+     * código de verificación —así el portal público `/verify/{code}` encuentra
+     * algo— y muestra el candado en la lista. Un borrador no tiene número, y el
+     * informe saldría rotulado con el código de la muestra.
+     *
+     * Para iterar sobre la maqueta del PDF sin re-sembrar está la VISTA PREVIA
+     * desde la muestra, que se renderiza en vivo. El informe emitido imprime
+     * desde su snapshot a propósito: reimprimirlo dentro de dos años tiene que
+     * dar el mismo papel.
+     *
+     * Se emite por `SampleReportService`, la misma vía que la pantalla: si mañana
+     * emitir implica un paso más, la demostración lo hereda en vez de quedar con
+     * datos que el sistema real no podría producir.
+     */
+    private function informe(Sample $muestra, User $analista): ?\App\Models\SampleReport
+    {
+        // Idempotente: volver a correr el seed no emite un segundo correlativo.
+        if ($muestra->reports()->exists()) {
+            return $muestra->reports()->first();
+        }
+
+        $servicio = app(\App\Services\Lab\SampleReportService::class);
+
+        $informe = $servicio->create($muestra, [
+            'sampling_reason' => $muestra->sampling_reason,
+        ], $analista->id);
+
+        $servicio->issue($informe->fresh(), $analista->id);
+
+        return $informe->fresh();
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -217,17 +327,21 @@ class LabFullReportSeeder extends Seeder
             return $existente->samples()->first();
         }
 
-        $equipo = Equipment::withoutGlobalScopes()
-            ->where('tenant_id', self::TENANT_ID)
-            ->whereNotNull('oil_type_id')
-            ->orderBy('id')
-            ->first();
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ EL EQUIPO SE SIEMBRA ACÁ, NO SE TOMA PRESTADO                     │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Este sembrador buscaba el primer equipo con tipo de aceite y avisaba
+        // "corra primero LabDemoWorksheetsSeeder". Al pasar a ser el ÚNICO
+        // registro del seed base, esa dependencia lo dejaba sin hacer nada: el
+        // seed terminaba con el catálogo completo y cero muestras.
+        //
+        // El equipo tiene que declarar tipo de aceite, tipo de equipo y clase de
+        // tensión: de esos tres datos depende QUÉ cuadro de límites le toca, y sin
+        // cuadro el informe saldría entero en raya y no serviría para ver nada.
+        $equipo = $this->equipo();
 
         if (! $equipo) {
-            $this->command?->warn(
-                'No hay equipos con tipo de aceite en el workspace 1. Corra primero '
-                . '`php artisan db:seed --class=LabDemoWorksheetsSeeder`.'
-            );
+            $this->command?->warn('No hay clientes en el workspace 1; se omite el informe completo.');
 
             return null;
         }

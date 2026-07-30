@@ -337,6 +337,11 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('samples/{sample}/reports', [SampleReportController::class, 'store'])->name('sample_reports.store');
         Route::put('reports/{report}', [SampleReportController::class, 'update'])->name('sample_reports.update');
         Route::post('reports/{report}/issue', [SampleReportController::class, 'issue'])->name('sample_reports.issue');
+        // El candado al revés: el informe emitido vuelve a borrador para
+        // corregirlo. La ruta va con `receptions.edit` y el CONTROLADOR exige
+        // además admin o super — emitir es el trabajo del día, desbloquear es
+        // admitir que salió un papel con un error.
+        Route::post('reports/{report}/unissue', [SampleReportController::class, 'unissue'])->name('sample_reports.unissue');
         Route::post('reports/{report}/autodiagnose', [SampleReportController::class, 'autodiagnose'])->name('sample_reports.autodiagnose');
         Route::put('reports/{report}/analysis', [SampleReportController::class, 'saveAnalysis'])->name('sample_reports.analysis.save');
     });

@@ -459,6 +459,45 @@ class SampleReportController extends Controller
     }
 
     /**
+     * Desbloquear un informe emitido para poder corregirlo.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ QUIÉN PUEDE, Y POR QUÉ NO CUALQUIERA                                 │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * `receptions.edit` alcanza para emitir; para DESbloquear se pide además
+     * admin o super. No es lo mismo: emitir es el trabajo del día, desbloquear es
+     * admitir que salió un papel con un error y decidir corregirlo. En el sistema
+     * anterior las dos acciones estaban bajo el mismo permiso (el 42), así que
+     * cualquiera que pudiera cargar un informe podía desbloquear uno entregado.
+     *
+     * El motivo es obligatorio. Un informe que salió y volvió es exactamente lo
+     * que una auditoría pregunta, y "se desbloqueó" sin más no es una respuesta.
+     */
+    public function unissue(Request $request, SampleReport $report): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole(['super', 'admin']), 403);
+
+        $datos = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'reason.required' => __('sample_reports.unissue_reason_required'),
+            'reason.min'      => __('sample_reports.unissue_reason_required'),
+        ]);
+
+        $hecho = $this->service->unissue($report, $request->user()?->id, $datos['reason'], [
+            'url'        => $request->fullUrl(),
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 500),
+        ]);
+
+        if (! $hecho) {
+            return back()->withErrors(['status' => __('sample_reports.not_issued')]);
+        }
+
+        return back()->with('success', __('sample_reports.unissued', ['code' => $report->code]));
+    }
+
+    /**
      * Dar de baja un informe.
      *
      * Un informe EMITIDO no se borra ni siquiera acá: el cliente tiene un papel

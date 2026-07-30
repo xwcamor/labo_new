@@ -124,6 +124,14 @@ class SetupProjectCommand extends Command
                 ? \Illuminate\Support\Facades\DB::table('results')->where('spec_status', 'out_of_spec')->count() : 0, ''],
             ['   sin criterio',          \Illuminate\Support\Facades\Schema::hasTable('results')
                 ? \Illuminate\Support\Facades\DB::table('results')->whereNull('spec_status')->count() : 0, ''],
+            // El informe es el PRODUCTO del laboratorio y lo que el seed base
+            // existe para poder abrir. No estaba en el resumen, así que había que
+            // ir a buscarlo a la ficha de la entrega para saber si se había
+            // emitido.
+            ['Informes emitidos',        \Illuminate\Support\Facades\Schema::hasTable('sample_reports')
+                ? \Illuminate\Support\Facades\DB::table('sample_reports')
+                    ->where('status', 'issued')->whereNull('deleted_at')->count() : 0,
+                '/lab_management/reports'],
             ['Cartas de control',        $cuenta('qc_charts'),        '/lab_management/qc_charts'],
         ];
 
@@ -139,9 +147,36 @@ class SetupProjectCommand extends Command
             $this->line(sprintf('    %s <fg=%s>%6d</>  %s', $etiqueta, $color, $total, $ruta));
         }
 
+        // Qué registro es, con nombre y apellido: el seed base deja UNO y la
+        // gracia es poder abrir su informe sin buscarlo.
+        if (\Illuminate\Support\Facades\Schema::hasTable('sample_reports')) {
+            $informe = \Illuminate\Support\Facades\DB::table('sample_reports')
+                ->join('samples', 'samples.id', '=', 'sample_reports.sample_id')
+                ->join('receptions', 'receptions.id', '=', 'samples.reception_id')
+                ->whereNull('sample_reports.deleted_at')
+                ->orderBy('sample_reports.id')
+                ->first([
+                    'sample_reports.code as informe', 'sample_reports.slug',
+                    'samples.code as muestra', 'receptions.code as entrega',
+                ]);
+
+            if ($informe) {
+                $this->line('');
+                $this->line('  <fg=cyan>El registro de demostración:</>');
+                $this->line('');
+                $this->line("    Entrega {$informe->entrega} · muestra {$informe->muestra} · informe <fg=green>{$informe->informe}</>");
+                $this->line('    Las 29 pruebas del catálogo, cargadas y validadas.');
+                $this->line('');
+                $this->line("    PDF moderno   <fg=green>/lab_management/reports/{$informe->slug}/pdf</>");
+                $this->line("    PDF clásico   <fg=green>/lab_management/reports/{$informe->slug}/pdf-clasico</>");
+            }
+        }
+
         $this->line('');
         $this->line('  Los equipos y las mediciones son de DEMOSTRACIÓN. Para sacarlos sin');
         $this->line('  perder lo demás: <fg=green>php artisan lab:demo --limpiar</>');
+        $this->line('  Para la demostración GRANDE (6 equipos, 37 muestras, 31 informes):');
+        $this->line('  <fg=green>php artisan db:seed --class=LabDemoWorksheetsSeeder</>');
     }
 
     private function recreateMysql(array $cfg): void

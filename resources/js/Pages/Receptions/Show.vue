@@ -66,12 +66,24 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const { can, canSeeAudit } = useAuth();
+const { can, hasRole, canSeeAudit } = useAuth();
 const page = usePage();
 
 const isDraft = computed(() => props.reception.status === 'draft');
 const canEdit   = computed(() => can('receptions.edit'));
 const canDelete = computed(() => can('receptions.delete'));
+
+/**
+ * Dar de baja UNA MUESTRA: solo admin y super, y no alcanza el permiso del
+ * módulo.
+ *
+ * La baja se lleva los resultados y QUEMA el correlativo —ese número no se
+ * reasigna nunca—, así que no es una corrección de carga: es una decisión sobre
+ * el registro del laboratorio. `receptions.delete` lo tiene quien recibe las
+ * muestras, que es justamente quien no debería poder borrarlas. La ruta está
+ * gateada igual del lado del servidor (`role:super|admin`).
+ */
+const canDeleteSample = computed(() => hasRole('super', 'admin'));
 
 const title = computed(
     () => props.reception.code || `${t('receptions.singular')} #${props.reception.id}`,
@@ -465,7 +477,7 @@ const reportColumns = computed(() => [
                                  el tooltip dice por qué: el papel ya está en
                                  manos del cliente. -->
                             <Tooltip
-                                v-if="canEdit"
+                                v-if="canDeleteSample"
                                 :title="puedeBorrar(record)
                                     ? $t('receptions.delete_sample')
                                     : $t('receptions.delete_blocked.issued_report', { code: record.code })"

@@ -31,7 +31,10 @@ import { computed } from 'vue';
 import { Tooltip } from 'ant-design-vue';
 import { useI18n } from '@/Plugins/i18n';
 
-const { t } = useI18n();
+// `tc` para la cuenta de ensayos: la cadena viene pluralizada al estilo Laravel
+// ("{1} Falta 1 ensayo|[2,*] Faltan :count ensayos") y con `t` saldría con los
+// separadores crudos.
+const { t, tc } = useI18n();
 
 const props = defineProps({
     // { pedidas, pendientes, en_proceso, validadas, informadas } o null.
@@ -75,6 +78,27 @@ const detalle = computed(() => [
 
 const tooltip = computed(() =>
     `${t('receptions.stage_' + stage.value)}${detalle.value ? ' — ' + detalle.value : ''}`);
+
+/**
+ * QUÉ FALTA, en palabras y a la vista.
+ *
+ * La barra decía "5/6" y nada más: eso es una cuenta, no una instrucción. Con
+ * "5/6" hay que abrir la fila para averiguar si falta un ensayo o si ya está
+ * todo ensayado y lo que falta es emitir el informe — y son dos trabajos de dos
+ * personas distintas. El rótulo lo dice sin abrir nada, y el tooltip sigue
+ * teniendo el desglose por estado.
+ */
+const falta = computed(() => {
+    const pendientes = total.value - done.value;
+
+    return {
+        none:            t('receptions.no_tests'),
+        not_started:     t('receptions.missing_load'),
+        in_progress:     tc('receptions.missing_tests_n', pendientes),
+        awaiting_report: t('receptions.missing_report'),
+        reported:        t('receptions.stage_reported'),
+    }[stage.value];
+});
 </script>
 
 <template>
@@ -95,8 +119,13 @@ const tooltip = computed(() =>
                     :style="{ width: `${fill}%` }"
                 />
             </div>
-            <span class="rc-progress__count" :class="`rc-progress__count--${stage}`">
-                {{ done }}/{{ total }}
+            <span class="rc-progress__txt">
+                <span class="rc-progress__count" :class="`rc-progress__count--${stage}`">
+                    {{ done }}/{{ total }}
+                </span>
+                <span class="rc-progress__falta" :class="`rc-progress__falta--${stage}`">
+                    {{ falta }}
+                </span>
             </span>
         </div>
     </Tooltip>
@@ -130,11 +159,20 @@ const tooltip = computed(() =>
 .rc-progress__fill--awaiting_report{ background: #f5b50a; }
 .rc-progress__fill--reported       { background: #52c41a; }
 
+.rc-progress__txt { flex-shrink: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .rc-progress__count {
-    flex-shrink: 0;
     font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
     color: var(--color-text-muted);
 }
 .rc-progress__count--not_started { color: #c8281d; font-weight: 600; }
+
+/* Lo que falta, en el color de su etapa: es lo que se lee de un barrido por la
+   columna. Verde no es "falta" nada, así que va en gris — el ojo tiene que
+   engancharse en lo que hay que hacer, no en lo que ya está. */
+.rc-progress__falta { font-size: 0.7rem; white-space: nowrap; }
+.rc-progress__falta--not_started     { color: #c8281d; font-weight: 600; }
+.rc-progress__falta--in_progress     { color: #d46b08; }
+.rc-progress__falta--awaiting_report { color: #ad8b00; font-weight: 600; }
+.rc-progress__falta--reported        { color: var(--color-text-muted); }
 </style>

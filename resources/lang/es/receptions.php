@@ -105,6 +105,13 @@ return [
     'stage_in_progress'     => 'Ensayos en curso',
     'stage_awaiting_report' => 'Ensayada — falta emitir el informe',
     'stage_reported'        => 'Informada',
+    // Lo que falta, en palabras, al lado de la barra. La cuenta ("5/6") dice
+    // cuánto, no QUÉ: con 5 de 6 hay que abrir la fila para saber si falta un
+    // ensayo o si ya está todo ensayado y lo que falta es emitir el informe, y
+    // son dos trabajos de dos personas distintas.
+    'missing_load'          => 'Sin cargar',
+    'missing_tests_n'       => '{1} Falta 1 ensayo|[2,*] Faltan :count ensayos',
+    'missing_report'        => 'Falta el informe',
 
     'prog_equipment'         => 'Equipo',
     'prog_equipment_pending' => ':count muestra(s) todavia sin equipo enlazado. Su resultado se informa igual; lo que falta es la tendencia por equipo y los limites por clase de tension. Si la muestra viene de un cilindro o un envase suelto, no hay nada que enlazar.',

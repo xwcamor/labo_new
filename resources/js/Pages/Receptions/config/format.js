@@ -41,9 +41,19 @@ export const statusColor = (status) => ({
     cancelled: 'default',
 }[status] ?? 'default');
 
-/** Color del estado de una prueba pedida. Mismo criterio. */
+/**
+ * Color del estado de una prueba pedida.
+ *
+ * PENDIENTE va en ROJO, no en gris. El gris se lee como "no aplica" y se pierde
+ * entre las verdes: una prueba pedida y sin cargar es lo único de esa lista que
+ * le falta trabajo, así que es lo único que tiene que resaltar. Es la misma
+ * lógica del semáforo de avance de la fila.
+ *
+ * DADA DE BAJA sí queda en gris: existe —el laboratorio responde por ella— pero
+ * ya no se espera nada de ella.
+ */
 export const testStatusColor = (status) => ({
-    pending:     'default',
+    pending:     'red',
     in_progress: 'blue',
     validated:   'green',
     reported:    'purple',

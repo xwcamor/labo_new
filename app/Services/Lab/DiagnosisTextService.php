@@ -73,6 +73,15 @@ class DiagnosisTextService
      */
     private const IDIOMA_PLANTILLAS = 'es';
 
+    /**
+     * Marca interna de "este hueco quedó sin nada".
+     *
+     * No es un texto que se imprima: es una señal para que
+     * `quitarFrasesVacias()` descarte la frase entera. Un carácter de control,
+     * para que no pueda aparecer nunca en una plantilla escrita por una persona.
+     */
+    private const VACIO = "\x00vacio\x00";
+
     /** @var array<int,array<string,mixed>>|null */
     private ?array $plantillas = null;
 
@@ -245,6 +254,12 @@ class DiagnosisTextService
             '{norm}'          => $this->norma($resultados),
             '{count}'         => (string) $senalados->count(),
         ]);
+
+        $cuerpo = $this->quitarFrasesVacias($cuerpo);
+
+        if ($cuerpo === '') {
+            return null;
+        }
 
         return $this->reemplazarValores($cuerpo, $resultados, $medido);
     }
@@ -480,7 +495,7 @@ class DiagnosisTextService
         $partes = $partes->filter()->unique()->values();
 
         if ($partes->isEmpty()) {
-            return '—';
+            return self::VACIO;
         }
 
         if ($partes->count() === 1) {
@@ -509,7 +524,38 @@ class DiagnosisTextService
      */
     private function norma(Collection $resultados): string
     {
-        return (string) ($resultados->pluck('spec_source')->filter()->first() ?? '—');
+        return (string) ($resultados->pluck('spec_source')->filter()->first() ?? self::VACIO);
+    }
+
+    /**
+     * Borra las frases que quedaron hablando de la nada.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ NO ALCANZA CON PONER UNA RAYA                                │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Cuando la lista de un hueco queda vacía, poner "—" produce una frase que
+     * AFIRMA algo sobre nada: en el informe de una muestra donde ningún
+     * fisicoquímico tenía criterio de aceptación salió impreso "Los resultados
+     * obtenidos de las pruebas de — están dentro de los valores sugeridos por la
+     * Norma IEEE C57.106-2015". Eso no es un hueco cosmético: es una conformidad
+     * declarada sobre parámetros que nadie comparó contra nada, en un papel
+     * firmado.
+     *
+     * Los cuerpos de las plantillas son una frase por línea, así que la línea
+     * que quedó con un hueco vacío se descarta entera. Si se descartan todas, la
+     * familia queda SIN texto —y el informe lo dice— en vez de con una frase a
+     * medias.
+     */
+    private function quitarFrasesVacias(string $cuerpo): string
+    {
+        $lineas = preg_split('/\R/', $cuerpo) ?: [];
+
+        $lineas = array_filter(
+            $lineas,
+            fn (string $linea) => ! str_contains($linea, self::VACIO),
+        );
+
+        return trim(implode("\n", $lineas));
     }
 
     /**

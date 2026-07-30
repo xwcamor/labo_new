@@ -65,10 +65,18 @@
 
 {{-- El pie va en TODAS las páginas: es footer de wkhtmltopdf en el original. --}}
 <div class="foot">
+    {{-- Los tres del pie salen del WORKSPACE, no del código: el descargo
+         legal (`tenants.report_disclaimer`), el nombre y la dirección. Estaban
+         clavados con los datos de Hitachi, y esta plantilla dejó de ser solo
+         una reproducción para comparar: es una exportación que el laboratorio
+         ofrece, así que un papel de otro laboratorio no puede salir diciendo
+         el nombre y la dirección de otra empresa. Vacío no imprime nada. --}}
     <div class="legal">{{ $legal }}</div>
-    <div class="company">HITACHI ENERGY PERÚ SA</div>
+    @if ($empresa)
+        <div class="company">{{ \Illuminate\Support\Str::upper($empresa) }}</div>
+    @endif
     <table class="addr"><tr>
-        <td style="width:70%">Calle Kapalla Mz. B Lote 5-6 de Urbanización Las Praderas de Lurín-Lurín-Lima</td>
+        <td style="width:70%">{{ $direccion }}</td>
         <td class="r"></td>
     </tr></table>
 </div>
@@ -193,8 +201,13 @@
             <div>(NA) No Acreditado</div>
         @endif
 
-        @if ($pagina['anab'])
-            <div class="legend" style="margin-top:6px">{{ $acreditacion['es'] }}<br>{{ $acreditacion['en'] }}</div>
+        {{-- El párrafo de la acreditación también es del workspace: el número
+             de certificado vence y otro laboratorio se acredita con otro
+             organismo. Sin el dato cargado no se imprime nada — insinuar una
+             acreditación que el laboratorio no tiene es lo peor que puede hacer
+             este papel. --}}
+        @if ($pagina['anab'] && $acreditacion)
+            <div class="legend" style="margin-top:6px">{{ $acreditacion }}</div>
         @endif
 
         @if (! empty($pagina['relaciones']))

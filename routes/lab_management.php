@@ -338,8 +338,22 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     Route::middleware('permission:receptions.delete')->group(function () {
         Route::delete('receptions/{reception}', [ReceptionController::class, 'destroy'])->name('receptions.destroy');
         Route::delete('reports/{report}', [SampleReportController::class, 'destroy'])->name('sample_reports.destroy');
-        // Una muestra con informe EMITIDO no se borra, ni siquiera acá: el
-        // cliente tiene un papel que cita ese número.
+    });
+
+    /*
+     * Dar de baja UNA MUESTRA: solo admin y super.
+     *
+     * No alcanza con el permiso `receptions.delete`. Una muestra dada de baja se
+     * lleva sus resultados y QUEMA su correlativo —ese número no se reasigna
+     * nunca—, así que no es una corrección de carga: es una decisión sobre el
+     * registro del laboratorio. El permiso de módulo lo tiene quien recibe las
+     * muestras, que es justamente quien no debería poder borrarlas.
+     *
+     * Y una muestra con informe EMITIDO no se borra ni siquiera acá: el cliente
+     * tiene un papel que cita ese número (el candado está en el controlador y
+     * alcanza también al super).
+     */
+    Route::middleware('role:super|admin')->group(function () {
         Route::delete('receptions/{reception}/samples/{sample}', [ReceptionController::class, 'destroySample'])->name('receptions.samples.destroy');
     });
 

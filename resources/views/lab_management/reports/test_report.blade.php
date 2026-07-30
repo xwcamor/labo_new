@@ -408,8 +408,13 @@
     // membrete —lo cual ya pasaba con una tabla larga en el formato anterior—,
     // pero con el tope no llega a ese caso. La primera página lleva mucho menos
     // porque arriba tiene las fichas del cliente y del equipo.
-    $TOPE_PRIMERA = 9;
-    $TOPE_RESTO   = 24;
+    // Medido sobre el informe de las 29 pruebas: con 24 la hoja se desbordaba y
+    // dompdf mandaba las notas al pie SOLAS a la hoja siguiente, que salía en
+    // blanco con tres renglones arriba. El nombre del ensayo puede ocupar dos
+    // líneas y la banda de condiciones seis columnas, así que una "fila" del
+    // presupuesto vale menos de lo que parecía.
+    $TOPE_PRIMERA = 8;
+    $TOPE_RESTO   = 17;
 
     $paginas = [];
     $grupo = null;
@@ -417,7 +422,9 @@
 
     foreach ($sections as $seccion) {
         $acreditada = (bool) ($seccion['accredited'] ?? false);
-        $filas = count($seccion['rows'] ?? []) + 2;   // +2: el título y la banda de condiciones
+        // +3: el título del ensayo (que puede partirse en dos líneas) y la banda
+        // de condiciones, que es tan alta como dos filas de la tabla.
+        $filas = count($seccion['rows'] ?? []) + 3;
         $tope = $paginas === [] ? $TOPE_PRIMERA : $TOPE_RESTO;
 
         $cambiaAcreditacion = $grupo !== null && $grupo['accredited'] !== $acreditada;

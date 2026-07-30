@@ -69,6 +69,22 @@ class LegacyReportRenderer
      *                     de ahí salen las normas de método y el análisis, para
      *                     que las dos plantillas digan lo mismo.
      */
+    /**
+     * ¿Se está reproduciendo el papel viejo para compararlo?
+     *
+     * Solo en ese caso se cae a los logos del sistema anterior cuando el
+     * workspace no tiene los suyos: la comparación existe para ver el original.
+     * En la exportación normal, sin logo cargado no se dibuja ninguno.
+     */
+    private bool $comparacion = false;
+
+    public function paraComparacion(bool $si = true): static
+    {
+        $this->comparacion = $si;
+
+        return $this;
+    }
+
     public function render(Sample $muestra, array $datos, ?string $numero = null): string
     {
         $muestra->loadMissing(['reception.customer', 'reception.sampler', 'equipment.equipmentType',
@@ -112,8 +128,23 @@ class LegacyReportRenderer
             // Los logos SON los del sistema viejo: están en su carpeta de
             // assets y se copian a `storage/app/legacy-assets`. Un recuadro con
             // la palabra "ANAB" no sirve en un papel que sale a un cliente.
-            'logo'    => $this->imagenLegado('hitachi_logo_new.png', 140, 70),
-            'anab'    => $this->imagenLegado('anab_logo.png', 100, 90),
+            // El membrete y el sello son DATOS DEL WORKSPACE, no archivos con
+            // nombre fijo. Esta plantilla empezó como reproducción del papel
+            // viejo y hoy es una exportación que el laboratorio ofrece: si
+            // imprimiera el logo y el nombre de Hitachi, cualquier otro
+            // laboratorio que la use estaría emitiendo un papel que dice ser de
+            // otra empresa. Sin logo cargado no se dibuja ninguno — nunca el de
+            // otro. El del sistema viejo queda de respaldo SOLO para la
+            // comparación (`report:compare`), que es donde reproducir el
+            // original es el objetivo.
+            'logo'    => $this->imagen($tenant?->logo, 140, 70)
+                ?? ($this->comparacion ? $this->imagenLegado('hitachi_logo_new.png', 140, 70) : ''),
+            'anab'    => $this->imagen($tenant?->accreditation_logo, 100, 90)
+                ?? ($this->comparacion ? $this->imagenLegado('anab_logo.png', 100, 90) : ''),
+            // Los tres textos del pie: nombre, dirección y descargo legal. Los
+            // tres estaban clavados con los datos de Hitachi.
+            'empresa'   => $tenant?->name ?? '',
+            'direccion' => $tenant?->address ?? '',
             'cli' => [
                 'nombre'      => $re?->customer?->name ?? '',
                 'direccion'   => $re?->customer?->address ?? '',
@@ -149,11 +180,17 @@ class LegacyReportRenderer
                 'temp_ambiente' => $muestra->ambient_temp_c,
                 'humedad'      => $muestra->relative_humidity,
             ],
-            'acreditacion' => [
-                'es' => 'Esta prueba está acreditada bajo la acreditación del laboratorio ISO/IEC 17025 emitida por la Junta Nacional de Acreditación ANSI-ASQ. Consulte el certificado y el alcance de la acreditación AT-2596.',
-                'en' => 'This test is accredited under the laboratory\'s ISO/IEC 17025 accreditation issued by the ANSI-ASQ National Accreditation Board. Refer to certificate and scope of accreditation AT-2596.',
-            ],
-            'legal' => 'Los resultados obtenidos en este reporte solo corresponden a las muestras analizadas bajo las condiciones de ensayo. Cuando la muestra es proporcionada por el cliente interno o externo los resultados se aplican a la muestra como se recibio. Hitachi Energy Perú S.A. Cuando la muestra es proporcionada por el cliente interno o externo los resultados se aplican a la muestra como se recibio. Hitachi Energy Perú S.A. no se responsabiliza cuando algun componente de este informe ha sido proporcionado por el cliente y tampoco por el uso inadecuado de este documento. Hitachi Energy Perú S.A. no hace ninguna garantía o representación expresa o implícita en cuanto a condición, productividad o correcto funcionamiento de cualquier equipo u otros bienes que pueda ser objeto de este informe o depender de ella para la razón que sea. Se prohíbe la reproducción total o parcial de este documento sin autorización previa escrita. Los resultados de los ensayos no deben ser utilizados como una certificación de conformidad o como un certificado del sistema de calidad. Los análisis, opiniones o interpretaciones contenidas en este informe se basan en el material recolectado y representan el mejor juicio de Hitachi Energy Perú S.A. y no son refrendadas por el ente acreditador',
+            // El párrafo de la acreditación (organismo, certificado y alcance)
+            // también es del workspace: el número de certificado vence y otro
+            // laboratorio se acredita con otro organismo. Vacío no imprime nada
+            // — un laboratorio sin acreditar no puede emitir un papel que
+            // insinúe que sí.
+            'acreditacion' => $tenant?->accreditation_note ?? '',
+            // El descargo legal es del workspace (`tenants.report_disclaimer`),
+            // editable en "Mi workspace". Estaba clavado acá con el texto de
+            // Hitachi —repetición incluida—: eso servía para la comparación y
+            // no para un papel que sale a un cliente de otro laboratorio.
+            'legal' => $tenant?->report_disclaimer ?? '',
             'firmantes' => $this->firmantes($tenant?->id),
         ])->setPaper('a4');
 
@@ -429,6 +466,26 @@ class LegacyReportRenderer
      * acredita. Si el archivo no está, se devuelve el rótulo entre corchetes
      * para que la hoja siga siendo legible y quede claro que falta.
      */
+    /** Una imagen del workspace (disco público) como `<img>` embebido. */
+    private function imagen(?string $ruta, int $ancho, int $alto): ?string
+    {
+        if (! $ruta) {
+            return null;
+        }
+
+        $absoluta = \Illuminate\Support\Facades\Storage::disk('public')->path($ruta);
+
+        if (! is_file($absoluta)) {
+            return null;
+        }
+
+        $tipo = mime_content_type($absoluta) ?: 'image/png';
+
+        return '<img src="data:' . $tipo . ';base64,'
+            . base64_encode((string) file_get_contents($absoluta))
+            . '" width="' . $ancho . '" height="' . $alto . '">';
+    }
+
     private function imagenLegado(string $archivo, int $ancho, int $alto): string
     {
         $ruta = storage_path('app/legacy-assets/' . $archivo);

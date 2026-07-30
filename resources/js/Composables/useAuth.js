@@ -22,9 +22,10 @@ export function useAuth() {
 
     const isSuper = computed(() => roles.value.includes('super'));
 
-    const canSeeAudit = computed(() =>
-        roles.value.includes('super') || roles.value.includes('admin'),
-    );
+    /** ¿Tiene alguno de estos roles? Espeja el middleware `role:a|b`. */
+    const hasRole = (...names) => names.some((name) => roles.value.includes(name));
+
+    const canSeeAudit = computed(() => hasRole('super', 'admin'));
 
     // Usuario acotado a su cartera (customer_user): solo-lectura en Clientes.
     // El front lo usa para esconder crear/duplicar de cliente (coherente con el
@@ -33,5 +34,5 @@ export function useAuth() {
         !!page.props.auth?.user?.is_customer_restricted,
     );
 
-    return { can, isSuper, canSeeAudit, isCustomerRestricted };
+    return { can, hasRole, isSuper, canSeeAudit, isCustomerRestricted };
 }

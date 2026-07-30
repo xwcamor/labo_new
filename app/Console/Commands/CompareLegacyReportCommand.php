@@ -217,6 +217,12 @@ class CompareLegacyReportCommand extends Command
      */
     private function renderViejo(Sample $muestra, array $datos): string
     {
-        return app(\App\Services\Lab\LegacyReportRenderer::class)->render($muestra, $datos);
+        // En modo COMPARACIÓN sí se cae a los logos del sistema viejo cuando el
+        // workspace no tiene los suyos: acá el objetivo es ver el papel original
+        // al lado del nuevo. En la exportación normal, sin logo cargado no se
+        // dibuja ninguno — nunca el de otra empresa.
+        return app(\App\Services\Lab\LegacyReportRenderer::class)
+            ->paraComparacion()
+            ->render($muestra, $datos);
     }
 }

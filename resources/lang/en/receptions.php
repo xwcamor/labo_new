@@ -83,6 +83,9 @@ return [
     'stage_in_progress'     => 'Testing in progress',
     'stage_awaiting_report' => 'Tested — report pending',
     'stage_reported'        => 'Reported',
+    'missing_load'          => 'Not loaded',
+    'missing_tests_n'       => '{1} 1 test to go|[2,*] :count tests to go',
+    'missing_report'        => 'Report pending',
 
     'prog_equipment'         => 'Equipment',
     'prog_equipment_pending' => ':count sample(s) not linked to equipment yet. Their results are reported anyway; what is missing is the per-equipment trend and the voltage-class limits. If the sample comes from a drum or a loose container, there is nothing to link.',

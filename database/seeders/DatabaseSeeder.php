@@ -145,6 +145,12 @@ class DatabaseSeeder extends Seeder
             LabStandardsSeeder::class,
             LabSpecSetsSeeder::class,
 
+            // Las plantillas del analisis de resultados como filas editables: el
+            // JSON del repositorio pasa a ser el valor de FABRICA y la base
+            // manda. Refresca las globales en cada corrida y nunca pisa la
+            // redaccion propia de un laboratorio.
+            DiagnosisTemplatesSeeder::class,
+
             // ── Clientes reales (los activos del sistema viejo) en Empresa 1. ─
             CustomersSeeder::class,
 

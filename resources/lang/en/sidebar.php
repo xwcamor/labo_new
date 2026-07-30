@@ -70,4 +70,5 @@ return [
     // Tooltips
     'coming_soon'        => 'Coming soon',
     'report_shares'      => 'Report shares',
+    'diagnosis_templates' => 'Analysis templates',
 ];

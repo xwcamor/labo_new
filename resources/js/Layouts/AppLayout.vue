@@ -73,6 +73,7 @@ import {
     HighlightOutlined,
     FundOutlined,
     DotChartOutlined,
+    FileTextOutlined,
 } from '@ant-design/icons-vue';
 
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
@@ -704,6 +705,16 @@ const menuStructure = computed(() => [
                 key: 'qc_charts', label: t('sidebar.qc_charts'), icon: DotChartOutlined,
                 href: route('lab_management.qc_charts.index'), inertia: true,
                 visible: () => can('qc_charts.view'),
+            },
+            // ── La redacción del informe ──
+            // Va junto al control de calidad y no con los catálogos: no es un
+            // dato de negocio, es el texto que el laboratorio firma. Solo el
+            // super y el admin lo editan, así que se muestra por ROL y no por
+            // permiso de módulo.
+            {
+                key: 'diagnosis_templates', label: t('sidebar.diagnosis_templates'), icon: FileTextOutlined,
+                href: route('lab_management.diagnosis_templates.index'), inertia: true,
+                visible: () => hasRole('super', 'admin'),
             },
             // ── Plantillas de ensayo ──
             // El GRUPO va antes que las pruebas: una prueba se crea dentro de

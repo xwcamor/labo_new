@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LabManagement\DiagnosisTemplateController;
 use App\Http\Controllers\LabManagement\TestDefinitionController;
 use App\Http\Controllers\LabManagement\TestFieldController;
 use App\Http\Controllers\LabManagement\TestGroupController;
@@ -371,5 +372,22 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
 
     Route::middleware('permission:qc_charts.delete')->group(function () {
         Route::delete('qc_charts/{qc_chart}', [QcChartController::class, 'destroy'])->name('qc_charts.destroy');
+    });
+    /*
+    |----------------------------------------------------------------------
+    | Plantillas del análisis de resultados
+    |----------------------------------------------------------------------
+    | El párrafo que el informe imprime por familia de ensayo. Va acá y no en
+    | un módulo de catálogo porque no es un dato de negocio: es la REDACCIÓN
+    | que el laboratorio firma, y su edición es del super (el estándar) o del
+    | admin del workspace (su personalización, por copia al escribir).
+    |
+    | `role:super|admin` y no un permiso de módulo: el mismo criterio que el
+    | editor de reglas de diagnóstico, porque no se delega a un perfil.
+    */
+    Route::middleware('role:super|admin')->group(function () {
+        Route::get('diagnosis_templates', [DiagnosisTemplateController::class, 'index'])->name('diagnosis_templates.index');
+        Route::put('diagnosis_templates/{diagnosis_template}', [DiagnosisTemplateController::class, 'update'])->name('diagnosis_templates.update');
+        Route::post('diagnosis_templates/{diagnosis_template}/restore', [DiagnosisTemplateController::class, 'restore'])->name('diagnosis_templates.restore');
     });
 });

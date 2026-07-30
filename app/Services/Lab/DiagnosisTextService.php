@@ -513,6 +513,21 @@ class DiagnosisTextService
     }
 
     /**
+     * Las plantillas con las que se redacta el análisis.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ LA BASE MANDA; EL ARCHIVO ES EL VALOR DE FÁBRICA                     │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Primero se buscan en `diagnosis_templates`, prefiriendo las del workspace
+     * sobre las globales (`scopeForTenant`): así el laboratorio ajusta SU
+     * redacción desde la pantalla, sin un despliegue y sin tocar el estándar de
+     * los demás.
+     *
+     * Si la tabla está vacía —una instalación recién migrada, o los tests que no
+     * corren el seeder— se cae al JSON del repositorio. Eso no es un respaldo
+     * decorativo: es lo que hace que el informe nunca salga sin su análisis por
+     * un seeder que nadie corrió.
+     *
      * @return array<int,array<string,mixed>>
      */
     private function plantillas(): array
@@ -521,14 +536,78 @@ class DiagnosisTextService
             return $this->plantillas;
         }
 
+        $deLaBase = $this->plantillasDeLaBase();
+
+        return $this->plantillas = $deLaBase !== [] ? $deLaBase : $this->plantillasDeFabrica();
+    }
+
+    /**
+     * Las plantillas de la base, con la personalización del workspace pisando a
+     * la de fábrica.
+     *
+     * El descarte se hace por (familia + caso + analito): una plantilla propia
+     * reemplaza a la global de su MISMO caso, no a todas las de la familia. Si
+     * el laboratorio solo reescribió el texto de "ningún resultado fuera de
+     * norma", el resto de los casos sigue con la redacción estándar.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function plantillasDeLaBase(): array
+    {
+        if (! app()->bound('db') || ! \Illuminate\Support\Facades\Schema::hasTable('diagnosis_templates')) {
+            return [];
+        }
+
+        $tenantId = auth()->user()?->tenant_id;
+
+        // `withoutGlobalScopes` porque el resolvedor tiene que ver las globales
+        // (tenant nulo) además de las del workspace, y el scope del trait deja
+        // fuera unas u otras según quién esté mirando. El filtro correcto lo
+        // aplica `forTenant`, que es explícito sobre los dos casos.
+        $filas = \App\Models\DiagnosisTemplate::withoutGlobalScopes()
+            ->forTenant($tenantId)
+            ->get();
+
+        $porClave = [];
+
+        foreach ($filas as $fila) {
+            $clave = $fila->family . '|' . $fila->case . '|' . ($fila->analyte ?? '');
+
+            // La primera gana: `forTenant` ya ordenó las del workspace antes.
+            if (array_key_exists($clave, $porClave)) {
+                continue;
+            }
+
+            $porClave[$clave] = array_filter([
+                'family'          => $fila->family,
+                'case'            => $fila->case,
+                'oil_types'       => $fila->oil_types ?? [],
+                'equipment_types' => $fila->equipment_types ?? [],
+                'analyte'         => $fila->analyte,
+                'threshold'       => $fila->threshold !== null ? (float) $fila->threshold : null,
+                'bands'           => $fila->bands,
+                'body'            => $fila->body,
+            ], fn ($v) => $v !== null);
+        }
+
+        return array_values($porClave);
+    }
+
+    /**
+     * Los valores de fábrica del repositorio.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function plantillasDeFabrica(): array
+    {
         $ruta = database_path('seeders/data/diagnosis_templates.json');
 
         if (! is_file($ruta)) {
-            return $this->plantillas = [];
+            return [];
         }
 
         $datos = json_decode((string) file_get_contents($ruta), true) ?: [];
 
-        return $this->plantillas = $datos['templates'] ?? [];
+        return $datos['templates'] ?? [];
     }
 }

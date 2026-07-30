@@ -52,28 +52,44 @@ guardado en la base e inyectado en el HTML con `html_safe`: solo existía en el
 navegador, el servidor no podía recalcular nada, y quien editaba la fórmula
 editaba código que corría en la sesión de otro.
 
-## 4. Los textos del diagnóstico automático — NO TIENE PANTALLA
+## 4. Los textos del diagnóstico automático
 
-Hoy las plantillas viven en un archivo del repositorio:
-`database/seeders/data/diagnosis_templates.json`, leído por
-`app/Services/Lab/DiagnosisTextService.php:504`. Para cambiar una frase hay que
-editar ese archivo y volver a sembrar.
+**Pantalla:** `/es/lab_management/diagnosis_templates`
+**Archivo:** `resources/js/Pages/DiagnosisTemplates/Index.vue`
+**Cómo se llega:** menú lateral → Plantillas de análisis (visible al super y al
+admin del workspace).
 
-**Esto contradice el principio del proyecto** (todo lo que puede cambiar vive en
-datos, el código solo tiene fórmulas) y es el hueco más importante de esta lista:
-el texto del diagnóstico es exactamente lo que el laboratorio quiere ajustar sin
-programador, y sale impreso en el informe del cliente.
+Las 25 plantillas de las 15 familias están agrupadas por familia, porque así se
+lee el informe y así se decide: al revisar la redacción de fisicoquímico hay que
+ver juntos sus tres casos (sin nada fuera de norma, uno, varios) para que no se
+contradigan. Cada plantilla muestra su caso, si es de fábrica o personalizada, el
+texto, sus tramos por valor y de qué vista del sistema anterior salió la
+redacción original.
 
-**Lo que corresponde construir**, siguiendo el patrón que TrafoDex ya tiene para
-sus reglas de diagnóstico (tabla editable + pantalla de edición con restaurar
-valores de fábrica):
+**Quién edita qué** (copia al escribir, igual que el editor de reglas de
+TrafoDex): el SUPER edita la plantilla de fábrica, que es el estándar de todos
+los laboratorios. El ADMIN que edita una de fábrica NO la modifica: se le crea
+una copia propia con su cambio y desde ese momento su informe usa la suya.
+"Restaurar" borra esa copia y vuelve al estándar. La pantalla dice cuál de las dos
+cosas está pasando antes de que alguien escriba.
 
-1. Tabla `diagnosis_templates` con `tenant_id` nullable (null = plantilla de
-   fábrica; una fila por tenant la personaliza sin tocar el estándar).
-2. Pantalla de edición por familia, con las bandas (rangos) y el texto de cada
-   una, en los dos idiomas, con vista previa del párrafo resuelto.
-3. Botón "Restaurar" que borra el override del tenant y vuelve a la plantilla de
-   fábrica del JSON.
+Los **tramos por valor** (`bands`) son lo que en el sistema anterior eran cuatro
+`if` seguidos con los cortes escritos en el código: hoy se editan como filas
+(desde / hasta / texto). El grado de polimerización, por ejemplo, trae sus cuatro
+tramos con los cortes 700 / 450 / 250.
+
+**El archivo pasó a ser el valor de fábrica.** `diagnosis_templates.json` sigue
+en el repositorio y lo siembra `DiagnosisTemplatesSeeder`, que en cada corrida
+refresca las filas GLOBALES —así una corrección del estándar llega con el
+despliegue— y **nunca toca una fila con `tenant_id`**, que es la redacción propia
+de un laboratorio. Si la tabla está vacía, el motor cae al archivo: el informe no
+puede quedarse sin su análisis por un seeder que nadie corrió.
+
+Fijado por `tests/Feature/Lab/DiagnosisTemplateEditorTest.php` (7 pruebas): el
+super escribe sobre el estándar, el admin obtiene su copia sin tocarlo, la copia
+gana al redactar, restaurar la borra, la de fábrica no se restaura, y una
+plantilla sin texto ni tramos se rechaza (dejaría esa familia sin párrafo en el
+informe).
 
 ## 5. La tensión en kV y la potencia en MVA con barras ("220/60/10")
 

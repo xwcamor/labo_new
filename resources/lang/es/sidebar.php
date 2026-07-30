@@ -73,4 +73,5 @@ return [
     // Tooltips
     'coming_soon'        => 'Próximamente',
     'report_shares'      => 'Envíos de informes',
+    'diagnosis_templates' => 'Plantillas de analisis',
 ];

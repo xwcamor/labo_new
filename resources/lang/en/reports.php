@@ -154,10 +154,49 @@ return [
     'analysis_title' => 'ANALYSIS OF RESULTS (opinions and interpretations)',
     'analysis_empty'  => 'No analysis recorded for this test family.',
     'analysis_edited' => 'Edited by the analyst',
+    // ── Sheet titles of the CLASSIC report ───────────────────────────────
+    // One per test family. Kept in Spanish where the laboratory prints them that
+    // way: this is the layout its customers recognise.
     'family' => [
-        'azufre_corrosivo' => 'CORROSIVE SULFUR',
-        'fisicoquimico' => 'PHYSICOCHEMICAL TESTS',
+        'fisicoquimico'            => 'PHYSICAL-CHEMICAL TESTS',
+        'analisis_cromatografico'  => 'DISSOLVED GAS ANALYSIS',
+        'pcb'                      => 'PCB TEST',
+        'furanos'                  => 'FURANS TEST',
+        'particulas'               => 'PARTICLE COUNT TEST',
+        'azufre_corrosivo'         => 'CORROSIVE SULPHUR',
+        'sedimentos'               => 'SEDIMENT TEST',
+        'metales'                  => 'METALS TEST',
+        'viscocidad'               => 'VISCOSITY',
+        'dbds'                     => 'DBDS TEST',
+        'inflamacion'              => 'FLASH POINT TEST',
+        'fluidez'                  => 'POUR POINT',
+        'inhibidor'                => 'INHIBITOR CONTENT',
+        'grado_de_polimerizacion'  => 'DEGREE OF POLYMERISATION',
+        'pasivador'                => 'PASSIVATOR CONTENT',
     ],
+
+    'legacy_col3' => [
+        'analisis_cromatografico' => 'GAS',
+        'furanos'                 => 'COMPOUND',
+        'particulas'              => 'PARTICLE SIZE',
+        'sedimentos'              => 'COMPOUND',
+        'metales'                 => 'COMPOUND',
+        'dbds'                    => 'COMPOUND',
+        'pasivador'               => 'COMPOUND',
+    ],
+
+    'legacy_technique' => [
+        'pcb'         => 'Gas chromatography',
+        'furanos'     => 'HPLC',
+        'particulas'  => 'Optical counting',
+        'sedimentos'  => 'Gravimetric',
+        'metales'     => 'ICP-AES',
+        'dbds'        => 'GC-MS',
+        'inflamacion' => 'Open cup',
+        'pasivador'   => 'HPLC',
+    ],
+
+    'legacy_note_chendong' => '(*) The degree of polymerisation is derived from the Chendong correlation on 2-furfuraldehyde.',
     'footer_legend' => 'Results apply only to the sample as received. The acceptance value is the criterion applicable to this equipment under the standard shown on each row.',
     'footer_accreditation' => '(A) accredited method · (NA) non-accredited method. The mark refers to the method actually used for this test.',
     'generated_by'  => 'Issued by: :name',

@@ -104,14 +104,35 @@ class LegacyReportRenderer
 
         $condiciones = $this->condicionesDeLaHoja($muestra);
 
-        $fiquis = $this->paginaFiquis($resultados, $normas, $condiciones);
-        if ($fiquis !== null) {
-            $paginas[] = $fiquis;
-        }
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ UNA HOJA POR FAMILIA, EN EL ORDEN DEL SISTEMA ANTERIOR            │
+        // └──────────────────────────────────────────────────────────────────┘
+        // El orden y la maqueta de cada hoja salen de `config/legacy_report.php`,
+        // no de una cadena de `if`. El sistema anterior tenía DIECISÉIS partials
+        // —uno por prueba— y este informe reproducía solo DOS: fisicoquímico y
+        // cromatografía. Las otras trece pruebas se cargaban, se validaban, se
+        // imprimían en el PDF moderno… y en el clásico no existían: el cliente
+        // que pidió furanos recibía un papel sin furanos.
+        //
+        // Esas dos siguen teniendo constructor propio: el fisicoquímico porque su
+        // orden de filas y sus rótulos son los del papel viejo y no los del
+        // catálogo, y la cromatografía por el bloque RELACIONES.
+        $porFamilia = collect($datos['sections'] ?? [])->keyBy(fn ($s) => $s['family'] ?? '');
 
-        $cromas = $this->paginaCromas($resultados, $condiciones);
-        if ($cromas !== null) {
-            $paginas[] = $cromas;
+        foreach (array_keys((array) config('legacy_report.sheets')) as $familia) {
+            $seccion = $porFamilia->get($familia);
+
+            $hoja = match ($familia) {
+                'fisicoquimico'           => $this->paginaFiquis($resultados, $normas, $condiciones),
+                'analisis_cromatografico' => $this->paginaCromas($resultados, $condiciones),
+                default => $seccion !== null
+                    ? $this->paginaGenerica($familia, $seccion, $condiciones)
+                    : null,
+            };
+
+            if ($hoja !== null) {
+                $paginas[] = $hoja;
+            }
         }
 
         $paginas[] = $this->paginaAnalisis($datos);
@@ -292,19 +313,14 @@ class LegacyReportRenderer
             return null;
         }
 
-        return [
-            'tipo' => 'ensayo', 'titulo' => 'ENSAYOS FISICO-QUIMICOS', 'col3' => 'ENSAYO',
-            'anab' => true, 'pie_celda' => true, 'filas' => $filas, 'relaciones' => null,
-            'condiciones' => [
-                '(*) Norma de referencia ' => 'IEEE C57.106-2015',
-                'Fecha de Análisis' => now()->format('d-m-Y'),
-                // Las tres condiciones estaban CLAVADAS en raya. Salen de la
-                // hoja que corrió el ensayo, que es donde se registran.
-                'Temp. de Muestra en Laboratorio' => $condiciones['sample_temp'],
-                'Temperatura Lab' => $condiciones['temp'],
-                'Humedad Relativa Lab' => $condiciones['humedad'],
-            ],
-        ];
+        return $this->hoja('fisicoquimico', $filas, [
+            'Fecha de Análisis' => now()->format('d-m-Y'),
+            // Las tres condiciones estaban CLAVADAS en raya. Salen de la hoja
+            // que corrió el ensayo, que es donde se registran.
+            'Temp. de Muestra en Laboratorio' => $condiciones['sample_temp'],
+            'Temperatura Lab' => $condiciones['temp'],
+            'Humedad Relativa Lab' => $condiciones['humedad'],
+        ]);
     }
 
     /** @param \Illuminate\Support\Collection<string,Result> $resultados */
@@ -345,10 +361,15 @@ class LegacyReportRenderer
         $n = fn (float $x) => is_nan($x) ? '0.0' : number_format($x, 2, '.', '');
         $d = fn (float $a, float $b) => $b == 0.0 ? '0.0' : number_format($a / $b, 2, '.', '');
 
-        return [
-            'tipo' => 'ensayo', 'titulo' => 'CROMATOGRÁFICO', 'col3' => 'GAS',
-            'anab' => true, 'pie_celda' => false, 'filas' => $filas,
-            'relaciones' => [
+        return $this->hoja('analisis_cromatografico', $filas, [
+            'Fecha de Análisis' => now()->format('d-m-Y'),
+            // La presión del laboratorio: era una raya CLAVADA porque no existía
+            // columna donde guardarla. Ahora sale de la hoja que corrió el
+            // ensayo, igual que la temperatura y la humedad.
+            'Presión Atmosférica Lab' => $condiciones['presion'],
+            'Temperatura Lab' => $condiciones['temp'],
+            'Humedad Relativa Lab' => $condiciones['humedad'],
+        ], [
                 'totales' => ['TG:' => $n($tg), 'TGC:' => $n($tgc), 'TGC-CO:' => $n($tgc - $v['co'])],
                 'porcentaje_total' => ['TGC(%):' => $d($tgc * 100, $tg)],
                 'ratios' => [
@@ -367,18 +388,153 @@ class LegacyReportRenderer
                     '%C2H4:' => $d($v['c2h4'] * 100, $base),
                     '%C2H2:' => $d($v['c2h2'] * 100, $base),
                 ],
-            ],
-            'condiciones' => [
-                '(*) Norma de referencia' => 'IEC 60599-2022',
-                'Fecha de Análisis' => now()->format('d-m-Y'),
-                // La presión del laboratorio: era una raya CLAVADA porque no
-                // existía columna donde guardarla. Ahora sale de la hoja que
-                // corrió el ensayo, igual que la temperatura y la humedad.
-                'Presión Atmosférica Lab' => $condiciones['presion'],
-                'Temperatura Lab' => $condiciones['temp'],
-                'Humedad Relativa Lab' => $condiciones['humedad'],
-            ],
+        ]);
+    }
+
+    /**
+     * Arma una hoja de ensayo con la maqueta que su familia declara.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ UNA TABLA, DIECISÉIS HOJAS                                           │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Todo lo que distingue una hoja de otra —qué columnas lleva, si su método
+     * está dentro del alcance acreditado, qué norma cita al pie, si lleva la
+     * leyenda del tipo de celda— sale de `config/legacy_report.php`. El sistema
+     * anterior resolvía eso con dieciséis archivos ERB casi idénticos, y por eso
+     * el límite del DBDS terminó escrito a mano dentro del HTML de uno de ellos.
+     *
+     * @param  array<int,array<string,mixed>>  $filas
+     * @param  array<string,string>            $condiciones
+     * @param  array<string,mixed>|null        $relaciones
+     * @return array<string,mixed>|null
+     */
+    private function hoja(string $familia, array $filas, array $condiciones, ?array $relaciones = null): ?array
+    {
+        if ($filas === []) {
+            return null;
+        }
+
+        $maqueta = array_merge(
+            (array) config('legacy_report.defaults'),
+            (array) config("legacy_report.sheets.{$familia}", []),
+        );
+
+        // La norma de referencia va PRIMERA entre las condiciones, con el
+        // asterisco al que remite la columna del valor de orientación. Si la
+        // familia no declara ninguna, el renglón no se dibuja: el sistema
+        // anterior imprimía "(*) Norma de referencia -" en hojas sin criterio, o
+        // sea un asterisco que no llevaba a ninguna parte.
+        if (($maqueta['standard_note'] ?? null) !== null) {
+            $condiciones = ['(*) Norma de referencia' => $maqueta['standard_note']] + $condiciones;
+        }
+
+        return [
+            'tipo'        => 'ensayo',
+            'titulo'      => $this->tituloDeFamilia($familia),
+            'columnas'    => $maqueta['columns'],
+            // El rótulo de la columna del parámetro cambia por familia —GAS en
+            // cromatografía, COMPUESTO en furanos, TAMAÑO DE PARTICULA en
+            // partículas— y es texto, así que sale del archivo de idioma.
+            'col3'        => $this->textoDeFamilia('legacy_col3', $familia, 'ENSAYO'),
+            'anab'        => (bool) $maqueta['anab'],
+            'pie_celda'   => (bool) $maqueta['cell_note'],
+            'nota'        => isset($maqueta['footnote']) ? __($maqueta['footnote']) : null,
+            'filas'       => $filas,
+            'relaciones'  => $relaciones,
+            'condiciones' => $condiciones,
         ];
+    }
+
+    /**
+     * El título impreso de la hoja, en mayúsculas y como lo decía el papel viejo.
+     *
+     * Es TEXTO, así que vive en los archivos de idioma (`reports.family.*`) y no
+     * en la configuración ni en una columna de la base: cambiarlo no necesita
+     * migración ni seeder.
+     */
+    private function tituloDeFamilia(string $familia): string
+    {
+        return $this->textoDeFamilia(
+            'family',
+            $familia,
+            mb_strtoupper(str_replace('_', ' ', $familia)),
+        );
+    }
+
+    /**
+     * Un texto de idioma por familia, con respaldo.
+     *
+     * El respaldo evita que agregar una prueba nueva al catálogo saque una hoja en
+     * blanco o con el nombre de una clave de traducción impreso: sin entrada de
+     * idioma se imprime algo legible y el papel sale.
+     */
+    private function textoDeFamilia(string $grupo, string $familia, string $respaldo): string
+    {
+        $clave = "reports.{$grupo}.{$familia}";
+
+        return \Illuminate\Support\Facades\Lang::has($clave) ? __($clave) : $respaldo;
+    }
+
+    /**
+     * Una hoja de ensayo cualquiera, armada desde la sección del payload nuevo.
+     *
+     * Sirve para las trece pruebas que el informe clásico NO imprimía: PCB,
+     * furanos, partículas, azufre corrosivo, sedimentos, metales, viscosidad,
+     * DBDS, punto de inflamación, punto de fluidez, inhibidor, grado de
+     * polimerización y pasivador.
+     *
+     * Los valores salen del MISMO payload que alimenta el informe moderno, así que
+     * los dos papeles no pueden decir números distintos — que es justamente lo que
+     * pasaba en el sistema anterior, donde cada partial releía la base a su manera
+     * y volvía a interpretar el límite al imprimir.
+     *
+     * @param  array<string,mixed>   $seccion
+     * @param  array<string,string>  $condiciones
+     * @return array<string,mixed>|null
+     */
+    private function paginaGenerica(string $familia, array $seccion, array $condiciones): ?array
+    {
+        // La técnica instrumental de la familia (HPLC, ICP-AES, GC-MS): es la
+        // columna MÉTODO del papel viejo, distinta de la columna NORMA. Texto, o
+        // sea archivo de idioma.
+        $claveTecnica = "reports.legacy_technique.{$familia}";
+        $tecnica = \Illuminate\Support\Facades\Lang::has($claveTecnica) ? __($claveTecnica) : '-';
+
+        $filas = [];
+        $item = 0;
+
+        foreach ($seccion['rows'] ?? [] as $fila) {
+            $item++;
+            $filas[] = [
+                'item'   => $item,
+                'norma'  => $this->normaConFlag([
+                    'label' => $fila['method'] ?? null,
+                    'flag'  => $fila['accreditation'] ?? null,
+                ]),
+                'ensayo' => (string) ($fila['analyte'] ?? ''),
+                'metodo' => $tecnica,
+                'unidad' => (string) ($fila['unit'] ?? '-'),
+                // El límite ya viene ARMADO desde el payload, con los mismos
+                // números con los que se decidió el veredicto al validar la hoja.
+                // Acá no se reinterpreta nada: es la diferencia central con el
+                // informe viejo.
+                'orientacion' => in_array($fila['limit'] ?? '—', ['—', '', null], true) ? '-' : (string) $fila['limit'],
+                'resultado'   => (string) ($fila['value'] ?? '-'),
+                'fuera'       => ($fila['status'] ?? null) === 'out_of_spec',
+            ];
+        }
+
+        // La fecha de análisis de ESTA prueba, no la de la muestra: dos ensayos
+        // de la misma muestra se corren días distintos.
+        $fecha = $seccion['conditions']['run_date'] ?? null;
+
+        return $this->hoja($familia, $filas, [
+            'Fecha de Análisis' => $fecha
+                ? \Illuminate\Support\Carbon::parse($fecha)->format('d-m-Y')
+                : now()->format('d-m-Y'),
+            'Temperatura Lab' => $condiciones['temp'],
+            'Humedad Relativa Lab' => $condiciones['humedad'],
+        ]);
     }
 
     /**

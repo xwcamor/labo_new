@@ -172,25 +172,48 @@
             </table>
         </div>
     @else
+        {{-- La tabla de resultados. Las COLUMNAS las declara la hoja
+             (`config/legacy_report.php`) y no están escritas acá: el sistema
+             anterior tenía dieciséis partials con esta misma tabla copiada, cada
+             uno con su variación —columna MÉTODO en furanos, sin columna de
+             orientación en partículas, solo tres columnas en azufre— y corregir la
+             cabecera había que corregirla dieciséis veces. --}}
+        @php
+            $rotulos = [
+                'item'        => 'ITEM',
+                'norma'       => 'NORMA',
+                'ensayo'      => $pagina['col3'] ?? 'ENSAYO',
+                'metodo'      => 'METODO',
+                'unidad'      => 'UNIDAD',
+                'orientacion' => 'VALOR DE ORIENTACIÓN (*)',
+                'resultado'   => 'RESULTADO',
+            ];
+            $columnas = $pagina['columnas'];
+        @endphp
         <div><b style="font-size:12px">RESULTADOS DE ENSAYOS</b></div>
         <table class="grid">
-            <tr class="bar"><td colspan="6" class="c"><span class="ttl">{{ $pagina['titulo'] }}</span></td></tr>
+            <tr class="bar"><td colspan="{{ count($columnas) }}" class="c"><span class="ttl">{{ $pagina['titulo'] }}</span></td></tr>
             <tr>
-                <th class="c">ITEM</th>
-                <th class="c">NORMA</th>
-                <th class="c">{{ $pagina['col3'] }}</th>
-                <th class="c">UNIDAD</th>
-                <th class="c">VALOR DE ORIENTACIÓN (*)</th>
-                <th class="c">RESULTADO</th>
+                @foreach ($columnas as $col)
+                    <th class="c">{{ $rotulos[$col] ?? mb_strtoupper($col) }}</th>
+                @endforeach
             </tr>
             @foreach ($pagina['filas'] as $fila)
                 <tr>
-                    <td class="c">{{ $fila['item'] }}</td>
-                    <td class="c">{!! $fila['norma'] !!}</td>
-                    <td>{{ $fila['ensayo'] }}</td>
-                    <td class="c">{{ $fila['unidad'] }}</td>
-                    <td class="c">{{ $fila['orientacion'] }}</td>
-                    <td class="c bar"><b @if($fila['fuera']) class="red" @endif>{{ $fila['resultado'] }}</b></td>
+                    @foreach ($columnas as $col)
+                        @if ($col === 'resultado')
+                            {{-- El valor medido: negrita, banda de fondo, y rojo si
+                                 quedó fuera de norma. El color sale del veredicto
+                                 congelado, no de comparar acá. --}}
+                            <td class="c bar"><b @if($fila['fuera']) class="red" @endif>{{ $fila['resultado'] }}</b></td>
+                        @elseif ($col === 'norma')
+                            <td class="c">{!! $fila['norma'] !!}</td>
+                        @elseif ($col === 'ensayo')
+                            <td>{{ $fila['ensayo'] }}</td>
+                        @else
+                            <td class="c">{{ $fila[$col] ?? '-' }}</td>
+                        @endif
+                    @endforeach
                 </tr>
             @endforeach
         </table>
@@ -199,6 +222,13 @@
             <div>(1) Tipo de celda: MC2A, tensión (RMS): 2000VCA / 500VDC</div>
             <div>(A) Acreditado</div>
             <div>(NA) No Acreditado</div>
+        @endif
+
+        {{-- La nota al pie propia de la hoja: en furanos, que el grado de
+             polimerización sale de la correlación de Chendong. En el sistema
+             anterior era una línea escrita dentro de su propio partial. --}}
+        @if (! empty($pagina['nota']))
+            <div class="legend">{{ $pagina['nota'] }}</div>
         @endif
 
         {{-- El párrafo de la acreditación también es del workspace: el número

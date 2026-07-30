@@ -172,10 +172,56 @@ return [
     // cubre a las pruebas huérfanas de grupo. Si tampoco hay texto acá, se
     // imprime la clave de la familia —feo, pero visible— en vez de una página
     // sin título.
+    // ── Los títulos de las hojas del informe CLÁSICO ─────────────────────
+    // Uno por familia de prueba, tal como los imprimía el sistema anterior
+    // (erratas incluidas: "VISCOCIDAD" es como sale en el papel que el cliente
+    // conoce). Son TEXTO: viven acá y no en `config/legacy_report.php`, que
+    // guarda solo la estructura de cada hoja.
     'family' => [
-        'azufre_corrosivo' => 'AZUFRE CORROSIVO',
-        'fisicoquimico' => 'ENSAYOS FISICO-QUIMICOS',
+        'fisicoquimico'            => 'ENSAYOS FISICO-QUIMICOS',
+        'analisis_cromatografico'  => 'CROMATOGRÁFICO',
+        'pcb'                      => 'ENSAYO DE PCB',
+        'furanos'                  => 'ENSAYO DE FURANOS',
+        'particulas'               => 'ENSAYO DE PARTÍCULAS',
+        'azufre_corrosivo'         => 'AZUFRE CORROSIVO',
+        'sedimentos'               => 'ENSAYO DE SEDIMENTOS',
+        'metales'                  => 'ENSAYO DE METALES',
+        'viscocidad'               => 'VISCOCIDAD',
+        'dbds'                     => 'ENSAYO DE DBDS',
+        'inflamacion'              => 'ENSAYO DE PUNTO DE INFLAMACIÓN',
+        'fluidez'                  => 'PUNTO DE FLUIDEZ',
+        'inhibidor'                => 'CONTENIDO DE INHIBIDOR',
+        'grado_de_polimerizacion'  => 'GRADO DE POLIMERIZACIÓN',
+        'pasivador'                => 'CONTENIDO DE PASIVADOR',
     ],
+
+    // El rótulo de la columna del parámetro, que cambia por familia. Sin entrada
+    // se usa "ENSAYO".
+    'legacy_col3' => [
+        'analisis_cromatografico' => 'GAS',
+        'furanos'                 => 'COMPUESTO',
+        'particulas'              => 'TAMAÑO DE PARTICULA',
+        'sedimentos'              => 'COMPUESTO',
+        'metales'                 => 'COMPUESTO',
+        'dbds'                    => 'COMPUESTO',
+        'pasivador'               => 'COMPUESTO',
+    ],
+
+    // La TÉCNICA instrumental de la columna MÉTODO, distinta de la norma. En el
+    // sistema anterior estaba escrita dentro del partial de cada prueba.
+    'legacy_technique' => [
+        'pcb'         => 'Cromatografía de gases',
+        'furanos'     => 'HPLC',
+        'particulas'  => 'Conteo óptico',
+        'sedimentos'  => 'Gravimétrico',
+        'metales'     => 'ICP-AES',
+        'dbds'        => 'GC-MS',
+        'inflamacion' => 'Copa abierta',
+        'pasivador'   => 'HPLC',
+    ],
+
+    // La nota al pie de la hoja de furanos.
+    'legacy_note_chendong' => '(*) Para el cálculo del grado de polimerización se utiliza la correlación de Chendong sobre el 2-furfuraldehído.',
     'footer_legend' => 'Los resultados corresponden únicamente a la muestra recibida. El valor de orientación es el criterio de aceptación aplicable a este equipo según la norma indicada en cada fila.',
     'footer_accreditation' => '(A) método acreditado · (NA) método no acreditado. La marca corresponde al método con el que se corrió este ensayo.',
     'generated_by'  => 'Emitido por: :name',

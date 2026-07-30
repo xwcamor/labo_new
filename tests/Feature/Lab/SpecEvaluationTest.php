@@ -307,6 +307,41 @@ class SpecEvaluationTest extends TestCase
         $this->assertNull($veredicto['spec_max']);
     }
 
+    /**
+     * El texto se imprime TAL CUAL, aunque esté mal escrito.
+     *
+     * Un cuadro heredado trae el límite de acetileno escrito `16`, sin la
+     * palabra "máximo" que llevan todas las demás filas. El papel anterior
+     * imprimía `16` y el papel nuevo imprime `16`: completarlo a `16 - máximo`
+     * se vería más prolijo y cambiaría lo que dice un informe ya emitido, que
+     * es lo único que no se puede tocar. Si el laboratorio quiere la palabra,
+     * edita el dato.
+     *
+     * La comparación es otra cosa y ahí sí se corrige, sin mover ningún número
+     * impreso: el sistema anterior derivaba el límite quitándole las letras de
+     * "(máximo)" al texto, y en Ruby esa operación devuelve nil cuando no hay
+     * nada que quitar, así que `16` se leía 0 y cualquier acetileno detectable
+     * salía en rojo contra un límite de 16.
+     */
+    public function test_un_limite_mal_escrito_se_imprime_tal_cual_y_compara_bien(): void
+    {
+        $cuadro = $this->makeSet('mineral_voltaje', ['oil_type_id' => 1]);
+        $this->makeLimit($cuadro, 'acid', [
+            'operator' => '<=', 'max_value' => 16.0, 'display' => '16',
+        ]);
+
+        $veredicto = $this->evaluator->verdictFor(
+            $cuadro->fresh()->load('limits'),
+            Analyte::withoutGlobalScopes()->where('code', 'acid')->value('id'),
+            0.4,
+        );
+
+        // El papel dice exactamente lo que dice el cuadro.
+        $this->assertSame('16', $veredicto['spec_display']);
+        // Y 0.4 contra un máximo de 16 cumple: ya no se juzga contra cero.
+        $this->assertSame(SpecLimit::IN_SPEC, $veredicto['spec_status']);
+    }
+
     /** Un límite sin texto escrito sigue imprimiendo algo legible. */
     public function test_sin_texto_escrito_el_limite_se_arma_desde_el_numero(): void
     {

@@ -842,8 +842,8 @@
           "analyte": "c2h2",
           "operator": "<=",
           "value": 16.0,
-          "display": "16 - máximo",
-          "REVISAR": "En el sistema anterior este límite estaba escrito «16», sin la palabra «máximo», y era el ÚNICO del cuadro así. Ese detalle lo rompía: el código quitaba las letras de «(máximo)» y convertía a número, y en Ruby esa operación devuelve nil cuando no hay nada que quitar, con lo que el límite se leía 0. Efecto en el papel: la columna imprimía «16» y la comparación usaba 0, así que CUALQUIER acetileno detectable salía en rojo contra un límite de 16, y el texto del informe afirmaba un incumplimiento de la IEC 60599. Acá se escribe como el resto de las filas del cuadro: imprime «16 - máximo» y compara contra 16. Nadie decidió comparar contra cero, fue el tecleo. Queda pendiente que el laboratorio confirme que 16 ppm es el límite que quiere para un transformador de voltaje con aceite mineral."
+          "display": "16",
+          "REVISAR": "EL TEXTO SE RESPETA TAL CUAL: el papel anterior imprimía «16» en esta celda y el papel nuevo imprime «16». No se le agrega la palabra «máximo» aunque el resto del cuadro la lleve — reescribir el texto cambiaría lo que dicen los informes ya emitidos, que es justo lo que no se puede tocar. Origen: rem_report_detail.rb:522 y su copia rem_report.rb:588 (cuadro «CONDITIONS FOR MINERAL DE VOLTAJE», transformer_type_id 5 + oil_type_id 1). LO QUE SÍ SE CORRIGE ES LA COMPARACIÓN, y no cambia ningún número impreso: allá el código quitaba las letras de «(máximo)» del texto para convertirlo a número, y en Ruby esa operación devuelve nil cuando no hay nada que quitar, así que «16» se leía 0. La columna imprimía 16 y la comparación usaba 0: cualquier acetileno detectable salía en rojo contra un límite de 16, y el texto del informe afirmaba un incumplimiento de la IEC 60599 que no existía. Acá el límite es 16 y el color sigue al número. Queda pendiente que el laboratorio confirme que 16 ppm es el criterio que quiere para un transformador de voltaje con aceite mineral."
         }
       ],
       "nota": "c2h2 = \"16\" sin la palabra \"máximo\" — verificar",

@@ -45,6 +45,11 @@ const today = new Date().toISOString().slice(0, 10);
 const form = useForm({
     code:          props.reception?.code ?? '',
     service_order: props.reception?.service_order ?? '',
+    // El contacto y el usuario final: viven en la recepción y el informe los
+    // imprime, pero solo se podían cargar desde el modal del informe, o sea al
+    // final. Quien recibe la muestra tiene el correo del cliente delante.
+    contact_info:  props.reception?.contact_info ?? '',
+    end_user:      props.reception?.end_user ?? '',
     customer_id:   props.reception?.customer_id ?? null,
     sampler_id:    props.reception?.sampler_id ?? null,
     sampler_name:  props.reception?.sampler_name ?? '',
@@ -130,6 +135,28 @@ const submit = () => {
                         :help="form.errors.service_order"
                     >
                         <Input v-model:value="form.service_order" size="large" :maxlength="60" />
+                    </FormItem>
+
+                    <FormItem
+                        :label="$t('receptions.contact_info')"
+                        :extra="$t('receptions.contact_info_help')"
+                        :validate-status="form.errors.contact_info ? 'error' : ''"
+                        :help="form.errors.contact_info"
+                    >
+                        <Input v-model:value="form.contact_info" size="large" :maxlength="190" />
+                    </FormItem>
+
+                    <!-- El usuario final NO siempre es el cliente: una
+                         contratista manda muestras del transformador de la
+                         minera, y el informe tiene que decir de quién es el
+                         equipo. -->
+                    <FormItem
+                        :label="$t('receptions.end_user')"
+                        :extra="$t('receptions.end_user_help')"
+                        :validate-status="form.errors.end_user ? 'error' : ''"
+                        :help="form.errors.end_user"
+                    >
+                        <Input v-model:value="form.end_user" size="large" :maxlength="190" />
                     </FormItem>
 
                     <FormItem

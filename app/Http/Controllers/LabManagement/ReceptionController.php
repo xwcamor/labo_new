@@ -376,6 +376,15 @@ class ReceptionController extends Controller
         return $request->validate([
             'code'          => ['nullable', 'string', 'max:30'],
             'service_order' => ['nullable', 'string', 'max:60'],
+            // El CONTACTO y el USUARIO FINAL viven en la recepción y el informe
+            // los imprime en su cabecera, pero esta validación no los aceptaba:
+            // solo se podían cargar desde el modal del informe, o sea recién al
+            // final, y quien recibía la muestra no tenía dónde anotarlos. El
+            // usuario final no siempre es el cliente —una contratista manda
+            // muestras del transformador de la minera— y el informe tiene que
+            // decir de quién es el equipo.
+            'contact_info'  => ['nullable', 'string', 'max:190'],
+            'end_user'      => ['nullable', 'string', 'max:190'],
             'customer_id'   => ['required', 'integer', 'exists:customers,id'],
             'sampler_id'    => ['nullable', 'integer', 'exists:samplers,id'],
             'sampler_name'  => ['nullable', 'string', 'max:120'],

@@ -125,4 +125,8 @@ return [
       'equipment_not_of_customer' => 'That equipment does not belong to this reception customer.',
       'confirmed_no_edit' => 'A confirmed reception does not change customer or date: its sample numbers are already issued.',
   ],
+    'contact_info'      => 'Contact',
+    'contact_info_help' => 'Email or phone the report is announced to. Printed in the header.',
+    'end_user'          => 'End user',
+    'end_user_help'     => 'Who owns the equipment, when it is not the sending customer. A contractor sends samples from the mine transformer.',
 ];

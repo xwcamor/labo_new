@@ -60,7 +60,13 @@ class Equipment extends Model
         'transformer_preservation_id',
         'voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv',
         'power_mva', 'power_mva_2', 'power_mva_3', 'phases', 'manufacture_year',
-        'oil_volume', 'oil_volume_unit', 'service_state',
+        // `oil_brand` es la marca COMERCIAL del aceite (Nynas, Shell), distinta
+        // del `oil_type_id`. Faltaba en esta lista, y el formulario del informe
+        // la escribe con `update()`: la asignación masiva la descartaba EN
+        // SILENCIO. Quien la tipeaba veía el informe guardado y el dato no
+        // llegaba nunca al equipo, así que la próxima muestra del mismo
+        // transformador volvía a pedirla.
+        'oil_brand', 'oil_volume', 'oil_volume_unit', 'service_state',
         'external_ref', 'is_active', 'tenant_id',
         'created_by', 'deleted_by', 'deleted_description',
     ];

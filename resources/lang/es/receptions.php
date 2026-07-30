@@ -144,4 +144,10 @@ return [
         'equipment_not_of_customer' => 'Ese equipo no es del cliente de esta recepción.',
         'confirmed_no_edit' => 'Una recepción confirmada no cambia de cliente ni de fecha: sus correlativos ya están emitidos.',
     ],
+    // Los dos datos de la cabecera del informe que se cargan al RECIBIR, no al
+    // emitir: quien recibe la muestra tiene el correo del cliente delante.
+    'contact_info'      => 'Contacto',
+    'contact_info_help' => 'Correo o telefono a quien se le avisa del informe. Sale impreso en la cabecera.',
+    'end_user'          => 'Usuario final',
+    'end_user_help'     => 'De quien es el equipo, cuando no es el cliente que envia. Una contratista manda muestras del transformador de la minera.',
 ];

@@ -18,7 +18,10 @@
         validar la hoja. Acá no se compara nada: se lee. El viejo volvía a
         interpretar el límite al imprimir, con un `delete!` que devolvía nil
         cuando la palabra "(máximo)" no estaba, y entonces coloreaba contra 0.
-      · El "sin criterio" sale en gris Y con la palabra, nunca como conforme.
+      · El "sin criterio" NUNCA sale como conforme: el límite y el veredicto
+        salen los dos en raya. No lleva palabra ni recuadro de advertencia —el
+        cliente pide medir parámetros que su norma no acota y eso es normal—,
+        pero tampoco se le inventa una conformidad que nadie verificó.
       · Las temperaturas nulas salen como raya. En el viejo un campo vacío se
         imprimía "0.00" y era indistinguible de una medición real de cero.
       · Código de verificación + QR en todas las páginas, y numeración.
@@ -129,7 +132,7 @@
            fuera de norma. Las fichas se leen de un vistazo; el detalle está
            en las páginas siguientes. */
         .sum { width: 100%; border-collapse: separate; border-spacing: 5px 0; margin: 0 0 4px -5px; }
-        .sum td { width: 25%; vertical-align: top; }
+        .sum td { width: 33.33%; vertical-align: top; }
         .card { background: #F7F9FB; border: 1px solid #E3E8EE; padding: 5px 8px 6px 8px; }
         .card--ok   { background: #F0FAF5; border-color: #BFE6D2; }
         .card--bad  { background: #FEF3F2; border-color: #FBD3CE; }
@@ -191,15 +194,14 @@
             border-bottom: 0;
         }
         table.res th.l { text-align: left; }
-        table.res tr.zebra td { background: #F7F9FB; }
         .res__family {
             font-size: 9.5pt; font-weight: bold; color: #1B2A3A;
             border-left: 3px solid #0E7490; padding: 1px 0 1px 7px; margin-bottom: 5px;
         }
-        /* El nombre del ensayo, y debajo la norma del método con la que se
-           corrió. Dos jerarquías en una celda en vez de dos columnas. */
         .res__name { font-size: 8pt; }
-        .res__meth { font-size: 6pt; color: #5B6672; }
+        /* La norma del método, en su propia columna. Un punto más chica que el
+           nombre del ensayo: es el dato de trazabilidad, no el que se busca. */
+        .res__meth { font-size: 6.5pt; color: #3D4A57; }
 
         /* El veredicto como etiqueta, no como una palabra entre paréntesis
            colgada del número. Es la columna que el informe viejo no tenía: allá
@@ -210,7 +212,6 @@
         }
         .pill--ok   { background: #ECFDF3; color: #0E7A4B; border: 1px solid #BFE6D2; }
         .pill--bad  { background: #FEF3F2; color: #B42318; border: 1px solid #FBD3CE; }
-        .pill--none { background: #F2F4F7; color: #5B6672; border: 1px solid #E3E8EE; }
         .c { text-align: center; }
         /* El valor medido es el dato que se busca: alineado a la derecha para
            poder comparar las columnas de números de un vistazo, y sin fondo
@@ -220,9 +221,6 @@
         /* Fuera de norma: rojo Y la palabra. El color solo no sobrevive a una
            fotocopia en blanco y negro, y este papel se fotocopia. */
         .out { color: #B42318; }
-        /* Sin criterio: ni negro ni rojo. No se comparó contra nada, y eso no
-           puede leerse como conforme. */
-        .none { color: #5B6672; font-weight: normal; }
         .flag { font-size: 6pt; font-weight: normal; }
         /* De qué cuadro salió el límite. Chico, debajo del número: el cliente
            lee el número; quien audita necesita saber contra qué se lo juzgó. */
@@ -232,10 +230,6 @@
         /* ── Notas al pie de la página de ensayo ─────────────────────────── */
         .foot { margin-top: 6px; font-size: 7pt; line-height: 1.35; }
         .foot__iso { font-size: 6.5pt; font-style: italic; color: #5B6672; }
-        .foot__warn {
-            margin-top: 4px; color: #B45309; font-size: 7pt;
-            background: #FFFAEB; border-left: 3px solid #F5C86B; padding: 3px 7px;
-        }
 
         /* ── Condiciones del ensayo: una banda horizontal bajo su tabla ────
            Antes era una lista vertical de seis renglones metida en una columna
@@ -349,7 +343,14 @@
     // advertencia.
 
     $fecha = fn ($f) => $f ? \Illuminate\Support\Carbon::parse($f)->format('d-m-Y') : '—';
-    $o     = fn ($v) => ($v === null || $v === '') ? '—' : $v;
+
+    // TODO el texto dinámico pasa por acá. Helvetica —la única fuente que dompdf
+    // dibuja sin embeber 700 kB— no tiene glifos griegos ni matemáticos, y dompdf
+    // no sustituye la fuente: pinta un `?`. La unidad de la resistividad
+    // volumétrica (Ω·cm) salía impresa `?-cm` en un informe acreditado.
+    $o = fn ($v) => ($v === null || $v === '')
+        ? '—'
+        : \App\Support\PdfText::safe((string) $v);
 
     // La regla que el informe viejo rompía: si no se midió, RAYA. Nunca "0.00",
     // que es indistinguible de una medición real de cero.
@@ -454,7 +455,6 @@
     // la ficha dijera una cosa y la tabla otra, el papel se contradice.
     $totalEnsayos = 0;
     $fueraDeNorma = 0;
-    $sinCriterio  = 0;
 
     foreach ($sections as $seccion) {
         foreach ($seccion['rows'] ?? [] as $fila) {
@@ -462,8 +462,6 @@
 
             if (($fila['status'] ?? null) === 'out_of_spec') {
                 $fueraDeNorma++;
-            } elseif (($fila['status'] ?? null) === null || ($fila['status'] ?? null) === 'no_spec') {
-                $sinCriterio++;
             }
         }
     }
@@ -542,13 +540,12 @@
                         </div>
                     </div>
                 </td>
-                <td>
-                    <div class="card">
-                        <div class="card__k">{{ __('reports.sum_no_spec') }}</div>
-                        <div class="card__v">{{ $sinCriterio }}</div>
-                        <div class="card__note">{{ __('reports.sum_no_spec_note') }}</div>
-                    </div>
-                </td>
+                {{-- Acá había una cuarta ficha, "Sin criterio: N". Se quitó junto
+                     con el aviso al pie y con la palabra en la celda: en la tabla
+                     esos parámetros salen con raya en el límite Y en el
+                     veredicto, y contarlos en la portada le daba a algo normal
+                     —el cliente pide medir un parámetro que su norma no acota— el
+                     mismo peso visual que a los ensayos fuera de norma. --}}
                 <td>
                     <div class="card">
                         <div class="card__k">{{ __('reports.sampled_at') }}</div>
@@ -701,50 +698,67 @@
         {{-- El nombre del ensayo va FUERA de la tabla, como título del bloque:
              adentro obligaba a una fila de cabecera falsa con seis columnas
              fusionadas y hacía que la tabla arrancara con una banda gris. --}}
-        <div class="res__family" style="{{ $loop->first ? '' : 'margin-top: 13px' }}">{{ \Illuminate\Support\Str::upper($s['test'] ?? '') }}</div>
+        <div class="res__family" style="{{ $loop->first ? '' : 'margin-top: 13px' }}">{{ \Illuminate\Support\Str::upper($o($s['test'] ?? '')) }}</div>
 
         <table class="res">
             <thead>
                 <tr>
-                    <th class="l" style="width: 34%">{{ __('reports.col_test') }}</th>
+                    <th class="l" style="width: 26%">{{ __('reports.col_test') }}</th>
+                    {{-- La NORMA tiene COLUMNA propia. Estaba en una línea chica
+                         debajo del nombre del ensayo, y ahí no se puede leer en
+                         vertical: quien revisa un informe compara los métodos de
+                         los ocho parámetros entre sí, y para eso tienen que caer
+                         en una misma columna. Es la norma del MÉTODO —la que el
+                         analista eligió al correrlo, o sea la que de verdad se
+                         usó— con su marca de acreditación. No es la norma del
+                         CRITERIO, que va con las condiciones. --}}
+                    <th style="width: 18%">{{ __('reports.col_method') }}</th>
                     <th style="width: 10%">{{ __('reports.col_unit') }}</th>
-                    <th style="width: 22%">{{ __('reports.col_limit') }}</th>
-                    <th style="width: 15%">{{ __('reports.col_result') }}</th>
-                    <th style="width: 19%">{{ __('reports.col_status') }}</th>
+                    <th style="width: 19%">{{ __('reports.col_limit') }}</th>
+                    <th style="width: 12%">{{ __('reports.col_result') }}</th>
+                    <th style="width: 15%">{{ __('reports.col_status') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($s['rows'] as $row)
-                    {{-- Cebra: la fila alterna reemplaza a las reglas
-                         verticales para guiar el ojo a lo ancho. --}}
-                    <tr class="{{ $loop->index % 2 === 1 ? 'zebra' : '' }}">
-                        {{-- El ensayo, y debajo la norma del MÉTODO con su marca
-                             de acreditación: la que el analista eligió al
-                             correrlo, o sea la que de verdad se usó. No es la
-                             norma del CRITERIO — esa va con las condiciones. --}}
-                        <td>
-                            <div class="res__name">{{ $o($row['analyte']) }}</div>
+                    {{-- Sin cebra: todas las filas del mismo color. La banda
+                         alterna guiaba el ojo a lo ancho, pero en una tabla de
+                         resultados el gris compite con el ÚNICO color que tiene
+                         que significar algo —el rojo del valor fuera de norma— y
+                         una fila gris se lee como una fila destacada. El ojo lo
+                         guían las reglas horizontales. --}}
+                    <tr>
+                        <td><div class="res__name">{{ $o($row['analyte']) }}</div></td>
+                        <td class="c res__meth">
                             @if ($row['method'] ?? null)
-                                <div class="res__meth">{{ $row['method'] }}@if (!empty($row['accreditation']))<sup class="sup">({{ $row['accreditation'] }})</sup>@endif</div>
+                                {{ $o($row['method']) }}@if (!empty($row['accreditation']))<sup class="sup">({{ $row['accreditation'] }})</sup>@endif
+                            @else
+                                {{ $o(null) }}
                             @endif
                         </td>
                         <td class="c">{{ $o($row['unit']) }}</td>
                         <td class="c">
-                            {{ $row['limit'] }}
+                            {{ $o($row['limit']) }}
                             @if ($row['criterion'])
-                                <div class="crit">{{ $row['criterion'] }}</div>
+                                <div class="crit">{{ $o($row['criterion']) }}</div>
                             @endif
                         </td>
                         {{-- El número, sin la palabra colgada al lado: el
                              veredicto tiene su propia columna. --}}
                         <td class="res__value">
-                            <span class="{{ $row['status'] === 'out_of_spec' ? 'out' : ($row['status'] === null ? 'none' : '') }}">{{ $row['value'] }}</span>
+                            <span class="{{ $row['status'] === 'out_of_spec' ? 'out' : '' }}">{{ $o($row['value']) }}</span>
                         </td>
+                        {{-- El veredicto. Sin criterio de aceptación NO se
+                             escribe una palabra: va un guion. La columna del
+                             límite ya dice "—", así que el papel no afirma
+                             conformidad de nada; poner "Sin criterio" en letras
+                             era decir dos veces lo mismo y llenaba de texto gris
+                             una tabla que se lee de un golpe. --}}
                         <td class="c">
                             @if ($row['status'] === 'out_of_spec')
                                 <span class="pill pill--bad">{{ __('reports.out_of_spec') }}</span>
                             @elseif ($row['status'] === null)
-                                <span class="pill pill--none">{{ __('reports.no_criterion') }}</span>
+                                {{ $o(null) }}
                             @else
                                 <span class="pill pill--ok">{{ __('reports.in_spec') }}</span>
                             @endif
@@ -797,9 +811,8 @@
             $notasAlPie    = array_filter(array_map(fn ($x) => $x['footnote'] ?? null, $secciones));
             $hayAcreditado = (bool) array_filter($secciones, fn ($x) => ! empty($x['accredited']));
             $haySinAcred   = (bool) array_filter($secciones, fn ($x) => ! empty($x['not_accredited']));
-            $sinCriterioEnHoja = array_sum(array_map(fn ($x) => (int) ($x['no_criteria'] ?? 0), $secciones));
         @endphp
-        @php $s = ['accredited' => $hayAcreditado, 'not_accredited' => $haySinAcred, 'no_criteria' => $sinCriterioEnHoja]; @endphp
+        @php $s = ['accredited' => $hayAcreditado, 'not_accredited' => $haySinAcred]; @endphp
         <div class="foot">
             @foreach ($notasAlPie as $nota)
                 {{ $nota }}<br>
@@ -827,11 +840,14 @@
                 @endif
                 {{ __('reports.footer_legend') }}
             </span>
-            @if ($s['no_criteria'] > 0)
-                <div class="foot__warn">
-                    {{ __('reports.note_no_criteria_page', ['count' => $s['no_criteria']]) }}
-                </div>
-            @endif
+            {{-- Acá había un aviso contando los resultados de la hoja sin
+                 criterio de aceptación. Se quitó: el guion de la columna del
+                 límite y el de la de veredicto ya dicen que ese parámetro no se
+                 comparó contra nada, y decirlo otra vez al pie —en rojo y con un
+                 recuento— convertía en advertencia lo que es lo normal en varios
+                 ensayos (el cliente pidió medir un parámetro que su norma no
+                 acota). El papel no afirma conformidad de lo que no comparó, que
+                 es lo único que hay que garantizar. --}}
         </div>
 
     @elseif ($pagina['kind'] === 'analysis')
@@ -845,10 +861,10 @@
              distingue un informe de una planilla. --}}
         @foreach ($analysis as $fila)
             <div class="an__block">
-                <div class="an__fam">{{ \Illuminate\Support\Str::upper($fila['label'] ?? '') }}</div>
+                <div class="an__fam">{{ \Illuminate\Support\Str::upper($o($fila['label'] ?? '')) }}</div>
                 <div class="an__body">
                     @if ($fila['body'])
-                        {!! nl2br(e($fila['body'])) !!}
+                        {!! nl2br(e(\App\Support\PdfText::safe($fila['body']))) !!}
                     @else
                         <span class="an__empty">{{ __('reports.analysis_empty') }}</span>
                     @endif
@@ -859,14 +875,15 @@
             </div>
         @endforeach
 
-        {{-- Las advertencias del informe completo: cuántos resultados quedaron
-             sin criterio, qué ensayos siguen pendientes, si la muestra no tiene
-             equipo asignado. Un informe que calla lo que le falta se lee como
-             completo, y ahí es donde un valor sin criterio pasa por conforme. --}}
+        {{-- Las advertencias del informe completo: qué ensayos siguen pendientes
+             y si la muestra no tiene equipo asignado. Un informe que calla lo que
+             le falta se lee como completo. (La cuenta de resultados sin criterio
+             ya NO va: en la tabla salen con raya en el límite y en el veredicto,
+             que es lo que hace falta para que nadie los lea como conformes.) --}}
         @if (! empty($notes))
             <div class="notes">
                 @foreach ($notes as $note)
-                    <p>{{ $note }}</p>
+                    <p>{{ $o($note) }}</p>
                 @endforeach
             </div>
         @endif

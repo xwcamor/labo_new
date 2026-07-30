@@ -53,6 +53,10 @@ return [
     'col_item'     => 'Ítem',
     'col_standard' => 'Norma',
     'col_test'     => 'Ensayo',
+    // La norma del METODO con que se corrio el ensayo. Es COLUMNA y no una linea
+    // chica debajo del nombre: quien revisa el informe compara los metodos de
+    // todos los parametros entre si, y para eso tienen que caer alineados.
+    'col_method'   => 'Norma',
     'col_unit'     => 'Unidad',
     'col_limit'    => 'Valor de orientación (*)',
     'col_result'   => 'Resultado',
@@ -64,9 +68,12 @@ return [
     'limit_max'   => '(máximo)',
     'limit_min'   => '(mínimo)',
     'out_of_spec' => 'fuera de norma',
-    // El valor que nadie comparó contra nada lleva la palabra, no solo el
-    // gris: el color no sobrevive a una fotocopia en blanco y negro.
-    'no_criterion' => 'sin criterio',
+    // El valor que nadie comparó contra nada NO lleva palabra: va un guion, y la
+    // columna del límite también. Escribir "sin criterio" en letras decía dos
+    // veces lo mismo y llenaba de texto gris una tabla que se lee de un golpe.
+    // La garantía —que el papel no afirme conformidad de lo que no comparó— la
+    // da el guion igual.
+    'no_criterion' => '—',
     // "Conforme", no "aprobado": el laboratorio informa que el valor cumple el
     // criterio de aceptación, no que el equipo esté bien.
     'in_spec'      => 'conforme',
@@ -115,11 +122,9 @@ return [
 
     // Advertencias impresas. Un informe que calla lo que le falta se lee como
     // completo, y ahí es donde un valor sin criterio pasa por conforme.
-    'note_no_criteria' => 'Hay :count resultado(s) sin criterio de aceptación aplicable: se muestran sin comparar contra ningún límite. NO deben leerse como conformes.',
     // La misma advertencia, contada sobre LA PÁGINA que se tiene en la mano.
     // El total del informe va en la última hoja, pero una página fotocopiada
     // suelta tiene que llevar la suya.
-    'note_no_criteria_page' => ':count resultado(s) de esta página sin criterio de aceptación aplicable: se imprimen sin comparar contra ningún límite y NO deben leerse como conformes.',
     'note_pending'     => 'Quedan :count ensayo(s) pedidos y todavía no validados: este informe es parcial.',
     'note_no_equipment' => 'La muestra no tiene equipo asignado.',
 
@@ -183,8 +188,6 @@ return [
     'sum_out'        => 'Fuera de norma',
     'sum_out_note'   => 'Revisar el analisis de resultados.',
     'sum_ok_note'    => 'Todo dentro de norma.',
-    'sum_no_spec'    => 'Sin criterio',
-    'sum_no_spec_note' => 'Sin limite aplicable declarado.',
 
     'cond_lab_pressure' => 'Presión atmosférica lab',
 ];

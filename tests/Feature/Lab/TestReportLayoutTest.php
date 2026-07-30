@@ -232,6 +232,49 @@ class TestReportLayoutTest extends TestCase
         // número.
         $this->assertStringContainsString(__('reports.in_spec'), $html);
         $this->assertStringContainsString(__('reports.out_of_spec'), $html);
-        $this->assertStringContainsString(__('reports.no_criterion'), $html);
+    }
+
+    /**
+     * El parámetro sin criterio de aceptación sale en RAYA: ni la palabra "sin
+     * criterio" en su celda, ni el recuadro de aviso al pie.
+     *
+     * Lo que hay que garantizar es que NO se lea como conforme, y eso lo da la
+     * raya: raya en el límite y raya en el veredicto. Escribirlo además en
+     * letras y contarlo en un recuadro al pie convertía en advertencia lo que es
+     * normal —el cliente pide medir un parámetro que su norma no acota— y una
+     * advertencia que sale en todos los informes deja de leerse, incluidas las
+     * dos que sí importan (ensayos pendientes, muestra sin equipo).
+     */
+    public function test_el_parametro_sin_criterio_sale_en_raya_y_nunca_conforme(): void
+    {
+        $seccion = $this->seccion('Fisicoquímico', acreditada: true, filas: 1);
+        $seccion['rows'][0]['status'] = null;
+        $seccion['rows'][0]['limit']  = '—';
+        $seccion['no_criteria'] = 1;
+
+        $html = $this->html([$seccion]);
+
+        $this->assertStringNotContainsString('sin criterio', mb_strtolower($html));
+        // Ni la etiqueta gris de la celda ni el recuadro del pie existen ya.
+        $this->assertStringNotContainsString('pill--none', $html);
+        $this->assertStringNotContainsString('foot__warn', $html);
+        // Y sobre todo: no se le inventa una conformidad.
+        $this->assertStringNotContainsString(__('reports.in_spec'), $html);
+    }
+
+    // ─── La norma y la trama de la tabla ─────────────────────────────────
+
+    /**
+     * La norma del método es una COLUMNA, no una línea chica debajo del nombre
+     * del ensayo, y las filas no llevan banda alterna.
+     */
+    public function test_la_norma_es_columna_y_las_filas_no_alternan_color(): void
+    {
+        $html = $this->html([$this->seccion('Fisicoquímico', acreditada: true, filas: 4)]);
+
+        $this->assertStringContainsString(__('reports.col_method'), $html);
+        // La cebra competía con el rojo del valor fuera de norma, que es el
+        // único color que en este papel tiene que significar algo.
+        $this->assertStringNotContainsString('zebra', $html);
     }
 }

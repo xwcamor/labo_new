@@ -625,16 +625,57 @@ class TestReportPayload
             return '< ' . rtrim(rtrim(number_format((float) $lod, 6, '.', ''), '0'), '.');
         }
 
-        $decimales = $campo?->decimals;
-        $numero = $decimales !== null
-            ? number_format((float) $resultado->value_num, (int) $decimales, '.', '')
-            : rtrim(rtrim(number_format((float) $resultado->value_num, 6, '.', ''), '0'), '.');
+        $numero = $this->comoTexto((float) $resultado->value_num, $campo?->decimals);
 
         return match ($resultado->qualifier) {
             'gt' => '> ' . $numero,
             'lt' => '< ' . $numero,
             default => $numero,
         };
+    }
+
+    /**
+     * El número tal como sale impreso.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ NOTACIÓN CIENTÍFICA CUANDO EL NÚMERO NO ES LEGIBLE DE OTRA FORMA     │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La resistividad volumétrica de un aceite bueno son unos 8,65 × 10¹² Ω·cm.
+     * Con el formato decimal el informe imprimía `8650000000000.00`: catorce
+     * cifras que nadie puede leer ni comparar con la muestra anterior, y dos
+     * decimales que además fingen una precisión de centésimas de ohm sobre un
+     * número del orden del billón.
+     *
+     * Se pasa a notación científica cuando el valor es muy grande (≥ 10⁶) o muy
+     * chico (≤ 10⁻⁴, y distinto de cero), que es exactamente el rango donde el
+     * decimal deja de servir. Entre esos dos topes —o sea en todos los ensayos
+     * normales: acidez 0.28, agua 42, rigidez 65.8— no cambia nada.
+     *
+     * Los decimales del catálogo se respetan como MANTISA: `decimals = 2` sobre
+     * 8.65e12 da `8.65 × 10^12`, no dos decimales del entero completo.
+     */
+    private function comoTexto(float $valor, ?int $decimales): string
+    {
+        $magnitud = abs($valor);
+        $cientifica = $magnitud !== 0.0 && ($magnitud >= 1e6 || $magnitud <= 1e-4);
+
+        if ($cientifica) {
+            $exponente = (int) floor(log10($magnitud));
+            $mantisa   = $valor / (10 ** $exponente);
+
+            // La mantisa con 2 decimales por omisión: es lo que informan las
+            // normas para esta clase de magnitudes. Si el catálogo pide más, se
+            // le hace caso; si pide 0, se deja 1 para no imprimir "9 x 10^12"
+            // cuando el dato es 8.65.
+            $cifras = $decimales !== null ? max(1, min($decimales, 4)) : 2;
+
+            return rtrim(rtrim(number_format($mantisa, $cifras, '.', ''), '0'), '.')
+                . ' x 10^' . $exponente;
+        }
+
+        return $decimales !== null
+            ? number_format($valor, $decimales, '.', '')
+            : rtrim(rtrim(number_format($valor, 6, '.', ''), '0'), '.');
     }
 
     /**
@@ -674,11 +715,13 @@ class TestReportPayload
     {
         $notas = [];
 
-        $sinCriterio = Result::where('sample_id', $sample->id)->whereNull('spec_status')->count();
-
-        if ($sinCriterio > 0) {
-            $notas[] = __('reports.note_no_criteria', ['count' => $sinCriterio]);
-        }
+        // Acá había una nota contando los resultados sin criterio de aceptación.
+        // Se quitó: en la tabla esos parámetros ya salen con RAYA en el límite y
+        // en el veredicto, así que el papel no afirma conformidad de nada.
+        // Repetirlo al pie convertía en advertencia lo que es normal —el cliente
+        // pide medir parámetros que su norma no acota— y una advertencia que
+        // aparece siempre deja de leerse, incluidas las dos que sí importan y
+        // que siguen abajo: ensayos pendientes y muestra sin equipo.
 
         $pendientes = $sample->tests
             ->whereIn('status', [SampleTest::STATUS_PENDING, SampleTest::STATUS_IN_PROGRESS])

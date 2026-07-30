@@ -53,6 +53,10 @@ return [
     'col_item'     => 'Item',
     'col_standard' => 'Standard',
     'col_test'     => 'Test',
+    // The standard of the METHOD the test was run under. A column, not a small
+    // line under the analyte name: whoever reviews the report compares the
+    // methods of every parameter, and for that they must line up.
+    'col_method'   => 'Standard',
     'col_unit'     => 'Unit',
     'col_limit'    => 'Acceptance value (*)',
     'col_result'   => 'Result',
@@ -61,9 +65,10 @@ return [
     'limit_max'   => '(max)',
     'limit_min'   => '(min)',
     'out_of_spec' => 'out of spec',
-    // A value nobody compared against anything carries the word, not just the
-    // grey: colour does not survive a black and white photocopy.
-    'no_criterion' => 'no criteria',
+    // A value nobody compared against anything carries NO word: a dash, same as
+    // its limit column. Spelling out "no criteria" said the same thing twice and
+    // filled a table meant to be read at a glance with grey text.
+    'no_criterion' => '—',
     'in_spec'      => 'conforming',
 
     // ── Footnotes on every test page ────────────────────────────────────
@@ -107,9 +112,7 @@ return [
 
     'no_results' => 'This sample has no validated tests yet.',
 
-    'note_no_criteria' => ':count result(s) have no applicable acceptance criteria: they are shown without comparison against any limit. They must NOT be read as compliant.',
     // The same warning, counted over THE PAGE in hand.
-    'note_no_criteria_page' => ':count result(s) on this page have no applicable acceptance criteria: they are printed without comparison against any limit and must NOT be read as compliant.',
     'note_pending'     => ':count requested test(s) are not validated yet: this report is partial.',
     'note_no_equipment' => 'The sample has no equipment assigned.',
 
@@ -166,8 +169,6 @@ return [
     'sum_out'        => 'Out of spec',
     'sum_out_note'   => 'See the results analysis.',
     'sum_ok_note'    => 'All within spec.',
-    'sum_no_spec'    => 'No criterion',
-    'sum_no_spec_note' => 'No applicable limit declared.',
 
     'cond_lab_pressure' => 'Lab atmospheric pressure',
 ];

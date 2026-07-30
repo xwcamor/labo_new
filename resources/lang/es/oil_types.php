@@ -6,8 +6,7 @@ return [
     'names' => [
         'mineral'         => 'Mineral',
         'silicona'        => 'Silicona',
-        'vegetal_soya'    => 'Éster Natural (Soya)',
-        'vegetal_girasol' => 'Éster Natural (Girasol)',
+        'ester_vegetal'   => 'Éster Vegetal',
         'ester_sintetico' => 'Éster Sintético',
         'ninguno'         => 'Sin aceite (-)',
     ],
@@ -34,7 +33,7 @@ return [
     'name'      => 'Nombre',
     'name_help' => 'Nombre del tipo de aceite (ej: Mineral, Silicona, Vegetal).',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, vegetal_soya).',
+    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, ester_vegetal).',
     'clone_rules'             => 'Copiar reglas de otro aceite',
     'clone_rules_help'        => 'Las reglas de diagnóstico (cromas y fisicoquímico) están atadas al aceite. Copiarlas de un aceite parecido hace que el aceite nuevo diagnostique desde el inicio.',
     'clone_rules_hint'        => 'Opcional. Después puedes ajustar los valores en Reglas de diagnóstico. Para fisicoquímico, recuerda poner un código.',

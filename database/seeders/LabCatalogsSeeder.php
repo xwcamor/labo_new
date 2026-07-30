@@ -22,11 +22,41 @@ use Illuminate\Database\Seeder;
  * en `_meta` de `spec_limits_legacy.json`, como referencia del ETL de la
  * fase 12 y de ningún otro lado.
  *
- * OJO: los aceites 2, 3, 8 y 9 existen en el sistema viejo y reciben norma,
- * pero NINGUNA rama del código les asigna cuadro de límites. Se siembran con
- * el nombre desconocido a propósito, para que se vean: taparlos con un alias
- * inventado sería decidir por el laboratorio. Ver la anomalía
- * ACEITES-SIN-CUADRO en spec_limits_legacy.json.
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ LOS TIPOS DE ACEITE SON CUATRO, Y ESTO SE SUPO TARDE                     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Esta lista tenía NUEVE: los cuatro reales, un «éster natural (girasol)» y
+ * cuatro «sin identificar». Los cinco de más estaban INFERIDOS, no copiados de
+ * ninguna fuente, y el motivo es que la tabla de tipos de aceite NO ES DEL
+ * LABORATORIO: en el sistema viejo el modelo es `class OilType < Primary2`, o
+ * sea que vive en la base compartida con TRAPP. Por eso no aparece en el volcado
+ * —cero apariciones en los dos `.sql` de `docs/migracion/esquema/`— y hubo que
+ * deducirla de los `oil_type_id` que el código menciona.
+ *
+ * El 2026-07-31 el dueño mostró el desplegable del sistema en producción, que es
+ * la fuente directa. Tiene CUATRO opciones más el centinela:
+ *
+ *     Mineral · Silicona · Éster Vegetal · Éster Sintético · -
+ *
+ * Coincide con las ramas del código viejo, que solo distingue 1 (mineral),
+ * 4 (silicona), 5 (éster vegetal) y 7 (éster sintético).
+ *
+ * QUÉ PASÓ CON EL GIRASOL. El código viejo sí tiene una rama `oil_type_id == 6`
+ * con los límites de cromatografía del girasol (`rem_report_detail.rb:637-651`),
+ * distintos de los de la soya. Pero ese tipo ya no está en el desplegable, así
+ * que ningún equipo puede tenerlo: la rama quedó INALCANZABLE. El cuadro no se
+ * borra —sus números son reales y están respaldados por la hoja CR de
+ * `VALORES_DE_ORIENTACION.xlsx`— pero deja de resolverse por tipo de aceite y
+ * pasa a elegirse a mano, que es como el laboratorio resuelve lo que el
+ * automático no cubre.
+ *
+ * Y el 5 es «Éster Vegetal» a secas: en cromatografía recibe los números que el
+ * cuadro rotula SOYA - FR3, y en fisicoquímicos comparte cuadro con el éster
+ * sintético (`5 or 7`, `rem_report_detail.rb:299`).
+ *
+ * Los cuatro «sin identificar» se van por lo mismo: eran huecos de ID que este
+ * seeder rellenaba para que los números cuadraran. Un catálogo con cuatro
+ * entradas que nadie puede explicar es peor que uno corto.
  */
 class LabCatalogsSeeder extends Seeder
 {
@@ -34,15 +64,13 @@ class LabCatalogsSeeder extends Seeder
     {
         // ── Tipos de aceite ─────────────────────────────────────────────
         foreach ([
+            // Los cuatro del desplegable del sistema en producción, en su orden.
+            // El centinela «-» no se siembra: acá la ausencia de tipo es NULL,
+            // que es lo que significa, y no una fila del catálogo.
             ['code' => 'mineral',          'name' => 'Mineral'],
-            ['code' => 'aceite_2',         'name' => 'Aceite 2 (sin identificar)', 'is_active' => false],
-            ['code' => 'aceite_3',         'name' => 'Aceite 3 (sin identificar)', 'is_active' => false],
             ['code' => 'silicona',         'name' => 'Silicona'],
-            ['code' => 'vegetal_soya',     'name' => 'Éster natural (soya)'],
-            ['code' => 'vegetal_girasol',  'name' => 'Éster natural (girasol)'],
-            ['code' => 'ester_sintetico',  'name' => 'Éster sintético (Midel)'],
-            ['code' => 'aceite_8',         'name' => 'Aceite 8 (sin identificar)', 'is_active' => false],
-            ['code' => 'aceite_9',         'name' => 'Aceite 9 (sin identificar)', 'is_active' => false],
+            ['code' => 'ester_vegetal',    'name' => 'Éster Vegetal'],
+            ['code' => 'ester_sintetico',  'name' => 'Éster Sintético'],
         ] as $i => $row) {
             OilType::withTrashed()->updateOrCreate(
                 ['code' => $row['code']],

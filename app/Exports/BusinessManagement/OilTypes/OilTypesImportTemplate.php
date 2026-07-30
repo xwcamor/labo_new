@@ -28,7 +28,7 @@ class OilTypesImportTemplate implements FromArray, WithEvents
             ['name', 'code'],
             ['Mineral', 'mineral'],
             ['Silicona', 'silicona'],
-            ['Soya', 'vegetal_soya'],
+            ['Éster Vegetal', 'ester_vegetal'],
         ];
     }
 

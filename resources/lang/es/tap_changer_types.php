@@ -23,7 +23,7 @@ return [
     'name'      => 'Nombre',
     'name_help' => 'Nombre del tipo de conmutador (ej: Mineral, Silicona, Vegetal).',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, vegetal_soya).',
+    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, ester_vegetal).',
     'sort_order' => 'Orden',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el tipo de conmutador no aparecerá en los selectores de otros módulos.',

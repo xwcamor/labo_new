@@ -310,7 +310,7 @@ class LabSpecSetsSeeder extends Seeder
         }
 
         // Sin columna de código se empareja por el nombre normalizado, que es
-        // como el archivo los nombra ("vegetal_soya" ← "Éster natural (soya)").
+        // como el archivo los nombra ("ester_vegetal" ← "Éster Vegetal").
         return $modelo::withoutGlobalScopes()->get(['id', 'name'])
             ->mapWithKeys(fn ($m) => [Str::slug($m->name, '_') => $m->id]);
     }

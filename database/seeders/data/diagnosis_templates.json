@@ -339,7 +339,7 @@
             "_origen": "_form_add_details_inhibidores_default_values.html.erb:27-39",
             "_nota": "Solo para los aceites 1, 2, 3 y 8 del sistema anterior, que es la condición literal de su ERB. Por encima de 3 % no hay texto: allá tampoco lo había.",
             "family": "inhibidor",
-            "oil_types": ["mineral", "aceite_2", "aceite_3", "aceite_8"],
+            "oil_types": ["mineral"],
             "equipment_types": [],
             "case": "any",
             "analyte": "inhibitor",

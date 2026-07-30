@@ -23,7 +23,7 @@ return [
     'name'      => 'Nombre',
     'name_help' => 'Nombre del marca (ej: Acme, Globex, Contoso).',
     'code'      => 'Código',
-    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, vegetal_soya).',
+    'code_help' => 'Identificador técnico interno (ej: mineral, silicona, ester_vegetal).',
     'sort_order' => 'Orden',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el marca no aparecerá en los selectores de otros módulos.',

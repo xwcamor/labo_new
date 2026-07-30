@@ -9,29 +9,19 @@
       "1": {
         "code": "mineral"
       },
-      "2": {
-        "code": "aceite_2"
-      },
-      "3": {
-        "code": "aceite_3"
-      },
       "4": {
         "code": "silicona"
       },
       "5": {
-        "code": "vegetal_soya"
+        "code": "ester_vegetal",
+        "nota": "«Éster Vegetal» a secas. En cromatografía recibe los números que el cuadro rotula SOYA - FR3; en fisicoquímicos comparte cuadro con el sintético (5 or 7)."
       },
       "6": {
-        "code": "vegetal_girasol"
+        "code": null,
+        "nota": "GIRASOL. El código viejo tiene su rama de cromatografía (rem_report_detail.rb:637-651) pero el tipo YA NO EXISTE en el desplegable del sistema en producción, así que ningún equipo puede tenerlo y la rama es inalcanzable. El cuadro se conserva con sus números —respaldados por la hoja CR de VALORES_DE_ORIENTACION.xlsx— pero sin condición de tipo de aceite: se elige a mano."
       },
       "7": {
         "code": "ester_sintetico"
-      },
-      "8": {
-        "code": "aceite_8"
-      },
-      "9": {
-        "code": "aceite_9"
       }
     },
     "equipos": {
@@ -116,7 +106,8 @@
     },
     "notas": [
       "norma_aceptacion se asignó por grupo (cromas -> IEEE C57.104, fiqui -> IEEE C57.106). El sistema anterior no la guardaba por cuadro: el informe la elegía por informe (rem_report_detail.fiq_norm) y el texto del análisis la traía escrita a mano. Es editable desde la pantalla."
-    ]
+    ],
+    "aceites_nota": "Los ids 2, 3, 8 y 9 se quitaron. Estaban sembrados como «sin identificar» para tapar huecos de numeración, y no salían de ninguna fuente: la tabla de tipos de aceite no es del laboratorio (class OilType < Primary2, la base compartida con TRAPP) y por eso no está en el volcado. El desplegable del sistema en producción, visto el 2026-07-31, tiene cuatro tipos y el centinela: Mineral · Silicona · Éster Vegetal · Éster Sintético · -"
   },
   "anomalias": [
     {
@@ -1270,11 +1261,11 @@
     },
     {
       "grupo": "cromas",
-      "label": "Vegetal soya",
+      "label": "Éster vegetal",
       "origen": "app/models/rem_report_detail.rb:625",
       "condicion": {
         "oil_type_code": [
-          "vegetal_soya"
+          "ester_vegetal"
         ]
       },
       "limites": [
@@ -1339,11 +1330,7 @@
       "grupo": "cromas",
       "label": "Vegetal girasol",
       "origen": "app/models/rem_report_detail.rb:640",
-      "condicion": {
-        "oil_type_code": [
-          "vegetal_girasol"
-        ]
-      },
+      "condicion": {},
       "limites": [
         {
           "analyte": "h2",
@@ -1400,7 +1387,9 @@
           "display": "0 - máximo"
         }
       ],
-      "norma_aceptacion": "IEEE Std C57.155-2014"
+      "norma_aceptacion": "IEEE Std C57.155-2014",
+      "seleccion_manual": true,
+      "nota_girasol": "El tipo de aceite «girasol» no existe en el catálogo del sistema en producción, así que este cuadro no puede resolverse automáticamente. Sus números son reales (hoja CR de VALORES_DE_ORIENTACION.xlsx y rem_report_detail.rb:637-651) y se conservan para que el analista pueda elegirlo a mano."
     },
     {
       "grupo": "fiquis",
@@ -1890,7 +1879,7 @@
       "condicion": {
         "voltage_to": 72.5,
         "oil_type_code": [
-          "vegetal_soya",
+          "ester_vegetal",
           "ester_sintetico"
         ]
       },
@@ -1972,7 +1961,7 @@
         "voltage_from": 72.5,
         "voltage_to": 170,
         "oil_type_code": [
-          "vegetal_soya",
+          "ester_vegetal",
           "ester_sintetico"
         ]
       },
@@ -2053,7 +2042,7 @@
       "condicion": {
         "voltage_from": 170,
         "oil_type_code": [
-          "vegetal_soya",
+          "ester_vegetal",
           "ester_sintetico"
         ]
       },

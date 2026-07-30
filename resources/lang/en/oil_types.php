@@ -6,8 +6,7 @@ return [
     'names' => [
         'mineral'         => 'Mineral',
         'silicona'        => 'Silicone',
-        'vegetal_soya'    => 'Natural Ester (Soybean)',
-        'vegetal_girasol' => 'Natural Ester (Sunflower)',
+        'ester_vegetal'   => 'Vegetable Ester',
         'ester_sintetico' => 'Synthetic Ester',
         'ninguno'         => 'No oil (-)',
     ],

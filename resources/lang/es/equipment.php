@@ -139,4 +139,11 @@ return [
         'step9_title' => '¿Necesitas un repaso?',
         'step9_body'  => 'Reabre este tour cuando quieras con el botón ? aquí arriba. También tienes "Recientes" en el menú del avatar — los últimos registros que viste en cualquier módulo.',
     ],
+    // La placa se pega tal como esta escrita en la chapa y se reparte sola en
+    // los campos numericos. Nadie tipea 220/60/10 en tres casillas.
+    'plate_paste_help'          => 'Se puede pegar la placa completa: 220/60/10. Se reparte sola en los campos de abajo.',
+    'plate_placeholder_voltage' => 'Ej: 220/60/10',
+    'plate_placeholder_power'   => 'Ej: 30/40/50',
+    'plate_extra'               => 'La placa trae mas valores de los que el sistema guarda. Quedaron sin cargar: :extra. Anotelos en las observaciones del equipo.',
+    'plate_division' => 'Esa placa parece una division (por ejemplo 500/1.73, que es 500 partido por raiz de tres). Cargue la tension real del devanado: el sistema no puede elegir entre 500 y el resultado de la division, y ese numero decide con que cuadro de limites se juzga el aceite.',
 ];

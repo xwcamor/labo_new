@@ -80,4 +80,7 @@ return [
     'template_is_active_help'   => 'Valores aceptados: 1, 0, true, false, sí, no, activo, inactivo. Vacío = activo por defecto.',
     'template_sample_1'         => 'América del Sur',
     'template_sample_2'         => 'Europa Oriental',
+    // La placa trae mas segmentos de los que el modelo guarda: se importa
+    // con los primeros y la fila queda reportada, nunca se descarta en silencio.
+    'err_plate_extra_segments' => 'La columna :column trae mas valores de los que se guardan: se tomaron los primeros :kept y quedaron sin cargar :extra.',
 ];

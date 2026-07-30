@@ -3,6 +3,7 @@
 namespace App\Imports\BusinessManagement\Equipment;
 
 use App\Models\Equipment;
+use App\Support\PlateValue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,14 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
  *   - customer (obligatoria)          — el cliente dueño, por nombre exacto
  *   - serial   (opcional)             — número de serie de la chapa
  *   - tag      (opcional)             — código en planta (TR-01)
+ *   - voltage_kv (opcional)           — la placa tal como está escrita: "220/60/10"
+ *   - power_mva  (opcional)           — las etapas: "30/40/50"
+ *
+ * LA PLACA VIENE EN UNA SOLA COLUMNA, y así hay que aceptarla: la chapa del
+ * equipo dice "220/60/10" y la planilla que manda el cliente trae una columna,
+ * no tres. `PlateValue` la reparte en las columnas del modelo. Antes el
+ * importador NO mapeaba tensión ni potencia: importar el padrón dejaba la placa
+ * vacía y había que completarla a mano equipo por equipo.
  *
  * La columna `code` del scaffold NO existe: `equipment` no tiene esa columna.
  * Importar por ella escribía un campo inexistente y, peor, el importador creaba
@@ -130,6 +139,35 @@ class EquipmentImport implements ToCollection, WithHeadingRow
                 $serial = $this->normalizeCode($row['serial'] ?? null);
                 $tag    = $this->normalizeCode($row['tag'] ?? null);
 
+                // La placa: una columna por magnitud, repartida en las casillas
+                // del modelo. Lo que no entra se ignora acá pero se cuenta como
+                // aviso de la importación, no se pierde en silencio.
+                [$tensiones, $sobranTension] = PlateValue::split($row['voltage_kv'] ?? null, 3);
+                // Los tres campos de tensión son roles y el de ALTA decide la
+                // clase del cuadro de límites: se ordena. La potencia NO, que
+                // son los escalones de enfriamiento y ahí el orden es el dato.
+                $tensiones = PlateValue::sortVoltages($tensiones);
+                [$potencias, $sobranPotencia] = PlateValue::split($row['power_mva'] ?? null, 3);
+
+                // Una placa con más devanados o más etapas de las que el modelo
+                // guarda se importa igual con los primeros tres, pero la fila
+                // queda REPORTADA: el laboratorio tiene que saber que ese equipo
+                // trae un dato que el sistema no está mostrando. Descartarlo sin
+                // decir nada es la pérdida silenciosa que ya costó caro antes.
+                foreach ([['voltage_kv', $sobranTension], ['power_mva', $sobranPotencia]] as [$columna, $sobra]) {
+                    if ($sobra !== []) {
+                        $this->errors[] = [
+                            'row'     => $absoluteRow,
+                            'message' => __('imports.err_plate_extra_segments', [
+                                'column' => $columna,
+                                'kept'   => 3,
+                                'extra'  => implode(', ', $sobra),
+                            ]),
+                            'value'   => trim((string) ($row[$columna] ?? '')),
+                        ];
+                    }
+                }
+
                 // Capa 1 — duplicado dentro del mismo archivo. Con chapa, la
                 // clave es la chapa; sin chapa, el par cliente+nombre (dos
                 // clientes distintos SÍ pueden repetir el nombre).
@@ -213,6 +251,12 @@ class EquipmentImport implements ToCollection, WithHeadingRow
                         'customer_id' => $customerId,
                         'serial'      => $serial,
                         'tag'         => $tag,
+                        'voltage_kv_hv' => $tensiones[0],
+                        'voltage_kv_lv' => $tensiones[1],
+                        'voltage_kv_tv' => $tensiones[2],
+                        'power_mva'     => $potencias[0],
+                        'power_mva_2'   => $potencias[1],
+                        'power_mva_3'   => $potencias[2],
                         'is_active'   => true,
                         'created_by'  => Auth::id(),
                         // tenant_id lo autorellena BelongsToTenant (tenant del actor);

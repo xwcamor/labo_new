@@ -80,4 +80,7 @@ return [
     'template_is_active_help'   => 'Accepted values: 1, 0, true, false, yes, no, active, inactive. Empty = active by default.',
     'template_sample_1'         => 'South America',
     'template_sample_2'         => 'Eastern Europe',
+    // The plate carries more segments than the model stores: the first ones are
+    // imported and the row is reported, never silently dropped.
+    'err_plate_extra_segments' => 'Column :column carries more values than are stored: the first :kept were taken and :extra were left out.',
 ];

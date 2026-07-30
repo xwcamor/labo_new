@@ -9,6 +9,8 @@ import { ApartmentOutlined } from '@ant-design/icons-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
 import FormFooter from '@/Components/Common/FormFooter.vue';
+import { splitPlate, sortVoltages, looksLikeDivision } from '@/Utils/plate';
+import { useI18n } from '@/Plugins/i18n';
 
 defineOptions({ layout: AppLayout });
 
@@ -128,6 +130,71 @@ watch(() => form.customer_area_id, (nuevo, viejo) => {
 // versión: hay que darle el texto en `label` y filtrar contra eso.
 const filtrar = (input, option) =>
     (option.label ?? '').toLowerCase().includes(input.toLowerCase());
+
+/**
+ * LA PLACA SE PEGA Y SE REPARTE.
+ *
+ * El sistema guarda un número por devanado y por etapa —la clase de tensión que
+ * decide el criterio del IEEE C57.106 necesita un número comparable— pero la
+ * chapa del equipo dice "220/60/10" de una sola vez. Estos dos campos aceptan la
+ * cadena y la reparten en las casillas; el resto de los campos numéricos siguen
+ * ahí para corregir un valor suelto.
+ *
+ * Si la placa trae más segmentos que casillas se avisa en vez de descartar el
+ * último en silencio: es el equipo del cliente y ese devanado existe.
+ */
+const { t } = useI18n();
+
+const tensionTipeada  = ref('');
+const potenciaTipeada = ref('');
+const avisoPlaca      = ref('');
+
+/** El texto inicial se arma con lo que ya está guardado. */
+const armarTexto = (valores) => valores
+    .filter((v) => v !== null && v !== undefined && v !== '')
+    .join(' / ');
+
+tensionTipeada.value = armarTexto([
+    props.equipment?.voltage_kv_hv, props.equipment?.voltage_kv_lv, props.equipment?.voltage_kv_tv,
+]);
+potenciaTipeada.value = armarTexto([
+    props.equipment?.power_mva, props.equipment?.power_mva_2, props.equipment?.power_mva_3,
+]);
+
+const repartir = (texto, campos) => {
+    const { values, extra } = splitPlate(texto, campos.length);
+
+    campos.forEach((campo, i) => { form[campo] = values[i]; });
+
+    return extra;
+};
+
+const repartirTension = () => {
+    // `500/1.73` es una DIVISIÓN (500 partido por raíz de tres, en reactores), no
+    // dos devanados: se pregunta en vez de inventar una tensión de 1.73 kV, que
+    // además decidiría con qué cuadro de límites se juzga el aceite.
+    if (looksLikeDivision(tensionTipeada.value)) {
+        avisoPlaca.value = t('equipment.plate_division');
+
+        return;
+    }
+
+    const extra = repartir(tensionTipeada.value, ['voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv']);
+
+    // De mayor a menor: los tres campos son roles, y el de alta tensión es el
+    // que después decide la clase del cuadro de límites.
+    const [hv, lv, tv] = sortVoltages([form.voltage_kv_hv, form.voltage_kv_lv, form.voltage_kv_tv]);
+    form.voltage_kv_hv = hv;
+    form.voltage_kv_lv = lv;
+    form.voltage_kv_tv = tv;
+
+    avisoPlaca.value = extra.length ? t('equipment.plate_extra', { extra: extra.join(', ') }) : '';
+};
+
+const repartirPotencia = () => {
+    const extra = repartir(potenciaTipeada.value, ['power_mva', 'power_mva_2', 'power_mva_3']);
+    avisoPlaca.value = extra.length ? t('equipment.plate_extra', { extra: extra.join(', ') }) : '';
+};
 
 const submit = () => {
     if (isEdit.value) {
@@ -317,13 +384,35 @@ const submit = () => {
                 </div>
 
                 <h2 class="form-section-title form-section-title--spaced">{{ $t('equipment.section_physical') }}</h2>
+
+                <!-- Se avisa cuando la placa trae más devanados o etapas de las
+                     que el sistema guarda: ese dato existe en el equipo del
+                     cliente y descartarlo sin decirlo sería perderlo. -->
+                <Alert
+                    v-if="avisoPlaca"
+                    type="warning"
+                    show-icon
+                    class="eq-plate-alert"
+                    :message="avisoPlaca"
+                />
+
                 <div class="form-grid">
+                    <!-- Acepta la placa PEGADA: "220/60/10" se reparte solo
+                         en los tres campos de tensión. La chapa del equipo se
+                         lee así y antes había que tipear tres veces lo que ya
+                         estaba escrito; el control numérico descartaba el pegado
+                         sin decir por qué. -->
                     <FormItem
                         :label="$t('equipment.voltage_kv_hv')"
                         :validate-status="form.errors.voltage_kv_hv ? 'error' : ''"
-                        :help="form.errors.voltage_kv_hv"
+                        :help="form.errors.voltage_kv_hv || $t('equipment.plate_paste_help')"
                     >
-                        <InputNumber v-model:value="form.voltage_kv_hv" :min="0" style="width: 100%" />
+                        <Input
+                            v-model:value="tensionTipeada"
+                            :placeholder="$t('equipment.plate_placeholder_voltage')"
+                            @change="repartirTension"
+                            @blur="repartirTension"
+                        />
                     </FormItem>
                     <FormItem
                         :label="$t('equipment.voltage_kv_lv')"
@@ -342,9 +431,14 @@ const submit = () => {
                     <FormItem
                         :label="$t('equipment.power_mva')"
                         :validate-status="form.errors.power_mva ? 'error' : ''"
-                        :help="form.errors.power_mva"
+                        :help="form.errors.power_mva || $t('equipment.plate_paste_help')"
                     >
-                        <InputNumber v-model:value="form.power_mva" :min="0" style="width: 100%" />
+                        <Input
+                            v-model:value="potenciaTipeada"
+                            :placeholder="$t('equipment.plate_placeholder_power')"
+                            @change="repartirPotencia"
+                            @blur="repartirPotencia"
+                        />
                     </FormItem>
                     <FormItem
                         :label="$t('equipment.power_mva_2')"
@@ -426,6 +520,7 @@ const submit = () => {
 </template>
 
 <style scoped>
+.eq-plate-alert { margin-bottom: 12px; }
 .state-label {
     font-size: 0.875rem;
     color: var(--color-text);

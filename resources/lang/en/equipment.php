@@ -134,4 +134,11 @@ return [
         'step9_title' => 'Need a refresher?',
         'step9_body'  => 'Reopen this tour anytime with the ? button. "Recent" in the avatar menu shows the last records you viewed.',
     ],
+    // The plate is pasted as written on the nameplate and split into the numeric
+    // fields. Nobody types 220/60/10 into three boxes.
+    'plate_paste_help'          => 'You can paste the whole plate: 220/60/10. It is split into the fields below.',
+    'plate_placeholder_voltage' => 'e.g. 220/60/10',
+    'plate_placeholder_power'   => 'e.g. 30/40/50',
+    'plate_extra'               => 'The plate carries more values than the system stores. Left out: :extra. Note them in the equipment remarks.',
+    'plate_division' => 'That plate looks like a division (for example 500/1.73, which is 500 divided by the square root of three). Enter the actual winding voltage: the system cannot choose between 500 and the result of the division, and that number decides which limit table judges the oil.',
 ];

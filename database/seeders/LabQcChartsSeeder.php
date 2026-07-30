@@ -28,19 +28,33 @@ use Illuminate\Support\Str;
  * vacía en pantalla se lee como un control que se dejó de correr.
  *
  * ┌──────────────────────────────────────────────────────────────────────────┐
- * │ LOS LÍMITES SE DERIVAN, NO SE INVENTAN                                   │
+ * │ LOS LÍMITES SON LOS DEL LABORATORIO, DECLARADOS                          │
  * └──────────────────────────────────────────────────────────────────────────┘
- * Los cinco límites (LAS, LAI, LC, LCS, LCI) vivían en la tabla
- * `patron_tendences` del sistema anterior, que NO está en su repositorio: sus
- * valores reales solo existen en la base de producción del laboratorio. Así que
- * las cartas nacen DERIVADAS —el centro y el desvío salen de los propios puntos
- * del patrón a medida que se cargan, que es el arranque correcto de una carta
- * nueva— y el laboratorio declara los suyos desde la pantalla cuando los tenga.
+ * Acá decía que los cinco límites (LAS, LAI, LC, LCS, LCI) «no están en el
+ * repositorio» y por eso las cartas nacían DERIVADAS, con el centro y el desvío
+ * calculados de los propios puntos. Era falso: están en
+ * `docs/migracion/esquema/catalogos-definiciones.sql`, tabla `patron_tendences`,
+ * 27 filas, de las cuales 16 traen números — justo las 16 cartas de acá.
  *
- * Ahí está la mejora que importa: acá los límites declarados llevan fecha de
- * vigencia. En el sistema anterior se pisaban al cambiar de lote de patrón, y las
- * cartas históricas quedaban dibujadas contra el criterio de hoy — un punto que
- * en su momento estaba fuera de control aparecía adentro.
+ * La diferencia no es cosmética. Una carta derivada mueve su propio centro con
+ * cada punto que se carga, así que una corrida que históricamente estaba fuera
+ * de control puede terminar cayendo dentro. El laboratorio calibró esos
+ * límites; el sistema no los vuelve a inventar. Así funcionaba el anterior: los
+ * cinco números se tecleaban y el gráfico solo los dibujaba.
+ *
+ * DOS TRAMPAS AL SEMBRARLOS, las dos resueltas en `qc_charts.json`:
+ *
+ *   · Las siglas NO son fiables. En quince filas el de CONTROL es el de afuera
+ *     (±3σ) y el de ADVERTENCIA el de adentro (±2σ), pero en Densidad Relativa
+ *     vienen al revés. Por eso el mapeo es POR DISTANCIA A LA LÍNEA CENTRAL y no
+ *     por el nombre de la columna: mapear por nombre dejaría esa carta con los
+ *     límites invertidos, dando por buena una corrida fuera de control.
+ *   · Condición Visual trae el texto `PASA` en los cinco campos: es una carta
+ *     cualitativa y no tiene límites numéricos. Queda sin sembrar.
+ *
+ * Lo que sí es mejora sobre el anterior: los límites llevan fecha de vigencia.
+ * Allá se pisaban al cambiar de lote de patrón y las cartas históricas quedaban
+ * dibujadas contra el criterio de hoy.
  *
  * Idempotente y respetuoso: una carta que ya existe no se toca. Si el
  * laboratorio le cargó sus límites, volver a sembrar no se los devuelve a
@@ -113,7 +127,27 @@ class LabQcChartsSeeder extends Seeder
                 // Sin lote todavía: el lote de patrón lo carga el laboratorio, y
                 // es lo que define desde cuándo vale un juego de límites.
                 'control_lot'        => null,
-                'is_derived'         => true,
+                // ┌──────────────────────────────────────────────────────────┐
+                // │ LÍMITES DECLARADOS, COMO EN EL SISTEMA ANTERIOR          │
+                // └──────────────────────────────────────────────────────────┘
+                // Allá los cinco números los TECLEABA el laboratorio y el
+                // gráfico solo los dibujaba: no calculaba nada. Acá se
+                // sembraban DERIVADOS —el sistema los deducía de los puntos que
+                // se fueran cargando— porque se creyó que esos valores no
+                // estaban en ninguna parte. Sí están: son las 27 filas de
+                // `patron_tendences` del volcado, y 16 traen números.
+                //
+                // La diferencia no es cosmética: una carta derivada mueve su
+                // propio centro con cada punto nuevo, así que una corrida que
+                // históricamente estaba fuera de control puede caer dentro.
+                // El laboratorio calibró esos límites; el sistema no los
+                // vuelve a inventar.
+                'is_derived'         => ($fila['center'] ?? null) === null,
+                'lcl'                => $fila['lcl'],
+                'lwl'                => $fila['lwl'],
+                'center'             => $fila['center'],
+                'uwl'                => $fila['uwl'],
+                'ucl'                => $fila['ucl'],
                 'warn_sigma'         => 2,
                 'action_sigma'       => 3,
                 'effective_from'     => now()->startOfYear()->toDateString(),
@@ -137,12 +171,16 @@ class LabQcChartsSeeder extends Seeder
         }
 
         if ($creadas > 0) {
-            $this->command?->warn(
-                'Las cartas nacen DERIVADAS: sus límites se calculan de los puntos del patrón. '
-                . 'Los valores declarados del sistema anterior (LAS/LAI/LC/LCS/LCI) vivían en su '
-                . 'tabla `patron_tendences`, que no está en el repositorio — solo en su base de '
-                . 'producción. El laboratorio los carga desde la pantalla de cada carta.'
-            );
+            $declaradas = QcChart::withoutGlobalScopes()
+                ->where('tenant_id', self::TENANT_ID)
+                ->whereNotNull('center')
+                ->count();
+
+            $this->command?->info(sprintf(
+                '%d con los límites declarados del laboratorio (patron_tendences del volcado); '
+                . 'el resto quedan derivadas hasta que se carguen los suyos.',
+                $declaradas,
+            ));
         }
     }
 }

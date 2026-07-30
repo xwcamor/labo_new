@@ -118,17 +118,71 @@ class QcChartsSeedTest extends TestCase
 
     // ─── Los límites ─────────────────────────────────────────────────────
 
-    public function test_las_cartas_nacen_derivadas_y_sin_limites_inventados(): void
+    /**
+     * Las cartas nacen con los límites QUE EL LABORATORIO CALIBRÓ.
+     *
+     * Este test afirmaba lo contrario —que nacían derivadas y sin límites—
+     * porque se creía que los cinco valores del sistema anterior no estaban en
+     * ninguna parte. Sí están: `patron_tendences` del volcado, 27 filas, 16 con
+     * números, justo las 16 cartas de acá.
+     *
+     * La diferencia no es cosmética: una carta derivada mueve su propio centro
+     * con cada punto que se carga, así que una corrida que históricamente estaba
+     * fuera de control puede terminar cayendo dentro.
+     */
+    public function test_las_cartas_nacen_con_los_limites_declarados_del_laboratorio(): void
     {
-        // Los cinco límites del sistema anterior vivían en `patron_tendences`, que
-        // no está en su repositorio. Poner números plausibles sería peor que no
-        // poner ninguno: un punto se marcaría fuera de control contra un criterio
-        // que nadie declaró.
         foreach (QcChart::withoutGlobalScopes()->get() as $carta) {
-            $this->assertTrue($carta->is_derived, "La carta {$carta->label} no es derivada.");
-            $this->assertNull($carta->center);
-            $this->assertNull($carta->ucl);
-            $this->assertNull($carta->lcl);
+            $this->assertFalse(
+                (bool) $carta->is_derived,
+                "La carta {$carta->label} quedó derivada en vez de usar los límites del laboratorio.",
+            );
+
+            foreach (['lcl', 'lwl', 'center', 'uwl', 'ucl'] as $limite) {
+                $this->assertNotNull($carta->{$limite}, "A {$carta->label} le falta {$limite}.");
+            }
+        }
+    }
+
+    /** Los cinco valores, exactos, de la carta que el laboratorio mostró en pantalla. */
+    public function test_el_factor_de_potencia_25_lleva_sus_cinco_numeros(): void
+    {
+        $prueba = TestDefinition::where('code', 'factor_de_potencia_25o')->firstOrFail();
+        $carta  = QcChart::withoutGlobalScopes()
+            ->where('test_definition_id', $prueba->id)
+            ->firstOrFail();
+
+        $this->assertEqualsWithDelta(0.0018, (float) $carta->lcl, 1e-9);
+        $this->assertEqualsWithDelta(0.0025, (float) $carta->lwl, 1e-9);
+        $this->assertEqualsWithDelta(0.0039, (float) $carta->center, 1e-9);
+        $this->assertEqualsWithDelta(0.0053, (float) $carta->uwl, 1e-9);
+        $this->assertEqualsWithDelta(0.0059, (float) $carta->ucl, 1e-9);
+    }
+
+    /**
+     * El de CONTROL siempre queda más lejos del centro que el de ADVERTENCIA.
+     *
+     * Es la invariante que obligó a mapear los cinco valores POR DISTANCIA y no
+     * por el nombre de la columna del volcado: quince filas traen el control
+     * afuera, pero Densidad Relativa lo trae al revés. Mapeada por nombre, esa
+     * carta quedaría con los límites invertidos — o sea dando por buena una
+     * corrida que está fuera de control.
+     */
+    public function test_el_limite_de_control_siempre_queda_por_fuera_del_de_advertencia(): void
+    {
+        foreach (QcChart::withoutGlobalScopes()->get() as $carta) {
+            $centro = (float) $carta->center;
+
+            $this->assertLessThanOrEqual(
+                abs($centro - (float) $carta->lcl),
+                abs($centro - (float) $carta->lwl),
+                "En {$carta->label} el límite inferior de advertencia quedó más lejos que el de control.",
+            );
+            $this->assertLessThanOrEqual(
+                abs((float) $carta->ucl - $centro),
+                abs((float) $carta->uwl - $centro),
+                "En {$carta->label} el límite superior de advertencia quedó más lejos que el de control.",
+            );
         }
     }
 

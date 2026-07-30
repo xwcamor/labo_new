@@ -98,32 +98,68 @@
     {
       "test": "numero_acido",
       "field": "resultado_mgkohg_aceite",
-      "analyte": "acid"
+      "analyte": "acid",
+      "lcl": 0.095,
+      "lwl": 0.095,
+      "center": 0.109,
+      "uwl": 0.121,
+      "ucl": 0.121,
+      "_origen_limites": "patron_tendences id 1 (Número Ácido)"
     },
     {
       "test": "factor_de_potencia_25o",
       "field": "resultado",
-      "analyte": "fp25"
+      "analyte": "fp25",
+      "lcl": 0.0018,
+      "lwl": 0.0025,
+      "center": 0.0039,
+      "uwl": 0.0053,
+      "ucl": 0.0059,
+      "_origen_limites": "patron_tendences id 2 (Factor De Potencia 25º)"
     },
     {
       "test": "factor_de_potencia_100o",
       "field": "resultado",
-      "analyte": "fp100"
+      "analyte": "fp100",
+      "lcl": 0.022,
+      "lwl": 0.031,
+      "center": 0.05,
+      "uwl": 0.068,
+      "ucl": 0.077,
+      "_origen_limites": "patron_tendences id 3 (Factor De Potencia 100º)"
     },
     {
       "test": "rigidez_dielectrica",
       "field": "resultado_kv",
-      "analyte": "rig"
+      "analyte": "rig",
+      "lcl": 16.8,
+      "lwl": 18.6,
+      "center": 22.0,
+      "uwl": 25.4,
+      "ucl": 27.2,
+      "_origen_limites": "patron_tendences id 4 (Rigidez Dieléctrica)"
     },
     {
       "test": "contenido_de_agua",
       "field": "resultado_ppm",
-      "analyte": "wat"
+      "analyte": "wat",
+      "lcl": 20.0,
+      "lwl": 22.0,
+      "center": 25.0,
+      "uwl": 28.0,
+      "ucl": 30.0,
+      "_origen_limites": "patron_tendences id 6 (Contenido de Agua)"
     },
     {
       "test": "densidad_relativa",
       "field": "resultado",
-      "analyte": "dens"
+      "analyte": "dens",
+      "lcl": 0.8811,
+      "lwl": 0.8813,
+      "center": 0.8817,
+      "uwl": 0.8821,
+      "ucl": 0.8823,
+      "_origen_limites": "patron_tendences id 9 (Densidad Relativa)"
     },
     {
       "_nota_tension_interfacial": [
@@ -134,7 +170,13 @@
       ],
       "test": "tension_interfacial",
       "field": "tension_interfacial_aceite_mnm",
-      "analyte": "ift"
+      "analyte": "ift",
+      "lcl": 46.47,
+      "lwl": 47.11,
+      "center": 48.38,
+      "uwl": 49.65,
+      "ucl": 50.29,
+      "_origen_limites": "patron_tendences id 5 (Tensión Interfacial)"
     },
     {
       "_nota_cromatografia": [
@@ -144,47 +186,109 @@
       ],
       "test": "analisis_cromatografico",
       "field": "hidrogeno_h2_ppm",
-      "analyte": "h2"
+      "analyte": "h2",
+      "lcl": 52.88,
+      "lwl": 54.26,
+      "center": 57.01,
+      "uwl": 59.76,
+      "ucl": 63.89,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "oxigeno_o2_ppm",
-      "analyte": "o2"
+      "analyte": "o2",
+      "lcl": 3446.12,
+      "lwl": 3473.7,
+      "center": 3528.84,
+      "uwl": 3583.99,
+      "ucl": 3611.56,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "nitrogeno_n2_ppm",
-      "analyte": "n2"
+      "analyte": "n2",
+      "lcl": 19213.69,
+      "lwl": 19396.69,
+      "center": 19762.69,
+      "uwl": 20128.69,
+      "ucl": 20311.69,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "metano_ch4_ppm",
-      "analyte": "ch4"
+      "analyte": "ch4",
+      "lcl": 77.66,
+      "lwl": 79.13,
+      "center": 82.07,
+      "uwl": 85.0,
+      "ucl": 86.47,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "mcarbono_co_ppm",
-      "analyte": "co"
+      "analyte": "co",
+      "lcl": 302.97,
+      "lwl": 308.7,
+      "center": 320.15,
+      "uwl": 331.59,
+      "ucl": 337.32,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "dcarbono_co2_ppm",
-      "analyte": "co2"
+      "analyte": "co2",
+      "lcl": 6135.65,
+      "lwl": 6206.63,
+      "center": 6348.6,
+      "uwl": 6490.56,
+      "ucl": 6561.55,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "etileno_c2h4_ppm",
-      "analyte": "c2h4"
+      "analyte": "c2h4",
+      "lcl": 153.95,
+      "lwl": 156.34,
+      "center": 161.13,
+      "uwl": 165.91,
+      "ucl": 168.3,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "etano_c2h6_ppm",
-      "analyte": "c2h6"
+      "analyte": "c2h6",
+      "lcl": 196.31,
+      "lwl": 198.66,
+      "center": 203.35,
+      "uwl": 208.04,
+      "ucl": 210.39,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     },
     {
       "test": "analisis_cromatografico",
       "field": "acetileno_c2h2_ppm",
-      "analyte": "c2h2"
+      "analyte": "c2h2",
+      "lcl": 67.77,
+      "lwl": 68.89,
+      "center": 71.14,
+      "uwl": 73.39,
+      "ucl": 74.52,
+      "_origen_limites": "patron_tendences id 10 (Análisis Cromatográfico)"
     }
-  ]
+  ],
+  "_meta_limites": {
+    "fuente": "docs/migracion/esquema/catalogos-definiciones.sql, tabla patron_tendences (27 filas, 16 con valores numericos)",
+    "extraido": "2026-07-31",
+    "mapeo": "Los cinco valores se mapearon POR DISTANCIA A LA LINEA CENTRAL, no por el nombre de la columna: el mas alejado es el de CONTROL (lcl/ucl) y el intermedio el de ADVERTENCIA (lwl/uwl). Hizo falta porque el volcado no es consistente entre sus filas — en Densidad Relativa las siglas vienen al reves que en las otras quince—, y mapear por nombre habria dejado esa carta con los limites invertidos, o sea dando por buena una corrida fuera de control.",
+    "nomenclatura": "Confirmada contra la pantalla del sistema en produccion (captura del dueño, 2026-07-31): LC* = Limite de Control = ±3σ (el de afuera) y LA* = Limite de Advertencia = ±2σ (el de adentro). La hoja LIMITES del Excel de la carta de agua los rotula al reves en su fila 2; es esa hoja la equivocada, no el sistema.",
+    "sin_limites": "Condicion Visual (id 8) trae el texto 'PASA' en los cinco campos: es una carta CUALITATIVA y no tiene limites numericos que sembrar. Las demas pruebas sin carta nunca tuvieron tendencia.",
+    "acido": "En Numero Acido los cinco valores vienen con advertencia y control IGUALES (0.095 y 0.121), o sea que 2σ y 3σ coinciden. No es un error de extraccion: esta asi en el volcado y tambien en la pantalla del sistema en produccion. Se siembra tal cual — el laboratorio los tecleo, no salieron de la formula."
+  }
 }

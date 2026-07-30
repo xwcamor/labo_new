@@ -20,6 +20,10 @@ return [
     'receptions'         => 'Sample reception',
     'worksheets'         => 'Worksheets',
     'qc_charts'          => 'Control charts',
+
+    // What the laboratory configures about itself. Split out of "Sample
+    // testing": that group had ten items and only three are opened daily.
+    'group_lab_setup'    => 'Laboratory setup',
     'test_definitions'   => 'Tests',
     'test_groups'        => 'Test groups',
     'analytes'           => 'Parameters',

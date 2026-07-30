@@ -1401,6 +1401,48 @@ html[data-theme="dark"] .lift:hover {
     .edit-table thead th { top: 0; }
 }
 .edit-all .edit-table-card { overflow: visible; }
+
+/* ── Tablas escritas a mano: la cabecera SIEMPRE queda a la vista ──────────
+   Los índices y "Editar todo" ya la fijan, pero hay tablas propias —el editor
+   de columnas de una prueba, sus valores constantes, la estructura del
+   cliente— que se escriben con `<table>` y se quedaban sin la regla. En una
+   prueba de veinte columnas eso significa que después de tres filas ya no se
+   sabe qué columna se está mirando.
+
+   POR QUÉ NO ALCANZABA CON PONER `position: sticky` EN EL `th`:
+   esas tablas viven dentro de un contenedor con `overflow-x: auto` para poder
+   correrse de costado, y por especificación CSS un `overflow` distinto de
+   `visible` en un eje fuerza `auto` en el otro. O sea que ese contenedor pasa a
+   ser el bloque de scroll del `th`, y como su alto es el del contenido nunca
+   hay nada por dentro que scrollear: el sticky no se activa jamás y la cabecera
+   se va con la página. Por eso el contenedor lleva un alto MÁXIMO y scrollea él
+   en los dos ejes, y ahí el `top: 0` sí la pega.
+
+   Se aplica con la clase `sticky-table` en el contenedor de scroll. Vive acá y
+   no en cada `<style scoped>` para que una tabla nueva la reciba con una clase
+   en vez de veinte líneas copiadas. */
+.sticky-table {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Lo que queda de viewport bajo la franja del título y sobre la del pie. */
+    max-height: calc(100vh - 300px);
+    /* Es un techo, no una medida: una tabla de tres filas no se estira. */
+    min-height: 120px;
+}
+.sticky-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    /* Fondo opaco obligatorio: sin él las filas se leen POR DEBAJO del texto de
+       la cabecera al scrollear. */
+    background: var(--color-surface-alt, #fafbfc);
+}
+@media (max-width: 768px) {
+    /* En el teléfono el techo se relaja: con 300px de descuento quedaban tres
+       filas y el scroll interno peleaba con el de la página. */
+    .sticky-table { max-height: calc(100vh - 220px); }
+}
+
 /* Paginación como FOOTER del card (igual que el index en vista tabla): fondo
    surface-alt + borde superior + esquinas redondeadas abajo. */
 .edit-all .edit-pagination {

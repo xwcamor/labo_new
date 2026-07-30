@@ -79,7 +79,7 @@ const save = () => {
 
             <template v-else>
                 <div class="tfc-card">
-                    <div class="tfc-scroll">
+                    <div class="tfc-scroll sticky-table">
                         <table class="tfc-table">
                             <thead>
                                 <tr>
@@ -108,14 +108,22 @@ const save = () => {
                     </div>
                 </div>
 
-                <div v-if="canEdit" class="tfc-footer">
-                    <Tooltip :title="$t('global.save_changes_hint')">
-                        <Button type="primary" :loading="saving" :disabled="!dirty" @click="save">
-                            <SaveOutlined /> {{ $t('global.save_changes') }}
-                        </Button>
-                    </Tooltip>
-                </div>
             </template>
+        </div>
+
+        <!-- Franja blanca al pie, la misma de los índices y de "Editar todo"
+             (`.bulk-bar`, global en app.css). Acá el botón de guardar estaba
+             suelto abajo del contenedor: con la tabla larga se iba de la
+             pantalla y había que scrollear hasta el final para encontrarlo. -->
+        <div v-if="canEdit" class="bulk-bar">
+            <span class="bulk-bar__label">
+                {{ dirty ? $t('test_fields.constants_pending') : $t('test_fields.constants_intro') }}
+            </span>
+            <Tooltip :title="$t('global.save_changes_hint')">
+                <Button type="primary" :loading="saving" :disabled="!dirty" @click="save">
+                    <SaveOutlined /> {{ $t('global.save_changes') }}
+                </Button>
+            </Tooltip>
         </div>
     </div>
 </template>
@@ -132,7 +140,7 @@ const save = () => {
     overflow: hidden;
 }
 
-.tfc-scroll { overflow-x: auto; }
+/* El overflow y la cabecera pegada los pone `sticky-table` (app.css). */
 
 .tfc-table {
     width: 100%;
@@ -175,9 +183,4 @@ const save = () => {
     font-size: 0.875rem;
 }
 
-.tfc-footer {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 14px;
-}
 </style>

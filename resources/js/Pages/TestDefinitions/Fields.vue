@@ -14,7 +14,7 @@
  */
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Alert, Button, Modal, Tag, Tooltip } from 'ant-design-vue';
+import { Alert, Button, Modal, Space, Tag, Tooltip } from 'ant-design-vue';
 import {
     DeleteOutlined, DownOutlined, EditOutlined, HolderOutlined, PlusOutlined,
     SettingOutlined, FileDoneOutlined, UpOutlined,
@@ -170,7 +170,7 @@ const analyteName = (id) => props.analytes.find((a) => a.id === id)?.name ?? nul
                     {{ $t('test_fields.empty') }}
                 </div>
 
-                <div v-else class="tfp-scroll">
+                <div v-else class="tfp-scroll sticky-table">
                     <table class="tfp-table">
                         <thead>
                             <tr>
@@ -264,15 +264,23 @@ const analyteName = (id) => props.analytes.find((a) => a.id === id)?.name ?? nul
                 </div>
             </div>
 
-            <div v-if="canEdit && orderChanged" class="tfp-orderbar">
-                <span>{{ $t('test_fields.reorder_safe') }}</span>
-                <span class="tfp-orderbar__actions">
-                    <Button @click="resetOrder">{{ $t('global.reset_order') }}</Button>
-                    <Button type="primary" :loading="savingOrder" @click="saveOrder">
-                        {{ $t('global.save_changes') }}
-                    </Button>
-                </span>
-            </div>
+        </div>
+
+        <!-- Franja blanca al pie, la misma de los índices y de "Editar todo"
+             (`.bulk-bar`, global en app.css). Antes esta pantalla se dibujaba su
+             propia barra con su propio estilo: quedaba adentro del cuerpo, con
+             otro borde y otro alto que el resto del sistema, y hay que mirar dos
+             pantallas seguidas para notar que son la misma cosa mal repetida.
+             Va DESPUÉS del contenedor del cuerpo y como hija directa de la
+             página, que es lo que la regla global espera para pegarse al pie. -->
+        <div v-if="canEdit && orderChanged" class="bulk-bar">
+            <span class="bulk-bar__label">{{ $t('test_fields.reorder_pending') }}</span>
+            <Space :size="8">
+                <Button @click="resetOrder">{{ $t('global.reset_order') }}</Button>
+                <Button type="primary" :loading="savingOrder" @click="saveOrder">
+                    {{ $t('global.save_changes') }}
+                </Button>
+            </Space>
         </div>
 
         <TestFieldFormModal
@@ -300,8 +308,10 @@ const analyteName = (id) => props.analytes.find((a) => a.id === id)?.name ?? nul
 .tfp-new   { margin-left: 8px; }
 
 /* La tabla es ancha: scrollea dentro de su propio contenedor para que el cuerpo
-   de la página nunca scrollee en horizontal. */
-.tfp-scroll { overflow-x: auto; }
+   de la página nunca scrollee en horizontal. El `overflow` y la cabecera pegada
+   los pone la clase global `sticky-table` (app.css): acá había un
+   `overflow-x: auto` suelto, y eso es justamente lo que impedía que la cabecera
+   se quedara fija — ver el comentario de esa regla. */
 
 .tfp-table {
     width: 100%;
@@ -366,28 +376,4 @@ const analyteName = (id) => props.analytes.find((a) => a.id === id)?.name ?? nul
     font-size: 0.875rem;
 }
 
-/* Barra de confirmación del orden: el reordenamiento no se guarda solo, para
-   que arrastrar sin querer no reescriba la plantilla. */
-.tfp-orderbar {
-    position: sticky;
-    bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    font-size: 0.8125rem;
-    color: var(--color-text-muted);
-}
-.tfp-orderbar__actions { display: inline-flex; gap: 8px; }
-
-@media (max-width: 768px) {
-    .tfp-orderbar { flex-direction: column; align-items: stretch; }
-    .tfp-orderbar__actions { justify-content: flex-end; }
-}
 </style>

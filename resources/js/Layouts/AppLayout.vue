@@ -434,46 +434,70 @@ const toggleSidebar = () => {
 // colapsar el sidebar al entrar y restaurarlo al salir.
 provide('sidebarCollapsed', collapsed);
 
-// Active menu key — uses Inertia's reactive page.url so the highlight follows
-// SPA navigation (window.location.pathname is NOT reactive in Vue/Inertia).
-// Order matters: more specific patterns first (e.g. system_modules before users).
-const selectedKey = computed(() => {
-    const url = page.url ?? '';
-    // Comparación: 2 páginas independientes con paths distintos.
-    const matchers = [
-        ['audit_logs',     '/audit_logs'],
-        ['system_modules', '/system_modules'],
-        ['automations',    '/automations'],
-        ['messages',       '/communication/messages'],
-        ['inbox',          '/communication/inbox'],
-        ['tenants',        '/tenants'],
-        ['plans',          '/plans'],
-        ['regions',        '/regions'],
-        ['languages',      '/languages'],
-        ['countries',      '/countries'],
-        ['locales',        '/locales'],
-        ['settings',       '/settings'],
-        ['workspace',      '/workspace'],
-        ['my_requests',    '/my-requests'],
-        ['approvals',      '/approvals'],
-        ['roles',          '/roles'],
-        ['users',          '/users'],
-        ['customers',          '/customers'],
-        ['oil_types',          '/oil_types'],
-        ['brands',             '/brands'],
-        ['equipment_types',  '/equipment_types'],
-        ['tap_changer_types',  '/tap_changer_types'],
-        ['tap_changer_brands',       '/tap_changer_brands'],
-        ['tap_changer_models',       '/tap_changer_models'],
-        ['tap_changer_technologies', '/tap_changer_technologies'],
-        ['laboratories',       '/laboratories'],
-        ['dashboard',      '/dashboard_management/dashboards'],
-        ['dashboard',      '/dashboard'],  // legacy fallback
-    ];
-    for (const [key, pattern] of matchers) {
-        if (url.includes(pattern)) return key;
+/** El path de una URL, sin host, sin query y sin el prefijo de idioma. */
+const menuPath = (value) => {
+    if (!value || value === '#') return '';
+
+    let path = value;
+
+    try {
+        path = new URL(value, window.location.origin).pathname;
+    } catch {
+        path = String(value).split('?')[0];
     }
-    return '';
+
+    // `/es/lab_management/worksheets` → `/lab_management/worksheets`. Sin esto
+    // el menú se apagaría al cambiar de idioma.
+    return path.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/';
+};
+
+/**
+ * Qué ítem del menú queda resaltado.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ SE DERIVA DE LAS PROPIAS RUTAS DEL MENÚ                                  │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Acá había una lista de pares [clave, fragmento de URL] escrita a mano, y se
+ * quedó vieja: NINGUNO de los diez ítems del grupo de Pruebas de Muestras
+ * estaba en ella —recepciones, hojas de trabajo, cartas de control, pruebas,
+ * parámetros, instrumentos, muestreadores, firmas— así que en todo ese grupo el
+ * menú no marcaba nada. Un módulo nuevo entraba al sidebar y su resaltado
+ * quedaba apagado sin que nada avisara.
+ *
+ * Ahora sale de `menuStructure`: cada ítem ya declara su `href`, y ese es el
+ * dato. Gana el path MÁS LARGO que sea prefijo de la URL actual, y eso resuelve
+ * solo los casos que la lista a mano tenía que ordenar con cuidado
+ * (`/brands` contra `/tap_changer_brands`) y las páginas hijas (la ficha
+ * `/instruments/{slug}` sigue marcando Instrumentos).
+ *
+ * Usa `page.url`, que es reactivo en Inertia — `window.location.pathname` no lo
+ * es, y el resaltado se quedaba clavado al navegar sin recargar.
+ */
+const selectedKey = computed(() => {
+    const url = menuPath(page.url ?? '');
+
+    let best = '';
+    let bestLength = 0;
+
+    const consider = (item) => {
+        const path = menuPath(item?.href);
+
+        if (!path || path === '/' || path.length <= bestLength) return;
+        if (url !== path && ! url.startsWith(path + '/')) return;
+
+        best = item.key;
+        bestLength = path.length;
+    };
+
+    for (const node of menuStructure.value) {
+        if (node.kind === 'group') {
+            (node.items ?? []).forEach(consider);
+        } else {
+            consider(node);
+        }
+    }
+
+    return best;
 });
 
 // Theme switcher
@@ -706,11 +730,29 @@ const menuStructure = computed(() => [
                 href: route('lab_management.qc_charts.index'), inertia: true,
                 visible: () => can('qc_charts.view'),
             },
+        ],
+    },
+
+    // ── Grupo: Configuración del laboratorio ──────────────────────────────
+    //
+    // Este grupo se separó del anterior porque tenía DIEZ items, y de los diez
+    // solo tres se abren todos los días. Los otros siete son la configuración
+    // del propio laboratorio: cómo se llaman sus pruebas, qué columnas tiene
+    // cada una, con qué equipos mide, quién firma. Se toca al montar el
+    // laboratorio o cuando cambia un método, no en la jornada.
+    //
+    // No se llama "Configuración avanzada": no hay nada avanzado en dar de alta
+    // un instrumento. El nombre dice de QUIÉN es y no cuán difícil es —el jefe
+    // de laboratorio entra acá, el analista no— y esa es la distinción que
+    // vuelve corto el grupo de arriba, que es el que se usa a diario.
+    {
+        kind: 'group',
+        key: 'group-lab-setup', title: t('sidebar.group_lab_setup'),
+        items: [
             // ── La redacción del informe ──
-            // Va junto al control de calidad y no con los catálogos: no es un
-            // dato de negocio, es el texto que el laboratorio firma. Solo el
-            // super y el admin lo editan, así que se muestra por ROL y no por
-            // permiso de módulo.
+            // Va primero del grupo: es el texto que el laboratorio firma, y es
+            // lo que más se ajusta de todo esto. Solo el super y el admin lo
+            // editan, así que se muestra por ROL y no por permiso de módulo.
             {
                 key: 'diagnosis_templates', label: t('sidebar.diagnosis_templates'), icon: FileTextOutlined,
                 href: route('lab_management.diagnosis_templates.index'), inertia: true,

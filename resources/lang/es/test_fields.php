@@ -107,11 +107,17 @@ return [
     'deleted'   => 'Columna eliminada.',
     'reordered' => 'Orden actualizado.',
     'reorder_safe' => 'El orden es solo presentación: las fórmulas usan códigos y los roles están declarados, así que reordenar no cambia ningún cálculo.',
+    // Lo que dice la franja del pie cuando hay un reordenamiento sin guardar.
+    // No repite el texto de arriba: ahí se explica que reordenar es seguro,
+    // acá se avisa que el cambio todavía NO está en la plantilla.
+    'reorder_pending' => 'El nuevo orden todavía no está guardado.',
 
     // ── Valores constantes ────────────────────────────────────────────────
     'constants'       => 'Valores constantes',
     'constants_intro' => 'Los valores que se arrastran de una muestra a la siguiente. Cámbielos cuando titule una solución nueva o cambie la condición de la sala.',
     'constants_updated' => 'Valores constantes actualizados.',
+    // Lo que dice la franja del pie cuando hay cambios sin guardar.
+    'constants_pending' => 'Hay valores cambiados y todavía sin guardar.',
     'constants_empty' => 'Esta prueba no tiene columnas marcadas como constantes.',
 
     'empty' => 'La prueba todavía no tiene columnas.',

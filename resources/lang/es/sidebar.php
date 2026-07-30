@@ -23,6 +23,13 @@ return [
     'receptions'         => 'Recepción de muestras',
     'worksheets'         => 'Hojas de trabajo',
     'qc_charts'          => 'Cartas de control',
+
+    // Grupo: lo que el laboratorio configura de sí mismo. Se separó de
+    // "Pruebas de Muestras" porque ese grupo tenía diez items y solo tres se
+    // abren a diario. No se llama "avanzada": no hay nada avanzado en dar de
+    // alta un instrumento. El nombre dice de QUIÉN es —el jefe de laboratorio
+    // entra acá, el analista no—, que es la distinción que importa.
+    'group_lab_setup'    => 'Configuración del laboratorio',
     'test_definitions'   => 'Pruebas',
     'test_groups'        => 'Grupos de pruebas',
     'analytes'           => 'Parámetros',

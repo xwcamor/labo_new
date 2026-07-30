@@ -52,7 +52,7 @@ const rows = computed(() => {
     <div v-if="!rows.length" class="st-empty">
         <Empty :description="$t('customers.empty_hierarchy')" />
     </div>
-    <div v-else class="st-wrap">
+    <div v-else class="st-wrap sticky-table">
         <table class="st-table">
             <thead>
                 <tr>
@@ -92,7 +92,7 @@ const rows = computed(() => {
 
 <style scoped>
 .st-empty { padding: 24px 0; }
-.st-wrap { overflow-x: auto; }
+/* El overflow y la cabecera pegada los pone `sticky-table` (app.css). */
 .st-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .st-table th, .st-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--color-border, #eef0f2); white-space: nowrap; }
 .st-table th { color: var(--color-text-muted, #6A6D70); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }

@@ -103,11 +103,13 @@ return [
     'deleted'   => 'Column deleted.',
     'reordered' => 'Order updated.',
     'reorder_safe' => 'Order is presentation only: formulas use codes and roles are declared, so reordering changes no calculation.',
+    'reorder_pending' => 'The new order is not saved yet.',
 
     // ── Constant values ───────────────────────────────────────────────────
     'constants'       => 'Constant values',
     'constants_intro' => 'The values that carry over from one sample to the next. Change them when you titrate a new solution or the room conditions change.',
     'constants_updated' => 'Constant values updated.',
+    'constants_pending' => 'Some values were changed and are not saved yet.',
     'constants_empty' => 'This test has no columns marked as constant.',
 
     'empty' => 'The test has no columns yet.',

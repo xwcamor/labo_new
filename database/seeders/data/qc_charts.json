@@ -1,97 +1,190 @@
 {
-    "_doc": [
-        "QUÉ PRUEBAS TIENEN CARTA DE CONTROL (la 'Tendencia' del sistema anterior).",
-        "",
-        "── QUÉ ERA LA PANTALLA 'TENDENCIAS' DEL SISTEMA ANTERIOR ────────────",
-        "",
-        "Investigado en labo_old. Su único módulo con gráficos era",
-        "`pr_management/templates/tendences`, con amCharts 5, y NO era el histórico",
-        "de un transformador: era la CARTA DE CONTROL DEL PATRÓN interno del",
-        "laboratorio. Seis series por gráfico —los puntos del patrón más los cinco",
-        "límites LAS, LAI, LC, LCS, LCI— sobre un eje de fechas de ensayo",
-        "(`tendences/partials/_amcharts.html.erb:68-267`).",
-        "",
-        "La consulta traía SOLO las filas de tipo Patrón Control",
-        "(`tendences_controller.rb:20`, `lab_detail_type_id = 1`). Las líneas",
-        "equivalentes para Muestra y Duplicado estaban COMENTADAS (líneas 22 y 24):",
-        "la tendencia sobre muestras reales de clientes estaba prevista y",
-        "desactivada, y el duplicado no se graficaba en ninguna parte.",
-        "",
-        "El gráfico vivía en pantalla y NUNCA salía impreso: ninguno de los 16",
-        "partials del informe PDF contiene un canvas ni una imagen de gráfico. La",
-        "única forma de sacarlo era el menú de exportación de amCharts, a mano.",
-        "",
-        "── QUÉ PRUEBAS LA TENÍAN ────────────────────────────────────────────",
-        "",
-        "El enlace 'Tendencias' del menú solo aparecía si `id < 7` o `8 < id < 11`",
-        "(`layouts/_app_sidebar_left_menus.html.erb:257`). Cruzado con los ids del",
-        "catálogo, son OCHO pruebas:",
-        "",
-        "  1 Número Ácido · 2 Factor de Potencia 25º · 3 Factor de Potencia 100º",
-        "  4 Rigidez Dieléctrica · 5 Tensión Interfacial · 6 Contenido de Agua",
-        "  9 Densidad Relativa · 10 Análisis Cromatográfico (nueve gases)",
-        "",
-        "Quedaban FUERA por la propia condición del menú: Color (7) y Condición",
-        "Visual (8) —son cualitativas— y todo lo que tuviera id mayor a 10, o sea",
-        "Factor de Potencia 90º (26), Rigidez con electrodos planos (27), furanos,",
-        "PCB, azufre, partículas, metales, inhibidor, pasivador, DBDS, sedimentos,",
-        "viscosidad, fluidez, inflamación y grado de polimerización.",
-        "",
-        "Se reproduce esa lista y nada más. Agregarle pruebas por criterio propio",
-        "sería inventar control de calidad que el laboratorio no hace: una carta sin",
-        "patrón que medir queda vacía, y una carta vacía en pantalla se lee como un",
-        "control que se dejó de correr.",
-        "",
-        "── LOS LÍMITES NO ESTÁN ACÁ, Y NO SE INVENTAN ───────────────────────",
-        "",
-        "Los cinco límites del sistema anterior vivían en su tabla",
-        "`patron_tendences`, que NO está en el repositorio Ruby: no aparece en",
-        "db/schema.rb ni en ninguno de los dos seeds. Sus valores reales están solo",
-        "en la base de producción del laboratorio.",
-        "",
-        "Así que las cartas se siembran DERIVADAS (`derived: true`): el centro y el",
-        "desvío se calculan de los propios puntos del patrón a medida que se cargan,",
-        "que es el arranque correcto de una carta nueva. Cuando el laboratorio tenga",
-        "sus valores declarados, los carga desde la pantalla de la carta y esta deja",
-        "de derivarlos — y ahí es donde importa que los límites queden DECLARADOS y",
-        "con fecha de vigencia: en el sistema anterior se pisaban al cambiar de lote",
-        "y las cartas históricas quedaban dibujadas contra el criterio de hoy.",
-        "",
-        "El formato es: código de prueba -> columna de resultado -> parámetro."
-    ],
-
-    "charts": [
-        { "test": "numero_acido",            "field": "resultado_mgkohg_aceite", "analyte": "acid" },
-        { "test": "factor_de_potencia_25o",  "field": "resultado",               "analyte": "fp25" },
-        { "test": "factor_de_potencia_100o", "field": "resultado",               "analyte": "fp100" },
-        { "test": "rigidez_dielectrica",     "field": "resultado_kv",            "analyte": "rig" },
-        { "test": "contenido_de_agua",       "field": "resultado_ppm",           "analyte": "wat" },
-        { "test": "densidad_relativa",       "field": "resultado",               "analyte": "dens" },
-
-        {
-            "_nota_tension_interfacial": [
-                "La tenía (id 5), y se siembra igual aunque su columna de resultado",
-                "no esté calculada: el sistema anterior tampoco la calculaba —la",
-                "corrección de tensión se hacía a mano— y la carta grafica lo que",
-                "el analista escribe en esa columna."
-            ],
-            "test": "tension_interfacial", "field": "tension_interfacial_aceite_mnm", "analyte": "ift"
-        },
-
-        {
-            "_nota_cromatografia": [
-                "Nueve cartas, una por gas, como los nueve gráficos que el sistema",
-                "anterior dibujaba en su vista `_multi_content` (uno por partial:",
-                "_amcharts_hid/oxi/nit/met/mon/dio/eti/eta/ace)."
-            ],
-            "test": "analisis_cromatografico", "field": "hidrogeno_h2_ppm",         "analyte": "h2" },
-        { "test": "analisis_cromatografico", "field": "oxigeno_o2_ppm",            "analyte": "o2" },
-        { "test": "analisis_cromatografico", "field": "nitrogeno_n2_ppm",          "analyte": "n2" },
-        { "test": "analisis_cromatografico", "field": "metano_ch4_ppm",            "analyte": "ch4" },
-        { "test": "analisis_cromatografico", "field": "mcarbono_co_ppm", "analyte": "co" },
-        { "test": "analisis_cromatografico", "field": "dcarbono_co2_ppm", "analyte": "co2" },
-        { "test": "analisis_cromatografico", "field": "etileno_c2h4_ppm",          "analyte": "c2h4" },
-        { "test": "analisis_cromatografico", "field": "etano_c2h6_ppm",            "analyte": "c2h6" },
-        { "test": "analisis_cromatografico", "field": "acetileno_c2h2_ppm",        "analyte": "c2h2" }
-    ]
+  "_doc": [
+    "QUÉ PRUEBAS TIENEN CARTA DE CONTROL (la 'Tendencia' del sistema anterior).",
+    "",
+    "── QUÉ ERA LA PANTALLA 'TENDENCIAS' DEL SISTEMA ANTERIOR ────────────",
+    "",
+    "Investigado en labo_old. Su único módulo con gráficos era",
+    "`pr_management/templates/tendences`, con amCharts 5, y NO era el histórico",
+    "de un transformador: era la CARTA DE CONTROL DEL PATRÓN interno del",
+    "laboratorio. Seis series por gráfico —los puntos del patrón más los cinco",
+    "límites LAS, LAI, LC, LCS, LCI— sobre un eje de fechas de ensayo",
+    "(`tendences/partials/_amcharts.html.erb:68-267`).",
+    "",
+    "La consulta traía SOLO las filas de tipo Patrón Control",
+    "(`tendences_controller.rb:20`, `lab_detail_type_id = 1`). Las líneas",
+    "equivalentes para Muestra y Duplicado estaban COMENTADAS (líneas 22 y 24):",
+    "la tendencia sobre muestras reales de clientes estaba prevista y",
+    "desactivada, y el duplicado no se graficaba en ninguna parte.",
+    "",
+    "El gráfico vivía en pantalla y NUNCA salía impreso: ninguno de los 16",
+    "partials del informe PDF contiene un canvas ni una imagen de gráfico. La",
+    "única forma de sacarlo era el menú de exportación de amCharts, a mano.",
+    "",
+    "── QUÉ PRUEBAS LA TENÍAN ────────────────────────────────────────────",
+    "",
+    "El enlace 'Tendencias' del menú solo aparecía si `id < 7` o `8 < id < 11`",
+    "(`layouts/_app_sidebar_left_menus.html.erb:257`). Cruzado con los ids del",
+    "catálogo, son OCHO pruebas:",
+    "",
+    "  1 Número Ácido · 2 Factor de Potencia 25º · 3 Factor de Potencia 100º",
+    "  4 Rigidez Dieléctrica · 5 Tensión Interfacial · 6 Contenido de Agua",
+    "  9 Densidad Relativa · 10 Análisis Cromatográfico (nueve gases)",
+    "",
+    "Quedaban FUERA por la propia condición del menú: Color (7) y Condición",
+    "Visual (8) —son cualitativas— y todo lo que tuviera id mayor a 10, o sea",
+    "Factor de Potencia 90º (26), Rigidez con electrodos planos (27), furanos,",
+    "PCB, azufre, partículas, metales, inhibidor, pasivador, DBDS, sedimentos,",
+    "viscosidad, fluidez, inflamación y grado de polimerización.",
+    "",
+    "Se reproduce esa lista y nada más. Agregarle pruebas por criterio propio",
+    "sería inventar control de calidad que el laboratorio no hace: una carta sin",
+    "patrón que medir queda vacía, y una carta vacía en pantalla se lee como un",
+    "control que se dejó de correr.",
+    "",
+    "── LOS LÍMITES REALES SÍ EXISTEN: DÓNDE, Y CÓMO MAPEARLOS ───────────",
+    "",
+    "Acá se afirmaba que los cinco límites del sistema anterior «no están en el",
+    "repositorio». Es FALSO, y conviene decirlo con precisión porque de eso",
+    "depende que las cartas arranquen con el criterio del laboratorio y no con",
+    "uno derivado:",
+    "",
+    "  1. El volcado versionado trae 27 filas de `patron_tendences` con los",
+    "     cinco límites cargados, justo de las ocho pruebas graficadas:",
+    "     docs/migracion/esquema/catalogos-definiciones.sql, líneas 1252-1305.",
+    "",
+    "  2. Y la FÓRMULA con la que el laboratorio los calcula está en su propio",
+    "     formato controlado, entregado el 2026-07-31:",
+    "     docs/origen-ruby/fuentes-laboratorio/",
+    "         F-PG-TR-LA-17-39_Carta_de_control_AGUA_2022.xlsx",
+    "",
+    "         línea central  LC = promedio de las lecturas del patrón",
+    "         límite interior   = LC ± 2σ   → advertencia",
+    "         límite exterior   = LC ± 3σ   → control / acción",
+    "",
+    "     Verificado con sus números: LC 22.7, σ 0.489193565807, y",
+    "     22.7 + 2σ = 23.6784, 22.7 + 3σ = 24.1676. O sea que `warn_sigma` 2 y",
+    "     `action_sigma` 3 NO son una convención inventada: son las del",
+    "     laboratorio. Lo que faltaba era la referencia.",
+    "",
+    "⚠ AL SEMBRARLOS, MAPEAR POR DISTANCIA Y NO POR NOMBRE.",
+    "",
+    "Las siglas de los cinco límites no son fiables. Las DOS hojas del mismo",
+    "archivo del laboratorio las usan al revés entre sí:",
+    "",
+    "                      LC + 2σ (interior)   LC + 3σ (exterior)",
+    "     hoja LIMITES            LCS                  LAS",
+    "     hoja Carta control      LAS                  LCS",
+    "",
+    "Y el volcado tampoco es consistente entre sus propias filas: en Factor de",
+    "Potencia 25º la columna `lci` es la de 3σ, y en Densidad Relativa la de 3σ",
+    "es `lai`. Por eso la migración tiene que ordenar los cinco valores por su",
+    "DISTANCIA a la línea central: el más alejado es el de control y el",
+    "intermedio el de advertencia. Mapear por nombre invierte los límites en",
+    "parte de las cartas, y una carta invertida da por buena una corrida que",
+    "está fuera de control.",
+    "",
+    "Hasta que esa migración corra, las cartas se siembran DERIVADAS",
+    "(`derived: true`): el centro y el desvío salen de los propios puntos del",
+    "patrón a medida que se cargan, que es el arranque correcto de una carta",
+    "nueva. Cuando los límites declarados entren, la carta deja de derivarlos —",
+    "y ahí importa que queden con fecha de vigencia: en el sistema anterior se",
+    "pisaban al cambiar de lote y las cartas históricas quedaban dibujadas",
+    "contra el criterio de hoy.",
+    "",
+    "El formato es: código de prueba -> columna de resultado -> parámetro."
+  ],
+  "charts": [
+    {
+      "test": "numero_acido",
+      "field": "resultado_mgkohg_aceite",
+      "analyte": "acid"
+    },
+    {
+      "test": "factor_de_potencia_25o",
+      "field": "resultado",
+      "analyte": "fp25"
+    },
+    {
+      "test": "factor_de_potencia_100o",
+      "field": "resultado",
+      "analyte": "fp100"
+    },
+    {
+      "test": "rigidez_dielectrica",
+      "field": "resultado_kv",
+      "analyte": "rig"
+    },
+    {
+      "test": "contenido_de_agua",
+      "field": "resultado_ppm",
+      "analyte": "wat"
+    },
+    {
+      "test": "densidad_relativa",
+      "field": "resultado",
+      "analyte": "dens"
+    },
+    {
+      "_nota_tension_interfacial": [
+        "La tenía (id 5), y se siembra igual aunque su columna de resultado",
+        "no esté calculada: el sistema anterior tampoco la calculaba —la",
+        "corrección de tensión se hacía a mano— y la carta grafica lo que",
+        "el analista escribe en esa columna."
+      ],
+      "test": "tension_interfacial",
+      "field": "tension_interfacial_aceite_mnm",
+      "analyte": "ift"
+    },
+    {
+      "_nota_cromatografia": [
+        "Nueve cartas, una por gas, como los nueve gráficos que el sistema",
+        "anterior dibujaba en su vista `_multi_content` (uno por partial:",
+        "_amcharts_hid/oxi/nit/met/mon/dio/eti/eta/ace)."
+      ],
+      "test": "analisis_cromatografico",
+      "field": "hidrogeno_h2_ppm",
+      "analyte": "h2"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "oxigeno_o2_ppm",
+      "analyte": "o2"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "nitrogeno_n2_ppm",
+      "analyte": "n2"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "metano_ch4_ppm",
+      "analyte": "ch4"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "mcarbono_co_ppm",
+      "analyte": "co"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "dcarbono_co2_ppm",
+      "analyte": "co2"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "etileno_c2h4_ppm",
+      "analyte": "c2h4"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "etano_c2h6_ppm",
+      "analyte": "c2h6"
+    },
+    {
+      "test": "analisis_cromatografico",
+      "field": "acetileno_c2h2_ppm",
+      "analyte": "c2h2"
+    }
+  ]
 }

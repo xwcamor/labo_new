@@ -4,6 +4,7 @@ import { Button, Space, Tag, Tooltip, Dropdown, Menu, MenuItem } from 'ant-desig
 import { Link, router } from '@inertiajs/vue3';
 import {
     EyeOutlined, EditOutlined, CopyOutlined, DeleteOutlined, LockOutlined, EllipsisOutlined,
+    TableOutlined,
 } from '@ant-design/icons-vue';
 import { useI18n } from '@/Plugins/i18n';
 
@@ -32,10 +33,18 @@ const isLocked = computed(() => !!(props.record.is_locked ?? props.record.locked
 
 const emit = defineEmits(['edit', 'duplicate', 'delete']);
 
-// Menú kebab (modo compacto): Ver/Editar navegan; Duplicar/Eliminar emiten.
+// El editor de columnas de la prueba: la tabla que ve el analista. Es la
+// configuración que el laboratorio más toca, y estaba a dos clics escondidos
+// (había que entrar a la ficha, y desde la ficha tampoco había enlace). Va acá
+// como acción de fila, al lado de Ver.
+const fieldsHref = computed(() =>
+    route('lab_management.test_definitions.fields.index', props.record.slug));
+
+// Menú kebab (modo compacto): Ver/Editar/Columnas navegan; Duplicar/Eliminar emiten.
 const onMenu = ({ key }) => {
     if (key === 'view')       router.visit(route('lab_management.test_definitions.show', props.record.slug));
     else if (key === 'edit')  router.visit(route('lab_management.test_definitions.edit', props.record.slug));
+    else if (key === 'fields') router.visit(fieldsHref.value);
     else if (key === 'duplicate') emit('duplicate', props.record);
     else if (key === 'delete')    emit('delete', props.record);
 };
@@ -51,6 +60,7 @@ const onMenu = ({ key }) => {
             <template #overlay>
                 <Menu @click="onMenu">
                     <MenuItem key="view"><EyeOutlined /> {{ t('global.view') }}</MenuItem>
+                    <MenuItem key="fields"><TableOutlined /> {{ t('test_definitions.fields_edit') }}</MenuItem>
                     <MenuItem v-if="canEdit && canManage && !isLocked" key="edit"><EditOutlined /> {{ t('global.edit') }}</MenuItem>
                     <MenuItem v-if="canCreate && canManage" key="duplicate"><CopyOutlined /> {{ t('global.duplicate') }}</MenuItem>
                     <MenuItem v-if="canDelete && canManage && !isLocked" key="delete" danger><DeleteOutlined /> {{ t('global.delete') }}</MenuItem>
@@ -70,6 +80,13 @@ const onMenu = ({ key }) => {
                     :aria-label="t('global.view')"
                 >
                     <EyeOutlined />
+                </Button>
+            </Link>
+        </Tooltip>
+        <Tooltip :title="t('test_definitions.fields_edit')">
+            <Link :href="fieldsHref">
+                <Button type="text" class="row-icon-btn" :aria-label="t('test_definitions.fields_edit')">
+                    <TableOutlined />
                 </Button>
             </Link>
         </Tooltip>
@@ -117,6 +134,13 @@ const onMenu = ({ key }) => {
             <Link :href="route('lab_management.test_definitions.show', record.slug)">
                 <Button size="small" type="text" :aria-label="t('global.view')">
                     <EyeOutlined />
+                </Button>
+            </Link>
+        </Tooltip>
+        <Tooltip :title="t('test_definitions.fields_edit')">
+            <Link :href="fieldsHref">
+                <Button size="small" type="text" :aria-label="t('test_definitions.fields_edit')">
+                    <TableOutlined />
                 </Button>
             </Link>
         </Tooltip>

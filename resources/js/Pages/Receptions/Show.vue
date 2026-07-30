@@ -39,6 +39,7 @@ import SampleProgress from '@/Components/Receptions/SampleProgress.vue';
 import AssignTestsModal from '@/Components/Receptions/AssignTestsModal.vue';
 import ReportFormModal from '@/Components/Receptions/ReportFormModal.vue';
 import ReportAnalysisModal from '@/Components/Receptions/ReportAnalysisModal.vue';
+import CollapsibleTags from '@/Components/Common/CollapsibleTags.vue';
 import RecordHistory from '@/Components/Common/RecordHistory.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useI18n } from '@/Plugins/i18n';
@@ -83,6 +84,21 @@ const statsOf = (sample) => props.progress?.[sample.id] ?? null;
 
 /** Lo que se le pide a la muestra. Lo dado de baja no se lista como pedido. */
 const requestedOf = (sample) => (sample.tests ?? []).filter((test) => test.status !== 'cancelled');
+
+/**
+ * Las pruebas pedidas como etiquetas para la celda desplegable.
+ *
+ * El estado va en el color Y en el tooltip: un verde y un ámbar lado a lado no
+ * dicen "validada" y "en proceso" a nadie que no sepa la convención de
+ * memoria, y esta pantalla la mira quien recibe las muestras, no quien la
+ * programó.
+ */
+const testTagsOf = (sample) => requestedOf(sample).map((test) => ({
+    key:   test.id,
+    label: test.definition?.name ?? test.definition?.code ?? '—',
+    color: testStatusColor(test.status),
+    title: t(`receptions.test_status_${test.status}`),
+}));
 
 // ── Asignación de pruebas ────────────────────────────────────────────────
 const modalOpen = ref(false);
@@ -399,18 +415,19 @@ const reportColumns = computed(() => [
                         />
                     </template>
 
+                    <!-- Las pruebas pedidas se despliegan. Con las cuatro del
+                         pedido normal se muestran solas; una campaña que pide
+                         veinte o cien convertía la celda en una pared de
+                         etiquetas que empujaba la tabla a lo alto. El color de
+                         cada etiqueta sigue siendo su estado, y el tooltip lo
+                         dice con palabras: el color solo no se entiende. -->
                     <template v-else-if="column.key === 'tests'">
-                        <div v-if="requestedOf(record).length > 0" class="rc-tests">
-                            <Tag
-                                v-for="test in requestedOf(record)"
-                                :key="test.id"
-                                :color="testStatusColor(test.status)"
-                                :bordered="false"
-                            >
-                                {{ test.definition?.name ?? test.definition?.code ?? '—' }}
-                            </Tag>
-                        </div>
-                        <span v-else class="rc-muted">{{ $t('receptions.no_tests') }}</span>
+                        <CollapsibleTags
+                            :items="testTagsOf(record)"
+                            :limit="4"
+                            summary-key="receptions.tests_count"
+                            :empty-text="$t('receptions.no_tests')"
+                        />
                     </template>
 
                     <template v-else-if="column.key === 'progress'">
@@ -696,7 +713,6 @@ const reportColumns = computed(() => [
 }
 
 .rc-code { font-weight: 600; font-variant-numeric: tabular-nums; }
-.rc-tests { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
 .rc-muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .rc-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 .rc-empty__hint { margin-top: 4px; font-size: 0.8125rem; }

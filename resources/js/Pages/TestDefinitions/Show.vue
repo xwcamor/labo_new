@@ -1,9 +1,10 @@
 <script setup>
 import { computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
-import { Card, Tag, Space, Alert } from 'ant-design-vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { Button, Card, Tag, Space, Alert } from 'ant-design-vue';
 import {
     FileDoneOutlined, FolderOpenOutlined, ExperimentOutlined, TableOutlined,
+    SettingOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -192,7 +193,27 @@ const yesNo = (v) => (v ? 'global.yes' : 'global.no');
                         </div>
                     </div>
 
-                    <!-- Editor de columnas: lo monta otro agente -->
+                    <!-- El editor EXISTÍA y no había cómo llegar a él: acá había
+                         quedado un comentario en lugar del enlace, y la única
+                         forma de abrirlo era escribir la URL a mano. Es la
+                         pantalla donde se define la tabla de la prueba —qué
+                         columnas tiene, cuál es un resultado, qué se calcula—,
+                         o sea la configuración que el laboratorio más va a
+                         tocar. Va con botón primario, no como un enlace más. -->
+                    <Space :size="8" class="fields-actions">
+                        <Link :href="route('lab_management.test_definitions.fields.index', testDefinition.slug)">
+                            <Button type="primary">
+                                <template #icon><TableOutlined /></template>
+                                {{ $t('test_definitions.fields_edit') }}
+                            </Button>
+                        </Link>
+                        <Link :href="route('lab_management.test_definitions.constants.index', testDefinition.slug)">
+                            <Button>
+                                <template #icon><SettingOutlined /></template>
+                                {{ $t('test_fields.constants') }}
+                            </Button>
+                        </Link>
+                    </Space>
 
                 </Card>
 

@@ -87,6 +87,11 @@ return [
     'container'        => 'Envase',
     'requested_tests'  => 'Pruebas pedidas',
     'no_tests'         => 'Sin pruebas pedidas',
+    // El resumen de la celda plegada. Hasta cuatro pruebas se muestran solas;
+    // una campaña que pide veinte o cien convertía la fila en una pared de
+    // etiquetas, así que pasado ese número la celda se resume y se despliega a
+    // pedido — la misma idea del "N muestras registradas" del sistema anterior.
+    'tests_count'      => '{1} 1 prueba pedida|[2,*] :count pruebas pedidas',
     'progress'         => 'Avance',
     'outstanding'      => 'Pendientes',
 

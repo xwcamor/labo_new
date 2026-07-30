@@ -73,6 +73,7 @@ return [
     'fields_empty'  => 'This test has no columns defined yet.',
     'fields_count'  => 'Columns',
     'results_count' => 'Results',
+    'fields_edit'   => 'Configure columns',
 
     'edit_hint'   => 'Edit this record',
     'delete_hint' => 'Delete (goes to trash)',

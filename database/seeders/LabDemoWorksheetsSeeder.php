@@ -564,9 +564,15 @@ class LabDemoWorksheetsSeeder extends Seeder
             $fijas = [];
             $fechas = [];
 
+            // Las obligatorias, MÁS la norma del método aunque sea opcional. En
+            // furanos la norma no es obligatoria y quedaba vacía, y de ahí el
+            // informe imprimía "(*) Norma de referencia —": una demostración que
+            // parece incompleta se lee como un sistema que no guarda el dato.
             $columnas = TestField::with('options')
                 ->where('test_definition_id', $prueba->id)
-                ->where('is_required', true)
+                ->where(fn ($q) => $q
+                    ->where('is_required', true)
+                    ->orWhere('role', TestField::ROLE_STANDARD))
                 ->get();
 
             foreach ($columnas as $columna) {

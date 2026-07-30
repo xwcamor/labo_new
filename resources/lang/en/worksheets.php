@@ -142,6 +142,8 @@ return [
     'date_all'       => 'No date filter: every worksheet is listed, including those from previous years.',
     'no_edit_permission' => 'You do not have permission to enter values in this worksheet.',
 
+    'configure_columns_hint' => 'Defines the columns of the :test test. The change applies to every worksheet of that test, not just this one.',
+
     'empty'          => 'No worksheets yet.',
     'empty_rows'     => 'The worksheet has no rows. Add the control standard to start.',
 

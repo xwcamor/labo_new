@@ -73,6 +73,11 @@ return [
     'fields_empty'  => 'Esta prueba todavía no tiene columnas definidas.',
     'fields_count'  => 'Columnas',
     'results_count' => 'Resultados',
+    // El rótulo del acceso al editor. Dice "configurar", no "editar columnas":
+    // en esa pantalla se define la TABLA de la prueba —qué se carga, qué es un
+    // resultado, qué lo calcula el servidor—, que es donde el laboratorio ajusta
+    // la prueba sin tocar código.
+    'fields_edit'   => 'Configurar columnas',
 
     'edit_hint'   => 'Modificar este registro',
     'delete_hint' => 'Eliminar (queda en papelera)',

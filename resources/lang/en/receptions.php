@@ -73,6 +73,7 @@ return [
     'container' => 'Container',
     'requested_tests' => 'Requested tests',
     'no_tests' => 'No tests requested',
+    'tests_count' => '{1} 1 test requested|[2,*] :count tests requested',
     'progress' => 'Progress',
     'outstanding' => 'Outstanding',
 

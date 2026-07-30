@@ -565,8 +565,16 @@ const goDelete = (record) => router.visit(route('lab_management.test_definitions
                         <span v-else class="muted">{{ record.replicates ?? 1 }}</span>
                     </template>
 
+                    <!-- El número lleva al editor de columnas. Un contador que
+                         no se puede pulsar obliga a adivinar por dónde se
+                         cambia lo que cuenta. -->
                     <template v-else-if="column.key === 'fields_count'">
-                        <span :class="{ muted: !record.fields_count }">{{ record.fields_count ?? 0 }}</span>
+                        <Link
+                            :href="route('lab_management.test_definitions.fields.index', record.slug)"
+                            @click.stop
+                        >
+                            <span :class="{ muted: !record.fields_count }">{{ record.fields_count ?? 0 }}</span>
+                        </Link>
                     </template>
 
                     <template v-else-if="column.key === 'tenant'">

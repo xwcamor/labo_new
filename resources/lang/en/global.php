@@ -429,4 +429,6 @@ return [
         'results_title' => 'Your results',
         'results_body'  => 'Each record shows up here. Click the name to open its page, or use the row icons (open, edit, duplicate, delete).',
     ],
+
+    'n_items' => '{0} No items|{1} 1 item|[2,*] :count items',
 ];

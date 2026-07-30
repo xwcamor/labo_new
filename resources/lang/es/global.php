@@ -432,4 +432,9 @@ return [
         'results_title' => 'Tus resultados',
         'results_body'  => 'Cada registro aparece aquí. Haz clic en el nombre para ver la ficha, o usa los íconos de cada fila (abrir, editar, duplicar, eliminar).',
     ],
+
+    // Respaldo genérico del resumen de una lista plegada (CollapsibleTags).
+    // Cada pantalla debería pasar su propia clave —"3 pruebas pedidas" dice más
+    // que "3 elementos"—; esta es la que se usa si no pasa ninguna.
+    'n_items' => '{0} Sin elementos|{1} 1 elemento|[2,*] :count elementos',
 ];

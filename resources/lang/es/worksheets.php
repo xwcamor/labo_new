@@ -157,6 +157,10 @@ return [
     'date_all'       => 'Sin filtro de fecha: se listan todas las hojas, incluidas las de años anteriores.',
     'no_edit_permission' => 'No tiene permiso para cargar valores en esta hoja.',
 
+    // El acceso al editor de columnas desde la bancada. Avisa el alcance: lo
+    // que se cambia es la PRUEBA, no esta hoja — vale para todas sus hojas.
+    'configure_columns_hint' => 'Define las columnas de la prueba :test. El cambio vale para todas sus hojas de trabajo, no solo para esta.',
+
     'empty'          => 'Todavía no hay hojas de trabajo.',
     'empty_rows'     => 'La hoja no tiene filas. Agregue el patrón control para empezar.',
 

@@ -11,9 +11,9 @@
  * cuatro.
  */
 import { computed } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import { Alert, Card, Space } from 'ant-design-vue';
-import { ProfileOutlined } from '@ant-design/icons-vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Alert, Button, Card, Space, Tooltip } from 'ant-design-vue';
+import { ProfileOutlined, TableOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -133,6 +133,22 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                  módulos, arriba a la derecha. Los VALORES se editan en la
                  grilla; el candado congela grilla y cabecera. -->
             <template #actions>
+                <!-- De la bancada al editor de columnas de LA PRUEBA. Es desde
+                     acá que se pregunta "¿y dónde cambio esta tabla?": el
+                     analista tiene la grilla delante. Lo que se configura no es
+                     esta hoja sino la prueba —cambia para todas sus hojas—, y
+                     por eso el tooltip la nombra. -->
+                <Tooltip
+                    v-if="worksheet.definition?.slug"
+                    :title="$t('worksheets.configure_columns_hint', { test: worksheet.definition.name })"
+                >
+                    <Link :href="route('lab_management.test_definitions.fields.index', worksheet.definition.slug)">
+                        <Button>
+                            <template #icon><TableOutlined /></template>
+                            {{ $t('test_definitions.fields_edit') }}
+                        </Button>
+                    </Link>
+                </Tooltip>
                 <EntityShowActions
                     module="worksheets"
                     route-prefix="lab_management"

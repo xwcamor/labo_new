@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\LabManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
 use App\Models\Sample;
 use App\Models\SampleReport;
 use App\Services\Lab\SampleReportService;
@@ -69,6 +68,231 @@ class SampleReportController extends Controller
         ]);
 
         return response()->json($this->formulario($sample, $report));
+    }
+
+    /**
+     * El LISTADO de informes del laboratorio, con las columnas del sistema
+     * anterior.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ TODO EN SQL, Y NO POR UNA CUESTIÓN DE ELEGANCIA                      │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El sistema anterior tenía esta pantalla con DataTables, o sea trayendo las
+     * filas enteras al navegador para que él las ordene y las filtre. Eso costó
+     * un incidente real: el estado de cada muestra se recalculaba AL LEER, así
+     * que abrir el listado de un cliente con 130 pruebas pedidas disparaba un
+     * recorrido completo con escrituras, cada vez que alguien entraba.
+     *
+     * Acá se pagina, se ordena y se busca en la base. La pantalla recibe UNA
+     * página de filas ya resueltas y no recorre nada; y sobre todo NO se escribe
+     * nada por el hecho de mirar: el estado se escribió cuando ocurrió (al
+     * validar la hoja, al emitir el informe).
+     *
+     * Los datos del equipo se leen por JOIN y no por relación anidada: son diez
+     * columnas de cinco tablas distintas y con eager-load la pantalla no podría
+     * ordenar por "Tipo de transformador" —el orden tiene que resolverlo el
+     * motor, no el navegador—.
+     */
+    public function index(Request $request)
+    {
+        $porPagina = (int) $request->get('per_page', 25);
+        $porPagina = in_array($porPagina, [10, 25, 50, 100], true) ? $porPagina : 25;
+
+        $consulta = SampleReport::query()
+            ->join('samples', 'samples.id', '=', 'sample_reports.sample_id')
+            ->join('receptions', 'receptions.id', '=', 'samples.reception_id')
+            ->leftJoin('customers', 'customers.id', '=', 'receptions.customer_id')
+            ->leftJoin('equipment', 'equipment.id', '=', 'samples.equipment_id')
+            ->leftJoin('equipment_types', 'equipment_types.id', '=', 'equipment.equipment_type_id')
+            // El tipo de fluido de LA MUESTRA cuando lo declara, y si no el del
+            // equipo: se puede recibir una muestra de aceite nuevo de un
+            // transformador que tiene otro cargado, y el informe la juzga con los
+            // límites del fluido que se ensayó.
+            ->leftJoin('oil_types', fn ($j) => $j->on(
+                'oil_types.id',
+                '=',
+                DB::raw('coalesce(samples.oil_type_id, equipment.oil_type_id)'),
+            ))
+            ->whereNull('samples.deleted_at')
+            ->select([
+                'sample_reports.id',
+                'sample_reports.slug',
+                'sample_reports.code',
+                'sample_reports.kind',
+                'sample_reports.status',
+                'sample_reports.issued_at',
+                'sample_reports.delivered_at',
+                'samples.code as sample_code',
+                'samples.sampling_reason',
+                'receptions.service_order',
+                'receptions.received_at',
+                'customers.name as customer_name',
+                'equipment.serial as equipment_serial',
+                'equipment.tag as equipment_tag',
+                'equipment_types.name as equipment_type',
+                'oil_types.name as oil_type',
+                DB::raw($this->mayorDe(['voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv']).' as voltage_kv'),
+                DB::raw($this->mayorDe(['power_mva', 'power_mva_2', 'power_mva_3']).' as power_mva'),
+            ]);
+
+        $this->aislarPorTenant($consulta);
+        $this->aplicarBusqueda($consulta, $request);
+        $this->aplicarOrden($consulta, $request);
+
+        $informes = $consulta->paginate($porPagina)->withQueryString();
+
+        return \Inertia\Inertia::render('SampleReports/Index', [
+            'reports'  => $informes,
+            // `(object)` y no el array pelado: sin filtros, `only()` devuelve un
+            // array VACÍO, que en JSON es `[]` y en la pantalla llega como un
+            // Array de JavaScript. `filters.sort` entonces no es `undefined`,
+            // es `Array.prototype.sort` —la función— y se va a la URL como
+            // `sort=function sort() { [native code] }`. Un objeto vacío es un
+            // objeto vacío en los dos lados.
+            'filters'  => (object) $request->only(array_merge(
+                array_keys(self::BUSCABLES),
+                ['q', 'status', 'kind', 'sort', 'direction', 'per_page'],
+            )),
+            'statuses' => SampleReport::STATUSES,
+            'kinds'    => [SampleReport::KIND_PRIMARY, SampleReport::KIND_ADDITIONAL],
+        ]);
+    }
+
+    /**
+     * El aislamiento por workspace, a mano y no por el scope global del modelo.
+     *
+     * `SampleReport` no lleva `BelongsToTenant` —lo lleva `Sample`, de quien
+     * cuelga— y acá las muestras entran por JOIN, no por relación: un scope
+     * global de `Sample` no se aplica a un JOIN. O sea que sin este filtro el
+     * listado sería cross-tenant. Se filtra por la columna del INFORME, que la
+     * tiene, con el mismo bypass de super que el trait.
+     */
+    private function aislarPorTenant($consulta): void
+    {
+        $usuario = auth()->user();
+
+        if (! $usuario || $usuario->hasRole('super')) {
+            return;
+        }
+
+        $consulta->where('sample_reports.tenant_id', $usuario->tenant_id);
+    }
+
+    /**
+     * Las columnas por las que se busca, y CON QUÉ.
+     *
+     * Cada una declara su expresión SQL una sola vez: la búsqueda y el orden la
+     * comparten, así que no pueden desincronizarse (que es lo que pasa cuando la
+     * lista de ordenables se escribe aparte y alguien agrega una columna).
+     */
+    private const BUSCABLES = [
+        'sample_code'      => 'samples.code',
+        'code'             => 'sample_reports.code',
+        'service_order'    => 'receptions.service_order',
+        'customer_name'    => 'customers.name',
+        'equipment_serial' => 'equipment.serial',
+        'equipment_type'   => 'equipment_types.name',
+        'oil_type'         => 'oil_types.name',
+        'sampling_reason'  => 'samples.sampling_reason',
+    ];
+
+    /** Las que se ordenan pero no se buscan por texto (fechas y estados). */
+    private const ORDENABLES = [
+        'status'       => 'sample_reports.status',
+        'kind'         => 'sample_reports.kind',
+        'issued_at'    => 'sample_reports.issued_at',
+        'delivered_at' => 'sample_reports.delivered_at',
+        'received_at'  => 'receptions.received_at',
+    ];
+
+    /**
+     * La MAYOR de las tensiones o de las potencias declaradas en la placa.
+     *
+     * El sistema anterior guardaba la placa entera en un texto ("220/60/10") y
+     * en el listado imprimía `num_ten.split('/').map(&:to_f).max`. Acá cada
+     * devanado tiene su columna, así que el máximo se calcula en SQL —y no en la
+     * pantalla— porque esta columna se ORDENA: si el máximo lo resolviera el
+     * navegador, ordenaría solo la página que tiene delante.
+     *
+     * `NULLIF(...,0)` para que un equipo sin placa cargada no muestre un 0 que se
+     * lee como "cero kV" en vez de "no está declarado". Y `MAX` en SQLite es la
+     * misma función escalar que `GREATEST` en Postgres: la suite corre en SQLite
+     * y el nombre no es el mismo.
+     */
+    private function mayorDe(array $columnas): string
+    {
+        $mayor = config('database.default') === 'sqlite' ? 'max' : 'greatest';
+        $partes = array_map(fn (string $c) => "coalesce(equipment.{$c}, 0)", $columnas);
+
+        return 'nullif('.$mayor.'('.implode(', ', $partes).'), 0)';
+    }
+
+    /**
+     * La búsqueda POR COLUMNA, como la del sistema anterior (una casilla debajo
+     * de cada encabezado), más una global.
+     *
+     * Insensible a mayúsculas y a acentos en Postgres: quien busca "energia" no
+     * tiene por qué escribir la tilde de "RED DE ENERGÍA".
+     */
+    private function aplicarBusqueda($consulta, Request $request): void
+    {
+        $pg = config('database.default') === 'pgsql';
+
+        $como = function ($q, string $columna, string $valor) use ($pg) {
+            $aguja = \App\Support\LikeQuery::contains($valor);
+
+            // El `ESCAPE '\'` es lo que hace que quien busca "50%" encuentre el
+            // literal "50%" y no cualquier cosa que tenga un 50. En Postgres la
+            // barra ya es el escape por omisión y declararlo dentro de
+            // `unaccent(...)` no está permitido.
+            return $pg
+                ? $q->whereRaw("unaccent(lower({$columna})) LIKE unaccent(lower(?))", [$aguja])
+                : $q->whereRaw("lower({$columna}) LIKE lower(?) ESCAPE '\\'", [$aguja]);
+        };
+
+        foreach (self::BUSCABLES as $clave => $columna) {
+            $consulta->when(
+                $request->filled($clave),
+                fn ($q) => $como($q, $columna, (string) $request->input($clave)),
+            );
+        }
+
+        // El buscador de arriba mira todas las columnas de texto a la vez: es
+        // como se busca cuando se tiene el número de muestra en un correo y no
+        // se sabe en qué columna cae.
+        $consulta->when($request->filled('q'), function ($q) use ($request, $como) {
+            $q->where(function ($qq) use ($request, $como) {
+                foreach (self::BUSCABLES as $columna) {
+                    $qq->orWhere(fn ($x) => $como($x, $columna, (string) $request->input('q')));
+                }
+            });
+        });
+
+        $consulta->when($request->filled('status'), fn ($q) => $q->where('sample_reports.status', $request->input('status')));
+        $consulta->when($request->filled('kind'),   fn ($q) => $q->where('sample_reports.kind', $request->input('kind')));
+    }
+
+    /** El orden. Solo columnas de la lista blanca: el resto cae al id. */
+    private function aplicarOrden($consulta, Request $request): void
+    {
+        $columnas = array_merge(self::BUSCABLES, self::ORDENABLES, [
+            'voltage_kv' => $this->mayorDe(['voltage_kv_hv', 'voltage_kv_lv', 'voltage_kv_tv']),
+            'power_mva'  => $this->mayorDe(['power_mva', 'power_mva_2', 'power_mva_3']),
+        ]);
+        $pedido = (string) $request->get('sort', '');
+        $direccion = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+
+        // `orderByRaw` y no `orderBy`: dos de las columnas son expresiones. La
+        // dirección no viene del pedido sino de la comparación de arriba, así que
+        // no hay nada del usuario dentro del SQL.
+        $consulta->orderByRaw(($columnas[$pedido] ?? 'sample_reports.id').' '.$direccion);
+
+        // Desempate por id: sin él, dos informes con la misma fecha pueden caer
+        // en distinto orden entre una página y la siguiente, y una fila se ve dos
+        // veces mientras otra no aparece nunca.
+        if ($pedido !== '') {
+            $consulta->orderBy('sample_reports.id', 'desc');
+        }
     }
 
     /**
@@ -218,43 +442,18 @@ class SampleReportController extends Controller
      */
     public function issue(Request $request, SampleReport $report): RedirectResponse
     {
-        if ($report->isIssued()) {
+        // La emisión entera vive en el servicio: congelar el contenido, marcar
+        // informados los ensayos y auditar tienen que pasar juntos, y hay más de
+        // una vía que emite (esta pantalla, el sembrador de demostración).
+        $emitido = $this->service->issue($report, $request->user()?->id, [
+            'url'        => $request->fullUrl(),
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 500),
+        ]);
+
+        if (! $emitido) {
             return back()->withErrors(['status' => __('sample_reports.already_issued')]);
         }
-
-        DB::transaction(function () use ($request, $report) {
-            $datos = app(\App\Services\Lab\TestReportPayload::class)
-                ->forSample($report->sample, $report);
-
-            $report->update([
-                'status'    => SampleReport::STATUS_ISSUED,
-                'issued_at' => $report->issued_at ?: now()->toDateString(),
-                'issued_by' => $request->user()?->id,
-                'snapshot'  => $datos,
-            ]);
-
-            // El estado se escribe cuando ocurre: los ensayos publicados pasan
-            // a "informado", la muestra recalcula el suyo y la recepción se
-            // cierra sola si era la última. En el sistema anterior nada de
-            // esto pasaba al emitir — el jefe "bloqueaba" la remisión a mano.
-            app(\App\Services\Lab\SampleProgressService::class)->markReported($report);
-
-            AuditLog::create([
-                'user_id'        => $request->user()?->id,
-                'auditable_type' => SampleReport::class,
-                'auditable_id'   => $report->id,
-                'event'          => 'report_issued',
-                'new_values'     => [
-                    'code'     => $report->code,
-                    'sample'   => $report->sample->code,
-                    'sections' => count($datos['sections']),
-                ],
-                'url'        => $request->fullUrl(),
-                'ip_address' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 500),
-                'module'     => 'samples',
-            ]);
-        });
 
         return back()->with('success', __('sample_reports.issued', ['code' => $report->code]));
     }

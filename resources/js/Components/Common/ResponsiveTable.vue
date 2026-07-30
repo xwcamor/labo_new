@@ -22,6 +22,7 @@ const { t } = useI18n();
  *
  * Slots:
  *   bodyCell    — same as Ant Design Table (used for both desktop and mobile)
+ *   headerCell  — same as Ant Design Table (desktop table only)
  */
 
 const props = defineProps({
@@ -211,6 +212,14 @@ const onRowClick = (record) => ({
                  forzado por el padre): permite a las celdas compactar (ej. kebab
                  de acciones). En desktop es false. -->
             <slot name="bodyCell" v-bind="slotProps" :isMobile="false" :compact="isMobile" />
+        </template>
+        <!-- El encabezado, para el módulo que quiera poner algo debajo del
+             rótulo —la casilla "Buscar" por columna del listado de informes—.
+             Sin este reenvío el slot moría acá y cada módulo tendría que dejar
+             de usar ResponsiveTable para conseguirlo. Solo en la tabla: la
+             tarjeta de pantalla chica no tiene encabezados. -->
+        <template v-if="$slots.headerCell" #headerCell="slotProps">
+            <slot name="headerCell" v-bind="slotProps" />
         </template>
         <template #emptyText>
             <slot name="empty">

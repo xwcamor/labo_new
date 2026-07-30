@@ -110,6 +110,64 @@ class SampleReportService
     }
 
     /**
+     * Emitir: el papel sale a la calle.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ ESTO NO VIVE EN EL CONTROLADOR                               │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Emitir son tres cosas que tienen que pasar juntas o ninguna: congelar el
+     * contenido en `snapshot`, marcar informados los ensayos publicados —que es
+     * lo que cierra la muestra y la entrega— y dejar constancia en el registro.
+     * Mientras estuvo escrito dentro del controlador, cualquier otra vía de
+     * emisión (el sembrador de demostración, un comando, mañana la API) tenía
+     * que copiar las tres y podía olvidarse de una. Un informe emitido cuyos
+     * ensayos siguen en "validado" deja la entrega abierta para siempre, que es
+     * exactamente el defecto del sistema anterior.
+     *
+     * Devuelve `false` si ya estaba emitido: el correlativo sale una sola vez.
+     *
+     * @param  array<string,mixed>  $rastro  Datos de la petición para el registro (URL, IP, agente).
+     */
+    public function issue(SampleReport $informe, ?int $userId, array $rastro = []): bool
+    {
+        if ($informe->isIssued()) {
+            return false;
+        }
+
+        DB::transaction(function () use ($informe, $userId, $rastro) {
+            $datos = app(TestReportPayload::class)->forSample($informe->sample, $informe);
+
+            $informe->update([
+                'status'    => SampleReport::STATUS_ISSUED,
+                'issued_at' => $informe->issued_at ?: now()->toDateString(),
+                'issued_by' => $userId,
+                'snapshot'  => $datos,
+            ]);
+
+            // El estado se escribe cuando ocurre: los ensayos publicados pasan a
+            // "informado", la muestra recalcula el suyo y la recepción se cierra
+            // sola si era la última. En el sistema anterior nada de esto pasaba
+            // al emitir — el jefe "bloqueaba" la remisión a mano.
+            app(SampleProgressService::class)->markReported($informe);
+
+            \App\Models\AuditLog::create(array_merge([
+                'user_id'        => $userId,
+                'auditable_type' => SampleReport::class,
+                'auditable_id'   => $informe->id,
+                'event'          => 'report_issued',
+                'new_values'     => [
+                    'code'     => $informe->code,
+                    'sample'   => $informe->sample->code,
+                    'sections' => count($datos['sections']),
+                ],
+                'module'         => 'samples',
+            ], $rastro));
+        });
+
+        return true;
+    }
+
+    /**
      * Reparte la cabecera del formulario a donde vive cada dato.
      *
      * @param array<string,mixed> $datos

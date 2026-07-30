@@ -22,6 +22,7 @@ return [
     'group_lab'          => 'Pruebas de Muestras',
     'receptions'         => 'Recepción de muestras',
     'worksheets'         => 'Hojas de trabajo',
+    'sample_reports'     => 'Informes de ensayo',
     'qc_charts'          => 'Cartas de control',
 
     // Grupo: lo que el laboratorio configura de sí mismo. Se separó de

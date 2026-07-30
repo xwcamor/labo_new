@@ -49,6 +49,37 @@ return [
     'issued_by'    => 'Emitido por',
     'tests_count'  => 'Ensayos publicados',
 
+    // ── El listado global ─────────────────────────────────────────────────
+    // Las mismas columnas del "Listado de Nº de Reportes" del sistema anterior.
+    // Los encabezados repiten sus palabras a propósito: el laboratorio los lee
+    // todos los días y renombrarlos por gusto propio obliga a reaprender la
+    // pantalla.
+    'index_title'    => 'Informes de ensayo',
+    'index_subtitle' => 'Todo lo que salió del laboratorio. Se ordena y se busca por columna; la búsqueda la resuelve la base, así que el número que se escribe se busca en los miles de informes, no en la página que está a la vista.',
+    'index_empty'    => 'Todavía no hay informes. Se crean desde la muestra, una vez que hay ensayos validados.',
+    'search_all'      => 'Buscar en todo el listado',
+    'search_column'   => 'Buscar',
+    'col_sample_code'      => 'Nº de muestra',
+    'col_code'             => 'Nº de reporte',
+    'col_service_order'    => 'OS',
+    'col_customer'         => 'Cliente',
+    'col_equipment_serial' => 'Nº de serie del equipo',
+    'col_equipment_type'   => 'Tipo de equipo',
+    'col_oil_type'         => 'Tipo de aceite',
+    'col_voltage'          => 'Tensión (kV)',
+    'col_power'            => 'Potencia (MVA)',
+    'col_received_at'      => 'F. recepción',
+    'col_issued_at'        => 'F. emisión',
+    'col_delivered_at'     => 'F. entrega',
+    'col_sampling_reason'  => 'Razón de análisis',
+    'col_actions'          => 'Acciones',
+    'col_download'         => 'Descargar reporte',
+    // La tensión y la potencia son la MAYOR de las que declara la placa; el
+    // detalle por devanado vive en la ficha del equipo.
+    'plate_max_hint'  => 'La mayor de las que declara la placa.',
+    'download_locked' => 'El borrador no se descarga: todavía no tiene número emitido.',
+    'total_records'   => '{0} Sin informes|{1} 1 informe|[2,*] :count informes',
+
     // ── Acciones ──────────────────────────────────────────────────────────
     'create'   => 'Crear informe',
     'issue'    => 'Emitir',

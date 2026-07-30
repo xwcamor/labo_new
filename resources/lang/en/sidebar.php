@@ -19,6 +19,7 @@ return [
     'group_lab'          => 'Sample testing',
     'receptions'         => 'Sample reception',
     'worksheets'         => 'Worksheets',
+    'sample_reports'     => 'Test reports',
     'qc_charts'          => 'Control charts',
 
     // What the laboratory configures about itself. Split out of "Sample

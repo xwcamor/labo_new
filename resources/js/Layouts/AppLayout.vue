@@ -74,6 +74,7 @@ import {
     FundOutlined,
     DotChartOutlined,
     FileTextOutlined,
+    FileProtectOutlined,
 } from '@ant-design/icons-vue';
 
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
@@ -702,6 +703,15 @@ const menuStructure = computed(() => [
                 key: 'worksheets', label: t('sidebar.worksheets'), icon: ProfileOutlined,
                 href: route('lab_management.worksheets.index'), inertia: true,
                 visible: () => can('worksheets.view'),
+            },
+            // ── Informes: la salida ──
+            // El listado global de lo emitido, no de una entrega. Se busca por
+            // número de informe o de muestra, que es cómo lo cita el cliente
+            // cuando llama meses después.
+            {
+                key: 'sample_reports', label: t('sidebar.sample_reports'), icon: FileProtectOutlined,
+                href: route('lab_management.sample_reports.index'), inertia: true,
+                visible: () => can('receptions.view'),
             },
             // ── Control de calidad analítica ──
             {

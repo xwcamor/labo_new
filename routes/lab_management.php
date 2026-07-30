@@ -311,6 +311,12 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     | constancia en el registro de auditoría.
     */
     Route::middleware('permission:receptions.view')->group(function () {
+        // El listado GLOBAL de informes ("Listado de Nº de Reportes" del sistema
+        // anterior): lo emitido por el laboratorio entero, no lo de una entrega.
+        // Va ANTES de `reports/{report}/...` para que la palabra "reports" no se
+        // lea como el slug de un informe.
+        Route::get('reports', [SampleReportController::class, 'index'])->name('sample_reports.index');
+
         // La vista previa desde la muestra: el papel tal como saldría, todavía
         // sin correlativo. Sirve para revisar antes de emitir.
         Route::get('samples/{sample}/report', [TestReportController::class, 'pdf'])->name('samples.report');

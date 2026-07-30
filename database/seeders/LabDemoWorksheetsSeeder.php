@@ -131,13 +131,19 @@ class LabDemoWorksheetsSeeder extends Seeder
             // justamente lo que cambia cuando hay varias.
             $hojas += $this->campanas('furanos', $equipos, $pedidos, fn (int $i, int $c) => $this->furanos($i, $c));
 
+            // Lo último del circuito: el informe. Sin esto el listado de
+            // informes quedaba con una fila y no se podía evaluar —ni el orden,
+            // ni la búsqueda, ni el semáforo de estados—.
+            $informes = $this->informes($analista);
+
             $this->command?->info(sprintf(
-                'Demostración: %d equipos, %d recepciones, %d muestras, %d hojas validadas, %d resultados.',
+                'Demostración: %d equipos, %d recepciones, %d muestras, %d hojas validadas, %d resultados, %d informes.',
                 count($equipos),
                 \App\Models\Reception::withoutGlobalScopes()->count(),
                 \App\Models\Sample::withoutGlobalScopes()->count(),
                 $hojas,
                 \App\Models\Result::count(),
+                $informes,
             ));
         } finally {
             Auth::logout();
@@ -252,6 +258,94 @@ class LabDemoWorksheetsSeeder extends Seeder
         }
 
         return $equipos;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Informes
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Un informe por cada muestra que ya tenga ensayos validados.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ NO SE EMITEN TODOS                                           │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Las campañas más viejas salen EMITIDAS y las dos más recientes quedan en
+     * BORRADOR. Es el estado real de un laboratorio en cualquier martes: lo del
+     * mes pasado ya salió, lo de esta semana está en revisión. Emitir todo
+     * dejaría el listado con una sola columna de estado y el semáforo, el
+     * candado y el filtro de estado no se podrían mirar.
+     *
+     * La emisión pasa por `SampleReportService::issue()`, la MISMA vía que la
+     * pantalla: si mañana emitir implica un paso más, la demostración lo hereda
+     * en lugar de quedar con datos que el sistema real no podría producir.
+     */
+    private function informes(User $analista): int
+    {
+        $servicio = app(\App\Services\Lab\SampleReportService::class);
+
+        // Las muestras con algo validado, de la más vieja a la más nueva: el
+        // correlativo del informe tiene que seguir el orden en que se emitieron.
+        $muestras = Sample::withoutGlobalScopes()
+            ->where('tenant_id', self::TENANT_ID)
+            ->whereDoesntHave('reports')
+            ->whereHas('tests', fn ($q) => $q->whereIn('status', [
+                \App\Models\SampleTest::STATUS_VALIDATED,
+                \App\Models\SampleTest::STATUS_REPORTED,
+            ]))
+            ->orderBy('sampled_at')
+            ->orderBy('number')
+            ->get();
+
+        if ($muestras->isEmpty()) {
+            return 0;
+        }
+
+        // El corte: el último quinto queda sin emitir.
+        $enBorrador = max(1, (int) ceil($muestras->count() / 5));
+        $emitirHasta = $muestras->count() - $enBorrador;
+
+        $creados = 0;
+
+        foreach ($muestras->values() as $indice => $muestra) {
+            $informe = $servicio->create($muestra, [
+                'sampling_reason' => $this->razon($indice),
+            ], $analista->id);
+            $creados++;
+
+            if ($indice >= $emitirHasta) {
+                continue;
+            }
+
+            // La fecha de emisión y la de entrega, unos días después de la toma:
+            // el listado ordena por esas columnas y con todas en el mismo día no
+            // se vería si el orden funciona.
+            $emision = ($muestra->sampled_at ?? now())->copy()->addDays(4);
+            $informe->update([
+                'issued_at'    => $emision->toDateString(),
+                'delivered_at' => $emision->copy()->addDays(2)->toDateString(),
+            ]);
+
+            $servicio->issue($informe->fresh(), $analista->id);
+        }
+
+        return $creados;
+    }
+
+    /**
+     * La razón del análisis, que el informe imprime y el listado ordena.
+     *
+     * Las cuatro que el laboratorio usa de verdad; se reparten en ciclo para que
+     * la columna tenga variedad sin inventar categorías nuevas.
+     */
+    private function razon(int $indice): string
+    {
+        return [
+            'Mantenimiento programado',
+            'Control periódico',
+            'Puesta en servicio',
+            'Diagnóstico por falla',
+        ][$indice % 4];
     }
 
     // ─────────────────────────────────────────────────────────────────────

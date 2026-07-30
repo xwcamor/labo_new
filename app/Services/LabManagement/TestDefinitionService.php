@@ -359,6 +359,15 @@ class TestDefinitionService
                 }
                 if (!$hasChange) continue;
 
+                // El CÓDIGO sale del nombre, también acá. La edición masiva es
+                // el otro camino por el que se renombra una prueba: sin esto el
+                // código quedaría diciendo el nombre viejo, y es la clave a la
+                // que apuntan el cuadro de límites, el mapa de analitos y las
+                // cartas de control.
+                if (isset($patch['name'])) {
+                    $patch['code'] = \Illuminate\Support\Str::slug((string) $patch['name'], '_');
+                }
+
                 $testDefinition->fill($patch)->save();
                 $touched++;
             }

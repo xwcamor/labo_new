@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
     Form, FormItem, Input, Textarea, InputNumber, Switch, Space, Alert, Select, Checkbox,
@@ -59,6 +59,36 @@ const form = useForm({
     sort_order:    props.testDefinition?.sort_order ?? null,
     is_active:     props.testDefinition?.is_active ?? true,
 });
+
+/**
+ * EL CÓDIGO SALE DEL NOMBRE. No se teclea.
+ *
+ * Misma regla que `Str::slug($nombre, '_')` del servidor: minúsculas, sin
+ * tildes, y todo lo que no sea letra o número pasa a guion bajo. Reproduce los
+ * 29 códigos de las pruebas del sistema anterior al carácter —«Número Ácido» →
+ * `numero_acido`, «Factor De Potencia 25º» → `factor_de_potencia_25o`—.
+ *
+ * Acá es solo para que se vea mientras se escribe: quien decide es el
+ * FormRequest, porque un campo de solo lectura no es una validación.
+ */
+const aCodigo = (texto) => (texto ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // saca las tildes
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')                       // espacios y signos → _
+    .replace(/^_+|_+$/g, '');                          // sin guiones sueltos en las puntas
+
+watch(() => form.name, (nombre) => { form.code = aCodigo(nombre); });
+
+/**
+ * Renombrar una prueba YA CREADA le cambia el código, y el código es la clave a
+ * la que apuntan el cuadro de límites, el mapa de analitos, la política de
+ * control de calidad y las cartas. Se avisa antes de guardar en vez de que se
+ * descubra después, cuando esa prueba salga sin criterio y nada lo explique.
+ */
+const codigoOriginal = props.testDefinition?.code ?? null;
+const cambiaElCodigo = computed(
+    () => codigoOriginal !== null && form.code !== '' && form.code !== codigoOriginal,
+);
 
 /**
  * Exigir el patrón sin admitirlo es una combinación imposible: la hoja
@@ -144,13 +174,26 @@ const submit = () => {
                         :validate-status="form.errors.code ? 'error' : ''"
                         :help="form.errors.code"
                     >
+                        <!-- Solo lectura: lo escribe el nombre. Ver `aCodigo`. -->
                         <Input
-                            v-model:value="form.code"
+                            :value="form.code"
                             size="large"
-                            :maxlength="60"
+                            readonly
+                            tabindex="-1"
                             :placeholder="$t('test_definitions.code_placeholder')"
                         />
                     </FormItem>
+
+                    <Alert
+                        v-if="cambiaElCodigo"
+                        type="warning"
+                        show-icon
+                        class="mb-4"
+                        :message="$t('test_definitions.code_changes_title')"
+                        :description="$t('test_definitions.code_changes_help', {
+                            from: codigoOriginal, to: form.code,
+                        })"
+                    />
 
                     <FormItem
                         :label="$t('test_definitions.group')"

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class UpdateTestDefinitionRequest extends FormRequest
 {
     use DerivesAttributesFromLang;
+    use DerivesCodeFromName;
     use TestDefinitionRules;
 
     protected $attributeNamespace = 'test_definitions';
@@ -16,6 +17,11 @@ class UpdateTestDefinitionRequest extends FormRequest
     protected $attributeOverrides = [
         'test_group_id' => 'test_definitions.group',
     ];
+
+    protected function prepareForValidation(): void
+    {
+        $this->mergeCodeFromName();
+    }
 
     public function authorize(): bool
     {

@@ -105,6 +105,8 @@ class TestDefinitionCrudTest extends TestCase
     {
         return array_merge([
             'name'                 => 'prueba bautista',
+            // Se manda a propósito y el servidor lo DESCARTA: el código lo
+            // escribe el nombre. Ver `test_el_codigo_lo_escribe_el_nombre`.
             'code'                 => 'bautista',
             'test_group_id'        => $this->grupo->id,
             'description'          => 'Una prueba nueva.',
@@ -127,7 +129,85 @@ class TestDefinitionCrudTest extends TestCase
             ->post(route('lab_management.test_definitions.store'), $this->envio())
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('test_definitions', ['code' => 'bautista']);
+        $this->assertDatabaseHas('test_definitions', ['code' => 'prueba_bautista']);
+    }
+
+    // ─── El código lo escribe el nombre ──────────────────────────────────
+
+    /**
+     * El código no se teclea: sale del nombre, y lo que mande el cliente se
+     * descarta.
+     *
+     * El campo es de solo lectura en la pantalla, pero eso no es una validación
+     * —un POST directo se la saltea—, así que la regla vive en el FormRequest.
+     * Importa porque el código es la clave estable del sistema: los cuadros de
+     * límites, el mapa de analitos, la política de control de calidad y las
+     * cartas de control apuntan a él. Dos filas para la misma prueba
+     * («numero_acido» y «num_acido») dejan a una con criterio y a la otra sin
+     * nada, sin que se note.
+     */
+    public function test_el_codigo_lo_escribe_el_nombre(): void
+    {
+        $this->actingAs($this->usuario)
+            ->post(route('lab_management.test_definitions.store'), $this->envio([
+                'name' => 'Número Ácido',
+                'code' => 'lo_que_se_le_ocurra_al_cliente',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        // Minúsculas, sin tildes, espacios en guion bajo. Es la misma regla que
+        // reproduce los 29 códigos de las pruebas del sistema anterior.
+        $this->assertDatabaseHas('test_definitions', ['code' => 'numero_acido']);
+        $this->assertDatabaseMissing('test_definitions', ['code' => 'lo_que_se_le_ocurra_al_cliente']);
+    }
+
+    /** Los signos que no son letra ni número también pasan a guion bajo. */
+    public function test_el_codigo_normaliza_signos_y_parentesis(): void
+    {
+        $this->actingAs($this->usuario)
+            ->post(route('lab_management.test_definitions.store'), $this->envio([
+                'name' => 'Azufre 62535 (48 horas)',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('test_definitions', ['code' => 'azufre_62535_48_horas']);
+    }
+
+    /** Renombrar una prueba ya creada recalcula su código. */
+    public function test_renombrar_recalcula_el_codigo(): void
+    {
+        $this->actingAs($this->usuario)
+            ->post(route('lab_management.test_definitions.store'), $this->envio(['name' => 'Viscocidad']))
+            ->assertSessionHasNoErrors();
+
+        $prueba = TestDefinition::where('code', 'viscocidad')->firstOrFail();
+
+        $this->actingAs($this->usuario)
+            ->put(
+                route('lab_management.test_definitions.update', $prueba->slug),
+                $this->envio(['name' => 'Viscosidad Cinemática']),
+            )
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('viscosidad_cinematica', $prueba->fresh()->code);
+    }
+
+    /** Y renombrar desde la edición masiva también. */
+    public function test_la_edicion_masiva_tambien_recalcula_el_codigo(): void
+    {
+        $this->actingAs($this->usuario)
+            ->post(route('lab_management.test_definitions.store'), $this->envio(['name' => 'Sedimentos']))
+            ->assertSessionHasNoErrors();
+
+        $prueba = TestDefinition::where('code', 'sedimentos')->firstOrFail();
+
+        $this->actingAs($this->usuario)
+            ->post(route('lab_management.test_definitions.edit_all.update'), [
+                'changes' => [['id' => $prueba->id, 'name' => 'Sedimentos y Lodos']],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('sedimentos_y_lodos', $prueba->fresh()->code);
     }
 
     public function test_la_prueba_nueva_queda_al_final_de_su_grupo(): void
@@ -144,7 +224,7 @@ class TestDefinitionCrudTest extends TestCase
             ->post(route('lab_management.test_definitions.store'), $this->envio())
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(13, TestDefinition::where('code', 'bautista')->value('sort_order'));
+        $this->assertSame(13, TestDefinition::where('code', 'prueba_bautista')->value('sort_order'));
     }
 
     public function test_el_orden_que_se_tipea_se_respeta(): void
@@ -153,7 +233,7 @@ class TestDefinitionCrudTest extends TestCase
             ->post(route('lab_management.test_definitions.store'), $this->envio(['sort_order' => 3]))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(3, TestDefinition::where('code', 'bautista')->value('sort_order'));
+        $this->assertSame(3, TestDefinition::where('code', 'prueba_bautista')->value('sort_order'));
     }
 
     public function test_vaciar_el_orden_al_editar_no_mueve_la_prueba(): void

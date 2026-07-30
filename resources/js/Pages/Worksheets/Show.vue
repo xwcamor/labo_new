@@ -54,7 +54,7 @@ const props = defineProps({
 });
 
 const { t, tc } = useI18n();
-const { canSeeAudit } = useAuth();
+const { canSeeAudit, isSuper } = useAuth();
 const page = usePage();
 
 const readonly = computed(() => !props.can.edit);
@@ -134,18 +134,22 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                  grilla; el candado congela grilla y cabecera. -->
             <template #actions>
                 <!-- De la bancada al editor de columnas de LA PRUEBA. Es desde
-                     acá que se pregunta "¿y dónde cambio esta tabla?": el
-                     analista tiene la grilla delante. Lo que se configura no es
-                     esta hoja sino la prueba —cambia para todas sus hojas—, y
-                     por eso el tooltip la nombra. -->
+                     acá que se pregunta "¿y dónde cambio esta tabla?": quien
+                     administra tiene la grilla delante. SOLO el super lo ve
+                     (2026-07-30, pedido del usuario): configurar la plantilla
+                     cambia la tabla de TODAS las hojas de esa prueba, y esta
+                     pantalla la abre el analista todos los días — un botón que
+                     reescribe la plantilla no va en su cabecera. En pantalla
+                     chica queda solo el icono: el texto se lo come el ancho y
+                     el tooltip ya dice qué hace. -->
                 <Tooltip
-                    v-if="worksheet.definition?.slug"
+                    v-if="isSuper && worksheet.definition?.slug"
                     :title="$t('worksheets.configure_columns_hint', { test: worksheet.definition.name })"
                 >
                     <Link :href="route('lab_management.test_definitions.fields.index', worksheet.definition.slug)">
-                        <Button>
+                        <Button class="ws-cfg-btn">
                             <template #icon><TableOutlined /></template>
-                            {{ $t('test_definitions.fields_edit') }}
+                            <span class="ws-cfg-btn__label">{{ $t('test_definitions.fields_edit') }}</span>
                         </Button>
                     </Link>
                 </Tooltip>
@@ -233,4 +237,10 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
    se leen como una sola cosa. */
 .ws-alert--equipment { margin: 12px 0 0; }
 .ws-sub { color: var(--color-text-muted); font-size: 0.8125rem; }
+
+/* En pantalla chica el botón de configurar columnas queda solo con su icono:
+   el rótulo se come el ancho de la cabecera y el tooltip ya dice qué hace. */
+@media (max-width: 768px) {
+    .ws-cfg-btn__label { display: none; }
+}
 </style>

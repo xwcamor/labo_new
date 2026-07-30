@@ -656,27 +656,6 @@ const menuStructure = computed(() => [
         visible: () => (page.props.approvals?.my_requests_total ?? 0) > 0,
     },
 
-    // ── Grupo: Accesos ────────────────────────────────────────────────────
-    {
-        kind: 'group',
-        key: 'group-accesos', title: t('sidebar.group_access'),
-        items: [
-            // Users + Roles = "Equipos de trabajo" — gated por plan_feature.
-            // free/basic son operacion de 1 persona y no ven estos modulos.
-            // super bypassa el gate de plan (usePlanFeatures lo maneja).
-            {
-                key: 'users', label: t('sidebar.users'), icon: UserOutlined,
-                href: route('user_management.users.index'), inertia: true,
-                visible: () => can('users.view') && canUsePlanFeature('team_management'),
-            },
-            {
-                key: 'roles', label: t('sidebar.roles'), icon: IdcardOutlined,
-                href: route('user_management.roles.index'), inertia: true,
-                visible: () => hasRole('super', 'admin') && canUsePlanFeature('team_management'),
-            },
-        ],
-    },
-
     // ── Grupo: Negocio (operación del día a día) ─────────────────────────
     {
         kind: 'group',
@@ -887,6 +866,32 @@ const menuStructure = computed(() => [
                 key: 'inbox', label: t('sidebar.inbox'), icon: InboxOutlined,
                 href: route('communication.inbox.index'), inertia: true,
                 visible: () => true,
+            },
+        ],
+    },
+
+    // ── Grupo: Accesos ────────────────────────────────────────────────────
+    // Va acá abajo, con el bloque administrativo, y no arriba de todo: el menú
+    // ordena por FRECUENCIA de uso, no por jerarquía. Dar de alta un usuario o
+    // tocar un perfil es tarea de administrador y se hace unas veces al mes; la
+    // recepción y la bancada se abren todos los días. Tener Accesos primero era
+    // herencia del scaffold, que ordena por módulo y no por trabajo.
+    {
+        kind: 'group',
+        key: 'group-accesos', title: t('sidebar.group_access'),
+        items: [
+            // Users + Roles = "Equipos de trabajo" — gated por plan_feature.
+            // free/basic son operacion de 1 persona y no ven estos modulos.
+            // super bypassa el gate de plan (usePlanFeatures lo maneja).
+            {
+                key: 'users', label: t('sidebar.users'), icon: UserOutlined,
+                href: route('user_management.users.index'), inertia: true,
+                visible: () => can('users.view') && canUsePlanFeature('team_management'),
+            },
+            {
+                key: 'roles', label: t('sidebar.roles'), icon: IdcardOutlined,
+                href: route('user_management.roles.index'), inertia: true,
+                visible: () => hasRole('super', 'admin') && canUsePlanFeature('team_management'),
             },
         ],
     },

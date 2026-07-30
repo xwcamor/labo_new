@@ -86,12 +86,14 @@ class LegacyReportRenderer
         // la columna `standard` de la hoja de bancada, no de la plantilla.
         $normas = $this->normasPorAnalito($datos);
 
-        $fiquis = $this->paginaFiquis($resultados, $normas);
+        $condiciones = $this->condicionesDeLaHoja($muestra);
+
+        $fiquis = $this->paginaFiquis($resultados, $normas, $condiciones);
         if ($fiquis !== null) {
             $paginas[] = $fiquis;
         }
 
-        $cromas = $this->paginaCromas($resultados);
+        $cromas = $this->paginaCromas($resultados, $condiciones);
         if ($cromas !== null) {
             $paginas[] = $cromas;
         }
@@ -169,6 +171,51 @@ class LegacyReportRenderer
         return $pdf->output();
     }
 
+    /**
+     * Las condiciones del laboratorio al correr el ensayo, tomadas de la hoja.
+     *
+     * Los cuatro valores estaban CLAVADOS en raya en las dos plantillas de este
+     * informe: se imprimía "-  °C" siempre, aunque el analista hubiera cargado la
+     * temperatura. Un renglón que muestra una raya fija es peor que no estar,
+     * porque parece un dato que alguien olvidó.
+     *
+     * Se toma la hoja MÁS RECIENTE que tocó esta muestra. No es exacto cuando la
+     * muestra pasó por dos bancadas en días distintos —cada ensayo tuvo sus
+     * condiciones— y el informe moderno sí lo resuelve por sección; acá se acepta
+     * la aproximación porque esta maqueta imprime UN bloque de condiciones por
+     * página de ensayo y el dato fino no cabe sin rediseñarla, que es justamente
+     * lo que esta plantilla no debe hacer.
+     *
+     * @return array{temp:string,humedad:string,presion:string,sample_temp:string}
+     */
+    private function condicionesDeLaHoja(Sample $muestra): array
+    {
+        $hoja = \App\Models\Worksheet::query()
+            ->join('worksheet_rows', 'worksheet_rows.worksheet_id', '=', 'worksheets.id')
+            ->where('worksheet_rows.sample_id', $muestra->id)
+            ->whereNull('worksheet_rows.deleted_at')
+            ->orderByDesc('worksheets.run_date')
+            ->first([
+                'worksheets.ambient_temp_c',
+                'worksheets.ambient_humidity',
+                'worksheets.lab_pressure_hpa',
+                'worksheets.sample_temp_c',
+            ]);
+
+        // La raya se conserva cuando no hay dato: es el criterio del proyecto —
+        // nunca imprimir 0.00 donde no se midió, que es lo que hacía el viejo.
+        $ver = fn (?string $campo, string $sufijo) => $hoja?->{$campo} === null
+            ? '-  ' . trim($sufijo)
+            : rtrim(rtrim(number_format((float) $hoja->{$campo}, 2, '.', ''), '0'), '.') . $sufijo;
+
+        return [
+            'temp'        => $ver('ambient_temp_c', ' °C'),
+            'humedad'     => $ver('ambient_humidity', ' %HR'),
+            'presion'     => $ver('lab_pressure_hpa', ' hPa'),
+            'sample_temp' => $ver('sample_temp_c', ' °C'),
+        ];
+    }
+
     /** La norma del método, con el superíndice (A)/(NA) como lo imprimía el viejo. */
     private function normaConFlag(?array $norma): string
     {
@@ -181,7 +228,7 @@ class LegacyReportRenderer
     }
 
     /** @param \Illuminate\Support\Collection<string,Result> $resultados */
-    private function paginaFiquis($resultados, array $normas): ?array
+    private function paginaFiquis($resultados, array $normas, array $condiciones): ?array
     {
         $filas = [];
         $item  = 0;
@@ -214,15 +261,17 @@ class LegacyReportRenderer
             'condiciones' => [
                 '(*) Norma de referencia ' => 'IEEE C57.106-2015',
                 'Fecha de Análisis' => now()->format('d-m-Y'),
-                'Temp. de Muestra en Laboratorio' => '-  °C',
-                'Temperatura Lab' => '-  °C',
-                'Humedad Relativa Lab' => '-  %HR',
+                // Las tres condiciones estaban CLAVADAS en raya. Salen de la
+                // hoja que corrió el ensayo, que es donde se registran.
+                'Temp. de Muestra en Laboratorio' => $condiciones['sample_temp'],
+                'Temperatura Lab' => $condiciones['temp'],
+                'Humedad Relativa Lab' => $condiciones['humedad'],
             ],
         ];
     }
 
     /** @param \Illuminate\Support\Collection<string,Result> $resultados */
-    private function paginaCromas($resultados): ?array
+    private function paginaCromas($resultados, array $condiciones): ?array
     {
         if ($resultados->get('h2') === null) {
             return null;
@@ -285,9 +334,12 @@ class LegacyReportRenderer
             'condiciones' => [
                 '(*) Norma de referencia' => 'IEC 60599-2022',
                 'Fecha de Análisis' => now()->format('d-m-Y'),
-                'Presión Atmosférica Lab' => '-  hPa',
-                'Temperatura Lab' => '-  °C',
-                'Humedad Relativa Lab' => '-  %HR',
+                // La presión del laboratorio: era una raya CLAVADA porque no
+                // existía columna donde guardarla. Ahora sale de la hoja que
+                // corrió el ensayo, igual que la temperatura y la humedad.
+                'Presión Atmosférica Lab' => $condiciones['presion'],
+                'Temperatura Lab' => $condiciones['temp'],
+                'Humedad Relativa Lab' => $condiciones['humedad'],
             ],
         ];
     }

@@ -483,6 +483,9 @@ class LabDemoWorksheetsSeeder extends Seeder
                 // ambiente: la muestra llega y se atempera, y para varios
                 // parámetros el valor depende de a qué temperatura se midió.
                 'sample_temp_c'      => round(24 + $this->azar(0, 3), 1),
+                // La presión del laboratorio. Lima está casi a nivel del mar:
+                // del orden de 1013 hPa, con la variación del día.
+                'lab_pressure_hpa'   => round(1010 + $this->azar(0, 6), 1),
                 'notes'              => self::MARCA . ' — hoja de demostración generada por el sembrador.',
                 'tenant_id'          => self::TENANT_ID,
             ]);

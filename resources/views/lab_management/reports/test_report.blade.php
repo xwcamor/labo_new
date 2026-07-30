@@ -729,6 +729,18 @@
                             <td class="cond__k">{{ __('reports.cond_lab_humidity') }}</td>
                             <td>{{ $temp($pagina['section']['conditions']['ambient_humidity'], ' %HR') }}</td>
                         </tr>
+                        {{-- La presión del laboratorio. Solo se dibuja la fila si
+                             hay dato: un renglón fijo en raya sugiere que alguien
+                             olvidó cargarlo, cuando puede ser que ese ensayo no
+                             la registre. La cromatografía sí la registra —un
+                             volumen de gas depende de la presión a la que se
+                             midió— y es parte de la trazabilidad del ensayo. --}}
+                        @if ($pagina['section']['conditions']['lab_pressure_hpa'] !== null)
+                            <tr>
+                                <td class="cond__k">{{ __('reports.cond_lab_pressure') }}</td>
+                                <td>{{ $temp($pagina['section']['conditions']['lab_pressure_hpa'], ' hPa') }}</td>
+                            </tr>
+                        @endif
                     </table>
                 @endif
             </td>

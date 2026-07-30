@@ -123,6 +123,10 @@ class WorksheetController extends Controller
             'analyst_id'         => ['nullable', 'integer', Rule::exists('users', 'id')],
             'ambient_temp_c'     => ['nullable', 'numeric'],
             'ambient_humidity'   => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // La presión del laboratorio, que el informe de cromatografía
+            // imprime. El rango cubre desde el nivel del mar (del orden de
+            // 1013 hPa) hasta la sierra alta: fuera de eso es un error de dedo.
+            'lab_pressure_hpa'   => ['nullable', 'numeric', 'min:500', 'max:1100'],
             'sample_temp_c'      => ['nullable', 'numeric'],
             'notes'              => ['nullable', 'string', 'max:2000'],
         ]);
@@ -208,6 +212,7 @@ class WorksheetController extends Controller
             'analyst_id'       => ['nullable', 'integer', Rule::exists('users', 'id')],
             'ambient_temp_c'   => ['nullable', 'numeric'],
             'ambient_humidity' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'lab_pressure_hpa' => ['nullable', 'numeric', 'min:500', 'max:1100'],
             'sample_temp_c'    => ['nullable', 'numeric'],
             'notes'            => ['nullable', 'string', 'max:2000'],
         ]);

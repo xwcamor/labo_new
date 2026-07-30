@@ -152,4 +152,7 @@ return [
     'empty'          => 'Todavía no hay hojas de trabajo.',
     'empty_rows'     => 'La hoja no tiene filas. Agregue el patrón control para empezar.',
 
+    // El informe de cromatografia la imprime: un volumen de gas depende de la
+    // presion a la que se midio.
+    'lab_pressure_hpa' => 'Presion atmosferica del laboratorio',
 ];

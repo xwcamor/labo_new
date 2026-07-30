@@ -139,4 +139,7 @@ return [
     'empty'          => 'No worksheets yet.',
     'empty_rows'     => 'The worksheet has no rows. Add the control standard to start.',
 
+    // The chromatography report prints it: a gas volume depends on the pressure
+    // it was measured at.
+    'lab_pressure_hpa' => 'Laboratory atmospheric pressure',
 ];

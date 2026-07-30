@@ -167,4 +167,5 @@ return [
     'sum_no_spec'    => 'No criterion',
     'sum_no_spec_note' => 'No applicable limit declared.',
 
+    'cond_lab_pressure' => 'Lab atmospheric pressure',
 ];

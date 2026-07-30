@@ -70,6 +70,7 @@ const form = useForm({
     analyst_id:         null,
     ambient_temp_c:     props.worksheet?.ambient_temp_c ?? null,
     ambient_humidity:   props.worksheet?.ambient_humidity ?? null,
+    lab_pressure_hpa:   props.worksheet?.lab_pressure_hpa ?? null,
     sample_temp_c:      props.worksheet?.sample_temp_c ?? null,
     notes:              props.worksheet?.notes ?? '',
 });
@@ -221,6 +222,26 @@ const submit = () => (
                         :max="100"
                         :step="0.1"
                         addon-after="%"
+                    />
+                </FormItem>
+
+                <!-- La presión del laboratorio. El informe de cromatografía
+                     la imprime: un volumen de gas depende de la presión a la que
+                     se midió, y es parte de la trazabilidad del ensayo. Hasta
+                     ahora no existía columna y el papel mostraba una raya fija. -->
+                <FormItem
+                    :label="$t('worksheets.lab_pressure_hpa')"
+                    :validate-status="form.errors.lab_pressure_hpa ? 'error' : ''"
+                    :help="form.errors.lab_pressure_hpa"
+                >
+                    <InputNumber
+                        v-model:value="form.lab_pressure_hpa"
+                        size="large"
+                        style="width: 100%"
+                        :min="500"
+                        :max="1100"
+                        :step="0.1"
+                        addon-after="hPa"
                     />
                 </FormItem>
 

@@ -387,6 +387,7 @@ class TestReportPayload
                     'worksheets.run_date',
                     'worksheets.ambient_temp_c',
                     'worksheets.ambient_humidity',
+                    'worksheets.lab_pressure_hpa',
                     'worksheets.sample_temp_c',
                 ])
             : null;
@@ -399,6 +400,11 @@ class TestReportPayload
             'sample_temp_c'    => $this->numero($hoja?->sample_temp_c),
             'ambient_temp_c'   => $this->numero($hoja?->ambient_temp_c),
             'ambient_humidity' => $this->numero($hoja?->ambient_humidity),
+            // La presión del laboratorio. El informe de cromatografía la
+            // imprime —un volumen de gas depende de la presión a la que se
+            // midió— y hasta ahora no existía columna donde guardarla, así que
+            // el papel mostraba una raya fija.
+            'lab_pressure_hpa' => $this->numero($hoja?->lab_pressure_hpa),
         ];
     }
 

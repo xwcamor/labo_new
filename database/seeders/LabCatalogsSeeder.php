@@ -77,6 +77,14 @@ class LabCatalogsSeeder extends Seeder
             ['code' => 'electrobomba',      'name' => 'Electrobomba',       'shape' => 'dry'],
             ['code' => 'magneto',           'name' => 'Magneto',            'shape' => 'dry'],
             ['code' => 'intercambiador',    'name' => 'Intercambiador',     'shape' => 'dry'],
+            // El 21º tipo, que faltaba. La lista se armó leyendo un COMENTARIO
+            // de una vista del sistema anterior en vez del volcado de datos, y
+            // ese comentario estaba viejo: el tipo se creó en agosto de 2024
+            // (`docs/migracion/esquema/catalogos-definiciones.sql:1845`). Un
+            // equipo cuyo tipo no está en el catálogo no se puede dar de alta, y
+            // la API del laboratorio lo rechaza a propósito para no inventar un
+            // tipo: la ausencia bloqueaba el ingreso de esas muestras.
+            ['code' => 'regulador_voltaje', 'name' => 'Regulador de Voltaje', 'shape' => 'tank'],
         ] as $i => $row) {
             EquipmentType::withTrashed()->updateOrCreate(
                 ['code' => $row['code']],

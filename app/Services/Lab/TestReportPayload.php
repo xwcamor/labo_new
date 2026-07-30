@@ -205,6 +205,12 @@ class TestReportPayload
             'brand'       => $e->brand?->name,              // fabricante
             'tap_changer' => $e->tapChangerType?->name,     // conmutador
             'preservation' => $e->preservation?->name,      // sistema de preservación
+            // La marca COMERCIAL del aceite, distinta del TIPO (mineral,
+            // silicona, vegetal). No viajaba en el payload y el blade tenía una
+            // raya clavada en su celda, con un comentario que afirmaba que el
+            // esquema no la guardaba: sí la guarda, y el informe clásico ya la
+            // imprimía. El papel nuevo mostraba un hueco donde había un dato.
+            'oil_brand'   => $e->oil_brand,
             'oil_volume'  => $this->numero($e->oil_volume),
             'oil_volume_unit' => $e->oil_volume_unit,
             // "En operación". Se guarda como clave (new | in_service |

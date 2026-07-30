@@ -165,21 +165,46 @@ class LabDemoWorksheetsSeeder extends Seeder
             return [];
         }
 
+        // La placa COMPLETA y el resto de los datos que el informe imprime.
+        //
+        // Antes esta plantilla traía cinco valores y el informe de demostración
+        // salía con catorce campos en raya: marca, locación, sistema de
+        // preservación, conmutador, volumen de aceite, estado de servicio,
+        // terciario, segunda potencia. Con el papel así no se puede juzgar ni el
+        // diseño ni la maqueta —una raya no ocupa lo que ocupa un dato— y
+        // tampoco se ve si algún campo quedó sin cablear.
+        //
+        // Los dos autotransformadores llevan TERCIARIO y tres etapas de
+        // enfriamiento a propósito: es el caso que la placa con barras tiene que
+        // saber mostrar ("220 / 138 / 13.8" y "100 / 133 / 167").
         $plantilla = [
-            ['T-01', 'Transformador de potencia 1', 138.00, 13.80, 30.00],
-            ['T-02', 'Transformador de potencia 2', 138.00, 13.80, 20.00],
-            ['T-03', 'Transformador de distribución 1', 23.00, 0.40, 1.00],
-            ['T-04', 'Transformador de distribución 2', 23.00, 0.40, 0.50],
-            ['T-05', 'Autotransformador 1', 220.00, 138.00, 100.00],
-            ['T-06', 'Transformador de horno 1', 33.00, 0.80, 12.00],
+            // tag, nombre, alta, baja, terciario, mva1, mva2, mva3, litros
+            ['T-01', 'Transformador de potencia 1',    138.00, 13.80, null,   30.00,  40.00,  50.00, 12500],
+            ['T-02', 'Transformador de potencia 2',    138.00, 13.80, null,   20.00,  26.60,  null,   9800],
+            ['T-03', 'Transformador de distribución 1', 23.00,  0.40, null,    1.00,  null,   null,    450],
+            ['T-04', 'Transformador de distribución 2', 23.00,  0.40, null,    0.50,  null,   null,    320],
+            ['T-05', 'Autotransformador 1',            220.00, 138.00, 13.80, 100.00, 133.00, 167.00, 42000],
+            ['T-06', 'Transformador de horno 1',        33.00,  0.80, null,   12.00,  null,   null,   6200],
         ];
+
+        // Los catálogos de la placa. Se toman los primeros de cada uno: la
+        // demostración no depende de que exista una marca concreta, pero sí de
+        // que el informe muestre ALGO en esos campos.
+        $marcas       = \App\Models\Brand::withoutGlobalScopes()->orderBy('id')->limit(3)->pluck('id')->all();
+        $preservacion = \App\Models\TransformerPreservation::withoutGlobalScopes()->orderBy('id')->pluck('id')->all();
+        $conmutadores = \App\Models\TapChangerType::withoutGlobalScopes()->orderBy('id')->pluck('id')->all();
 
         $equipos = [];
 
-        foreach ($plantilla as $i => [$tag, $nombre, $alta, $baja, $mva]) {
+        foreach ($plantilla as $i => [$tag, $nombre, $alta, $baja, $terciario, $mva, $mva2, $mva3, $litros]) {
             $ref = self::MARCA . '-' . $tag;
 
-            $equipos[] = Equipment::withoutGlobalScopes()->firstOrCreate(
+            // updateOrCreate y no firstOrCreate: estas filas son de
+            // DEMOSTRACIÓN y el sembrador es su dueño. Con firstOrCreate, cada
+            // dato que se agregaba a la plantilla no llegaba nunca a los equipos
+            // ya sembrados, y el informe de demostración seguía saliendo con los
+            // mismos campos en raya por más que se completara el sembrador.
+            $equipos[] = Equipment::withoutGlobalScopes()->updateOrCreate(
                 ['external_ref' => $ref, 'tenant_id' => self::TENANT_ID],
                 [
                     'slug'             => Str::random(22),
@@ -191,9 +216,30 @@ class LabDemoWorksheetsSeeder extends Seeder
                     'oil_type_id'      => 1,      // mineral
                     'voltage_kv_hv'    => $alta,
                     'voltage_kv_lv'    => $baja,
+                    'voltage_kv_tv'    => $terciario,
                     'power_mva'        => $mva,
+                    'power_mva_2'      => $mva2,
+                    'power_mva_3'      => $mva3,
                     'phases'           => 3,
                     'manufacture_year' => 2005 + $i,
+                    // El resto de la chapa, que el informe imprime en el bloque
+                    // "Información del equipo".
+                    // La locación tiene que ser del MISMO cliente dueño del
+                    // equipo: poner una de otro cliente no sería un hueco menos,
+                    // sería un dato falso en el informe.
+                    'customer_location_id' => \App\Models\CustomerLocation::withoutGlobalScopes()
+                        ->where('customer_id', $clientes[$i % count($clientes)])
+                        ->orderBy('id')->value('id'),
+                    'brand_id'                    => $marcas[$i % max(count($marcas), 1)] ?? null,
+                    'transformer_preservation_id' => $preservacion[$i % max(count($preservacion), 1)] ?? null,
+                    'tap_changer_type_id'         => $conmutadores[$i % max(count($conmutadores), 1)] ?? null,
+                    'oil_brand'        => ['Nynas', 'Shell', 'Ergon'][$i % 3],
+                    'oil_volume'       => $litros,
+                    'oil_volume_unit'  => 'L',
+                    // Un equipo fuera de servicio entre los seis: el informe
+                    // tiene que poder decirlo, y es el caso que en el sistema
+                    // anterior salía como "-" sin distinguirlo de "no se sabe".
+                    'service_state'    => $i === 3 ? 'out_of_service' : 'in_service',
                     'is_active'        => true,
                 ],
             );
@@ -315,12 +361,29 @@ class LabDemoWorksheetsSeeder extends Seeder
                         'volume_ok'     => true,
                         'label_ok'      => true,
                         'sampler_name'  => 'Personal del cliente',
+                        // Los tres datos de la cabecera del informe que antes
+                        // salían en raya. La orden de servicio es lo primero que
+                        // el cliente busca en el papel para conciliar la factura.
+                        'service_order' => sprintf('OS-%d-%04d', $fecha->year, ($campana + 1) * 100 + $orden),
+                        'contact_info'  => 'contacto.laboratorio@ejemplo.com',
+                        'end_user'      => 'Gerencia de Mantenimiento',
                         'notes'         => self::MARCA . ' — recepción de demostración generada por el sembrador.',
                         'tenant_id'     => self::TENANT_ID,
                         'created_by'    => Auth::id(),
                     ]);
 
                     $servicio->confirm($recepcion, count($delCliente));
+                }
+
+                // La cabecera del informe, también en las recepciones ya
+                // sembradas: se completa solo si está vacía, para no pisar algo
+                // que alguien haya cargado a mano sobre la demostración.
+                if ($recepcion->service_order === null) {
+                    $recepcion->update([
+                        'service_order' => sprintf('OS-%d-%04d', $fecha->year, ($campana + 1) * 100 + $orden),
+                        'contact_info'  => 'contacto.laboratorio@ejemplo.com',
+                        'end_user'      => 'Gerencia de Mantenimiento',
+                    ]);
                 }
 
                 $muestras = $recepcion->samples()->orderBy('number')->get();
@@ -338,6 +401,28 @@ class LabDemoWorksheetsSeeder extends Seeder
                     }
 
                     $servicio->requestTests($muestra, $pruebas->values()->all());
+
+                    // Las CONDICIONES DE LA TOMA. Son datos de campo: los trae
+                    // quien extrae la muestra, y el informe los imprime en el
+                    // bloque del equipo. Sin ellos el papel de demostración
+                    // salía con siete rayas seguidas.
+                    //
+                    // Se varían por muestra y por campaña para que las
+                    // tendencias del informe no salgan planas, que es lo que
+                    // pasa cuando el sembrador escribe el mismo número en todas.
+                    if ($muestra->sampling_point === null) {
+                        $muestra->update([
+                            'description'       => 'Aceite mineral en servicio, tomado del equipo en operación.',
+                            'sampling_point'    => ['Válvula inferior', 'Válvula superior', 'Conservador'][$n % 3],
+                            'sampling_reason'   => $campana === 0 ? 'Puesta en servicio' : 'Mantenimiento programado',
+                            // La del aceite es la más alta: sale del equipo
+                            // caliente. La ambiente es la del lugar de la toma.
+                            'oil_temp_c'        => 52.0 + $n * 1.5 + $campana,
+                            'equipment_temp_c'  => 48.0 + $n * 1.2 + $campana,
+                            'ambient_temp_c'    => 21.0 + ($campana % 4),
+                            'relative_humidity' => 58 + ($n % 5) * 3,
+                        ]);
+                    }
 
                     // El correlativo se guarda junto a los ids: la columna
                     // "Nº de Muestra" de la plantilla lo muestra, y es lo que va
@@ -393,6 +478,11 @@ class LabDemoWorksheetsSeeder extends Seeder
                 'status'             => Worksheet::STATUS_DRAFT,
                 'ambient_temp_c'     => round(21 + $this->azar(0, 4), 1),
                 'ambient_humidity'   => round(55 + $this->azar(0, 10)),
+                // La temperatura de la MUESTRA al momento del ensayo, que el
+                // informe imprime en el bloque de condiciones. Es distinta de la
+                // ambiente: la muestra llega y se atempera, y para varios
+                // parámetros el valor depende de a qué temperatura se midió.
+                'sample_temp_c'      => round(24 + $this->azar(0, 3), 1),
                 'notes'              => self::MARCA . ' — hoja de demostración generada por el sembrador.',
                 'tenant_id'          => self::TENANT_ID,
             ]);

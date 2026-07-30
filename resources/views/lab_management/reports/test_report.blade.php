@@ -524,12 +524,14 @@
         <tr>
             <th>{{ __('reports.brand') }}</th>
             <td>{{ $o($eq('brand')) }}</td>
-            {{-- La marca del ACEITE no existe en el esquema nuevo: el equipo
-                 guarda el TIPO de aceite, no su marca comercial. Se deja la
-                 celda —el formato acreditado la tiene— y sale en raya hasta que
-                 el laboratorio decida dónde vive ese dato. --}}
+            {{-- La marca COMERCIAL del aceite (Nynas, Shell, Ergon), distinta
+                 del TIPO (mineral, silicona, vegetal) que va más arriba.
+                 Estaba clavada en una raya con un comentario que decía que el
+                 esquema no la guardaba: sí la guarda —`equipment.oil_brand`, y
+                 el informe clásico ya la imprimía—, así que el papel nuevo
+                 mostraba un hueco donde había un dato cargado. --}}
             <th>{{ __('reports.oil_brand') }}</th>
-            <td>—</td>
+            <td>{{ $o($eq('oil_brand')) }}</td>
             <th>{{ __('reports.equipment_temp') }}</th>
             <td>{{ $temp($sample['equipment_temp_c']) }}</td>
         </tr>

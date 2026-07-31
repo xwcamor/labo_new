@@ -1,0 +1,254 @@
+{
+  "sampling_reason": [
+    {
+      "legacy_id": 1,
+      "name": "Rutina"
+    },
+    {
+      "legacy_id": 2,
+      "name": "Evento"
+    },
+    {
+      "legacy_id": 3,
+      "name": "Tratamiento Termo Vacío"
+    },
+    {
+      "legacy_id": 4,
+      "name": "Tratamiento Regeneración"
+    },
+    {
+      "legacy_id": 5,
+      "name": "Cambio de aceite"
+    },
+    {
+      "legacy_id": 6,
+      "name": "Otros"
+    }
+  ],
+  "sampling_point": [
+    {
+      "legacy_id": 1,
+      "name": "-"
+    },
+    {
+      "legacy_id": 2,
+      "name": "Inferior"
+    },
+    {
+      "legacy_id": 3,
+      "name": "Medio"
+    },
+    {
+      "legacy_id": 4,
+      "name": "Superior"
+    }
+  ],
+  "oil_brand": [
+    {
+      "legacy_id": 1,
+      "name": "-"
+    },
+    {
+      "legacy_id": 2,
+      "name": "Nynas"
+    },
+    {
+      "legacy_id": 3,
+      "name": "Nynas Distro DT11EU"
+    },
+    {
+      "legacy_id": 4,
+      "name": "Electrolube"
+    },
+    {
+      "legacy_id": 5,
+      "name": "Nynas Orion I"
+    },
+    {
+      "legacy_id": 6,
+      "name": "Nynas 10GBN"
+    },
+    {
+      "legacy_id": 8,
+      "name": "Nynas Izar I"
+    },
+    {
+      "legacy_id": 11,
+      "name": "Shell Diala D"
+    },
+    {
+      "legacy_id": 12,
+      "name": "Shell"
+    },
+    {
+      "legacy_id": 13,
+      "name": "Nynas Izar II"
+    },
+    {
+      "legacy_id": 15,
+      "name": "Nytro Libra"
+    },
+    {
+      "legacy_id": 16,
+      "name": "Envirotemp FR3"
+    },
+    {
+      "legacy_id": 17,
+      "name": "Nynas Taurus"
+    },
+    {
+      "legacy_id": 18,
+      "name": "NYNAS 10XN"
+    },
+    {
+      "legacy_id": 19,
+      "name": "Ergon-Hyvolt I"
+    },
+    {
+      "legacy_id": 20,
+      "name": "PURAMIN"
+    },
+    {
+      "legacy_id": 21,
+      "name": "Nynas Orion II"
+    },
+    {
+      "legacy_id": 22,
+      "name": "Ergon HyVolt II"
+    },
+    {
+      "legacy_id": 23,
+      "name": "FR3"
+    },
+    {
+      "legacy_id": 25,
+      "name": "Nynas Libra"
+    },
+    {
+      "legacy_id": 26,
+      "name": "CALTRAN 60-00"
+    },
+    {
+      "legacy_id": 27,
+      "name": "NYTRO ORION I"
+    },
+    {
+      "legacy_id": 28,
+      "name": "NYTRO IZAR I"
+    },
+    {
+      "legacy_id": 30,
+      "name": "HYVOLT I"
+    },
+    {
+      "legacy_id": 31,
+      "name": "NYTRO 10GBN"
+    },
+    {
+      "legacy_id": 32,
+      "name": "SHELL DIALA DX"
+    },
+    {
+      "legacy_id": 33,
+      "name": "ELECTRO 77"
+    },
+    {
+      "legacy_id": 34,
+      "name": "Nytro Orion II"
+    },
+    {
+      "legacy_id": 35,
+      "name": "Shell Diala S2"
+    },
+    {
+      "legacy_id": 36,
+      "name": "RP-Electra 3B-208"
+    },
+    {
+      "legacy_id": 38,
+      "name": "Caltran N60-30"
+    },
+    {
+      "legacy_id": 39,
+      "name": "Midel 7131"
+    },
+    {
+      "legacy_id": 40,
+      "name": "Univolt"
+    },
+    {
+      "legacy_id": 41,
+      "name": "Lubtroil"
+    },
+    {
+      "legacy_id": 42,
+      "name": "SHELL S4 ZX-I"
+    },
+    {
+      "legacy_id": 43,
+      "name": "Shell Diala A"
+    },
+    {
+      "legacy_id": 44,
+      "name": "Maker Electra 3"
+    },
+    {
+      "legacy_id": 45,
+      "name": "Dow Corning® 561"
+    },
+    {
+      "legacy_id": 47,
+      "name": "ESTER 7131"
+    },
+    {
+      "legacy_id": 48,
+      "name": "Shell Diala"
+    },
+    {
+      "legacy_id": 49,
+      "name": "NYNAS 10GBNP"
+    },
+    {
+      "legacy_id": 50,
+      "name": "SINOPEC"
+    },
+    {
+      "legacy_id": 51,
+      "name": "CALTRAN N60-08"
+    },
+    {
+      "legacy_id": 52,
+      "name": "MIDEL"
+    },
+    {
+      "legacy_id": 53,
+      "name": "REPSOL"
+    }
+  ],
+  "volume_unit": [
+    {
+      "legacy_id": 1,
+      "name": "Kg"
+    },
+    {
+      "legacy_id": 2,
+      "name": "Lb"
+    },
+    {
+      "legacy_id": 3,
+      "name": "L"
+    },
+    {
+      "legacy_id": 4,
+      "name": "Gl"
+    },
+    {
+      "legacy_id": 5,
+      "name": "Cil"
+    },
+    {
+      "legacy_id": 6,
+      "name": "-"
+    }
+  ]
+}

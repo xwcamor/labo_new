@@ -278,6 +278,7 @@ class SampleReportService
             'oil_brand'        => $datos['oil_brand'] ?? null,
             'manufacture_year' => $datos['manufacture_year'] ?? null,
             'oil_volume'       => $datos['oil_volume'] ?? null,
+            'oil_volume_unit'  => $datos['oil_volume_unit'] ?? null,
         ], fn ($v) => $v !== null);
 
         if ($deEquipo !== [] && $sample->equipment) {

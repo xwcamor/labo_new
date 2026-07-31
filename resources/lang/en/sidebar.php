@@ -76,4 +76,5 @@ return [
     'coming_soon'        => 'Coming soon',
     'report_shares'      => 'Report shares',
     'diagnosis_templates' => 'Analysis templates',
+    'report_catalogs'    => 'Report lists',
 ];

@@ -198,7 +198,16 @@ class EquipmentController extends Controller
             'brands'          => Brand::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'tapChangerTypes' => TapChangerType::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'preservations'   => TransformerPreservation::where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'oilVolumeUnits'  => Equipment::OIL_VOLUME_UNITS,
+            // Del CATÁLOGO y no de la constante del modelo: estaba clavada en
+            // `['L', 'gal']` y el laboratorio usa cinco (Kg, Lb, L, Gl, Cil).
+            // Con dos opciones, el que carga un equipo medido en cilindros no
+            // tiene dónde ponerlo, y eso es exactamente lo que llevó a escribir
+            // la unidad adentro del número. La constante queda como respaldo
+            // para la instalación que todavía no sembró el catálogo.
+            'oilVolumeUnits'  => array_column(
+                \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_VOLUME_UNIT),
+                'value',
+            ) ?: Equipment::OIL_VOLUME_UNITS,
             'serviceStates'   => Equipment::SERVICE_STATES,
         ];
     }

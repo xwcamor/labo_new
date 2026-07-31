@@ -11,6 +11,7 @@ use App\Http\Controllers\LabManagement\ReceptionController;
 use App\Http\Controllers\LabManagement\InstrumentFileController;
 use App\Http\Controllers\LabManagement\TestReportController;
 use App\Http\Controllers\LabManagement\SampleReportController;
+use App\Http\Controllers\LabManagement\ReportCatalogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -431,5 +432,33 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::get('diagnosis_templates', [DiagnosisTemplateController::class, 'index'])->name('diagnosis_templates.index');
         Route::put('diagnosis_templates/{diagnosis_template}', [DiagnosisTemplateController::class, 'update'])->name('diagnosis_templates.update');
         Route::post('diagnosis_templates/{diagnosis_template}/restore', [DiagnosisTemplateController::class, 'restore'])->name('diagnosis_templates.restore');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Listas del informe
+    |----------------------------------------------------------------------
+    | Las cuatro listas chicas del formulario del informe —motivo del análisis,
+    | punto de muestreo, marca de aceite, unidad de volumen— en una sola
+    | pantalla con solapas. Ver `ReportCatalogController`.
+    |
+    | Un permiso de módulo y no `role:super|admin`: son datos del laboratorio,
+    | no configuración del sistema, y quien los corrige es el mismo que carga
+    | recepciones.
+    */
+    Route::middleware('permission:report_catalogs.view')->group(function () {
+        Route::get('report_catalogs', [ReportCatalogController::class, 'index'])->name('report_catalogs.index');
+    });
+
+    Route::middleware('permission:report_catalogs.create')->group(function () {
+        Route::post('report_catalogs', [ReportCatalogController::class, 'store'])->name('report_catalogs.store');
+    });
+
+    Route::middleware('permission:report_catalogs.edit')->group(function () {
+        Route::put('report_catalogs/{report_catalog}', [ReportCatalogController::class, 'update'])->name('report_catalogs.update');
+    });
+
+    Route::middleware('permission:report_catalogs.delete')->group(function () {
+        Route::delete('report_catalogs/{report_catalog}', [ReportCatalogController::class, 'destroy'])->name('report_catalogs.destroy');
     });
 });

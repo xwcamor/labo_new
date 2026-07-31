@@ -146,6 +146,10 @@ class ReceptionController extends Controller
         return Inertia::render('Receptions/Form', [
             'reception' => null,
             'customers' => Customer::orderBy('name')->get(['id', 'slug', 'name']),
+            // Sin `catalogs` ni descripción por omisión: el motivo, el punto de
+            // muestreo y la descripción son de la MUESTRA, y la muestra todavía
+            // no existe acá (se crea al confirmar). Se cargan en el formulario
+            // del informe, que es donde el laboratorio los completa.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
             // Solo para mostrarlo: entre que se ve y se confirma pueden entrar
             // otras recepciones, así que el número real es el que se emite.
@@ -278,6 +282,7 @@ class ReceptionController extends Controller
         return Inertia::render('Receptions/Form', [
             'reception' => $reception,
             'customers' => Customer::orderBy('name')->get(['id', 'slug', 'name']),
+            // Sin `catalogs`: ver el comentario en `create()`.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
             'nextNumber' => null,
         ]);

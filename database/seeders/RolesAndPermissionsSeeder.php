@@ -167,6 +167,10 @@ class RolesAndPermissionsSeeder extends Seeder
             $pick('equipment', ['view', 'show', 'export']),
             $pick('customers', ['view', 'show', 'export']),
             ['worksheets.validate'],
+            // Las listas del formulario del informe: son datos del laboratorio y
+            // quien responde por que digan lo mismo en todas las muestras es el
+            // supervisor. Sin `import`/`export`: seis filas no se exportan.
+            $pick('report_catalogs', ['view', 'show', 'create', 'edit', 'delete']),
             ...array_map(fn ($m) => $all($m), array_merge($labTemplateModules, $labBenchModules)),
         );
 

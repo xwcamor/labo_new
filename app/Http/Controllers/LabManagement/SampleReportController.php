@@ -552,6 +552,17 @@ class SampleReportController extends Controller
                 'notes'        => $report->notes,
             ] : null,
 
+            // Las listas del formulario. En el sistema anterior eran cuatro
+            // tablas sin pantalla que llenaban estos mismos desplegables; acá
+            // eran texto libre, y por eso convivían «Inferior», «inferior» y
+            // «Valvula inferior» para el mismo punto de muestreo.
+            'catalogs' => [
+                'sampling_reason' => \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_REASON),
+                'sampling_point'  => \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_POINT),
+                'oil_brand'       => \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_OIL_BRAND),
+                'volume_unit'     => \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_VOLUME_UNIT),
+            ],
+
             // Lo que NO se edita: identifica al registro y cambiarlo rompería la
             // trazabilidad. Se muestra para que el operador confirme que está en
             // la muestra correcta.
@@ -566,13 +577,22 @@ class SampleReportController extends Controller
                 // De la entrega
                 'service_order' => $re?->service_order,
                 'contact_info'  => $re?->contact_info,
-                'end_user'      => $re?->end_user,
+                // El usuario final arranca con el nombre del CLIENTE, que es lo
+                // que hacía el sistema anterior (`@rem_correlative.rem.customer.name`)
+                // y lo que el laboratorio escribía a mano en el 90% de los casos.
+                // Es un valor inicial, no una imposición: se puede pisar.
+                'end_user'      => $re?->end_user
+                    ?: (($re?->customer?->name) ?? $eq?->customer?->name),
                 'received_at'   => $re?->received_at?->toDateString(),
                 'sampler'       => $re?->sampler?->name ?? $re?->sampler_name,
 
                 // De la muestra
                 'report_number'     => $sample->report_number,
-                'description'       => $sample->description,
+                // Sin descripción cargada se ofrece la del workspace. Vive ahí y
+                // no en el código porque cita un procedimiento con versión.
+                'description'       => $sample->description
+                    ?: $sample->reception?->tenant?->sample_description_default
+                    ?: auth()->user()?->tenant?->sample_description_default,
                 'sampling_reason'   => $sample->sampling_reason,
                 'sampling_point'    => $sample->sampling_point,
                 'sampled_at'        => $sample->sampled_at?->toDateString(),
@@ -647,6 +667,10 @@ class SampleReportController extends Controller
             'oil_brand'        => ['nullable', 'string', 'max:120'],
             'manufacture_year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
             'oil_volume'       => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            // La unidad viaja junto al número: sin ella «2500» no dice nada, y
+            // era el campo que en el sistema anterior terminaba escrito adentro
+            // del mismo texto.
+            'oil_volume_unit'  => ['nullable', 'string', 'max:20'],
 
             'tests'   => ['nullable', 'array'],
             'tests.*' => ['integer'],

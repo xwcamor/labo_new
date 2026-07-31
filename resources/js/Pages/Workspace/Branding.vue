@@ -22,6 +22,7 @@ const props = defineProps({
 const form = useForm({
     address:           props.workspace.address ?? '',
     report_disclaimer: props.workspace.report_disclaimer ?? '',
+    sample_description_default: props.workspace.sample_description_default ?? '',
     require_report_approval: props.workspace.require_report_approval ?? false,
     notify_approval_by_email: props.workspace.notify_approval_by_email ?? false,
 });
@@ -182,6 +183,27 @@ const onLogoPicked = (e) => {
                     :help="form.errors.report_disclaimer"
                 >
                     <Textarea v-model:value="form.report_disclaimer" :rows="4" :maxlength="2000" showCount />
+                </FormItem>
+
+                <!-- El texto con el que arranca la descripción de una muestra
+                     nueva. Vive acá y no en el código porque cita un
+                     PROCEDIMIENTO CON VERSIÓN («P-PG-TR-LA-18-20»), y los
+                     procedimientos se revisan: clavado, cada informe seguiría
+                     afirmando la versión vieja hasta que alguien haga un
+                     deploy. Mismo caso que el descargo de arriba. -->
+                <FormItem
+                    :label="t('tenants.form_sample_description_label')"
+                    :tooltip="t('tenants.form_sample_description_help')"
+                    :validate-status="form.errors.sample_description_default ? 'error' : ''"
+                    :help="form.errors.sample_description_default"
+                >
+                    <Textarea
+                        v-model:value="form.sample_description_default"
+                        :rows="2"
+                        :maxlength="1000"
+                        showCount
+                        :placeholder="t('tenants.form_sample_description_placeholder')"
+                    />
                 </FormItem>
 
                 <!-- ── Exigir aprobación de informes (etapa 2 de firmas) ──── -->

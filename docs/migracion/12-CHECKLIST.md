@@ -359,13 +359,41 @@ bancada quedó en el estándar de los módulos: Editar/Eliminar/Bloquear en el
 encabezado, edición de cabecera (la prueba no se cambia), página de baja con
 motivo y candado manual además del automático por antigüedad.
 
-### C3. `[ ]` Los cuatro catálogos que se volvieron texto libre
+### C3. `[x]` Los cuatro catálogos que se volvieron texto libre
 
 Marca de aceite, unidad de volumen, punto de muestreo y motivo del informe eran
 catálogos con CRUD y hoy son texto libre. Es el camino por el que la base vieja
 terminó con "2500 gal", "2500 galones" y "2500Gal" en la misma columna.
 **Verificación:** que el campo sea un selector y que no se puedan escribir dos
 variantes del mismo valor.
+**Resuelto (2026-07-31):** una tabla `report_catalogs` con una columna que dice
+de cuál de las cuatro listas es cada fila, sembrada desde el volcado (6 motivos,
+3 puntos, 44 marcas, 5 unidades; el centinela `-` del viejo NO se siembra), con
+pantalla propia de cuatro solapas en **Listas del informe**. Los cuatro campos
+del formulario del informe pasaron a `<Select>`.
+
+Tres decisiones que conviene no revertir sin leer el porqué:
+
+- **Una tabla y no cuatro módulos.** Las cuatro listas tienen la misma forma
+  —nombre, activo, orden— y se corrigen en la misma sesión. Cuatro módulos del
+  scaffold serían cuatro veces el mismo código, con papelera, exports en cuatro
+  formatos e importación, sobre listas de seis filas que se tocan dos veces por
+  año.
+- **La muestra guarda el TEXTO, no el id.** Es lo mismo que ya hacen el veredicto
+  y el texto del límite: un informe emitido no puede cambiar porque alguien
+  renombró una fila del catálogo tres años después. Dar de baja una opción la
+  saca del desplegable y no toca nada de lo impreso.
+- **El valor histórico que no está en el catálogo se conserva.** Estos campos
+  fueron texto libre, así que hay muestras con «Valvula inferior» o
+  «Mantenimiento programado». El desplegable agrega SIEMPRE el valor actual a su
+  lista: si no, se vería vacío y el primer guardado lo borraría sin que nadie lo
+  note.
+
+De paso se corrigió un defecto que el catálogo dejó a la vista: la unidad de
+volumen de la ficha del equipo ofrecía DOS opciones clavadas en el modelo
+(`Equipment::OIL_VOLUME_UNITS = ['L','gal']`) cuando el laboratorio usa cinco. A
+un equipo medido en cilindros no había dónde ponerlo — que es exactamente lo que
+lleva a escribir la unidad adentro del número.
 
 ### C4. `[ ]` Bloque RELACIONES de cromatografía
 

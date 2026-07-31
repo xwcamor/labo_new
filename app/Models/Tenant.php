@@ -30,6 +30,7 @@ class Tenant extends Model
         'accreditation_note',
         'address',
         'report_disclaimer',
+        'sample_description_default',
         'report_approver',
         'report_approver_user_id',
         'require_report_approval',

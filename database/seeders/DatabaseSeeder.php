@@ -90,6 +90,11 @@ class DatabaseSeeder extends Seeder
             ConnectionTypesSeeder::class,
             TransformerPreservationsSeeder::class,
             LabCatalogsSeeder::class,
+            // Las cuatro listas chicas del formulario del informe —motivo del
+            // análisis, punto de muestreo, marca de aceite, unidad de volumen—,
+            // que acá eran texto libre y por eso la base terminaba con «2500 gal»,
+            // «2500 galones» y «2500Gal» para la misma unidad.
+            ReportCatalogsSeeder::class,
 
             // Los parámetros medibles: la pieza que el sistema viejo no tenía y
             // sin la cual el informe no puede consultar por parámetro. La lista

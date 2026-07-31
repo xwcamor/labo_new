@@ -136,6 +136,8 @@ return [
     'end_user_help' => 'De quién es el equipo, cuando no es el que envía la muestra.',
     'received_at'   => 'Fecha de recepción',
     'sampler'       => 'Muestra extraída por',
+    'sampler_help'  => 'Se declara en la recepción y lo heredan todas sus muestras. Para cambiarlo, editar la recepción.',
+    'pick_one'      => 'Elegir…',
     'description'   => 'Descripción de la muestra',
     'sampling_reason' => 'Razón de análisis',
     'sampling_point'  => 'Punto de muestreo',

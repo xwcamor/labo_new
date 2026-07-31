@@ -73,7 +73,18 @@ trait EquipmentFieldRules
             'phases' => ['nullable', 'integer', 'min:1', 'max:3'],
             'manufacture_year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
             'oil_volume' => ['nullable', 'numeric', 'min:0'],
-            'oil_volume_unit' => ['nullable', Rule::in(Equipment::OIL_VOLUME_UNITS)],
+            // La lista la fija el CATÁLOGO, no una constante: `Rule::in` contra
+            // `['L','gal']` rechazaba las tres unidades que el laboratorio usa
+            // de verdad (Kg, Lb, Cil), así que el desplegable ofrecía una cosa y
+            // la validación aceptaba otra. La constante entra igual a la lista
+            // permitida: hay equipos ya cargados con «gal».
+            'oil_volume_unit' => ['nullable', Rule::in(array_unique(array_merge(
+                Equipment::OIL_VOLUME_UNITS,
+                array_column(
+                    \App\Models\ReportCatalog::options(\App\Models\ReportCatalog::KIND_VOLUME_UNIT),
+                    'value',
+                ),
+            )))],
             'service_state' => ['nullable', Rule::in(Equipment::SERVICE_STATES)],
 
             'external_ref' => ['nullable', 'string', 'max:255'],

@@ -24,7 +24,8 @@
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
-    Alert, Button, Checkbox, DatePicker, Input, InputNumber, Modal, Spin, Textarea, Tooltip,
+    Alert, Button, Checkbox, DatePicker, Input, InputNumber, Modal, Select,
+    Spin, Textarea, Tooltip,
 } from 'ant-design-vue';
 import { FileTextOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
@@ -87,6 +88,25 @@ const cargar = async () => {
 };
 
 watch(() => props.open, (abierto) => { if (abierto) cargar(); });
+
+/**
+ * Las opciones de una lista, MÁS lo que ya tenga cargado la muestra.
+ *
+ * Estos cuatro campos eran texto libre, así que hay filas históricas con
+ * valores que no están en el catálogo («Valvula inferior», «2500 galones»). Un
+ * desplegable pelado los mostraría vacíos y el primer guardado los borraría sin
+ * que nadie lo note. El valor actual entra siempre a la lista: se ve, se
+ * conserva, y el operador decide si lo cambia por el del catálogo.
+ */
+const opciones = (kind, actual) => {
+    const lista = data.value?.catalogs?.[kind] ?? [];
+
+    if (actual && !lista.some((o) => o.value === actual)) {
+        return [{ value: actual, label: actual }, ...lista];
+    }
+
+    return lista;
+};
 
 const toggleTest = (id, checked) => {
     const set = new Set(form.value.tests ?? []);
@@ -155,7 +175,13 @@ const submit = () => {
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampling_reason') }}</span>
-                            <Input v-model:value="form.sampling_reason" :maxlength="80" />
+                            <Select
+                                v-model:value="form.sampling_reason"
+                                show-search
+                                allow-clear
+                                :placeholder="$t('sample_reports.pick_one')"
+                                :options="opciones('sampling_reason', form.sampling_reason)"
+                            />
                         </label>
                         <label class="rfm__f rfm__f--wide">
                             <span>{{ $t('sample_reports.contact_info') }}</span>
@@ -185,7 +211,14 @@ const submit = () => {
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampler') }}</span>
-                            <Input :value="form.sampler ?? '—'" disabled />
+                            <!-- Quien extrajo la muestra se declara UNA vez, en
+                                 la recepción, y de ahí lo heredan todas sus
+                                 muestras: la cuadrilla que va a la subestación
+                                 es la misma para toda la entrega. Editarlo acá
+                                 cambiaría el de la entrega entera sin decirlo. -->
+                            <Tooltip :title="$t('sample_reports.sampler_help')">
+                                <Input :value="form.sampler ?? '—'" disabled />
+                            </Tooltip>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.delivered_at') }}</span>
@@ -242,7 +275,13 @@ const submit = () => {
                              transformador ya viene con ellos. -->
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.oil_brand') }}</span>
-                            <Input v-model:value="form.oil_brand" :maxlength="120" />
+                            <Select
+                                v-model:value="form.oil_brand"
+                                show-search
+                                allow-clear
+                                :placeholder="$t('sample_reports.pick_one')"
+                                :options="opciones('oil_brand', form.oil_brand)"
+                            />
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.manufacture_year') }}</span>
@@ -254,7 +293,20 @@ const submit = () => {
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.oil_volume') }}</span>
-                            <InputNumber v-model:value="form.oil_volume" :min="0" style="width:100%" />
+                            <!-- La unidad va PEGADA al número, igual que en la
+                                 ficha del equipo. Sin ella «2500» no dice nada, y
+                                 escribirla adentro del mismo campo es lo que dejó
+                                 «2500 gal», «2500 galones» y «2500Gal». -->
+                            <InputNumber v-model:value="form.oil_volume" :min="0" style="width:100%">
+                                <template #addonAfter>
+                                    <Select
+                                        v-model:value="form.oil_volume_unit"
+                                        style="width:78px"
+                                        allow-clear
+                                        :options="opciones('volume_unit', form.oil_volume_unit)"
+                                    />
+                                </template>
+                            </InputNumber>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.tap_changer') }}</span>
@@ -270,7 +322,13 @@ const submit = () => {
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampling_point') }}</span>
-                            <Input v-model:value="form.sampling_point" :maxlength="80" />
+                            <Select
+                                v-model:value="form.sampling_point"
+                                show-search
+                                allow-clear
+                                :placeholder="$t('sample_reports.pick_one')"
+                                :options="opciones('sampling_point', form.sampling_point)"
+                            />
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.oil_temp_c') }}</span>

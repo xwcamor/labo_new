@@ -75,6 +75,12 @@ class SystemModulesSeeder extends Seeder
             ['name' => 'Receptions',       'permission_key' => 'receptions'],
             ['name' => 'Worksheets',       'permission_key' => 'worksheets'],
             ['name' => 'QcCharts',         'permission_key' => 'qc_charts'],
+            // Las cuatro listas chicas del formulario del informe, en una sola
+            // pantalla con solapas. UN permiso para las cuatro: quien puede
+            // corregir «Valvula inferior» puede corregir «2500 galones», y
+            // cuatro permisos separados serían cuatro que nadie iba a otorgar
+            // por separado.
+            ['name' => 'ReportCatalogs',   'permission_key' => 'report_catalogs'],
         ];
 
         foreach ($modules as $m) {

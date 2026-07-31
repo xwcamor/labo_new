@@ -82,4 +82,5 @@ return [
     'coming_soon'        => 'Próximamente',
     'report_shares'      => 'Envíos de informes',
     'diagnosis_templates' => 'Plantillas de analisis',
+    'report_catalogs'    => 'Listas del informe',
 ];

@@ -28,24 +28,29 @@
 | | Tablas | |
 |---|---|---|
 | Tablas del viejo | **47** | 723 columnas |
-| **PORTADA** | **16** | equivalente completo, sin pérdida con consecuencia |
-| **PARCIAL** | **15** | equivalente con algo que falta, nombrado en la matriz |
-| **NO PORTADA** | **13** | sin equivalente |
+| **PORTADA** | **20** | equivalente completo, sin pérdida con consecuencia |
+| **PARCIAL** | **14** | equivalente con algo que falta, nombrado en la matriz |
+| **NO PORTADA** | **10** | sin equivalente |
 | **DESCARTADA** con documentación previa | **1** | `rem_conditions` (0 filas) |
 | **INFRA** del framework | **2** | `ar_internal_metadata`, `schema_migrations` |
 
-Las 13 no portadas no son 13 problemas: se agrupan en **cinco bloques**.
+Las 10 no portadas no son 10 problemas: se agrupan en **cuatro bloques**.
+
+> **2026-07-31.** El bloque que sí tenía consecuencia normativa —los cuatro
+> catálogos degradados a texto libre— se cerró: motivo del análisis, punto de
+> muestreo, marca de aceite y unidad de volumen vuelven a ser catálogo, con
+> pantalla propia. De ahí que estos números bajen de 13 a 10.
 
 | Bloque | Tablas | Consecuencia |
 |---|---|---|
 | Almacén / préstamo de equipos | 5 (`stocks`, `stock_details`, `stock_detail_moves`, `stock_detail_returns`, `stock_units`) | Fase 10 del plan maestro. No bloquea informes |
-| Catálogos degradados a texto libre | 3 (`transformer_oil_marks` 52 filas, `transformer_oil_units` 6, `transformer_points` 4) | **Sí tiene consecuencia**: el punto de muestreo cambia el resultado esperado |
 | Bitácora de condiciones del laboratorio | 2 (`cro_temperatures` 100 filas, `fiq_temperatures` 100) | **Sí tiene consecuencia**: la presión atmosférica no tiene columna en ninguna parte del nuevo |
 | Etiquetas con QR | 1 (`stickers`) | Paso físico de la recepción. Fase 10 |
 | Procedencia y aviso interno | 2 (`db_systems`, `rem_report_detail_issues`) | Decisión D2 y pérdida del aviso de dato faltante |
 
-Ningún bloque impide emitir un informe. Dos tienen consecuencia normativa; están
-en el §"LO QUE FALTA" con su número de evidencia.
+Ningún bloque impide emitir un informe. El único que queda con consecuencia
+normativa es la bitácora de condiciones del laboratorio (la presión atmosférica
+sin columna); está en el §"LO QUE FALTA" con su número de evidencia.
 
 ---
 
@@ -142,7 +147,7 @@ Leyenda del estado:
 | 23 | `rem_reports` (`:566-610`) | 43 | sin volcado | `sample_reports` (`database/migrations/2026_07_29_130000_create_sample_reports_tables.php:72`) + `report_counters` (`:58`) + cabecera en `receptions`/`samples` (`database/migrations/2026_07_28_170000_add_report_header_fields.php`) | **PARCIAL** | **`customer_evidence`** — la evidencia que entregó el cliente, con su pantalla: no existe columna en el nuevo (ya listado en `../11-AUDITORIA-VIEJO-VS-NUEVO.md` §5.2). Las 14 columnas de placa congelada en el informe (`mark_id`, `num_ten`, `num_pot`, `transformer_type_id`, `oil_type_id`, `transformer_oil_mark_id`, `age`, `conmutation_type_id`, `transformer_preservation_id`, `oil_qty`, `transformer_oil_unit_id`, `transformer_point_id`, `location`, `num_tag`) se reemplazaron por `sample_reports.snapshot` al emitir — equivalente y más honesto, pero **el snapshot es JSON: no se puede filtrar un listado por la marca que decía el informe**. `date_pue` es columna muerta (tiene dos métodos de formato en `labo_old/app/models/rem_report.rb:105-111` y **cero usos en vistas**). `operation` y `was_updated` son banderas internas del flujo viejo, sin destino ni necesidad |
 | 24 | `rem_report_details` (`:618-840`) | **221** | sin volcado | `results` (`database/migrations/2026_07_28_120000_create_results_table.php:79`) + `sample_report_tests` (`...create_sample_reports_tables.php:135`) + `spec_limits` (`database/migrations/2026_07_28_140000_create_specs_tables.php:212`) + `sample_diagnoses` (`database/migrations/2026_07_28_180000_create_sample_diagnoses_table.php`) | **PARCIAL** | La tabla de 221 columnas se descompuso bien: 29 `*_display` → `sample_report_tests.is_visible`; 29 `*_lab_detail_id` → `results.worksheet_row_id`; 66 `*_val` → `results.value_num`/`value_text`; 33 `*_ori` → `spec_limits` (243 límites extraídos, **sin validar por el laboratorio** — B2 de [`../12-CHECKLIST.md`](../12-CHECKLIST.md)); 15 `*_comment` → `sample_diagnoses.body`; 15 `*_date` → `worksheets.run_date`; 6 `*_norm_id` → `test_methods`/`spec_sets.standard_id`; 13 `fiq_item*` son el número de fila impreso, hoy derivado del orden. **Lo que falta de verdad son 2 de las 6 columnas de condición de ensayo**: `fiq_lab_tem`/`fiq_lab_hum`/`cro_lab_tem`/`cro_lab_hum` tienen destino (`worksheets.ambient_temp_c`, `ambient_humidity`), pero **`fiq_lab_pre` y `cro_lab_pre` — la presión atmosférica — no tienen columna en ninguna parte del sistema nuevo** |
 | 25 | `rem_report_detail_issues` (`:848-856`) | 7 | sin volcado | — | **NO PORTADA** | El aviso interno de "falta un valor": cuando el formulario del informe no encontraba una medición, insertaba una fila con el enlace a la pantalla y el nombre del parámetro, y mandaba un correo ("No se encuentra el valor: Metales Cobre") — `labo_old/app/views/im_management/rem_reports/partials/_form_add_details_metales.html.erb:24`, `labo_old/app/mailers/user_management/user_mailers.rb:34-38`. **Se pierde el aviso proactivo de dato faltante al armar el informe**: hoy nadie avisa, el parámetro sale en blanco. Ojo: la implementación vieja creaba filas **desde la vista, al renderizar**, así que un informe abierto tres veces generaba tres avisos |
-| 26 | `rem_report_reasons` (`:864-870`) | 5 | 6 | `samples.sampling_reason` (varchar, `database/migrations/2026_07_28_170000_add_report_header_fields.php`) | **PARCIAL** (degradación) | Era catálogo con CRUD y 6 filas reales (Rutina, Evento, Tratamiento Termo Vacío, Tratamiento Regeneración, Cambio de aceite, Otros); hoy es **texto libre**. Se pierde poder agrupar por motivo sin normalizar a mano. Es uno de los cuatro catálogos degradados de C3 en [`../12-CHECKLIST.md`](../12-CHECKLIST.md) |
+| 26 | `rem_report_reasons` (`:864-870`) | 5 | 6 | `report_catalogs` kind `sampling_reason` (`database/migrations/2026_07_31_140000_create_report_catalogs_table.php`) + `samples.sampling_reason` (el texto elegido) | **PORTADA** (2026-07-31) | Nada. Las 6 filas reales se siembran (`ReportCatalogsSeeder`) y el laboratorio las administra en **Listas del informe**. La muestra sigue guardando el TEXTO y no el id, a propósito: un informe emitido no puede cambiar porque alguien renombró una fila del catálogo |
 | 27 | `rem_signatures` (`:878-886`) | 7 | sin volcado | `signatures` (`database/migrations/2026_07_29_043439_create_signatures_table.php:15`) | PORTADA | Nada. El nuevo suma `relation` (lista cerrada traducible), `user_id`, `title` y orden |
 | 28 | `rem_user_signatures` (`:894-901`) | 6 | sin volcado | `signatures` + `users.signature` (`database/migrations/2025_09_18_093438_create_users_table.php:12`) | PORTADA | Nada. Las dos tablas del viejo (firma del informe y firma del usuario) se unificaron en una, con la imagen atada al firmante |
 | 29 | `samplers` (`:909-917`) | 7 | 12 (sembrados en `database/seeders/SamplersSeeder.php:33-34`) | `samplers` (`database/migrations/2026_07_29_041836_create_samplers_table.php:15`) | **PARCIAL** | **`num_doc`** — el documento del muestreador. Como los 12 registros reales no son personas sino áreas y terceros (LABORATORIO, CLIENTE, ABB, SUBCONTRATISTA — ver el comentario del seeder), la pérdida es teórica hoy; deja de serlo el día que el laboratorio quiera registrar a la persona física que extrajo la muestra, que es lo que ISO 17025 pide trazar |
@@ -154,9 +159,9 @@ Leyenda del estado:
 | 30 | `transformers` (`:1041-1062`) | 20 | 100 (volcado citado en [`D-placa-equipos.md`](D-placa-equipos.md) §1) | `equipment` (`database/migrations/2026_07_28_061051_create_equipment_table.php:37`) | **PARCIAL** | El grueso está y mejorado: `num_ten`/`num_pot` (texto libre con barras) → `voltage_kv_hv`/`lv`/`tv` + `power_mva`/`_2`/`_3`, `location` → jerarquía real de cliente. Lo que se degradó a texto: **`transformer_oil_mark_id` → `equipment.oil_brand` varchar(120)**, **`transformer_oil_unit_id` → `oil_volume_unit`**, y **`transformer_point_id` se movió a `samples.sampling_point` varchar(80)** — los tres eran FK a catálogo. `age` (texto) → `manufacture_year` (entero), que es una mejora pero exige convertir el histórico |
 | 31 | `transformer_types` (`:1127-1134`) | 6 | **21** | `equipment_types` (`database/migrations/2026_05_30_100000_create_lab_catalogs_tables.php:40`) | **PARCIAL** | **El seeder siembra 20 de los 21 tipos reales**: falta **`Regulador de Voltaje`** (id 21, creado 2024-08-09 en la base real). El seeder dice "Son 20." (`database/seeders/LabCatalogsSeeder.php:57`) porque la lista salió de un comentario de una vista, no del volcado. Y se pierde la columna **`comment`**, que valía `TRAPP` exactamente en los tres tipos que TrafoDex conoce (potencia, distribución, horno) y era la marca de qué se podía diagnosticar allá — hoy esa decisión no tiene dónde escribirse (D1 de [`../12-CHECKLIST.md`](../12-CHECKLIST.md)) |
 | 32 | `transformer_preservations` (`:1112-1119`) | 6 | 4 | `transformer_preservations` (`database/migrations/2026_05_30_100050_create_transformer_preservations_table.php:17`) | PORTADA | Nada relevante (`comment` no se usa) |
-| 33 | `transformer_oil_marks` (`:1070-1076`) | 5 | **52** | `equipment.oil_brand` (varchar 120, `database/migrations/2026_07_29_130000_create_sample_reports_tables.php:158`) | **NO PORTADA** como tabla | Catálogo con CRUD y **52 marcas de aceite reales** convertido en texto libre. Es la degradación más grande de las cuatro de C3: 52 valores normalizados quedan a merced de quien tipee |
-| 34 | `transformer_oil_units` (`:1084-1090`) | 5 | 6 | `equipment.oil_volume_unit` (varchar) | **NO PORTADA** como tabla | Las 6 unidades reales (Kg, Lb, L, Gl, Cil, `-`) son texto libre. Es exactamente el camino por el que la base vieja terminó con "2500 gal", "2500 galones" y "2500Gal" |
-| 35 | `transformer_points` (`:1098-1104`) | 5 | 4 | `samples.sampling_point` (varchar 80) | **NO PORTADA** como tabla | Los 4 puntos de muestreo (`-`, Inferior, Medio, Superior) son texto libre. **Es el más sensible de los tres**: el punto de extracción cambia el resultado esperado de un ensayo de aceite, y sin catálogo no se puede comparar históricos "mismo punto contra mismo punto" |
+| 33 | `transformer_oil_marks` (`:1070-1076`) | 5 | **52** | `report_catalogs` kind `oil_brand` + `equipment.oil_brand` (el texto elegido) | **PORTADA** (2026-07-31) | Nada. Las 44 marcas reales (52 menos el centinela `-` y las repetidas) se siembran y el desplegable del informe las ofrece con buscador |
+| 34 | `transformer_oil_units` (`:1084-1090`) | 5 | 6 | `report_catalogs` kind `volume_unit` + `equipment.oil_volume_unit` (el texto elegido) | **PORTADA** (2026-07-31) | Nada. Las 5 unidades reales (Kg, Lb, L, Gl, Cil; el `-` no se siembra) alimentan el desplegable de la ficha del equipo Y el del informe. Antes ese desplegable ofrecía DOS opciones clavadas en el modelo (`['L','gal']`), o sea que a un equipo medido en cilindros no había dónde ponerlo |
+| 35 | `transformer_points` (`:1098-1104`) | 5 | 4 | `report_catalogs` kind `sampling_point` + `samples.sampling_point` (el texto elegido) | **PORTADA** (2026-07-31) | Nada. Los 3 puntos reales (Inferior, Medio, Superior; el `-` no se siembra) ya se eligen de lista, así que se pueden comparar históricos «mismo punto contra mismo punto» |
 | 36 | `import_transformers` (`:130-152`) | 21 | 43 (volcado citado en [`D-placa-equipos.md`](D-placa-equipos.md)) | reemplazada por `App\Imports\BusinessManagement\Equipment\EquipmentImport` (vista previa con `dryRun`) | **PARCIAL** (reemplazada por otro diseño) | La tabla de escalonamiento por usuario no hace falta: el nuevo previsualiza en transacción y revierte. Pero **el importador nuevo acepta 6 columnas (`name`, `customer`, `serial`, `tag`, `voltage_kv`, `power_mva`) y el viejo escalonaba 15**: quedan afuera tipo de equipo, marca, conmutador, preservación, tipo de aceite, marca de aceite, unidad de volumen, volumen y antigüedad. Importar el padrón deja esos nueve campos vacíos, equipo por equipo |
 
 ### 2.8 Bitácora de condiciones del laboratorio
@@ -193,17 +198,21 @@ Una fila de la matriz = una tabla del viejo. Los cinco estados suman 47.
 
 | Estado | Tablas | Cuáles |
 |---|---|---|
-| **PORTADA** | **16** | `accesses`, `profiles`, `profile_accesses`, `lab_category_sub_detail_options`, `lab_category_sub_detail_types`, `lab_detail_types`, `norms`, `labs`, `lab_details`, `lab_sub_details`, `lab_files`, `lab_file_details`, `rem_jobs`, `rem_signatures`, `rem_user_signatures`, `transformer_preservations` |
-| **PARCIAL** | **15** | `users`, `audits`, `lab_category_detail_types`, `lab_category_details`, `lab_category_sub_details`, `patron_tendences`, `rems`, `rem_correlatives`, `rem_reports`, `rem_report_details`, `rem_report_reasons`, `samplers`, `transformers`, `transformer_types`, `import_transformers` |
-| **NO PORTADA** | **13** | `rem_report_detail_issues`, `transformer_oil_marks`, `transformer_oil_units`, `transformer_points`, `cro_temperatures`, `fiq_temperatures`, `stickers`, `stocks`, `stock_details`, `stock_detail_moves`, `stock_detail_returns`, `stock_units`, `db_systems` |
+| **PORTADA** | **20** | `accesses`, `profiles`, `profile_accesses`, `lab_category_sub_detail_options`, `lab_category_sub_detail_types`, `lab_detail_types`, `norms`, `labs`, `lab_details`, `lab_sub_details`, `lab_files`, `lab_file_details`, `rem_jobs`, `rem_signatures`, `rem_user_signatures`, `transformer_preservations`, **`rem_report_reasons`**, **`transformer_oil_marks`**, **`transformer_oil_units`**, **`transformer_points`** |
+| **PARCIAL** | **14** | `users`, `audits`, `lab_category_detail_types`, `lab_category_details`, `lab_category_sub_details`, `patron_tendences`, `rems`, `rem_correlatives`, `rem_reports`, `rem_report_details`, `samplers`, `transformers`, `transformer_types`, `import_transformers` |
+| **NO PORTADA** | **10** | `rem_report_detail_issues`, `cro_temperatures`, `fiq_temperatures`, `stickers`, `stocks`, `stock_details`, `stock_detail_moves`, `stock_detail_returns`, `stock_units`, `db_systems` |
 | **DESCARTADA** con documentación | **1** | `rem_conditions` (0 filas y 0 referencias) |
 | **INFRA** | **2** | `ar_internal_metadata`, `schema_migrations` |
 | | **47** | |
 
-Tres de las PARCIAL lo son por **degradación a texto libre**, no por columna
-faltante: `rem_report_reasons`, y dentro de `transformers` la marca de aceite y
-la unidad de volumen. Se cuentan una sola vez, en la fila del catálogo que
-desapareció.
+**Las cuatro degradaciones a texto libre se revirtieron el 2026-07-31.** Motivo
+del análisis, punto de muestreo, marca de aceite y unidad de volumen vuelven a
+ser catálogo: una tabla `report_catalogs` con una columna que dice de cuál lista
+es, sembrada desde el volcado, con pantalla propia («Listas del informe»). Lo que
+la muestra guarda sigue siendo el TEXTO y no el id —un informe emitido no cambia
+porque alguien renombre una fila tres años después—, pero ya no se tipea: se
+elige. Esas cuatro tablas pasaron de PARCIAL/NO PORTADA a PORTADA, y por eso los
+totales de arriba cambiaron (16→20 portadas, 15→14 parciales, 13→10 sin portar).
 
 Además hay **dos columnas** descartadas a propósito, con justificación escrita
 en [`../12-CHECKLIST.md`](../12-CHECKLIST.md) ("Lo que NO hay que portar"):

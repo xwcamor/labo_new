@@ -116,6 +116,8 @@ return [
     'end_user_help' => 'Who owns the equipment, when it is not the party sending the sample.',
     'received_at'   => 'Reception date',
     'sampler'       => 'Sample taken by',
+    'sampler_help'  => 'Declared on the reception and inherited by all its samples. To change it, edit the reception.',
+    'pick_one'      => 'Pick one…',
     'description'   => 'Sample description',
     'sampling_reason' => 'Analysis reason',
     'sampling_point'  => 'Sampling point',

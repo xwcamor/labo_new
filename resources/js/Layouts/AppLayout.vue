@@ -73,6 +73,7 @@ import {
     HighlightOutlined,
     FundOutlined,
     DotChartOutlined,
+    UnorderedListOutlined,
     FileTextOutlined,
     FileProtectOutlined,
 } from '@ant-design/icons-vue';
@@ -746,6 +747,16 @@ const menuStructure = computed(() => [
                 key: 'diagnosis_templates', label: t('sidebar.diagnosis_templates'), icon: FileTextOutlined,
                 href: route('lab_management.diagnosis_templates.index'), inertia: true,
                 visible: () => hasRole('super', 'admin'),
+            },
+            // ── Las listas del formulario del informe ──
+            // Va pegado a la redacción porque es lo mismo visto del otro lado:
+            // allá el párrafo que el informe imprime, acá las opciones que su
+            // formulario ofrece. Cuatro listas de seis filas en UNA pantalla con
+            // solapas, no cuatro entradas sueltas de menú.
+            {
+                key: 'report_catalogs', label: t('sidebar.report_catalogs'), icon: UnorderedListOutlined,
+                href: route('lab_management.report_catalogs.index'), inertia: true,
+                visible: () => can('report_catalogs.view'),
             },
             // ── Plantillas de ensayo ──
             // El GRUPO va antes que las pruebas: una prueba se crea dentro de

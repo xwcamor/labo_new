@@ -293,6 +293,8 @@ class HandleInertiaRequests extends Middleware
             'receptions', 'sample_reports', 'reports',
             // La redacción del análisis que el informe imprime, editable por pantalla.
             'diagnosis_templates',
+            // Las cuatro listas chicas que llenan el formulario del informe.
+            'report_catalogs',
         ];
         $out = [];
         foreach ($namespaces as $ns) {

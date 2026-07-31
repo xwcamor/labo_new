@@ -30,6 +30,7 @@ class WorkspaceBrandingController extends Controller
                 'logo_url'          => $tenant->logo_url,
                 'address'           => $tenant->address,
                 'report_disclaimer' => $tenant->report_disclaimer,
+                'sample_description_default' => $tenant->sample_description_default,
                 // El sello de acreditación y su número de certificado. Se
                 // muestran para que el admin VEA qué va a salir impreso: el
                 // número vence y nadie se acuerda de mirarlo hasta que un
@@ -78,11 +79,12 @@ class WorkspaceBrandingController extends Controller
         $data = $request->validate([
             'address'           => ['nullable', 'string', 'max:255'],
             'report_disclaimer' => ['nullable', 'string', 'max:2000'],
+            'sample_description_default' => ['nullable', 'string', 'max:1000'],
             'require_report_approval' => ['nullable', 'boolean'],
             'notify_approval_by_email' => ['nullable', 'boolean'],
         ]);
 
-        $tenant->update(\Illuminate\Support\Arr::only($data, ['address', 'report_disclaimer']) + [
+        $tenant->update(\Illuminate\Support\Arr::only($data, ['address', 'report_disclaimer', 'sample_description_default']) + [
             'require_report_approval'  => (bool) ($data['require_report_approval'] ?? false),
             'notify_approval_by_email' => (bool) ($data['notify_approval_by_email'] ?? false),
         ]);

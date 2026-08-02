@@ -112,6 +112,7 @@ return [
     'sample_deleted'        => 'Sample :code removed.',
     'delete_blocked' => [
         'issued_report' => 'Sample :code cannot be removed: a report was already issued with that number and the customer holds it. The verification portal must keep finding it. To correct it, issue an additional report.',
+        'has_issued' => 'This delivery cannot be removed: it has :count issued report(s). The customer holds them and the verification portal must keep finding them. To correct them, issue additional reports.',
     ],
     'assign_tests' => 'Assign tests',
     'assign_to_all' => 'Apply to every sample',

@@ -138,6 +138,7 @@ return [
     'sample_deleted'        => 'Muestra :code dada de baja.',
     'delete_blocked' => [
         'issued_report' => 'La muestra :code no se puede dar de baja: ya salió un informe con ese número y el cliente lo tiene en la mano. El portal de verificación tiene que seguir encontrándolo. Para corregir, emita un informe adicional.',
+        'has_issued' => 'Esta entrega no se puede dar de baja: tiene :count informe(s) ya emitido(s). El cliente los tiene en la mano y el portal de verificación tiene que seguir encontrándolos. Para corregir, emita informes adicionales.',
     ],
     'assign_tests'     => 'Asignar pruebas',
     'assign_to_all'    => 'Aplicar a todas las muestras',

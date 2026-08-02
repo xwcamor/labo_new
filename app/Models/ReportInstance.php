@@ -37,9 +37,21 @@ class ReportInstance extends Model
         return $this->belongsTo(ReportRequest::class, 'report_request_id');
     }
 
+    /**
+     * El EQUIPO del informe.
+     *
+     * Apuntaba a `Transformer::class`, que no existe en este repositorio:
+     * quedó del scaffold del sistema de diagnóstico, donde el modelo se
+     * llama así. Acá es `Equipment`. La columna sí se llama
+     * `transformer_id`, así que la clave foránea va explícita.
+     *
+     * No era un detalle de nombres: esta relación la usa el PORTAL PÚBLICO
+     * de informes compartidos, así que el enlace que recibe un cliente
+     * moría con un error fatal de clase inexistente.
+     */
     public function transformer()
     {
-        return $this->belongsTo(Transformer::class);
+        return $this->belongsTo(Equipment::class, 'transformer_id');
     }
 
     public function preparer()

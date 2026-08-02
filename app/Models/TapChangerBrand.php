@@ -37,11 +37,6 @@ class TapChangerBrand extends Model
         'sort_order' => 'integer',
     ];
 
-    /** Transformadores con este registro del conmutador (FK tap_changer_brand_id). */
-    public function transformers(): HasMany
-    {
-        return $this->hasMany(Transformer::class);
-    }
 
     protected static function booted(): void
     {

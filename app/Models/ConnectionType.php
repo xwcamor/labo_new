@@ -47,9 +47,4 @@ class ConnectionType extends Model
         return 'slug';
     }
 
-    /** Transformadores con este grupo de conexión (FK connection_type_id). */
-    public function transformers(): HasMany
-    {
-        return $this->hasMany(Transformer::class, 'connection_type_id');
-    }
 }

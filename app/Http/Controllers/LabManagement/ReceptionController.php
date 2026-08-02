@@ -130,12 +130,28 @@ class ReceptionController extends Controller
 
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
-        $receptions = $query->orderBy('received_at', $direction)->orderByDesc('id')
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ EL ORDEN, POR LISTA BLANCA                                       │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Acá se ordenaba SIEMPRE por fecha de recepción y se ignoraba qué
+        // columna había pulsado el usuario. Con una sola columna ordenable eso
+        // no se notaba; al agregar la fecha comprometida, pulsar su encabezado
+        // reordenaba por otra cosa —la tabla marcaba la flecha en una columna y
+        // las filas salían ordenadas por otra—, que es peor que no dejar
+        // ordenar.
+        //
+        // Lista blanca y no la columna cruda del pedido: lo que llega de la URL
+        // no entra al SQL.
+        $ordenables = ['received_at', 'due_at', 'status'];
+        $pedido = (string) $request->get('sort', '');
+        $columna = in_array($pedido, $ordenables, true) ? $pedido : 'received_at';
+
+        $receptions = $query->orderBy($columna, $direction)->orderByDesc('id')
             ->paginate($perPage)->withQueryString();
 
         return Inertia::render('Receptions/Index', [
             'receptions' => $receptions,
-            'filters'    => $request->only(['status', 'customer', 'from', 'to', 'urgent', 'sample', 'direction', 'per_page']),
+            'filters'    => $request->only(['status', 'customer', 'from', 'to', 'urgent', 'sample', 'sort', 'direction', 'per_page']),
             'customers'  => Customer::orderBy('name')->get(['id', 'slug', 'name']),
             'statuses'   => Reception::STATUSES,
         ]);
@@ -456,11 +472,64 @@ class ReceptionController extends Controller
             'deleted_description' => ['required', 'string', 'min:3', 'max:1000'],
         ]);
 
-        $reception->update([
-            'deleted_by'          => auth()->id(),
-            'deleted_description' => $request->input('deleted_description'),
-        ]);
-        $reception->delete();
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ CON UN INFORME EMITIDO, LA ENTREGA NO SE BORRA                   │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Es la misma regla que ya protegía a la MUESTRA, que no se aplicaba un
+        // nivel más arriba: se podía borrar la entrega y su informe emitido
+        // seguía vivo, en el listado global y en el portal de verificación. El
+        // cliente tiene ese papel en la mano.
+        $emitidos = \App\Models\SampleReport::query()
+            ->whereIn('sample_id', $reception->samples()->pluck('id'))
+            ->where('status', \App\Models\SampleReport::STATUS_ISSUED)
+            ->count();
+
+        if ($emitidos > 0) {
+            return back()->withErrors([
+                'deleted_description' => __('receptions.delete_blocked.has_issued', ['count' => $emitidos]),
+            ]);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($reception, $request) {
+            $motivo = $request->input('deleted_description');
+
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ LA BAJA ARRASTRA LO QUE CUELGA                               │
+            // └──────────────────────────────────────────────────────────────┘
+            // Acá se daba de baja SOLO la fila de la entrega. Sus muestras
+            // quedaban vivas: la bancada las seguía ofreciendo para cargar y el
+            // listado global seguía mostrando sus informes. O sea que se podía
+            // trabajar y emitir el papel de una entrega que ya no existe.
+            //
+            // El sistema anterior sí arrastraba (`rem.rb:327-339`). Se hace en
+            // una transacción para que no quede a medias, y con el MISMO motivo:
+            // quien mire la muestra en la papelera tiene que leer por qué se fue.
+            $muestras = $reception->samples()->get();
+
+            foreach ($muestras as $muestra) {
+                \App\Models\SampleReport::where('sample_id', $muestra->id)
+                    ->get()
+                    ->each(function ($informe) use ($motivo) {
+                        $informe->update([
+                            'deleted_by'          => auth()->id(),
+                            'deleted_description' => $motivo,
+                        ]);
+                        $informe->delete();
+                    });
+
+                $muestra->update([
+                    'deleted_by'          => auth()->id(),
+                    'deleted_description' => $motivo,
+                ]);
+                $muestra->delete();
+            }
+
+            $reception->update([
+                'deleted_by'          => auth()->id(),
+                'deleted_description' => $motivo,
+            ]);
+            $reception->delete();
+        });
 
         return redirect()
             ->route('lab_management.receptions.index')

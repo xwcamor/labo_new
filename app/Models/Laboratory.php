@@ -37,11 +37,6 @@ class Laboratory extends Model
         'sort_order' => 'integer',
     ];
 
-    /** Muestras emitidas por este laboratorio (se cablea en fase de muestras). */
-    public function transformers(): HasMany
-    {
-        return $this->hasMany(Transformer::class);
-    }
 
     protected static function booted(): void
     {

@@ -68,9 +68,21 @@ class ReportShare extends Model
         return blank($this->recipient_email);
     }
 
+    /**
+     * El EQUIPO del informe.
+     *
+     * Apuntaba a `Transformer::class`, que no existe en este repositorio:
+     * quedó del scaffold del sistema de diagnóstico, donde el modelo se
+     * llama así. Acá es `Equipment`. La columna sí se llama
+     * `transformer_id`, así que la clave foránea va explícita.
+     *
+     * No era un detalle de nombres: esta relación la usa el PORTAL PÚBLICO
+     * de informes compartidos, así que el enlace que recibe un cliente
+     * moría con un error fatal de clase inexistente.
+     */
     public function transformer(): BelongsTo
     {
-        return $this->belongsTo(Transformer::class)->withTrashed();
+        return $this->belongsTo(Equipment::class, 'transformer_id')->withTrashed();
     }
 
     public function customer(): BelongsTo
@@ -98,7 +110,7 @@ class ReportShare extends Model
         \App\Models\AuditLog::create([
             'user_id'        => auth()->id() ?? $this->created_by,
             'event'          => 'report_shared',
-            'auditable_type' => \App\Models\Transformer::class,
+            'auditable_type' => \App\Models\Equipment::class,
             'auditable_id'   => $this->transformer_id,
             'module'         => 'transformers',
             'old_values'     => null,
@@ -128,7 +140,7 @@ class ReportShare extends Model
         \App\Models\AuditLog::create([
             'user_id'        => auth()->id(),
             'event'          => 'report_share_revoked',
-            'auditable_type' => \App\Models\Transformer::class,
+            'auditable_type' => \App\Models\Equipment::class,
             'auditable_id'   => $this->transformer_id,
             'module'         => 'transformers',
             'old_values'     => null,

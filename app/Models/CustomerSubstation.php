@@ -47,8 +47,19 @@ class CustomerSubstation extends Model
         return $this->belongsTo(CustomerArea::class, 'customer_area_id');
     }
 
-    public function transformers(): HasMany
+    /**
+     * Los EQUIPOS que usan esta fila.
+     *
+     * Apuntaba a `Transformer::class`, una clase que NO EXISTE en este
+     * repositorio: quedó del scaffold, copiada del sistema de diagnóstico
+     * donde el modelo se llama así. Acá el modelo es `Equipment`, y
+     * cualquier código que tocara esta relación moría con un error fatal de
+     * clase inexistente. La clave foránea se declara explícita porque
+     * Eloquent la derivaría del nombre del modelo (`equipment_id`) y no es
+     * esa.
+     */
+    public function equipment(): HasMany
     {
-        return $this->hasMany(Transformer::class)->orderBy('serial');
+        return $this->hasMany(Equipment::class, 'customer_substation_id')->orderBy('serial');
     }
 }

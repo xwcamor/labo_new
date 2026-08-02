@@ -491,4 +491,91 @@ class ReceptionTest extends TestCase
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]]);
     }
+
+    // ─── La baja de una entrega ──────────────────────────────────────────
+
+    /**
+     * Dar de baja una entrega ARRASTRA sus muestras y sus informes.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Se daba de baja solo la fila de la entrega. Sus muestras quedaban vivas:
+     * la bancada las seguía ofreciendo para cargar y el listado global seguía
+     * mostrando sus informes. O sea que se podía trabajar y emitir el papel de
+     * una entrega que ya no existe. El sistema anterior sí arrastraba
+     * (`rem.rb:327-339`).
+     */
+    public function test_dar_de_baja_una_entrega_arrastra_sus_muestras(): void
+    {
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 2);
+        $ids = $reception->samples()->pluck('id');
+
+        $this->actingAs($this->usuarioConPermiso())
+            ->delete(route('lab_management.receptions.destroy', $reception), [
+                'deleted_description' => 'La entrega se registró por duplicado.',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            0,
+            Sample::whereIn('id', $ids)->count(),
+            'Las muestras sobrevivieron a su entrega: la bancada las sigue ofreciendo.',
+        );
+    }
+
+    /**
+     * Con un informe EMITIDO, la entrega no se borra.
+     *
+     * Es la misma regla que ya protegía a la muestra y que no se aplicaba un
+     * nivel más arriba: el cliente tiene ese papel en la mano y el portal de
+     * verificación tiene que seguir encontrándolo.
+     */
+    public function test_una_entrega_con_informe_emitido_no_se_borra(): void
+    {
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 1);
+        $muestra = $reception->samples()->first();
+
+        \App\Models\SampleReport::create([
+            'slug'      => Str::random(22),
+            'sample_id' => $muestra->id,
+            'tenant_id' => 1,
+            'year'      => 2026,
+            'number'    => 1,
+            'code'      => \App\Models\SampleReport::formatCode(2026, 1),
+            'kind'      => \App\Models\SampleReport::KIND_PRIMARY,
+            'status'    => \App\Models\SampleReport::STATUS_ISSUED,
+        ]);
+
+        $this->actingAs($this->usuarioConPermiso())
+            ->delete(route('lab_management.receptions.destroy', $reception), [
+                'deleted_description' => 'Motivo cualquiera que no alcanza.',
+            ])
+            ->assertSessionHasErrors('deleted_description');
+
+        $this->assertNotNull(Reception::find($reception->id));
+    }
+
+    private function usuarioConPermiso(): \App\Models\User
+    {
+        $rol = \Spatie\Permission\Models\Role::firstOrCreate(
+            ['name' => 'admin', 'guard_name' => 'web'],
+            ['description' => 'Rol de prueba.'],
+        );
+
+        $rol->givePermissionTo(\Spatie\Permission\Models\Permission::firstOrCreate(
+            ['name' => 'receptions.delete', 'guard_name' => 'web'],
+        ));
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $usuario = \App\Models\User::factory()->create([
+            'tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1,
+        ]);
+        $usuario->assignRole('admin');
+
+        return $usuario;
+    }
 }

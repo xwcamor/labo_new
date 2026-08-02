@@ -21,17 +21,24 @@
  * grid de 2 cols adentro, usar Row/Col dentro del slot — este wrapper no
  * impone layout interno.
  */
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { Tabs, TabPane, Badge } from 'ant-design-vue';
 import { FileTextOutlined, HistoryOutlined } from '@ant-design/icons-vue';
 
-defineProps({
+const props = defineProps({
     showHistory:  { type: Boolean, default: false },
     historyCount: { type: Number,  default: 0 },
     defaultKey:   { type: String,  default: 'general' },
 });
 
-const activeKey = ref('general');
+// Avisa qué pestaña quedó abierta: hay páginas (la ficha de la recepción) que
+// tienen bloques DEBAJO del wrapper y solo corresponden a "Detalles" — sin
+// esto seguían visibles con "Historial" abierto.
+const emit = defineEmits(['change']);
+
+const activeKey = ref(props.defaultKey);
+
+watch(activeKey, (k) => emit('change', k));
 </script>
 
 <template>

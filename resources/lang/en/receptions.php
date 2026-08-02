@@ -120,6 +120,7 @@ return [
     'delete_sample_confirm' => 'Sample :code will no longer appear in the delivery. Its number is NOT reused: it will never be assigned to another sample.',
     'delete_sample_has_work' => 'This sample already has results. Removing it takes them out of the system; to fix a value, use the worksheet.',
     'sample_deleted'        => 'Sample :code removed.',
+    'delete_vs_adjust'      => 'If the problem is that the count was wrong, use "Fix the count": there the number stays available for the next delivery. Here the number is voided forever and the count fix closes for this delivery.',
     'delete_blocked' => [
         'issued_report' => 'Sample :code cannot be removed: a report was already issued with that number and the customer holds it. The verification portal must keep finding it. To correct it, issue an additional report.',
         'has_issued' => 'This delivery cannot be removed: it has :count issued report(s). The customer holds them and the verification portal must keep finding them. To correct them, issue additional reports.',

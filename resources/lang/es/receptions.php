@@ -147,6 +147,8 @@ return [
     'delete_sample_confirm' => 'La muestra :code deja de figurar en la entrega. Su correlativo NO se reutiliza: nunca se le va a asignar a otra muestra.',
     'delete_sample_has_work' => 'Esta muestra ya tiene resultados cargados. Darla de baja los saca del sistema; si lo que quiere es corregir un valor, use la hoja de bancada.',
     'sample_deleted'        => 'Muestra :code dada de baja.',
+    // El aviso de la baja mientras «Corregir la cantidad» sigue disponible.
+    'delete_vs_adjust'      => 'Si lo que pasó es que la cantidad estaba mal, use «Corregir la cantidad»: ahí el número queda disponible para la próxima entrega. Por acá el número se anula para siempre y la corrección de cantidad se cierra para esta entrega.',
     'delete_blocked' => [
         'issued_report' => 'La muestra :code no se puede dar de baja: ya salió un informe con ese número y el cliente lo tiene en la mano. El portal de verificación tiene que seguir encontrándolo. Para corregir, emita un informe adicional.',
         'has_issued' => 'Esta entrega no se puede dar de baja: tiene :count informe(s) ya emitido(s). El cliente los tiene en la mano y el portal de verificación tiene que seguir encontrándolos. Para corregir, emita informes adicionales.',

@@ -225,6 +225,11 @@ const columns = computed(() => [
  */
 const tabActiva = ref('samples');
 
+// Qué pestaña PRINCIPAL (Detalles/Historial) está abierta: el bloque de
+// trabajo (Muestras/Informes) es parte de "Detalles" y con "Historial"
+// abierto no tiene que verse — quedaba colgando debajo del historial.
+const tabPrincipal = ref('general');
+
 // ── Informes ─────────────────────────────────────────────────────────────
 const reportOpen   = ref(false);
 const reportSample = ref(null);
@@ -511,7 +516,11 @@ const confirmarDesbloqueo = () => {
              que usan Laboratorios, Instrumentos y el resto: Detalles ·
              Historial. Abajo, las dos pestañas de trabajo. Así la ficha se lee
              como cualquier otra del sistema y no hay que aprenderla aparte. -->
-        <EntityShowTabs :show-history="canSeeAudit" :history-count="activity.length">
+        <EntityShowTabs
+            :show-history="canSeeAudit"
+            :history-count="activity.length"
+            @change="tabPrincipal = $event"
+        >
             <template #general>
                 <ReceptionHeader :reception="reception" />
             </template>
@@ -528,7 +537,11 @@ const confirmarDesbloqueo = () => {
              trabajos distintos sobre la misma entrega —cargar muestras y emitir
              informes— y mezclarlos en una tabla obliga a mirar veinte filas para
              encontrar los tres papeles que se entregaron. -->
-        <Tabs v-model:activeKey="tabActiva" class="rc-tabs rc-tabs--work">
+        <Tabs
+            v-show="tabPrincipal === 'general'"
+            v-model:activeKey="tabActiva"
+            class="rc-tabs rc-tabs--work"
+        >
         <TabPane key="samples">
             <template #tab>
                 <span><ExperimentOutlined /> {{ $t('receptions.section_samples') }} ({{ samples.length }})</span>
@@ -978,6 +991,18 @@ const confirmarDesbloqueo = () => {
                 show-icon
                 class="rc-baja__warn"
                 :message="$t('receptions.delete_sample_has_work')"
+            />
+
+            <!-- Mientras la corrección de cantidad siga abierta, la baja
+                 individual es la herramienta equivocada para un error de
+                 cantidad: quema el número Y cierra la corrección. Se avisa
+                 ANTES de que pase. -->
+            <Alert
+                v-if="canAdjust"
+                type="info"
+                show-icon
+                class="rc-baja__warn"
+                :message="$t('receptions.delete_vs_adjust')"
             />
 
             <label class="rc-baja__label">{{ $t('receptions.delete_sample_reason') }}</label>

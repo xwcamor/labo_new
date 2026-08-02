@@ -85,6 +85,62 @@ class SetupProjectCommand extends Command
         if (! $hasSharing) {
             $this->error('  report_sharing missing in plans. Run: php artisan db:seed --class=PlansSeeder --force');
         }
+
+        $this->avisarMembreteSinCargar();
+    }
+
+    /**
+     * El membrete del informe: qué falta cargar para que el papel salga entero.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ ESTE AVISO EXISTE                                            │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El logotipo, el sello del organismo acreditador y el párrafo del
+     * certificado son DATOS DEL WORKSPACE, no archivos con nombre fijo: el
+     * número de certificado vence y otro laboratorio se acredita con otro
+     * organismo. Y sin el dato cargado el informe no dibuja nada — a propósito,
+     * porque imprimir el logotipo o el sello de OTRO laboratorio es lo peor que
+     * puede hacer este papel.
+     *
+     * El problema es que ese silencio se lee como una función que falta. El
+     * informe sale sin membrete, sin sello y sin el párrafo de la acreditación,
+     * y desde afuera no hay forma de distinguir «no está construido» de «no
+     * está cargado». Este aviso lo distingue, que es lo mismo que hace el
+     * resumen de abajo con las tablas vacías.
+     *
+     * No se siembra ningún valor de fábrica: no hay ninguno correcto. Un
+     * logotipo de muestra sería el de otra empresa y un número de certificado
+     * inventado convertiría el informe en una declaración falsa.
+     */
+    private function avisarMembreteSinCargar(): void
+    {
+        $tenant = \App\Models\Tenant::query()->orderBy('id')->first();
+
+        if (! $tenant) {
+            return;
+        }
+
+        $faltan = array_keys(array_filter([
+            'el logotipo de la empresa (arriba a la izquierda de cada hoja)' => blank($tenant->logo),
+            'el sello del organismo acreditador (arriba a la derecha, solo en las hojas acreditadas)' => blank($tenant->accreditation_logo),
+            'el párrafo del certificado (al pie de las hojas acreditadas)' => blank($tenant->accreditation_note),
+        ]));
+
+        if ($faltan === []) {
+            return;
+        }
+
+        $this->line('');
+        $this->warn('  El membrete del informe está sin cargar. Falta:');
+
+        foreach ($faltan as $que) {
+            $this->line("    · {$que}");
+        }
+
+        $this->line('');
+        $this->line('  Los informes salen SIN eso hasta que se cargue en <fg=green>/workspace</> (Mi workspace).');
+        $this->line('  No se siembra un valor de fábrica a propósito: el logotipo y el sello de');
+        $this->line('  otro laboratorio no pueden salir en un papel que firma este.');
     }
 
     /**

@@ -841,8 +841,11 @@
                      otro laboratorio se acredita con otro organismo. Vacío no
                      imprime nada — un laboratorio sin acreditar no puede emitir
                      un papel que insinúe que sí. --}}
+                {{-- `nl2br`: el certificado exige el párrafo bilingüe y el
+                     laboratorio pega las dos líneas en el campo. Sin esto el
+                     HTML colapsa el salto y las dos frases salen pegadas. --}}
                 @if ($s['accredited'] && ($letterhead['accreditation_note'] ?? null))
-                    {{ $letterhead['accreditation_note'] }}<br>
+                    {!! nl2br(e($letterhead['accreditation_note'])) !!}<br>
                 @endif
                 {{ __('reports.footer_legend') }}
             </span>

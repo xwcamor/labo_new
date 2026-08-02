@@ -283,8 +283,14 @@
              organismo. Sin el dato cargado no se imprime nada — insinuar una
              acreditación que el laboratorio no tiene es lo peor que puede hacer
              este papel. --}}
+        {{-- `nl2br` y no interpolación pelada: el papel viejo imprimía este
+             párrafo en DOS líneas, la castellana y la inglesa, porque el
+             certificado lo exige bilingüe. Acá el texto es un campo del
+             workspace, así que el laboratorio pega las dos; sin esto el HTML
+             colapsa el salto y las dos frases salen pegadas en un renglón
+             corrido. El `e()` va primero: el texto lo escribe una persona. --}}
         @if ($pagina['anab'] && $acreditacion)
-            <div class="legend" style="margin-top:6px">{{ $acreditacion }}</div>
+            <div class="legend" style="margin-top:6px">{!! nl2br(e($acreditacion)) !!}</div>
         @endif
 
         @if (! empty($pagina['relaciones']))

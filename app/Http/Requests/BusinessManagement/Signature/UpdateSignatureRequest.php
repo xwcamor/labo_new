@@ -76,6 +76,8 @@ class UpdateSignatureRequest extends FormRequest
             // La imagen se acepta solo para el firmante SIN cuenta: el
             // laboratorio igual necesita su firma en el papel.
             'image'    => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:1024'],
+            // El PAPEL de autorizar el ingreso de muestras (ver StoreSignatureRequest).
+            'authorizes_entry' => ['sometimes', 'boolean'],
             'is_active'  => ['sometimes', 'boolean'],
         ];
     }

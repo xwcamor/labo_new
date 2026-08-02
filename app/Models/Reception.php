@@ -89,6 +89,18 @@ class Reception extends Model
         return $this->belongsTo(Sampler::class, 'sampler_id');
     }
 
+    /**
+     * Quién autorizó el ingreso de la muestra.
+     *
+     * Sale del catálogo de FIRMAS, filtrado por `authorizes_entry`: es una
+     * persona del laboratorio con firma, igual que el firmante del informe, y
+     * en el sistema anterior su firma se estampaba en el acta de recepción.
+     */
+    public function authorizer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Signature::class, 'authorized_by_id');
+    }
+
     public function confirmer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');

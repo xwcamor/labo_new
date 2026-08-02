@@ -12,13 +12,14 @@
  * ejercicio y un dueño que no corresponden. El servidor los ignora igual — esto
  * es para que se vea, no para que se cumpla.
  */
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import {
-    Alert, Checkbox, DatePicker, Form, FormItem, Input, InputNumber,
-    Select, SelectOption, Textarea,
+    Alert, DatePicker, Form, FormItem, Input, InputNumber,
+    Select, SelectOption, Switch, Textarea,
 } from 'ant-design-vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
+import dayjs from 'dayjs';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -31,6 +32,8 @@ const props = defineProps({
     reception:  { type: Object, default: null },
     customers:  { type: Array,  default: () => [] },
     samplers:   { type: Array,  default: () => [] },
+    // Quiénes pueden autorizar el ingreso: firmas con «Autoriza ingresos».
+    authorizers: { type: Array, default: () => [] },
     // Solo en el alta: el próximo correlativo, como referencia.
     nextNumber: { type: [String, null], default: null },
 });
@@ -43,7 +46,8 @@ const isLocked = computed(() => isEdit.value && props.reception.status !== 'draf
 const today = new Date().toISOString().slice(0, 10);
 
 const form = useForm({
-    code:          props.reception?.code ?? '',
+    // Sin `code`: el N° de recepción lo genera el servidor al guardar. El
+    // campo se muestra deshabilitado, solo para que se sepa que existe.
     service_order: props.reception?.service_order ?? '',
     // El contacto y el usuario final: viven en la recepción y el informe los
     // imprime, pero solo se podían cargar desde el modal del informe, o sea al
@@ -53,14 +57,40 @@ const form = useForm({
     customer_id:   props.reception?.customer_id ?? null,
     sampler_id:    props.reception?.sampler_id ?? null,
     sampler_name:  props.reception?.sampler_name ?? '',
+    authorized_by_id: props.reception?.authorized_by_id ?? null,
     received_at:   isoDate(props.reception?.received_at) ?? today,
     due_at:        isoDate(props.reception?.due_at),
     packages:      props.reception?.packages ?? null,
-    container_ok:  !!props.reception?.container_ok,
-    volume_ok:     !!props.reception?.volume_ok,
-    label_ok:      !!props.reception?.label_ok,
+    // Los tres controles del envase arrancan APROBADOS: lo normal es que la
+    // muestra llegue bien, y el gesto del operador es APAGAR el que falló —
+    // no encender tres switches en cada entrega. En edición se respeta lo
+    // guardado.
+    container_ok:  isEdit.value ? !!props.reception.container_ok : true,
+    volume_ok:     isEdit.value ? !!props.reception.volume_ok : true,
+    label_ok:      isEdit.value ? !!props.reception.label_ok : true,
     is_urgent:     !!props.reception?.is_urgent,
     notes:         props.reception?.notes ?? '',
+});
+
+/**
+ * La fecha comprometida no puede ser anterior a la de recepción, y en vez de
+ * dejar elegir y rebotar en el servidor, el calendario directamente no ofrece
+ * esos días. La validación del servidor sigue ahí — esto es comodidad.
+ */
+const disableBeforeReception = (current) => {
+    if (!current || !form.received_at) return false;
+
+    return current.isBefore(dayjs(form.received_at), 'day');
+};
+
+// Si después de comprometer una fecha se corrige la de recepción hacia
+// adelante y la comprometida queda ANTES, se limpia para que se vuelva a
+// elegir: dejarla sería mandar al servidor una fecha que el calendario ya
+// no permite.
+watch(() => form.received_at, (nueva) => {
+    if (form.due_at && nueva && dayjs(form.due_at).isBefore(dayjs(nueva), 'day')) {
+        form.due_at = null;
+    }
 });
 
 const submit = () => {
@@ -120,13 +150,19 @@ const submit = () => {
 
                 <h2 class="form-section-title">{{ $t('receptions.section_header') }}</h2>
                 <div class="form-grid">
+                    <!-- El N° de recepción NO se escribe: lo genera el
+                         servidor al guardar (REC-año-número). Se muestra
+                         deshabilitado para que se sepa que existe y cuál es. -->
                     <FormItem
                         :label="$t('receptions.code')"
                         :extra="$t('receptions.code_help')"
-                        :validate-status="form.errors.code ? 'error' : ''"
-                        :help="form.errors.code"
                     >
-                        <Input v-model:value="form.code" size="large" :maxlength="30" />
+                        <Input
+                            :value="reception?.code ?? ''"
+                            :placeholder="$t('receptions.code_auto')"
+                            size="large"
+                            disabled
+                        />
                     </FormItem>
 
                     <FormItem
@@ -187,9 +223,12 @@ const submit = () => {
 
                     <!-- El muestreador no siempre es alguien del laboratorio: puede
                          ser personal del cliente o un tercero. Por eso hay las dos
-                         formas y ninguna obliga a dar de alta un usuario. -->
+                         formas y ninguna obliga a dar de alta un usuario. Es
+                         OBLIGATORIO por cualquiera de las dos: del catálogo o el
+                         nombre suelto del externo. -->
                     <FormItem
                         :label="$t('receptions.sampler')"
+                        required
                         :extra="$t('receptions.sampler_help')"
                         :validate-status="form.errors.sampler_id ? 'error' : ''"
                         :help="form.errors.sampler_id"
@@ -221,6 +260,44 @@ const submit = () => {
                         <Input v-model:value="form.sampler_name" size="large" :maxlength="120" />
                     </FormItem>
 
+                    <!-- Quién autoriza el ingreso. En el sistema anterior era
+                         obligatorio y su firma salía en el acta de recepción;
+                         acá la lista sale del catálogo de firmas con el papel
+                         «Autoriza ingresos». -->
+                    <FormItem
+                        :label="$t('receptions.authorized_by')"
+                        required
+                        :extra="$t('receptions.authorized_by_help')"
+                        :validate-status="form.errors.authorized_by_id ? 'error' : ''"
+                        :help="form.errors.authorized_by_id"
+                    >
+                        <Select
+                            v-model:value="form.authorized_by_id"
+                            size="large"
+                            show-search
+                            option-filter-prop="label"
+                            :placeholder="$t('receptions.authorized_by')"
+                        >
+                            <SelectOption
+                                v-for="person in authorizers"
+                                :key="person.id"
+                                :value="person.id"
+                                :label="person.name"
+                            >
+                                {{ person.name }}<template v-if="person.title"> — {{ person.title }}</template>
+                            </SelectOption>
+                        </Select>
+                        <!-- Sin habilitados no hay nada que elegir: se dice
+                             DÓNDE se arregla, no solo que falta. -->
+                        <Alert
+                            v-if="!authorizers.length"
+                            type="warning"
+                            show-icon
+                            class="rc-form__note"
+                            :message="$t('receptions.authorized_by_empty')"
+                        />
+                    </FormItem>
+
                     <FormItem
                         :label="$t('receptions.received_at')"
                         required
@@ -238,8 +315,12 @@ const submit = () => {
                         />
                     </FormItem>
 
+                    <!-- Los días anteriores a la recepción ni se ofrecen: mejor
+                         que dejar elegir y rebotar en el servidor. -->
                     <FormItem
                         :label="$t('receptions.due_at')"
+                        required
+                        :extra="$t('receptions.due_at_help')"
                         :validate-status="form.errors.due_at ? 'error' : ''"
                         :help="form.errors.due_at"
                     >
@@ -249,11 +330,14 @@ const submit = () => {
                             size="large"
                             value-format="YYYY-MM-DD"
                             style="width: 100%"
+                            :disabled-date="disableBeforeReception"
                         />
                     </FormItem>
 
                     <FormItem
                         :label="$t('receptions.packages')"
+                        required
+                        :extra="$t('receptions.packages_help')"
                         :validate-status="form.errors.packages ? 'error' : ''"
                         :help="form.errors.packages"
                     >
@@ -261,7 +345,7 @@ const submit = () => {
                             v-model:value="form.packages"
                             size="large"
                             style="width: 100%"
-                            :min="0"
+                            :min="1"
                             :max="9999"
                         />
                     </FormItem>
@@ -269,23 +353,30 @@ const submit = () => {
 
                 <h2 class="form-section-title form-section-title--spaced">{{ $t('receptions.section_check') }}</h2>
                 <div class="form-grid">
-                    <!-- Los cuatro checks comparten la fila ancha: son una sola
-                         verificación al recibir y en fila se comparan de un vistazo. -->
+                    <!-- Los cuatro switches comparten la fila ancha: son una sola
+                         verificación al recibir y en fila se comparan de un vistazo.
+                         Los tres del envase arrancan ENCENDIDOS (lo normal es que
+                         la muestra llegue bien; el gesto es apagar el que falló);
+                         Urgente arranca apagado. -->
                     <FormItem class="form-grid__wide">
                         <p class="rc-form__hint">{{ $t('receptions.check_help') }}</p>
                         <div class="rc-form__checks">
-                            <Checkbox v-model:checked="form.container_ok">
+                            <label class="rc-form__switch">
+                                <Switch v-model:checked="form.container_ok" />
                                 {{ $t('receptions.container_ok') }}
-                            </Checkbox>
-                            <Checkbox v-model:checked="form.volume_ok">
+                            </label>
+                            <label class="rc-form__switch">
+                                <Switch v-model:checked="form.volume_ok" />
                                 {{ $t('receptions.volume_ok') }}
-                            </Checkbox>
-                            <Checkbox v-model:checked="form.label_ok">
+                            </label>
+                            <label class="rc-form__switch">
+                                <Switch v-model:checked="form.label_ok" />
                                 {{ $t('receptions.label_ok') }}
-                            </Checkbox>
-                            <Checkbox v-model:checked="form.is_urgent">
+                            </label>
+                            <label class="rc-form__switch rc-form__switch--urgent">
+                                <Switch v-model:checked="form.is_urgent" />
                                 {{ $t('receptions.is_urgent') }}
-                            </Checkbox>
+                            </label>
                         </div>
                     </FormItem>
 
@@ -315,11 +406,21 @@ const submit = () => {
 
 <style scoped>
 .rc-form__alert { margin-bottom: 16px; }
+.rc-form__note { margin-top: 8px; }
 .rc-form__hint { font-size: 0.8125rem; color: var(--color-text-muted); margin: 0 0 10px; }
-/* En fila con salto: los cuatro checks se leen como una sola verificación;
+/* En fila con salto: los cuatro switches se leen como una sola verificación;
    en pantallas angostas caen de a uno sin desbordar. */
 .rc-form__checks { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: center; }
-/* Ant Design separa los checkbox contiguos con margen izquierdo: con el gap
-   de la fila ese margen extra los descuadra. */
-.rc-form__checks :deep(.ant-checkbox-wrapper) { margin-left: 0; }
+/* El label envuelve al switch para que clickear el TEXTO también conmute. */
+.rc-form__switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    cursor: pointer;
+    user-select: none;
+}
+/* Urgente encendido se distingue: no es un control del envase, es una alerta. */
+.rc-form__switch--urgent :deep(.ant-switch-checked) { background: #cf1322; }
 </style>

@@ -558,7 +558,149 @@ class ReceptionTest extends TestCase
         $this->assertNotNull(Reception::find($reception->id));
     }
 
-    private function usuarioConPermiso(): \App\Models\User
+    // ─── El alta por la pantalla: N° generado y obligatorios ─────────────
+
+    public function test_el_numero_de_recepcion_se_genera_al_registrar(): void
+    {
+        // El «N° de recepción» era un campo de texto libre que el operador
+        // tenía que inventar (el sistema anterior directamente no lo tenía).
+        // Ahora lo emite el servidor de su propio contador, y el segundo alta
+        // sigue al primero.
+        $actor = $this->usuarioConPermiso('receptions.create');
+
+        $this->actingAs($actor)
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta())
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($actor)
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta())
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['REC-2026-0001', 'REC-2026-0002'],
+            Reception::orderBy('id')->pluck('code')->all(),
+        );
+    }
+
+    public function test_el_contador_de_recepciones_es_por_ano(): void
+    {
+        // Como el correlativo de las muestras, el año sale de la FECHA DE
+        // RECEPCIÓN: una entrega recibida el 30 de diciembre y registrada el 2
+        // de enero pertenece al ejercicio en que entró, y cada año arranca de 1.
+        $actor = $this->usuarioConPermiso('receptions.create');
+
+        $this->actingAs($actor)
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta())
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($actor)
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta([
+                'received_at' => '2025-12-30',
+                'due_at'      => '2026-01-09',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['REC-2026-0001', 'REC-2025-0001'],
+            Reception::orderBy('id')->pluck('code')->all(),
+        );
+    }
+
+    public function test_los_obligatorios_del_alta(): void
+    {
+        // Muestreador, autorizador del ingreso, fecha comprometida y envases:
+        // los cuatro que el alta exigía en el sistema anterior o que acá se
+        // volvieron obligatorios a pedido del laboratorio. `packages` en 0 es
+        // el «no sé cuántos» que después reaparecía al confirmar sin referencia.
+        $this->actingAs($this->usuarioConPermiso('receptions.create'))
+            ->post(route('lab_management.receptions.store'), [
+                'customer_id' => $this->customerId(),
+                'received_at' => '2026-03-10',
+                'packages'    => 0,
+            ])
+            ->assertSessionHasErrors(['sampler_id', 'authorized_by_id', 'due_at', 'packages']);
+
+        $this->assertSame(0, Reception::count());
+    }
+
+    public function test_el_nombre_externo_cubre_al_muestreador(): void
+    {
+        // El muestreador es obligatorio por CUALQUIERA de sus dos formas: del
+        // catálogo, o el nombre suelto de un tercero. Exigir solo el catálogo
+        // obligaría a dar de alta a cada externo que alguna vez trae un frasco.
+        $this->actingAs($this->usuarioConPermiso('receptions.create'))
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta([
+                'sampler_id'   => null,
+                'sampler_name' => 'Técnico de la contratista',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Técnico de la contratista', Reception::sole()->sampler_name);
+    }
+
+    public function test_el_autorizador_tiene_que_estar_habilitado(): void
+    {
+        // El select solo ofrece firmas con «Autoriza ingresos», y el servidor
+        // lo verifica también: un id adivinado de otro firmante no pasa.
+        $firmanteComun = \App\Models\Signature::create([
+            'slug' => Str::random(22), 'name' => 'FIRMANTE SIN EL PAPEL',
+            'tenant_id' => 1, 'authorizes_entry' => false, 'is_active' => true,
+        ]);
+
+        $this->actingAs($this->usuarioConPermiso('receptions.create'))
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta([
+                'authorized_by_id' => $firmanteComun->id,
+            ]))
+            ->assertSessionHasErrors('authorized_by_id');
+
+        $this->assertSame(0, Reception::count());
+    }
+
+    public function test_la_fecha_comprometida_no_puede_ser_anterior(): void
+    {
+        // El calendario de la pantalla ni ofrece esos días; esto fija que el
+        // servidor lo rechaza igual, porque la pantalla es comodidad, no regla.
+        $this->actingAs($this->usuarioConPermiso('receptions.create'))
+            ->post(route('lab_management.receptions.store'), $this->payloadAlta([
+                'due_at' => '2026-03-09',
+            ]))
+            ->assertSessionHasErrors('due_at');
+    }
+
+    /** El alta completa, tal como la manda el formulario. */
+    private function payloadAlta(array $overrides = []): array
+    {
+        return array_merge([
+            'customer_id'      => $this->customerId(),
+            'sampler_id'       => $this->muestreadorId(),
+            'authorized_by_id' => $this->autorizadorId(),
+            'received_at'      => '2026-03-10',
+            'due_at'           => '2026-03-20',
+            'packages'         => 3,
+            'container_ok'     => true,
+            'volume_ok'        => true,
+            'label_ok'         => true,
+            'is_urgent'        => false,
+        ], $overrides);
+    }
+
+    private function muestreadorId(): int
+    {
+        return \App\Models\Sampler::firstOrCreate(
+            ['name' => 'LABORATORIO', 'tenant_id' => 1],
+            ['slug' => Str::random(22), 'is_active' => true],
+        )->id;
+    }
+
+    private function autorizadorId(): int
+    {
+        return \App\Models\Signature::firstOrCreate(
+            ['name' => 'AUTORIZADORA DE INGRESOS', 'tenant_id' => 1],
+            ['slug' => Str::random(22), 'authorizes_entry' => true, 'is_active' => true],
+        )->id;
+    }
+
+    private function usuarioConPermiso(string $permiso = 'receptions.delete'): \App\Models\User
     {
         $rol = \Spatie\Permission\Models\Role::firstOrCreate(
             ['name' => 'admin', 'guard_name' => 'web'],
@@ -566,7 +708,7 @@ class ReceptionTest extends TestCase
         );
 
         $rol->givePermissionTo(\Spatie\Permission\Models\Permission::firstOrCreate(
-            ['name' => 'receptions.delete', 'guard_name' => 'web'],
+            ['name' => $permiso, 'guard_name' => 'web'],
         ));
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();

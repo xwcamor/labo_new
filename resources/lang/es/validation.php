@@ -223,6 +223,14 @@ return [
         'assigned_customer_ids'       => 'clientes asignados',
         'assigned_customer_ids.*'     => 'cliente asignado',
 
+        // Recepción de muestras
+        'sampler_id'       => 'muestreador',
+        'sampler_name'     => 'muestreador (externo)',
+        'authorized_by_id' => 'quien autoriza el ingreso',
+        'received_at'      => 'fecha de recepción',
+        'due_at'           => 'fecha comprometida',
+        'packages'         => 'envases recibidos',
+
         // Transformador (técnicos)
         'voltage_kv'        => 'tensión (kV)',
         'power_mva'         => 'potencia (MVA)',

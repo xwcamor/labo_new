@@ -24,7 +24,10 @@ const props = defineProps({
     disabled:   { type: Boolean, default: false },
 });
 
-const count = ref(1);
+// Arranca en los ENVASES declarados al registrar: lo normal es un frasco por
+// muestra, así que esa cuenta es la propuesta — editable, porque una entrega
+// puede traer envases de más (duplicados, retenidos) y no es una muestra cada uno.
+const count = ref(props.reception?.packages > 0 ? props.reception.packages : 1);
 const processing = ref(false);
 
 const range = computed(() => codeRange(props.nextNumber, count.value));

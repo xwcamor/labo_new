@@ -40,6 +40,11 @@ class SignaturesSeeder extends Seeder
             'title'    => 'Testing & Oil Laboratory Specialist',
             'relation' => 'prepared',
             'file'     => 'ramos-agapito.png',
+            // Puede AUTORIZAR el ingreso de muestras (el papel del
+            // `rem_user_signatures` del sistema anterior). Sin al menos una
+            // persona con este papel, el alta de recepciones no se puede
+            // completar: el autorizador es obligatorio.
+            'authorizes' => true,
         ],
         [
             'name'     => 'HIGA YAGI, OSCAR MIGUEL',
@@ -80,7 +85,19 @@ class SignaturesSeeder extends Seeder
                     'relation'   => $firmante['relation'],
                     'sort_order' => $orden + 1,
                     'is_active'  => $firmante['active'] ?? true,
+                    'authorizes_entry' => $firmante['authorizes'] ?? false,
                 ]);
+            }
+
+            // Bootstrap del papel de autorizador sobre registros EXISTENTES:
+            // solo si el workspace no tiene a NADIE habilitado — sin al menos
+            // uno, el alta de recepciones no se puede completar. Con alguno ya
+            // elegido (aunque sea otro), no se toca nada: esa lista es del
+            // laboratorio, no del seed.
+            if (($firmante['authorizes'] ?? false)
+                && ! $registro->authorizes_entry
+                && ! Signature::where('tenant_id', $tenantId)->where('authorizes_entry', true)->exists()) {
+                $registro->authorizes_entry = true;
             }
 
             // La imagen SÍ se refresca en cada corrida, aunque el registro ya

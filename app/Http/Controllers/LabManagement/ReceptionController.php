@@ -68,6 +68,7 @@ class ReceptionController extends Controller
         private readonly ReceptionService $service,
         private readonly SampleProgressService $progress = new SampleProgressService(),
         private readonly SampleNumberAllocator $allocator = new SampleNumberAllocator(),
+        private readonly \App\Services\Lab\ReceptionNumberAllocator $receptionNumbers = new \App\Services\Lab\ReceptionNumberAllocator(),
     ) {
     }
 
@@ -167,6 +168,10 @@ class ReceptionController extends Controller
             // no existe acá (se crea al confirmar). Se cargan en el formulario
             // del informe, que es donde el laboratorio los completa.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
+            // Quiénes pueden autorizar el ingreso: el catálogo de firmas,
+            // filtrado por el papel. En el sistema anterior era un campo
+            // obligatorio del alta y su firma salía en el acta de recepción.
+            'authorizers' => \App\Models\Signature::authorizers()->get(['id', 'name', 'title']),
             // Solo para mostrarlo: entre que se ve y se confirma pueden entrar
             // otras recepciones, así que el número real es el que se emite.
             'nextNumber' => Sample::formatCode(
@@ -180,11 +185,31 @@ class ReceptionController extends Controller
     {
         $data = $this->validated($request);
 
-        $reception = Reception::create($data + [
-            'slug'       => Str::random(22),
-            'tenant_id'  => auth()->user()?->tenant_id,
-            'created_by' => auth()->id(),
-        ]);
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ EL N° DE RECEPCIÓN SE GENERA, NO SE ESCRIBE                      │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Era un campo de texto libre que el operador tenía que inventar (el
+        // sistema anterior directamente no lo tenía). Ahora sale de su propio
+        // contador por workspace y año, DENTRO de la transacción que crea la
+        // entrega: si la creación falla, la reserva se deshace con ella.
+        //
+        // El año sale de la FECHA DE RECEPCIÓN, igual que el correlativo de
+        // las muestras: una entrega recibida el 30 de diciembre y registrada
+        // el 2 de enero pertenece al ejercicio en que entró al laboratorio.
+        $reception = \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $tenantId = auth()->user()?->tenant_id;
+            $year     = \Illuminate\Support\Carbon::parse($data['received_at'])->year;
+            $number   = $this->receptionNumbers->next($tenantId, $year);
+
+            return Reception::create($data + [
+                'slug'       => Str::random(22),
+                'tenant_id'  => $tenantId,
+                'created_by' => auth()->id(),
+                'year'       => $year,
+                'number'     => $number,
+                'code'       => \App\Services\Lab\ReceptionNumberAllocator::format($year, $number),
+            ]);
+        });
 
         return redirect()
             ->route('lab_management.receptions.show', $reception)
@@ -193,7 +218,7 @@ class ReceptionController extends Controller
 
     public function show(Request $request, Reception $reception)
     {
-        $reception->load(['customer:id,name', 'sampler:id,name', 'confirmer:id,name']);
+        $reception->load(['customer:id,name', 'sampler:id,name', 'authorizer:id,name,title', 'confirmer:id,name']);
 
         $samples = $reception->samples()
             ->with([
@@ -303,6 +328,12 @@ class ReceptionController extends Controller
             'customers' => Customer::orderBy('name')->get(['id', 'slug', 'name']),
             // Sin `catalogs`: ver el comentario en `create()`.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
+            // Al editar, además del catálogo vigente, el autorizador YA elegido
+            // aunque después lo hayan desmarcado o dado de baja: si no, abrir el
+            // formulario lo mostraría vacío y guardarlo lo perdería.
+            'authorizers' => \App\Models\Signature::authorizers()
+                ->orWhere('id', $reception->authorized_by_id)
+                ->get(['id', 'name', 'title']),
             'nextNumber' => null,
         ]);
     }
@@ -541,8 +572,10 @@ class ReceptionController extends Controller
      */
     private function validated(Request $request): array
     {
+        // Sin `code`: el N° de recepción se GENERA al crear (contador propio
+        // por workspace y año) y no se acepta del formulario — un identificador
+        // que se puede tipear es un identificador que se puede repetir.
         return $request->validate([
-            'code'          => ['nullable', 'string', 'max:30'],
             'service_order' => ['nullable', 'string', 'max:60'],
             // El CONTACTO y el USUARIO FINAL viven en la recepción y el informe
             // los imprime en su cabecera, pero esta validación no los aceptaba:
@@ -554,11 +587,26 @@ class ReceptionController extends Controller
             'contact_info'  => ['nullable', 'string', 'max:190'],
             'end_user'      => ['nullable', 'string', 'max:190'],
             'customer_id'   => ['required', 'integer', 'exists:customers,id'],
-            'sampler_id'    => ['nullable', 'integer', 'exists:samplers,id'],
+            // El muestreador es OBLIGATORIO (en el viejo también lo era), pero
+            // por cualquiera de sus dos formas: del catálogo o el nombre suelto
+            // de un externo. Exigir solo el catálogo obligaría a dar de alta a
+            // cada tercero que alguna vez trae un frasco.
+            'sampler_id'    => ['required_without:sampler_name', 'nullable', 'integer', 'exists:samplers,id'],
             'sampler_name'  => ['nullable', 'string', 'max:120'],
+            // Quién autoriza el ingreso: obligatorio, como en el viejo
+            // (`_form_new.html.erb:69`), y solo alguien del catálogo de firmas
+            // MARCADO para ese papel — el exists filtra por la bandera para que
+            // un id adivinado de otro firmante no pase.
+            'authorized_by_id' => [
+                'required', 'integer',
+                Rule::exists('signatures', 'id')->where('authorizes_entry', true),
+            ],
             'received_at'   => ['required', 'date'],
-            'due_at'        => ['nullable', 'date', 'after_or_equal:received_at'],
-            'packages'      => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'due_at'        => ['required', 'date', 'after_or_equal:received_at'],
+            // `min:1`: cero envases no es una entrega. Antes el campo era
+            // opcional y aceptaba 0, y ese "no sé cuántos" reaparecía después
+            // como una confirmación de muestras sin referencia.
+            'packages'      => ['required', 'integer', 'min:1', 'max:9999'],
             'container_ok'  => ['nullable', 'boolean'],
             'volume_ok'     => ['nullable', 'boolean'],
             'label_ok'      => ['nullable', 'boolean'],

@@ -223,6 +223,14 @@ return [
         'assigned_customer_ids'       => 'assigned customers',
         'assigned_customer_ids.*'     => 'assigned customer',
 
+        // Sample reception
+        'sampler_id'       => 'sampler',
+        'sampler_name'     => 'sampler (external)',
+        'authorized_by_id' => 'entry authorizer',
+        'received_at'      => 'reception date',
+        'due_at'           => 'committed date',
+        'packages'         => 'containers received',
+
         // Transformer (technical)
         'voltage_kv'        => 'voltage (kV)',
         'power_mva'         => 'power (MVA)',

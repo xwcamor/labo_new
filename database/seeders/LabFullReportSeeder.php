@@ -417,6 +417,12 @@ class LabFullReportSeeder extends Seeder
             'service_order' => 'OS-FULL-0001',
             'contact_info'  => 'laboratorio@ejemplo.com',
             'end_user'      => 'Gerencia de Mantenimiento',
+            // Quién autoriza el ingreso: el habilitado del workspace (en el
+            // alta real es obligatorio; la demo tiene que verse como real).
+            'authorized_by_id' => \App\Models\Signature::withoutGlobalScopes()
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('authorizes_entry', true)
+                ->value('id'),
             'notes'         => self::MARCA . ' — muestra con las 29 pruebas, para ver el informe completo.',
             'status'        => Reception::STATUS_DRAFT,
             'tenant_id'     => self::TENANT_ID,

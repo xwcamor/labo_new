@@ -75,6 +75,10 @@ const checks = computed(() => [
                 {{ sampler ?? dash }}
             </DescriptionsItem>
 
+            <DescriptionsItem :label="$t('receptions.authorized_by')">
+                {{ reception.authorizer?.name ?? dash }}
+            </DescriptionsItem>
+
             <DescriptionsItem :label="$t('receptions.service_order')">
                 {{ reception.service_order || dash }}
             </DescriptionsItem>

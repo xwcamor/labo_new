@@ -41,14 +41,27 @@ class Signature extends Model
 
     protected $fillable = [
         'slug', 'name', 'code', 'is_active', 'sort_order', 'tenant_id',
-        'title', 'image', 'user_id', 'relation',
+        'title', 'image', 'user_id', 'relation', 'authorizes_entry',
         'created_by', 'deleted_by', 'deleted_description',
     ];
 
     protected $casts = [
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
+        // Si esta persona puede AUTORIZAR EL INGRESO de una muestra, además de
+        // (o en lugar de) firmar informes. Ver la migración
+        // `2026_08_02_140000_add_entry_authorizer_to_receptions`.
+        'authorizes_entry' => 'boolean',
     ];
+
+    /** Los que pueden autorizar el ingreso, activos y en su orden. */
+    public function scopeAuthorizers(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('authorizes_entry', true)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
 
     /** El usuario del sistema, si la firma corresponde a uno. */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo

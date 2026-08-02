@@ -488,6 +488,11 @@ class LabDemoWorksheetsSeeder extends Seeder
                         'service_order' => sprintf('OS-%d-%04d', $fecha->year, ($campana + 1) * 100 + $orden),
                         'contact_info'  => 'contacto.laboratorio@ejemplo.com',
                         'end_user'      => 'Gerencia de Mantenimiento',
+                        // Quién autoriza el ingreso: el habilitado del workspace.
+                        'authorized_by_id' => \App\Models\Signature::withoutGlobalScopes()
+                            ->where('tenant_id', self::TENANT_ID)
+                            ->where('authorizes_entry', true)
+                            ->value('id'),
                         'notes'         => self::MARCA . ' — recepción de demostración generada por el sembrador.',
                         'tenant_id'     => self::TENANT_ID,
                         'created_by'    => Auth::id(),

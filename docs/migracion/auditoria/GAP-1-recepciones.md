@@ -34,21 +34,24 @@
 | # | Qué falta | Clasificación | Consecuencia |
 |---|-----------|---------------|--------------|
 | 1 | Los 15 contadores de envases por familia de ensayo (`num_fiq`…`num_pas`) y el total pactado | **AUSENTE** | El laboratorio no puede registrar cuántos frascos de cada tipo entraron ni contrastar lo pactado con lo emitido |
-| 2 | La persona que autoriza el ingreso de la muestra (`rem_user_signature_id`) y su firma en el acta | **AUSENTE** | La recepción no deja constancia de quién del laboratorio aceptó la entrega, y no hay acta firmada que imprimir |
+| 2 | La persona que autoriza el ingreso de la muestra (`rem_user_signature_id`) y su firma en el acta | **PARCIAL** (era AUSENTE; el campo se RESOLVIÓ el 2026-08-02) | El campo ya existe: `receptions.authorized_by_id` → catálogo de firmas con la bandera `authorizes_entry`, obligatorio en el alta y visible en la ficha. QUEDA el acta imprimible con la imagen de su firma (`_xls_partial_report.erb:88-99`) |
 | 3 | La validación "muestras a analizar ≤ envases recibidos" | **AUSENTE** | Se pueden emitir 40 correlativos para una entrega de 3 frascos sin que nada lo advierta |
 | 4 | Prioridad y fecha estimada **por muestra** (`is_urgent` + `date_urgent` del correlativo) | **PARCIAL** | No se puede adelantar una muestra suelta dentro de una entrega ni comprometerle una fecha propia |
 | 5 | Los filtros y el ordenamiento del listado de recepciones | **PARCIAL** | Quedan sin filtro el muestreador, la orden de servicio, la fecha comprometida, la serie del transformador, el correlativo y los cuatro chequeos de avance |
 | 6 | La exportación a Excel del **listado** de recepciones (con sus filtros) | **AUSENTE** | No hay forma de sacar el tablero de entregas del período a una planilla |
 | 7 | El "Descargar Todo" de una recepción, completo (cabecera + muestras + informes) | **PARCIAL** | La descarga trae las muestras pero no la cabecera de la entrega ni el listado de informes emitidos |
-| 8 | La baja de una recepción no arrastra sus muestras, pruebas ni informes | **AUSENTE** | Una entrega dada de baja sigue ofreciendo sus muestras en la bancada y sus informes en el listado global |
+| 8 | La baja de una recepción no arrastra sus muestras, pruebas ni informes | **CORREGIDO** (2026-08-02) | Ahora arrastra en transacción y una entrega con informe emitido no se borra (`ReceptionController::destroy`) |
 | 9 | "Aplicar a todas" reemplaza el pedido en vez de agregarse a él | **PARCIAL** | No hay manera de sumar una prueba a las veinte muestras sin borrar lo que cada una tenía pedido |
 | 10 | La pantalla ancha de recepciones (`rem_fulls`): envases por familia y verificación física por fila | **AUSENTE** | No existe ninguna pantalla ni descarga donde se vea, entrega por entrega, qué envases entraron y si estaban conformes |
-| 11 | La fecha de entrega comprometida era obligatoria | **PARCIAL** | Una entrega sin fecha comprometida queda fuera de los días restantes y de cualquier indicador de plazo |
+| 11 | La fecha de entrega comprometida era obligatoria | **CORREGIDO** (2026-08-02) | `due_at` es obligatoria, no puede ser anterior a la recepción y el calendario ni ofrece esos días. También son obligatorios el muestreador (catálogo o externo), el autorizador y los envases (> 0, que prellenan el confirmar muestras) |
 | 12 | Etiquetas del envase con QR e impresión del sticker por correlativo | **DECIDIDO** (C6) | Documentado: hoy no se puede imprimir la etiqueta que se pega al frasco |
 | 13 | Asignar a la muestra un equipo de otro cliente (la escapatoria `?transformer_id=0`) | **DECIDIDO** | Documentado en el código: si el equipo está cargado bajo otro cliente hay que corregir su ficha primero |
 
-**Recuento:** 13 huecos — **6 AUSENTE** (#1, #2, #3, #6, #8, #10) ·
-**5 PARCIAL** (#4, #5, #7, #9, #11) · **2 DECIDIDO** (#12, #13).
+**Recuento** (actualizado 2026-08-02): 13 huecos — **4 AUSENTE** (#1, #3, #6,
+#10) · **5 PARCIAL** (#2, #4, #5, #7, #9) · **2 CORREGIDO** (#8, #11) ·
+**2 DECIDIDO** (#12, #13). Además, fuera de la lista del viejo: el «N° de
+recepción», que acá era texto libre, ahora se **genera** (`REC-año-número`,
+contador propio por workspace y año, emitido en la transacción del alta).
 
 ---
 
@@ -125,6 +128,14 @@ responsable de aceptar la muestra.
 
 **Consecuencia.** La recepción no deja constancia de quién autorizó el ingreso, y
 el acta de recepción firmada que el laboratorio entregaba no se puede emitir.
+
+**RESUELTO el campo (2026-08-02).** `receptions.authorized_by_id` →
+`signatures`, con la bandera `signatures.authorizes_entry` como papel (una
+persona puede firmar informes, autorizar ingresos, o las dos cosas — no se creó
+una cuarta tabla de personas). Obligatorio en el alta, con `exists` filtrado
+por la bandera; el select del formulario sale del catálogo y la ficha lo
+muestra. La bandera se administra desde el módulo Firmas.
+**QUEDA** el acta imprimible con la imagen de la firma del autorizador.
 
 ---
 

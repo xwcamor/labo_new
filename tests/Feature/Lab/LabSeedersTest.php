@@ -318,4 +318,42 @@ class LabSeedersTest extends TestCase
 
         return $columna;
     }
+
+    /**
+     * Cada hoja del informe clásico corresponde a una FAMILIA que existe.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * `config/legacy_report.php` declaraba una hoja `metales`, pero la familia
+     * real de esa prueba es `metales_en_aceite`. La hoja no se encontraba
+     * nunca: el informe clásico caía al respaldo genérico y la prueba, con sus
+     * diez elementos medidos, se imprimía sin sus columnas propias. Es el mismo
+     * error que ya habían tenido los furanos.
+     *
+     * La prueba que debía cubrirlo (`LegacyReportSheetsTest`) tenía en su lista
+     * el MISMO nombre mal escrito, así que las dos copias del error se
+     * confirmaban entre sí y pasaban en verde. Por eso esta verificación vive
+     * acá: es la clase que siembra el catálogo, o sea la única que puede
+     * cotejar la configuración contra la FUENTE.
+     */
+    public function test_cada_hoja_del_informe_clasico_corresponde_a_una_familia_real(): void
+    {
+        $reales = TestDefinition::withoutGlobalScopes()
+            ->whereNotNull('report_comment_group')
+            ->pluck('report_comment_group')
+            ->unique()
+            ->all();
+
+        $this->assertNotEmpty($reales, 'El catálogo no declaró ninguna familia.');
+
+        foreach (array_keys(config('legacy_report.sheets')) as $familia) {
+            $this->assertContains(
+                $familia,
+                $reales,
+                "La hoja «{$familia}» del informe clásico no corresponde a ninguna "
+                . 'familia del catálogo: no se va a imprimir nunca.',
+            );
+        }
+    }
 }

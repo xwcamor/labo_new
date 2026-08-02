@@ -132,7 +132,7 @@ resuelve por el marcador `{norm}`, que sale del criterio aplicado al resultado
 frases de «no se tiene referencia» no existen en ninguna plantilla.
 
 **El motor sí sabe hacerlo.** `DiagnosisTextService::candidatas()`
-(`app/Services/Lab/DiagnosisTextService.php:186-190`) filtra por `oil_types` y
+(`app/Services/Lab/DiagnosisTextService.php:191-200`) filtra por `oil_types` y
 `equipment_types` contra los códigos del catálogo, y esos códigos existen:
 `mineral`, `silicona`, `ester_vegetal`, `ester_sintetico`
 (`database/seeders/LabCatalogsSeeder.php:70-73`) y los 21 tipos de equipo,
@@ -294,7 +294,7 @@ desplegable del catálogo `norms` (`_form_add_details_cromas.html.erb:515`).
 **Qué hay en el nuevo.** `config/legacy_report.php:76` y `:82` escriben
 `'standard_note' => 'IEEE C57.106-2015'` y `'IEC 60599-2022'` como texto fijo, y
 `LegacyReportRenderer::hoja()` los antepone a las condiciones
-(`app/Services/Lab/LegacyReportRenderer.php:475-477`). El informe moderno **sí**
+(`app/Services/Lab/LegacyReportRenderer.php:476-479`). El informe moderno **sí**
 lo resuelve bien: toma el criterio congelado de los propios resultados
 (`TestReportPayload.php:414`, `'standard' => $criterios->implode(' · ')`).
 
@@ -406,9 +406,9 @@ se entregó y a quién. `delivered_at` guarda la fecha, no la evidencia.
 ## 13. Los sub-títulos por método de la hoja de azufre — PARCIAL
 
 **Qué hace el viejo.** La hoja de azufre tiene **tres tablas rotuladas**, cada
-una con su propio encabezado en banda gris: `AZUFRE CORROSIVO`
-(`_report_azufres.erb:12-14`, implícito en la primera), `AZUFRE 62535 (48 Horas)`
-(`:41-42`) y `AZUFRE 62535 (72 Horas)` (`:68-69`).
+una con su propio encabezado en banda gris: `AZUFRE 1275B`
+(`_report_azufres.erb:15`), `AZUFRE 62535 (48 Horas)` (`:42`) y
+`AZUFRE 62535 (72 Horas)` (`:69`).
 
 **Qué hay en el nuevo.** `config/legacy_report.php:107-110` declara una sola
 hoja `azufre_corrosivo` con columnas `item / norma / ensayo / resultado`, y
@@ -565,7 +565,7 @@ JSON.
   condiciones de campo) están los 28 en el clásico
   (`resources/views/lab_management/reports/legacy/report.blade.php:150-210`) y
   los 28 en el moderno
-  (`resources/views/lab_management/reports/test_report.blade.php:594-690`). La
+  (`resources/views/lab_management/reports/test_report.blade.php:598-691`). La
   única excepción es la fecha de emisión, que es el hueco 10.
 - **Las once familias restantes del ANÁLISIS DE RESULTADOS** —furanos,
   partículas, sedimentos, metales, viscosidad, DBDS, inflamación, fluidez,
@@ -582,9 +582,10 @@ JSON.
 - **El ciclo de trabajo** del viejo se conserva: precarga automática del texto,
   edición por el analista, regeneración a pedido
   (`_form_add_details.html.erb:196-212` →
-  `app/Services/Lab/DiagnosisTextService.php:93-119`), y la puerta que impedía
+  `app/Services/Lab/DiagnosisTextService.php:95-121`), y la puerta que impedía
   firmar con familias sin texto (`_form_add_details.html.erb:161-168` →
-  `SampleReportController::confirmAnalysis()`, `:448-493`).
+  `SampleReportController::confirmAnalysis()`, `:448-470`, apoyado en
+  `familiasSinTexto()`, `:482-495`).
 - **El bloqueo y desbloqueo** (`rem_report.rb:167-177` y
   `_form_validate.html.erb:17`) tienen equivalente con motivo obligatorio y
   auditoría (`app/Services/Lab/SampleReportService.php:200-234`).

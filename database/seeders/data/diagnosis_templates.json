@@ -113,6 +113,56 @@
       "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• Las concentraciones de {failed} exceden los valores típicos indicados por la Norma {norm}. Se recomienda repetir el ensayo y evaluar la tendencia respecto de muestras anteriores."
     },
     {
+      "family": "pcb",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "_doc": [
+        "PORTADO DEL VIEJO (corregido 2026-08-02). ERA EL DEFECTO MÁS GRAVE.",
+        "",
+        "Acá había tres plantillas none/one/many, con texto redactado de cero, que",
+        "decidían por CUÁNTOS parámetros quedaron fuera de norma. El PCB no tiene",
+        "cuadro de límites sembrado, así que ningún resultado queda nunca fuera de",
+        "norma, así que el caso era SIEMPRE 'none', así que el informe afirmaba",
+        "",
+        "    «El contenido de PCB se encuentra por debajo del límite establecido.",
+        "     La muestra NO se clasifica como contaminada.»",
+        "",
+        "con CUALQUIER concentración medida. Un aceite contaminado salía informado",
+        "como limpio, en un papel firmado y con código de verificación.",
+        "",
+        "El sistema anterior decидía por el VALOR MEDIDO, con el corte en 2 ppm de la",
+        "IEC 60422:2024, e imprimía además la línea del decreto peruano",
+        "(_form_add_details_pcbs_default_values.html.erb:31-46). Las dos cosas se",
+        "portan tal cual: la banda decide sobre el número, no sobre un conteo de",
+        "incumplimientos que no existe.",
+        "",
+        "┌──────────────────────────────────────────────────────────────────────────┐",
+        "│ A CONFIRMAR CON EL LABORATORIO — NO SE CORRIGIÓ POR CRITERIO PROPIO      │",
+        "└──────────────────────────────────────────────────────────────────────────┘",
+        "El texto del viejo usa DOS cortes distintos en la misma frase: clasifica",
+        "por 2 ppm (IEC) y después afirma estar dentro de la concentración peligrosa",
+        "«(>50mg/kg)» del decreto. Con 10 ppm medidos, el papel viejo imprimía",
+        "«DENTRO de la concentración peligrosa (>50mg/kg)» — que es falso, 10 no es",
+        "mayor que 50. Se reproduce igual porque cambiar la redacción de una",
+        "afirmación con efecto legal no es una decisión del programador; queda",
+        "señalado para que el laboratorio decida si el decreto lleva su propio corte."
+      ],
+      "analyte": "pcb",
+      "bands": [
+        {
+          "min": null,
+          "max": 2,
+          "body": "* Según Norma IEC 60422:2024 el aceite se considera libre de PCB's cuando lo detectado es menor a 2 ppm.\n* De acuerdo al D.S. N°018-2025-SA, el producto de aceite dieléctrico analizado se encuentra DENTRO de la concentración no peligrosa en el parámetro de PCB (<50mg/kg)."
+        },
+        {
+          "min": 2,
+          "max": null,
+          "body": "• Los resultados obtenidos de las pruebas detectaron {value_num} ppm de PCB's en la muestra de aceite aislante, se considera contaminado con PCB's según Norma IEC 60422-2024.\n* De acuerdo al D.S. N°018-2025-SA, el producto de aceite dieléctrico analizado se encuentra DENTRO de la concentración peligrosa en el parámetro de PCB (>50mg/kg)."
+        }
+      ]
+    },
+    {
       "_origen": "_form_add_details_furanos_default_values.html.erb:29-48",
       "_nota": "El valor que se lee NO son los furanos sino el grado de polimerización que se calcula a partir del 2-FAL, igual que en el sistema anterior (@fur_value).",
       "family": "furanos",
@@ -140,27 +190,6 @@
           "body": "• Según los resultados obtenidos, el aislamiento se encuentra severamente degradado."
         }
       ]
-    },
-    {
-      "family": "pcb",
-      "oil_types": [],
-      "equipment_types": [],
-      "case": "none",
-      "body": "• El contenido de PCB se encuentra por debajo del límite establecido. La muestra NO se clasifica como contaminada."
-    },
-    {
-      "family": "pcb",
-      "oil_types": [],
-      "equipment_types": [],
-      "case": "one",
-      "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
-    },
-    {
-      "family": "pcb",
-      "oil_types": [],
-      "equipment_types": [],
-      "case": "many",
-      "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
     },
     {
       "family": "azufre_corrosivo",

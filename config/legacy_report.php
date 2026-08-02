@@ -113,7 +113,12 @@ return [
             'columns' => ['item', 'norma', 'ensayo', 'metodo', 'unidad', 'resultado'],
         ],
 
-        'metales' => [
+        // La clave es la FAMILIA (`test_definitions.report_comment_group`), y la
+        // de esta prueba es `metales_en_aceite`. Decía `metales`, así que la
+        // hoja no se encontraba nunca: el informe clásico caía al respaldo
+        // genérico y la prueba, con sus diez elementos medidos, no se imprimía
+        // con sus columnas. Mismo error que tuvieron los furanos.
+        'metales_en_aceite' => [
             'columns' => ['item', 'norma', 'ensayo', 'metodo', 'unidad', 'resultado'],
         ],
 

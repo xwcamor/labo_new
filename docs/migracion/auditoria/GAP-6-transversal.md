@@ -30,15 +30,19 @@
 | | |
 |---|---|
 | Entradas hoja del menú viejo | **43** |
-| Con equivalente completo en el nuevo | **18** |
-| Con equivalente parcial | **8** |
+| Con equivalente completo en el nuevo | **19** |
+| Con equivalente parcial | **7** |
 | **Sin equivalente** | **17** |
 
-De los 17 sin equivalente, **13 ya están documentados** como fase futura o como
+De las 17 sin equivalente, **16 ya están documentadas** como fase futura o como
 punto abierto del checklist (reportes gerenciales, envío a TR APP, almacén,
-etiquetas, bitácora de temperaturas). Los **4 restantes** no figuraban en ningún
-documento previo y son el aporte de esta auditoría: el catálogo de sistemas de
-expansión sin pantalla, el detector de valores vacíos, la exportación del
+etiquetas, bitácora de temperaturas, tipos de columna). **La que faltaba: el
+catálogo de Sistemas de Expansión**, que perdió su pantalla sin que ninguna
+auditoría previa lo registrara — porque su TABLA sí se portó, y las auditorías
+anteriores miraban tablas.
+
+Los otros tres hallazgos nuevos no son entradas de menú sino funciones dentro de
+una entrada que sí existe: el detector de valores vacíos, la exportación del
 registro de auditoría y la búsqueda dentro de los cambios auditados.
 
 ---
@@ -71,7 +75,7 @@ Fuente del viejo: `labo_old/app/views/layouts/_app_sidebar_left_menus.html.erb`
 | Entrada del viejo | Línea | ¿Existe en el nuevo? | Dónde |
 |---|---|---|---|
 | Registros (`im_management/rems`) | `:20-22` | **SÍ** | «Recepción de muestras», `AppLayout.vue:698` |
-| — insignia «Urgente: N» del propio menú | `:25-29` | **NO** | El único `badge` del menú nuevo es el de Aprobaciones (`AppLayout.vue:645`) |
+| — *(atributo, no entrada)* insignia «Urgente: N» del propio menú | `:25-29` | **NO** | El único `badge` del menú nuevo es el de Aprobaciones (`AppLayout.vue:645`). Ver H4 |
 | Control de Temperaturas › Fisicoquímicos › Listado | `:50` | **NO** | — (C1) |
 | Control de Temperaturas › Cromatografías › Listado | `:58` | **NO** | — (C1) |
 | Control de Stickers › Listado de Stickers | `:79` | **NO** | — (C6) |
@@ -394,7 +398,7 @@ Del barrido de los 37 modelos con `audited` del viejo contra los 44 con el trait
 `Auditable` del nuevo, la cobertura mejoró en general. **Dos casos van al
 revés**:
 
-| Modelo viejo | Auditado allá | Modelo nuevo | Auditado acá |
+| Modelo viejo | Auditado en el viejo | Modelo nuevo | Auditado en el nuevo |
 |---|---|---|---|
 | `norm` | sí (`labo_old/app/models/norm.rb`) | `app/Models/Standard.php` | **no** |
 | `lab_detail` | sí (`labo_old/app/models/lab_detail.rb`) | `app/Models/WorksheetRow.php` | **no** |
@@ -577,10 +581,11 @@ Hitachi Master, Hitachi Operadores y Hitachi Operadores - Admin.
 | 65 | RIM - Stickers | — | **AUSENTE** (C6) |
 | 66 | Listado de Reportes OTD | — | **AUSENTE** (C8 / fase 11) |
 
-**Recuento.** De los 66: **48 tienen equivalente**, **3 son parciales** (20-22 y
-14-19 cuentan como un bloque), **14 están ausentes por fase futura** (49-63, 64,
-65, 66), **1 está ausente de verdad** (el 7, cambio de contraseña por el
-administrador) y **1 nunca se usó** (el 27).
+**Recuento.** De los 66: **36 tienen equivalente**, **10 son parciales** (14-22,
+el bloque de accesos y concesiones, más el 31), **18 están ausentes porque su
+módulo es fase futura** (49-55, 56-58, 59-63, 64, 65 y 66), **1 está ausente de
+verdad** (el 7, cambio de contraseña por el administrador) y **1 nunca se usó**
+(el 27). Suman 66.
 
 ### 4.2 Tres cosas que el mapa deja a la vista
 
@@ -692,7 +697,7 @@ de defectos reales del viejo:
   `database/seeders/RolesAndPermissionsSeeder.php:169`). En el viejo la pantalla
   escondía el enlace pero la acción verificaba el permiso de editar.
 - **El menú no crece con el catálogo.** Cada prueba nueva agregaba cuatro
-  entradas al menú viejo (`_app_sidebar_left_menus.html.erb:204-279`); acá la
+  entradas al menú viejo (`_app_sidebar_left_menus.html.erb:204-279`); en el nuevo la
   prueba es un registro y sus hojas se filtran.
 - **El registro de auditoría cubre 44 modelos** contra 37, humaniza el diff de
   cada cambio y agrega `module`, `url`, `user_agent` y `note`.

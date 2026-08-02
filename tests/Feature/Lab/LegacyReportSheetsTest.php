@@ -58,7 +58,13 @@ class LegacyReportSheetsTest extends TestCase
         // informe deja de imprimir esa prueba en silencio; esto lo delata.
         $familias = [
             'pcb', 'furanos', 'particulas', 'azufre_corrosivo', 'sedimentos',
-            'metales', 'viscocidad', 'dbds', 'inflamacion', 'fluidez',
+            // `metales_en_aceite` y no `metales`: la clave de la hoja es la
+            // FAMILIA de la prueba, y esa es la suya. Esta lista decía `metales`
+            // y la configuración también, así que las dos coincidían y la
+            // prueba pasaba en verde mientras la hoja NO SE IMPRIMÍA NUNCA —
+            // ninguna prueba declara esa familia. Dos copias del mismo error se
+            // verifican entre sí; por eso abajo se coteja contra el catálogo.
+            'metales_en_aceite', 'viscocidad', 'dbds', 'inflamacion', 'fluidez',
             'inhibidor', 'grado_de_polimerizacion', 'pasivador',
         ];
 

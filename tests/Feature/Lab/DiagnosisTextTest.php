@@ -422,6 +422,12 @@ class DiagnosisTextTest extends TestCase
             ['met_al', 'Aluminio', 'ppm', 1, 'otros'],
             ['met_cu', 'Cobre', 'ppm', 1, 'otros'],
             ['met_fe', 'Fierro', 'ppm', 1, 'otros'],
+            // El PCB pasó a decidir por BANDAS sobre el valor medido —antes
+            // decidía por conteo de incumplimientos y, sin cuadro de límites,
+            // el conteo era siempre cero: el informe declaraba limpio
+            // cualquier aceite. Su parámetro tiene que estar acá para que el
+            // barrido de bandas lo alcance.
+            ['pcb', 'Contenido total de PCB', 'ppm', 2, 'otros'],
         ];
 
         foreach ($analitos as [$code, $name, $unit, $decimals, $group]) {

@@ -28,6 +28,7 @@ class Tenant extends Model
         'logo',
         'accreditation_logo',
         'accreditation_note',
+        'accredited_sheets',
         'address',
         'report_disclaimer',
         'sample_description_default',
@@ -45,6 +46,9 @@ class Tenant extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        // Qué hojas del informe clásico llevan el sello de acreditación.
+        // null = las de fábrica del config; [] = ninguna (decisión explícita).
+        'accredited_sheets' => 'array',
         'require_report_approval' => 'boolean',
         'notify_approval_by_email' => 'boolean',
     ];
@@ -59,6 +63,18 @@ class Tenant extends Model
 
         $ts = $this->updated_at?->timestamp ?? time();
         return asset('storage/' . $this->logo) . '?v=' . $ts;
+    }
+
+    // Misma mecánica que el logo: `asset()` respeta el host del pedido (con
+    // `Storage::url()` la URL salía con el APP_URL y el sello no cargaba si el
+    // sitio se sirve desde otro host) y el `?v=` evita el sello viejo cacheado.
+    public function getAccreditationLogoUrlAttribute(): ?string
+    {
+        if (!$this->accreditation_logo) return null;
+        if (Str::startsWith($this->accreditation_logo, ['http://', 'https://'])) return $this->accreditation_logo;
+
+        $ts = $this->updated_at?->timestamp ?? time();
+        return asset('storage/' . $this->accreditation_logo) . '?v=' . $ts;
     }
 
     /**

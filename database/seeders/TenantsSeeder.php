@@ -149,9 +149,25 @@ class TenantsSeeder extends Seeder
                 continue;   // sin archivo no se inventa nada
             }
 
+            $contenido = (string) file_get_contents($origen);
+
+            // El sello del sistema viejo es un GIF con extensión .png (los
+            // assets de Rails venían así). El PDF lo tolera porque lee los
+            // bytes, pero el navegador recibe Content-Type image/png con datos
+            // GIF y hay dónde no se dibuja. Se transcodifica a PNG real.
+            if (str_starts_with($contenido, 'GIF8') && function_exists('imagecreatefromstring')) {
+                $img = imagecreatefromstring($contenido);
+                if ($img !== false) {
+                    ob_start();
+                    imagepng($img);
+                    $contenido = (string) ob_get_clean();
+                    imagedestroy($img);
+                }
+            }
+
             $destino = 'logos/empresa-1/' . $archivo;
             \Illuminate\Support\Facades\Storage::disk('public')
-                ->put($destino, (string) file_get_contents($origen));
+                ->put($destino, $contenido);
 
             DB::table('tenants')->where('id', 1)->update([$columna => $destino]);
             $sembrados++;

@@ -27,9 +27,17 @@ use Tests\TestCase;
 class LegacyReportSheetsTest extends TestCase
 {
     /** @return array<string,mixed> */
-    private function hoja(string $familia, array $filas = [], ?array $seccion = null): ?array
+    private function hoja(string $familia, array $filas = [], ?array $seccion = null, ?\App\Models\Tenant $tenant = null): ?array
     {
         $renderer = new \App\Services\Lab\LegacyReportRenderer();
+
+        // El workspace del informe, cuando la prueba lo necesita: es lo que
+        // decide qué hojas llevan el sello (`accredited_sheets`).
+        if ($tenant !== null) {
+            $prop = new \ReflectionProperty($renderer, 'tenant');
+            $prop->setAccessible(true);
+            $prop->setValue($renderer, $tenant);
+        }
 
         $metodo = new \ReflectionMethod($renderer, 'paginaGenerica');
         $metodo->setAccessible(true);
@@ -150,6 +158,29 @@ class LegacyReportSheetsTest extends TestCase
     {
         $this->assertFalse($this->hoja('furanos')['anab']);
         $this->assertFalse($this->hoja('metales')['anab']);
+    }
+
+    public function test_el_workspace_decide_que_hojas_llevan_el_sello(): void
+    {
+        // El ALCANCE de la acreditación es del laboratorio, no del programa: la
+        // lista guardada en «Mi workspace» MANDA sobre las hojas de fábrica.
+        // Acá el certificado imaginario cubre furanos y perdió el azufre.
+        $tenant = new \App\Models\Tenant(['accredited_sheets' => ['furanos']]);
+
+        $this->assertTrue($this->hoja('furanos', tenant: $tenant)['anab']);
+        $this->assertFalse($this->hoja('azufre_corrosivo', tenant: $tenant)['anab']);
+    }
+
+    public function test_una_lista_vacia_apaga_todos_los_sellos(): void
+    {
+        // `[]` es una decisión («ninguna hoja lleva el sello» — un laboratorio
+        // que perdió la acreditación), distinta de `null` («nunca lo configuré»,
+        // que cae a las hojas de fábrica).
+        $sinAlcance = new \App\Models\Tenant(['accredited_sheets' => []]);
+        $sinConfigurar = new \App\Models\Tenant();
+
+        $this->assertFalse($this->hoja('fisicoquimico', tenant: $sinAlcance)['anab']);
+        $this->assertTrue($this->hoja('fisicoquimico', tenant: $sinConfigurar)['anab']);
     }
 
     // ─── Lo que ya no está escrito en la plantilla ───────────────────────

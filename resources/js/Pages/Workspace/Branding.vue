@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { Card, Input, Textarea, Button, Form, FormItem, Alert, Tag, Switch } from 'ant-design-vue';
+import { Card, Input, Textarea, Button, Form, FormItem, Alert, Tag, Switch, Checkbox, CheckboxGroup,
+} from 'ant-design-vue';
 import { BankOutlined, CameraOutlined, HighlightOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -17,6 +18,8 @@ const props = defineProps({
     workspace: { type: Object, required: true },
     signers:   { type: Array, default: () => [] },
     users:     { type: Array, default: () => [] },
+    // Las hojas del informe clásico, con cuáles llevan el sello de fábrica.
+    reportSheets: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -76,6 +79,32 @@ const removeAcc = () => router.post(route('workspace.accreditation.update'), {
     remove_logo: true,
     accreditation_note: accNote.value,
 }, { preserveScroll: true, onSuccess: () => { accUrl.value = null; } });
+
+// ── Qué hojas llevan el sello ────────────────────────────────────────────
+// El ALCANCE de la acreditación es del laboratorio: si el certificado suma o
+// pierde una prueba, se marca acá y el sello cambia de hojas ese mismo día.
+// Sin lista guardada rigen las hojas de fábrica (las del papel viejo).
+const accSheets = ref(
+    props.workspace.accredited_sheets
+    ?? props.reportSheets.filter((h) => h.default).map((h) => h.key),
+);
+
+const esFabrica = computed(() => props.workspace.accredited_sheets === null);
+
+const saveAccSheets = () => router.post(route('workspace.accreditation.update'), {
+    accreditation_note: accNote.value,
+    accredited_sheets: accSheets.value,
+}, { preserveScroll: true });
+
+const restoreAccSheets = () => router.post(route('workspace.accreditation.update'), {
+    accreditation_note: accNote.value,
+    accredited_sheets: null,
+}, {
+    preserveScroll: true,
+    onSuccess: () => {
+        accSheets.value = props.reportSheets.filter((h) => h.default).map((h) => h.key);
+    },
+});
 
 // ── Logo del workspace: clic en el logo/título → file picker → sube. ──
 const logoInput = ref(null);
@@ -165,6 +194,28 @@ const onLogoPicked = (e) => {
                         @blur="saveAccNote"
                     />
                     <p class="ws-hint">{{ t('tenants.accreditation_note_help') }}</p>
+
+                    <!-- Qué hojas llevan el sello. Es el alcance del
+                         certificado, así que se edita acá y no en código. -->
+                    <div class="ws-acc-sheets">
+                        <p class="ws-acc-sheets__label">{{ t('tenants.accredited_sheets_label') }}</p>
+                        <CheckboxGroup v-model:value="accSheets" @change="saveAccSheets">
+                            <Checkbox
+                                v-for="hoja in reportSheets"
+                                :key="hoja.key"
+                                :value="hoja.key"
+                                class="ws-acc-sheets__item"
+                            >
+                                {{ hoja.label }}
+                            </Checkbox>
+                        </CheckboxGroup>
+                        <p class="ws-hint">
+                            {{ t('tenants.accredited_sheets_help') }}
+                            <Button v-if="!esFabrica" type="link" size="small" @click="restoreAccSheets">
+                                {{ t('tenants.accredited_sheets_restore') }}
+                            </Button>
+                        </p>
+                    </div>
                 </FormItem>
 
                 <FormItem
@@ -314,4 +365,9 @@ const onLogoPicked = (e) => {
     .signer-row { flex-wrap: wrap; }
     .signer-row__relation, .signer-row__title, .signer-row__user, .signer-row__name { flex: 1 1 100%; }
 }
+.ws-acc-sheets { margin-top: 14px; }
+.ws-acc-sheets__label { font-size: 0.875rem; font-weight: 600; margin: 0 0 8px; color: var(--color-text); }
+/* En columna: son títulos largos y en fila se leerían pegados. */
+.ws-acc-sheets :deep(.ant-checkbox-group) { display: flex; flex-direction: column; gap: 6px; }
+.ws-acc-sheets__item { margin-left: 0 !important; }
 </style>

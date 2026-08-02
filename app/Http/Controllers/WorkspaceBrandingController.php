@@ -35,10 +35,11 @@ class WorkspaceBrandingController extends Controller
                 // muestran para que el admin VEA qué va a salir impreso: el
                 // número vence y nadie se acuerda de mirarlo hasta que un
                 // cliente lo reclama.
-                'accreditation_logo_url' => $tenant->accreditation_logo
-                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($tenant->accreditation_logo)
-                    : null,
+                'accreditation_logo_url' => $tenant->accreditation_logo_url,
                 'accreditation_note' => $tenant->accreditation_note,
+                // Qué hojas del informe clásico llevan el sello. null = las de
+                // fábrica (config) — la pantalla muestra la lista efectiva.
+                'accredited_sheets' => $tenant->accredited_sheets,
                 'require_report_approval' => (bool) $tenant->require_report_approval,
                 'notify_approval_by_email' => (bool) $tenant->notify_approval_by_email,
             ],
@@ -60,6 +61,18 @@ class WorkspaceBrandingController extends Controller
                         : (!$s->user->auto_sign_reports ? 'no_autosign' : 'ready'))
                     : 'external',
             ])->values(),
+            // Las hojas del informe clásico, para elegir cuáles llevan el
+            // sello de acreditación. `default` es lo que traía el papel viejo.
+            'reportSheets' => collect((array) config('legacy_report.sheets'))
+                ->map(function ($maqueta, $clave) {
+                    $etiqueta = __('reports.family.' . $clave);
+
+                    return [
+                        'key'     => $clave,
+                        'label'   => $etiqueta !== 'reports.family.' . $clave ? $etiqueta : strtoupper($clave),
+                        'default' => (bool) ($maqueta['anab'] ?? false),
+                    ];
+                })->values(),
             // Usuarios activos del workspace, candidatos a firmantes.
             'users' => \App\Models\User::where('tenant_id', $tenant->id)
                 ->where('is_active', true)
@@ -148,9 +161,20 @@ class WorkspaceBrandingController extends Controller
             'accreditation_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $maxKb],
             'accreditation_note' => ['nullable', 'string', 'max:2000'],
             'remove_logo'        => ['nullable', 'boolean'],
+            // Qué hojas llevan el sello. Solo claves del catálogo de hojas:
+            // una clave inventada nunca coincidiría con ninguna familia y el
+            // sello desaparecería sin explicación.
+            'accredited_sheets'   => ['nullable', 'array'],
+            'accredited_sheets.*' => [\Illuminate\Validation\Rule::in(array_keys((array) config('legacy_report.sheets')))],
         ]);
 
         $cambios = ['accreditation_note' => $datos['accreditation_note'] ?? null];
+
+        // Solo si el pedido TRAE la clave: esta ruta también la usan el cambio
+        // de sello y del párrafo, y un pedido sin la lista no debe borrarla.
+        if ($request->has('accredited_sheets')) {
+            $cambios['accredited_sheets'] = $datos['accredited_sheets'] ?? null;
+        }
 
         if ($request->boolean('remove_logo')) {
             if ($tenant->accreditation_logo) {

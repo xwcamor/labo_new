@@ -113,6 +113,9 @@ class LegacyReportRenderer
         return $this;
     }
 
+    /** El workspace del informe en curso; lo usan las hojas para el sello. */
+    private ?\App\Models\Tenant $tenant = null;
+
     public function render(Sample $muestra, array $datos, ?string $numero = null): string
     {
         $muestra->loadMissing(['reception.customer', 'reception.sampler', 'equipment.equipmentType',
@@ -125,6 +128,10 @@ class LegacyReportRenderer
             ->keyBy(fn ($r) => $r->analyte?->code);
 
         $paginas = [];
+
+        // El workspace se resuelve ANTES de armar las hojas: cada hoja decide
+        // su sello ANAB con la lista del workspace (ver `hojaConSello`).
+        $this->tenant = $muestra->tenant ?? \App\Models\Tenant::query()->orderBy('id')->first();
 
         // La norma del método sale del MISMO sitio que en el informe nuevo:
         // la columna `standard` de la hoja de bancada, no de la plantilla.
@@ -167,7 +174,7 @@ class LegacyReportRenderer
 
         $re = $muestra->reception;
         $eq = $muestra->equipment;
-        $tenant = $muestra->tenant ?? \App\Models\Tenant::query()->orderBy('id')->first();
+        $tenant = $this->tenant;
 
         $pdf = Pdf::loadView('lab_management/reports/legacy/report', [
             'paginas' => $paginas,
@@ -485,13 +492,34 @@ class LegacyReportRenderer
             // cromatografía, COMPUESTO en furanos, TAMAÑO DE PARTICULA en
             // partículas— y es texto, así que sale del archivo de idioma.
             'col3'        => $this->textoDeFamilia('legacy_col3', $familia, 'ENSAYO'),
-            'anab'        => (bool) $maqueta['anab'],
+            'anab'        => $this->hojaConSello($familia, (bool) $maqueta['anab']),
             'pie_celda'   => (bool) $maqueta['cell_note'],
             'nota'        => isset($maqueta['footnote']) ? __($maqueta['footnote']) : null,
             'filas'       => $filas,
             'relaciones'  => $relaciones,
             'condiciones' => $condiciones,
         ];
+    }
+
+    /**
+     * Si esta hoja lleva el sello de acreditación.
+     *
+     * El ALCANCE es del laboratorio, no del programa: si el workspace guardó su
+     * lista (`tenants.accredited_sheets`, editable en «Mi workspace»), manda esa
+     * — incluso vacía, que significa «ninguna». Sin lista guardada rigen las
+     * hojas de fábrica del config, que son las del papel viejo. El sello además
+     * solo se imprime si el workspace tiene su logotipo de acreditación cargado
+     * (eso ya lo resuelve la maqueta: sin archivo no hay imagen).
+     */
+    private function hojaConSello(string $familia, bool $porDefecto): bool
+    {
+        $lista = $this->tenant?->accredited_sheets;
+
+        if (! is_array($lista)) {
+            return $porDefecto;
+        }
+
+        return in_array($familia, $lista, true);
     }
 
     /**

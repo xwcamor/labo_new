@@ -59,10 +59,12 @@ return [
     | laboratorio y sus clientes conocen. Una hoja solo se imprime si la muestra
     | tiene resultados de esa familia.
     |
-    | `anab` marca las TRES familias cuyos métodos están dentro del alcance
-    | acreditado, y por eso las únicas tres hojas que llevan el sello: en el
-    | sistema anterior eso era la diferencia entre incluir `_report_logo_main`
-    | o `_report_logo_parcial`, decidida archivo por archivo.
+    | `anab` marca las hojas que llevan el sello de acreditación DE FÁBRICA
+    | (las tres del sistema anterior, donde era la diferencia entre incluir
+    | `_report_logo_main` o `_report_logo_parcial`, decidida archivo por
+    | archivo). Es solo el punto de partida: el alcance real lo decide cada
+    | workspace en «Mi workspace» (`tenants.accredited_sheets`), porque un
+    | certificado se amplía o se recorta sin esperar a un programador.
     */
 
     'sheets' => [

@@ -199,11 +199,28 @@ class ResultMaterializer
                 $worksheet->run_date ? \Illuminate\Support\Carbon::parse($worksheet->run_date) : null,
             );
 
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ LA COLUMNA DE LISTA GUARDA SU RESPUESTA EN `option_id`       │
+            // └──────────────────────────────────────────────────────────────┘
+            // Acá se copiaban `value_num` y `value_text` y nada más, así que un
+            // resultado elegido de una LISTA se materializaba vacío. Son tres
+            // columnas en todo el catálogo —el resultado de los tres azufres
+            // corrosivos, "No Corrosivo"/"Corrosivo"— y el efecto era doble: la
+            // hoja de azufre salía impresa con sus tres filas sin valor, y el
+            // motor del análisis, que juzga sobre el resultado, no tenía qué
+            // juzgar y dejaba esa familia sin párrafo. O sea una hoja con su
+            // título, tres filas en blanco y ninguna opinión.
+            //
+            // El texto se resuelve UNA vez y se usa para las dos cosas —el
+            // veredicto y lo que se guarda—: el criterio de esos parámetros
+            // también es textual, así que sin esto tampoco se podía comparar.
+            $texto = $value->value_text ?? $value->option?->value;
+
             $veredicto = $this->specs->verdictFor(
                 $cuadro,
                 (int) $field->output_analyte_id,
                 $value->value_num !== null ? (float) $value->value_num : null,
-                $value->value_text,
+                $texto,
                 $value->qualifier,
             );
 
@@ -222,7 +239,7 @@ class ResultMaterializer
                     'sample_id'          => $row->sample_id,
 
                     'value_num'  => $value->value_num,
-                    'value_text' => $value->value_num === null ? $value->value_text : null,
+                    'value_text' => $value->value_num === null ? $texto : null,
                     'qualifier'  => $value->qualifier,
                     // La unidad se copia del parámetro y no de la columna: la
                     // columna la rotula para el analista, el parámetro la

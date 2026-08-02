@@ -326,7 +326,27 @@ class LabDemoWorksheetsSeeder extends Seeder
                 'delivered_at' => $emision->copy()->addDays(2)->toDateString(),
             ]);
 
-            $servicio->issue($informe->fresh(), $analista->id);
+            // El análisis y su confirmación, ANTES de emitir: es el camino de
+            // la pantalla, y desde que `issue()` lo exige, sin esto la
+            // demostración grande no emitiría ni un informe. Ver el comentario
+            // equivalente en `LabFullReportSeeder::informe()`.
+            app(\App\Services\Lab\DiagnosisTextService::class)->generate($muestra);
+
+            $informe->forceFill([
+                'analysis_confirmed_at' => now(),
+                'analysis_confirmed_by' => $analista->id,
+            ])->save();
+
+            // El idioma queda congelado en el snapshot. Ver el comentario largo
+            // en `LabFullReportSeeder::informe()`.
+            $idioma = app()->getLocale();
+            app()->setLocale('es');
+
+            try {
+                $servicio->issue($informe->fresh(), $analista->id);
+            } finally {
+                app()->setLocale($idioma);
+            }
         }
 
         return $creados;

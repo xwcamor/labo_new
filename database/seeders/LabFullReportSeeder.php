@@ -304,7 +304,63 @@ class LabFullReportSeeder extends Seeder
             'sampling_reason' => $muestra->sampling_reason,
         ], $analista->id);
 
-        $servicio->issue($informe->fresh(), $analista->id);
+        // EL ANÁLISIS, ANTES DE EMITIR.
+        //
+        // Acá se emitía sin este paso, y por eso la demostración quedaba con
+        // `sample_diagnoses` en CERO filas: el informe salía con los títulos de
+        // familia —FISICOQUIMICO, CROMATOGRAFICO, AZUFRE CORROSIVO…— y ni una
+        // línea debajo de ninguno. La sección donde el laboratorio opina,
+        // vacía, en el papel que la demostración existe para mostrar.
+        //
+        // Es el mismo camino de la pantalla: el motor compone los párrafos y
+        // una persona los confirma. Sin confirmar, `issue()` ahora lo rechaza.
+        app(\App\Services\Lab\DiagnosisTextService::class)->generate($muestra);
+
+        // Si alguna familia quedó sin párrafo, se DICE. La pantalla no dejaría
+        // confirmar en ese estado, y una demostración que emite igual es una
+        // demostración que muestra un papel que el sistema real no produce.
+        $sinTexto = \App\Models\SampleDiagnosis::where('sample_id', $muestra->id)
+            ->get()
+            ->filter(fn ($d) => trim((string) $d->body) === '')
+            ->pluck('family');
+
+        if ($sinTexto->isNotEmpty()) {
+            $this->command?->warn(
+                '  Familias sin párrafo de análisis: ' . $sinTexto->implode(', ')
+                . '. En la pantalla habría que escribirlas a mano antes de emitir.',
+            );
+        }
+
+        $informe->forceFill([
+            'analysis_confirmed_at' => now(),
+            'analysis_confirmed_by' => $analista->id,
+        ])->save();
+
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ EL IDIOMA CON EL QUE SE EMITE QUEDA CONGELADO EN EL PAPEL        │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Emitir congela el contenido del informe en `snapshot`, y ahí entran
+        // los rótulos ya traducidos: el título de cada hoja, los encabezados de
+        // las columnas. El seeder corre por consola, donde el idioma es el de
+        // `APP_LOCALE` —`en` de fábrica—, así que la demostración salía con las
+        // hojas rotuladas "CORROSIVE SULPHUR" dentro de un informe en
+        // castellano. Se fija el idioma antes de emitir para que el papel de la
+        // demostración sea coherente.
+        //
+        // OJO: esto tapa el síntoma en la demostración, no resuelve el fondo.
+        // En el sistema real el idioma del papel lo decide QUIEN PULSA EMITIR,
+        // y en un laboratorio con gente en dos idiomas eso hace que dos
+        // informes del mismo cliente salgan rotulados distinto. Lo que
+        // correspondería es que el idioma del informe sea un dato del
+        // workspace; hoy los tenants no tienen esa columna.
+        $idioma = app()->getLocale();
+        app()->setLocale('es');
+
+        try {
+            $servicio->issue($informe->fresh(), $analista->id);
+        } finally {
+            app()->setLocale($idioma);
+        }
 
         return $informe->fresh();
     }
@@ -576,9 +632,62 @@ class LabFullReportSeeder extends Seeder
             );
         }
 
+        // Sin cuadro de límites pero CON bandas de diagnóstico: el valor sale
+        // de una banda.
+        //
+        // Hay parámetros que no tienen criterio de aceptación y sí tienen
+        // redacción por tramo —el inhibidor, que no se aprueba ni se rechaza
+        // pero decide si el aceite es Tipo I o Tipo II—. Con el número al azar
+        // de abajo, el inhibidor salía en 3.57 %: fuera de las dos bandas (que
+        // llegan hasta 3), o sea un aceite con un contenido que no existe y una
+        // hoja del informe sin párrafo. El sistema anterior tenía las MISMAS
+        // dos bandas y tampoco decía nada por encima de 3, así que no es un
+        // hueco de la migración: es que la demostración se estaba inventando
+        // una medición imposible.
+        $deBanda = $this->valorDeBanda($columna);
+
+        if ($deBanda !== null) {
+            return $this->redondear($deBanda, $columna);
+        }
+
         // Sin límite ni rango: un número chico y positivo. Son entradas
         // intermedias que no se imprimen; el resultado sale de la fórmula.
         return $this->redondear(1 + $this->azar(0, 9), $columna);
+    }
+
+    /**
+     * Un valor que caiga dentro de una banda del análisis, si el parámetro las
+     * tiene.
+     *
+     * Se toma la banda ACOTADA por los dos lados y se apunta a su medio: es la
+     * que describe el caso normal, y su punto medio no queda pegado a ningún
+     * borde. Sin banda acotada —solo un techo o solo un piso— se prefiere no
+     * inventar nada y dejar que decida el azar de siempre.
+     */
+    private function valorDeBanda(TestField $columna): ?float
+    {
+        $familia = $columna->definition?->report_comment_group;
+
+        if (! $familia || ! $columna->output_analyte_id) {
+            return null;
+        }
+
+        $bandas = \App\Models\DiagnosisTemplate::query()
+            ->where('family', $familia)
+            ->whereNotNull('bands')
+            ->get()
+            ->flatMap(fn ($p) => $p->bands ?? []);
+
+        foreach ($bandas as $banda) {
+            $min = $banda['min'] ?? null;
+            $max = $banda['max'] ?? null;
+
+            if ($min !== null && $max !== null) {
+                return ((float) $min + (float) $max) / 2;
+            }
+        }
+
+        return null;
     }
 
     /**

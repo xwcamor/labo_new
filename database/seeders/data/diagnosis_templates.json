@@ -1,386 +1,384 @@
 {
-    "_doc": [
-        "Las frases del ANÁLISIS DE RESULTADOS del informe.",
-        "",
-        "De dónde salen: de las ~1134 líneas de ERB del sistema anterior",
-        "(app/views/im_management/rem_reports/partials/_form_add_details_*_default_values.html.erb).",
-        "Allá el texto estaba clavado en la vista, con condicionales anidados por",
-        "tipo de aceite × tipo de equipo × cuántos parámetros salieron fuera de",
-        "norma. Cambiar una coma exigía un programador, y el texto quedaba fuera",
-        "del control del laboratorio, que es quien firma el informe.",
-        "",
-        "CÓMO SE ELIGE UNA PLANTILLA. El motor recorre las de la familia, de la",
-        "más específica a la más general, y se queda con la PRIMERA QUE APLIQUE:",
-        "  · family          — la familia del informe (fisicoquimico, cromas…)",
-        "  · oil_types       — códigos de aceite a los que aplica; [] = todos",
-        "  · equipment_types — tipos de equipo; [] = todos",
-        "  · case            — 'none' (nada señalado) · 'one' · 'many' · 'any'",
-        "  · bands           — si las declara, tiene que haber una que contenga",
-        "                      el valor medido; si no, la plantilla no aplica",
-        "Lo más específico gana, igual que en los cuadros de límites. Si no casa",
-        "ninguna, no se inventa texto: el párrafo queda vacío y el analista lo",
-        "escribe. Un motor que rellena con una frase genérica es peor que uno que",
-        "se calla, porque el informe sale firmado igual. Por lo mismo, una",
-        "familia SIN NINGÚN resultado no recibe texto: 'no se detectó presencia",
-        "de metales' dicho sobre cero mediciones es una afirmación falsa.",
-        "",
-        "QUÉ CUENTA COMO 'SEÑALADO'. Por defecto, los resultados FUERA DE NORMA",
-        "(`spec_status`). Nueve de las quince familias no tienen cuadro de",
-        "límites —ni lo tenían en el sistema anterior— así que para ellas la",
-        "plantilla declara `threshold`: un corte de valor por encima del cual el",
-        "parámetro se nombra. Es como el ERB decidía qué metales citar (0.05 ppm)",
-        "sin que existiera criterio de aceptación para ellos.",
-        "",
-        "BANDAS. `bands[]` da un texto propio por tramo de valor: es lo que el",
-        "sistema anterior resolvía con cuatro `if` seguidos. Cada banda es",
-        "[min, max): el mínimo entra y el máximo no, salvo que declare",
-        "`max_inclusive` o `min_exclusive`. El valor lo aporta el parámetro",
-        "declarado en `analyte`; sin `analyte`, el único resultado de la familia.",
-        "Tiene que tocar UNA sola banda: dos bandas que se pisan son un error de",
-        "datos y no se resuelve por orden de aparición. Un valor censurado ('<5',",
-        "'>70') es un intervalo, así que también tiene que caer en una sola.",
-        "",
-        "MARCADORES disponibles en el cuerpo:",
-        "  {ok}            — los parámetros medidos que están dentro de norma",
-        "  {failed}        — los señalados (fuera de norma, o sobre `threshold`)",
-        "  {failed_values} — los señalados CON su valor: '7.3 ppm de aluminio'",
-        "  {norm}          — la norma del criterio aplicado (sale del resultado)",
-        "  {count}         — cuántos están señalados",
-        "  {value}         — el valor medido con su unidad: '7.3 mg/kg'",
-        "  {value_num}     — el valor pelado, sin unidad",
-        "  {unit}          — solo la unidad",
-        "Los tres últimos admiten ':codigo' para pedir un parámetro concreto de",
-        "la familia ({value:passivator}) y '[n]' para tomar el n-ésimo tramo de",
-        "un código compuesto ({value[2]} sobre el ISO 4406 '18/16/13' da '16').",
-        "Las listas se arman con los nombres reales de los parámetros medidos en",
-        "ESA muestra: no se nombra un ensayo que no se corrió.",
-        "",
-        "SOBRE LA TRANSCRIPCIÓN. Los textos están copiados TAL CUAL del sistema",
-        "anterior, con sus dobles espacios, sus tildes faltantes y sus frases a",
-        "medias ('dentro del limite para un aceite'). Son los párrafos que el",
-        "laboratorio viene firmando desde 2019 y corregirlos es decisión suya,",
-        "no del programa: ahora se hace editando este archivo, sin un deploy.",
-        "",
-        "El texto generado se guarda en `sample_diagnoses` y el analista lo edita.",
-        "Volver a diagnosticar NO pisa lo editado salvo que se pida expresamente."
-    ],
-
-    "_pendientes": {
-        "particulas": "La plantilla está escrita y NO se dispara todavía: la prueba no declara ningún parámetro medible (ver 'pendientes' en analyte_map.json), así que no produce resultados. En cuanto el laboratorio declare la columna del código ISO, el párrafo sale solo. Si además declara los siete rangos de tamaño, hay que agregar acá \"analyte\": \"<código del ISO>\" para que {value} sepa cuál de todos citar.",
-        "metales_en_aceite": "Igual: la plantilla usa `threshold` 0.05 sobre CUALQUIER parámetro de la familia, así que funciona con los ocho metales sin nombrarlos, pero la prueba todavía no declara ninguno.",
-        "azufre_corrosivo": "Esta familia no existe hoy en la base: las tres pruebas de azufre tienen `report_comment_group` propio (azufre_1275b, azufre_62535_48_horas, azufre_62535_72_horas). Las plantillas quedan escritas para cuando se unifiquen en una sola hoja (punto A8 del checklist), que es una decisión del laboratorio y no de este archivo."
+  "_doc": [
+    "Las frases del ANÁLISIS DE RESULTADOS del informe.",
+    "",
+    "De dónde salen: de las ~1134 líneas de ERB del sistema anterior",
+    "(app/views/im_management/rem_reports/partials/_form_add_details_*_default_values.html.erb).",
+    "Allá el texto estaba clavado en la vista, con condicionales anidados por",
+    "tipo de aceite × tipo de equipo × cuántos parámetros salieron fuera de",
+    "norma. Cambiar una coma exigía un programador, y el texto quedaba fuera",
+    "del control del laboratorio, que es quien firma el informe.",
+    "",
+    "CÓMO SE ELIGE UNA PLANTILLA. El motor recorre las de la familia, de la",
+    "más específica a la más general, y se queda con la PRIMERA QUE APLIQUE:",
+    "  · family          — la familia del informe (fisicoquimico, cromas…)",
+    "  · oil_types       — códigos de aceite a los que aplica; [] = todos",
+    "  · equipment_types — tipos de equipo; [] = todos",
+    "  · case            — 'none' (nada señalado) · 'one' · 'many' · 'any'",
+    "  · bands           — si las declara, tiene que haber una que contenga",
+    "                      el valor medido; si no, la plantilla no aplica",
+    "Lo más específico gana, igual que en los cuadros de límites. Si no casa",
+    "ninguna, no se inventa texto: el párrafo queda vacío y el analista lo",
+    "escribe. Un motor que rellena con una frase genérica es peor que uno que",
+    "se calla, porque el informe sale firmado igual. Por lo mismo, una",
+    "familia SIN NINGÚN resultado no recibe texto: 'no se detectó presencia",
+    "de metales' dicho sobre cero mediciones es una afirmación falsa.",
+    "",
+    "QUÉ CUENTA COMO 'SEÑALADO'. Por defecto, los resultados FUERA DE NORMA",
+    "(`spec_status`). Nueve de las quince familias no tienen cuadro de",
+    "límites —ni lo tenían en el sistema anterior— así que para ellas la",
+    "plantilla declara `threshold`: un corte de valor por encima del cual el",
+    "parámetro se nombra. Es como el ERB decidía qué metales citar (0.05 ppm)",
+    "sin que existiera criterio de aceptación para ellos.",
+    "",
+    "BANDAS. `bands[]` da un texto propio por tramo de valor: es lo que el",
+    "sistema anterior resolvía con cuatro `if` seguidos. Cada banda es",
+    "[min, max): el mínimo entra y el máximo no, salvo que declare",
+    "`max_inclusive` o `min_exclusive`. El valor lo aporta el parámetro",
+    "declarado en `analyte`; sin `analyte`, el único resultado de la familia.",
+    "Tiene que tocar UNA sola banda: dos bandas que se pisan son un error de",
+    "datos y no se resuelve por orden de aparición. Un valor censurado ('<5',",
+    "'>70') es un intervalo, así que también tiene que caer en una sola.",
+    "",
+    "MARCADORES disponibles en el cuerpo:",
+    "  {ok}            — los parámetros medidos que están dentro de norma",
+    "  {failed}        — los señalados (fuera de norma, o sobre `threshold`)",
+    "  {failed_values} — los señalados CON su valor: '7.3 ppm de aluminio'",
+    "  {norm}          — la norma del criterio aplicado (sale del resultado)",
+    "  {count}         — cuántos están señalados",
+    "  {value}         — el valor medido con su unidad: '7.3 mg/kg'",
+    "  {value_num}     — el valor pelado, sin unidad",
+    "  {unit}          — solo la unidad",
+    "Los tres últimos admiten ':codigo' para pedir un parámetro concreto de",
+    "la familia ({value:passivator}) y '[n]' para tomar el n-ésimo tramo de",
+    "un código compuesto ({value[2]} sobre el ISO 4406 '18/16/13' da '16').",
+    "Las listas se arman con los nombres reales de los parámetros medidos en",
+    "ESA muestra: no se nombra un ensayo que no se corrió.",
+    "",
+    "SOBRE LA TRANSCRIPCIÓN. Los textos están copiados TAL CUAL del sistema",
+    "anterior, con sus dobles espacios, sus tildes faltantes y sus frases a",
+    "medias ('dentro del limite para un aceite'). Son los párrafos que el",
+    "laboratorio viene firmando desde 2019 y corregirlos es decisión suya,",
+    "no del programa: ahora se hace editando este archivo, sin un deploy.",
+    "",
+    "El texto generado se guarda en `sample_diagnoses` y el analista lo edita.",
+    "Volver a diagnosticar NO pisa lo editado salvo que se pida expresamente."
+  ],
+  "_pendientes": {
+    "particulas": "La plantilla está escrita y NO se dispara todavía: la prueba no declara ningún parámetro medible (ver 'pendientes' en analyte_map.json), así que no produce resultados. En cuanto el laboratorio declare la columna del código ISO, el párrafo sale solo. Si además declara los siete rangos de tamaño, hay que agregar acá \"analyte\": \"<código del ISO>\" para que {value} sepa cuál de todos citar.",
+    "metales_en_aceite": "Igual: la plantilla usa `threshold` 0.05 sobre CUALQUIER parámetro de la familia, así que funciona con los ocho metales sin nombrarlos, pero la prueba todavía no declara ninguno.",
+    "azufre_corrosivo": "Esta familia no existe hoy en la base: las tres pruebas de azufre tienen `report_comment_group` propio (azufre_1275b, azufre_62535_48_horas, azufre_62535_72_horas). Las plantillas quedan escritas para cuando se unifiquen en una sola hoja (punto A8 del checklist), que es una decisión del laboratorio y no de este archivo."
+  },
+  "templates": [
+    {
+      "family": "fisicoquimico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "none",
+      "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}."
     },
-
-    "templates": [
+    {
+      "family": "fisicoquimico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "one",
+      "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• La cantidad de {failed} está fuera del valor sugerido por la Norma {norm}."
+    },
+    {
+      "family": "fisicoquimico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "many",
+      "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• Las cantidades de {failed} están fuera de los valores sugeridos por la Norma {norm}."
+    },
+    {
+      "family": "analisis_cromatografico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "none",
+      "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• No se evidencia actividad de falla incipiente en la muestra analizada."
+    },
+    {
+      "family": "analisis_cromatografico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "one",
+      "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• La concentración de {failed} excede el valor típico indicado por la Norma {norm}. Se recomienda repetir el ensayo para confirmar la tendencia."
+    },
+    {
+      "family": "analisis_cromatografico",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "many",
+      "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• Las concentraciones de {failed} exceden los valores típicos indicados por la Norma {norm}. Se recomienda repetir el ensayo y evaluar la tendencia respecto de muestras anteriores."
+    },
+    {
+      "_origen": "_form_add_details_furanos_default_values.html.erb:29-48",
+      "_nota": "El valor que se lee NO son los furanos sino el grado de polimerización que se calcula a partir del 2-FAL, igual que en el sistema anterior (@fur_value).",
+      "family": "furanos",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "dp",
+      "bands": [
         {
-            "family": "fisicoquimico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "none",
-            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}."
+          "min": 700,
+          "body": "• Según los resultados obtenidos, el aislamiento se encuentra  en buen estado."
         },
         {
-            "family": "fisicoquimico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "one",
-            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• La cantidad de {failed} está fuera del valor sugerido por la Norma {norm}."
+          "min": 450,
+          "max": 700,
+          "body": "• Según los resultados obtenidos, el aislamiento se encuentra medianamente envejecido."
         },
         {
-            "family": "fisicoquimico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "many",
-            "body": "• Los resultados obtenidos de las pruebas de {ok} están dentro de los valores sugeridos por la Norma {norm}.\n\n• Las cantidades de {failed} están fuera de los valores sugeridos por la Norma {norm}."
-        },
-
-        {
-            "family": "analisis_cromatografico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "none",
-            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• No se evidencia actividad de falla incipiente en la muestra analizada."
+          "min": 250,
+          "max": 450,
+          "body": "• Según los resultados obtenidos, el aislamiento se encuentra envejecido."
         },
         {
-            "family": "analisis_cromatografico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "one",
-            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• La concentración de {failed} excede el valor típico indicado por la Norma {norm}. Se recomienda repetir el ensayo para confirmar la tendencia."
-        },
-        {
-            "family": "analisis_cromatografico",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "many",
-            "body": "• Las concentraciones de {ok} se encuentran dentro de los valores típicos indicados por la Norma {norm}.\n\n• Las concentraciones de {failed} exceden los valores típicos indicados por la Norma {norm}. Se recomienda repetir el ensayo y evaluar la tendencia respecto de muestras anteriores."
-        },
-
-        {
-            "_origen": "_form_add_details_furanos_default_values.html.erb:29-48",
-            "_nota": "El valor que se lee NO son los furanos sino el grado de polimerización que se calcula a partir del 2-FAL, igual que en el sistema anterior (@fur_value).",
-            "family": "furanos",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "dp",
-            "bands": [
-                {
-                    "min": 700,
-                    "body": "• Según los resultados obtenidos, el aislamiento se encuentra  en buen estado."
-                },
-                {
-                    "min": 450,
-                    "max": 700,
-                    "body": "• Según los resultados obtenidos, el aislamiento se encuentra medianamente envejecido."
-                },
-                {
-                    "min": 250,
-                    "max": 450,
-                    "body": "• Según los resultados obtenidos, el aislamiento se encuentra envejecido."
-                },
-                {
-                    "max": 250,
-                    "body": "• Según los resultados obtenidos, el aislamiento se encuentra severamente degradado."
-                }
-            ]
-        },
-
-        {
-            "family": "pcb",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "none",
-            "body": "• El contenido de PCB se encuentra por debajo del límite establecido. La muestra NO se clasifica como contaminada."
-        },
-        {
-            "family": "pcb",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "one",
-            "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
-        },
-        {
-            "family": "pcb",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "many",
-            "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
-        },
-
-        {
-            "family": "azufre_corrosivo",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "none",
-            "body": "• El ensayo de azufre corrosivo resulta NO CORROSIVO según la Norma {norm}."
-        },
-        {
-            "family": "azufre_corrosivo",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "one",
-            "body": "• El ensayo de azufre corrosivo resulta CORROSIVO según la Norma {norm}. Se recomienda evaluar el tratamiento o el reemplazo del aceite."
-        },
-        {
-            "family": "azufre_corrosivo",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "many",
-            "body": "• El ensayo de azufre corrosivo resulta CORROSIVO según la Norma {norm}. Se recomienda evaluar el tratamiento o el reemplazo del aceite."
-        },
-
-        {
-            "_origen": "_form_add_details_polis_default_values.html.erb:31-53",
-            "family": "grado_de_polimerizacion",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "dp",
-            "bands": [
-                {
-                    "min": 1000,
-                    "body": "• Condición de la muestra:  Nuevo de acuerdo a norma IEC"
-                },
-                {
-                    "min": 650,
-                    "max": 1000,
-                    "body": "• Condición de la muestra:  Bueno de acuerdo a norma IEC."
-                },
-                {
-                    "min": 350,
-                    "max": 650,
-                    "body": "• Condición de la muestra:  Medianamente envejecido de acuerdo a norma IEC 60450."
-                },
-                {
-                    "max": 350,
-                    "body": "• Condición de la muestra:  Envejecido de acuerdo a norma IEC 60450."
-                }
-            ]
-        },
-
-        {
-            "_origen": "_form_add_details_particles_default_values.html.erb:30-38",
-            "_nota": "Sin umbral: el párrafo transcribe el código ISO 4406 y explica qué significa cada uno de sus tres tramos.",
-            "family": "particulas",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "body": "CÓDIGO ISO: {value_num}\n\n• Según código ISO 4406: {value_num[1]} es el número de la escala que representa el número de partículas iguales ó más grandes que 4μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[2]} es el número de la escala que representa el número de partículas iguales ó más grandes que 6μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[3]} es el número de la escala que representa el número de partículas iguales ó más grandes que 14μm por mililitro de líquido."
-        },
-
-        {
-            "_origen": "_form_add_details_sedimentos_default_values.html.erb:31-41",
-            "family": "sedimentos",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "sediments",
-            "bands": [
-                {
-                    "max": 0.001,
-                    "body": "• No se encontró sedimentos ni lodo precipitable."
-                },
-                {
-                    "min": 0.001,
-                    "body": "• Se encontró sedimentos y lodo precipitable."
-                }
-            ]
-        },
-
-        {
-            "_origen": "_form_add_details_metales_default_values.html.erb:12-52 y _form_add_details_metales.html.erb:28 (el corte de 0.05 ppm vivía en la vista de carga, no en un cuadro de límites)",
-            "family": "metales_en_aceite",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "none",
-            "threshold": 0.05,
-            "body": "• Según los resultados obtenidos, no se detectó presencia de metales en la muestra de aceite."
-        },
-        {
-            "family": "metales_en_aceite",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "one",
-            "threshold": 0.05,
-            "body": "• Según los resultados obtenidos, se detectó {failed_values} como compuesto metálico en la muestra de aceite."
-        },
-        {
-            "family": "metales_en_aceite",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "many",
-            "threshold": 0.05,
-            "body": "• Según los resultados obtenidos, se detectó {failed_values} como compuestos metálicos en la muestra de aceite."
-        },
-
-        {
-            "_origen": "_form_add_details_viscos_default_values.html.erb:31-41",
-            "_nota": "El texto de la primera banda queda a medias en el sistema anterior ('para un aceite'); se transcribe como está.",
-            "family": "viscocidad",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "visc",
-            "bands": [
-                {
-                    "max": 12,
-                    "max_inclusive": true,
-                    "body": "• Valor de viscosidad dentro del limite para un aceite"
-                },
-                {
-                    "min": 12,
-                    "min_exclusive": true,
-                    "body": "• Valor de viscosidad fuera del limite para un aceite mineral."
-                }
-            ]
-        },
-
-        {
-            "_origen": "_form_add_details_dbds_default_values.html.erb:31-43",
-            "family": "dbds",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "dbds",
-            "bands": [
-                {
-                    "max": 5,
-                    "body": "• Según los resultados obtenidos la presencia de dibencil disulfuro en la muestra de aceite aislante, está por debajo del valor de referencia de la norma IEC 60422-2013."
-                },
-                {
-                    "min": 5,
-                    "body": "• Se detectó {value} de dibencil disulfuro en la muestra de aceite aislante, este resultado se encuentra por encima del valor de referencia dado por la Norma IEC 60422-2013.\n\n• Reduzca la corrosividad del aceite agregando un pasivador de cobre o elimine la fuente de corrosividad cambiando el aceite o eliminando compuestos corrosivos por medio de tratamientos adecuados de aceite de acuerdo a lo recomendado en la norma IEC 60422-2013. El monitoreo regular es necesario."
-                }
-            ]
-        },
-
-        {
-            "_origen": "_form_add_details_inflamas_default_values.html.erb:30-34",
-            "family": "inflamacion",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "flash",
-            "body": "El punto de inflamación ó Flash Point, es la temperatura a la cual el aceite emite vapores combustibles para prender una llama por 5 segundos.\n\nEl aceite de prueba tiene el punto de inflamación a {value}."
-        },
-
-        {
-            "_origen": "_form_add_details_fluids_default_values.html.erb:30-32",
-            "family": "fluidez",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "pour",
-            "body": "El aceite de prueba tiene el punto de fluidez a {value}."
-        },
-
-        {
-            "_origen": "_form_add_details_inhibidores_default_values.html.erb:27-39",
-            "_nota": "Solo para los aceites 1, 2, 3 y 8 del sistema anterior, que es la condición literal de su ERB. Por encima de 3 % no hay texto: allá tampoco lo había.",
-            "family": "inhibidor",
-            "oil_types": ["mineral"],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "inhibitor",
-            "bands": [
-                {
-                    "max": 0.08,
-                    "body": "• De acuerdo al resultado obtenido  se considera como un aceite Tipo I (no inhibido) tomando como referencia la norma ASTM D3487-16."
-                },
-                {
-                    "min": 0.08,
-                    "max": 3,
-                    "max_inclusive": true,
-                    "body": "• De acuerdo al resultado obtenido  se considera como un aceite Tipo II (inhibido) tomando como referencia la norma ASTM D3487-16."
-                }
-            ]
-        },
-
-        {
-            "_origen": "_form_add_details_pasivadores_default_values.html.erb:31-53",
-            "family": "pasivador",
-            "oil_types": [],
-            "equipment_types": [],
-            "case": "any",
-            "analyte": "passivator",
-            "bands": [
-                {
-                    "max": 50,
-                    "body": "• De acuerdo al resultado obtenido (<50 ppm), la cantidad de contenido de pasivador es deficiente tomando como referencia la norma IEC 60422-2013.\n\n• Se recomienda  eliminar la fuente de corrosividad cambiando el aceite o eliminando los compuestos corrosivos mediante tratamientos de aceite adecuados, o como una solución a corto plazo, rellene con un pasivador nuevo, hasta al menos 100 ppm."
-                },
-                {
-                    "min": 50,
-                    "max": 70,
-                    "max_inclusive": true,
-                    "body": "• De acuerdo al resultado obtenido (50-70 ppm), la cantidad de contenido de pasivador es justo tomando como referencia la norma IEC 60422-2013.\n\n• Se recomienda mantener un control regular."
-                },
-                {
-                    "min": 70,
-                    "min_exclusive": true,
-                    "body": "• De acuerdo al resultado obtenido (>70 ppm), la cantidad de contenido de pasivador es bueno tomando como referencia la norma IEC 60422-2013\n\n• Se recomienda realizar menos monitoreos frecuente aceptable."
-                }
-            ]
+          "max": 250,
+          "body": "• Según los resultados obtenidos, el aislamiento se encuentra severamente degradado."
         }
-    ]
+      ]
+    },
+    {
+      "family": "pcb",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "none",
+      "body": "• El contenido de PCB se encuentra por debajo del límite establecido. La muestra NO se clasifica como contaminada."
+    },
+    {
+      "family": "pcb",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "one",
+      "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
+    },
+    {
+      "family": "pcb",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "many",
+      "body": "• El contenido de PCB excede el límite establecido por la Norma {norm}. El aceite se clasifica como contaminado y su manejo y disposición quedan sujetos a la reglamentación vigente."
+    },
+    {
+      "family": "azufre_corrosivo",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "_doc": [
+        "PORTADO DEL VIEJO (corregido 2026-08-02).",
+        "",
+        "Acá había tres plantillas none/one/many que decían «El ensayo de azufre",
+        "corrosivo resulta NO CORROSIVO según la Norma {norm}». Ninguna de las tres",
+        "producía texto NUNCA, por dos motivos encadenados:",
+        "",
+        "  1. el caso se decide por cuántos parámetros quedaron FUERA DE NORMA, y",
+        "     los azufres no tienen cuadro de límites —el informe viejo tampoco",
+        "     imprimía valor de orientación para ellos—, así que el caso era",
+        "     siempre 'none';",
+        "  2. y {norm} salía de ese mismo cuadro inexistente, así que la única",
+        "     frase quedaba hablando de la nada y el motor la descartaba entera",
+        "     (que es lo correcto: es su defensa contra afirmar sobre nada).",
+        "",
+        "El sistema anterior no opinaba así. Escribía UNA FRASE POR MÉTODO citando",
+        "el resultado medido, sin norma de por medio",
+        "(_form_add_details_azufres_default_values.html.erb:31-42):",
+        "",
+        "  • De acuerdo a los resultados se concluye que el azufre por el método",
+        "    ASTM D1275 es No Corrosivo.",
+        "",
+        "y omitía la línea del método que no se hubiera corrido. Acá es lo mismo:",
+        "{value:código} trae el resultado de ESE parámetro, y la línea cuyo valor",
+        "no existe la borra el propio motor."
+      ],
+      "body": "• De acuerdo a los resultados se concluye que el azufre por el método ASTM D1275 es {value:s1275b}.\n• De acuerdo a los resultados se concluye que el azufre a 48 h por el método IEC 62535 es {value:s62535_48}.\n• De acuerdo a los resultados se concluye que el azufre a 72 h por el método IEC 62535 es {value:s62535_72}."
+    },
+    {
+      "_origen": "_form_add_details_polis_default_values.html.erb:31-53",
+      "family": "grado_de_polimerizacion",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "dp",
+      "bands": [
+        {
+          "min": 1000,
+          "body": "• Condición de la muestra:  Nuevo de acuerdo a norma IEC"
+        },
+        {
+          "min": 650,
+          "max": 1000,
+          "body": "• Condición de la muestra:  Bueno de acuerdo a norma IEC."
+        },
+        {
+          "min": 350,
+          "max": 650,
+          "body": "• Condición de la muestra:  Medianamente envejecido de acuerdo a norma IEC 60450."
+        },
+        {
+          "max": 350,
+          "body": "• Condición de la muestra:  Envejecido de acuerdo a norma IEC 60450."
+        }
+      ]
+    },
+    {
+      "_origen": "_form_add_details_particles_default_values.html.erb:30-38",
+      "_nota": "Sin umbral: el párrafo transcribe el código ISO 4406 y explica qué significa cada uno de sus tres tramos.",
+      "family": "particulas",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "body": "CÓDIGO ISO: {value_num}\n\n• Según código ISO 4406: {value_num[1]} es el número de la escala que representa el número de partículas iguales ó más grandes que 4μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[2]} es el número de la escala que representa el número de partículas iguales ó más grandes que 6μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[3]} es el número de la escala que representa el número de partículas iguales ó más grandes que 14μm por mililitro de líquido."
+    },
+    {
+      "_origen": "_form_add_details_sedimentos_default_values.html.erb:31-41",
+      "family": "sedimentos",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "sediments",
+      "bands": [
+        {
+          "max": 0.001,
+          "body": "• No se encontró sedimentos ni lodo precipitable."
+        },
+        {
+          "min": 0.001,
+          "body": "• Se encontró sedimentos y lodo precipitable."
+        }
+      ]
+    },
+    {
+      "_origen": "_form_add_details_metales_default_values.html.erb:12-52 y _form_add_details_metales.html.erb:28 (el corte de 0.05 ppm vivía en la vista de carga, no en un cuadro de límites)",
+      "family": "metales_en_aceite",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "none",
+      "threshold": 0.05,
+      "body": "• Según los resultados obtenidos, no se detectó presencia de metales en la muestra de aceite."
+    },
+    {
+      "family": "metales_en_aceite",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "one",
+      "threshold": 0.05,
+      "body": "• Según los resultados obtenidos, se detectó {failed_values} como compuesto metálico en la muestra de aceite."
+    },
+    {
+      "family": "metales_en_aceite",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "many",
+      "threshold": 0.05,
+      "body": "• Según los resultados obtenidos, se detectó {failed_values} como compuestos metálicos en la muestra de aceite."
+    },
+    {
+      "_origen": "_form_add_details_viscos_default_values.html.erb:31-41",
+      "_nota": "El texto de la primera banda queda a medias en el sistema anterior ('para un aceite'); se transcribe como está.",
+      "family": "viscocidad",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "visc",
+      "bands": [
+        {
+          "max": 12,
+          "max_inclusive": true,
+          "body": "• Valor de viscosidad dentro del limite para un aceite"
+        },
+        {
+          "min": 12,
+          "min_exclusive": true,
+          "body": "• Valor de viscosidad fuera del limite para un aceite mineral."
+        }
+      ]
+    },
+    {
+      "_origen": "_form_add_details_dbds_default_values.html.erb:31-43",
+      "family": "dbds",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "dbds",
+      "bands": [
+        {
+          "max": 5,
+          "body": "• Según los resultados obtenidos la presencia de dibencil disulfuro en la muestra de aceite aislante, está por debajo del valor de referencia de la norma IEC 60422-2013."
+        },
+        {
+          "min": 5,
+          "body": "• Se detectó {value} de dibencil disulfuro en la muestra de aceite aislante, este resultado se encuentra por encima del valor de referencia dado por la Norma IEC 60422-2013.\n\n• Reduzca la corrosividad del aceite agregando un pasivador de cobre o elimine la fuente de corrosividad cambiando el aceite o eliminando compuestos corrosivos por medio de tratamientos adecuados de aceite de acuerdo a lo recomendado en la norma IEC 60422-2013. El monitoreo regular es necesario."
+        }
+      ]
+    },
+    {
+      "_origen": "_form_add_details_inflamas_default_values.html.erb:30-34",
+      "family": "inflamacion",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "flash",
+      "body": "El punto de inflamación ó Flash Point, es la temperatura a la cual el aceite emite vapores combustibles para prender una llama por 5 segundos.\n\nEl aceite de prueba tiene el punto de inflamación a {value}."
+    },
+    {
+      "_origen": "_form_add_details_fluids_default_values.html.erb:30-32",
+      "family": "fluidez",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "pour",
+      "body": "El aceite de prueba tiene el punto de fluidez a {value}."
+    },
+    {
+      "_origen": "_form_add_details_inhibidores_default_values.html.erb:27-39",
+      "_nota": "Solo para los aceites 1, 2, 3 y 8 del sistema anterior, que es la condición literal de su ERB. Por encima de 3 % no hay texto: allá tampoco lo había.",
+      "family": "inhibidor",
+      "oil_types": [
+        "mineral"
+      ],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "inhibitor",
+      "bands": [
+        {
+          "max": 0.08,
+          "body": "• De acuerdo al resultado obtenido  se considera como un aceite Tipo I (no inhibido) tomando como referencia la norma ASTM D3487-16."
+        },
+        {
+          "min": 0.08,
+          "max": 3,
+          "max_inclusive": true,
+          "body": "• De acuerdo al resultado obtenido  se considera como un aceite Tipo II (inhibido) tomando como referencia la norma ASTM D3487-16."
+        }
+      ]
+    },
+    {
+      "_origen": "_form_add_details_pasivadores_default_values.html.erb:31-53",
+      "family": "pasivador",
+      "oil_types": [],
+      "equipment_types": [],
+      "case": "any",
+      "analyte": "passivator",
+      "bands": [
+        {
+          "max": 50,
+          "body": "• De acuerdo al resultado obtenido (<50 ppm), la cantidad de contenido de pasivador es deficiente tomando como referencia la norma IEC 60422-2013.\n\n• Se recomienda  eliminar la fuente de corrosividad cambiando el aceite o eliminando los compuestos corrosivos mediante tratamientos de aceite adecuados, o como una solución a corto plazo, rellene con un pasivador nuevo, hasta al menos 100 ppm."
+        },
+        {
+          "min": 50,
+          "max": 70,
+          "max_inclusive": true,
+          "body": "• De acuerdo al resultado obtenido (50-70 ppm), la cantidad de contenido de pasivador es justo tomando como referencia la norma IEC 60422-2013.\n\n• Se recomienda mantener un control regular."
+        },
+        {
+          "min": 70,
+          "min_exclusive": true,
+          "body": "• De acuerdo al resultado obtenido (>70 ppm), la cantidad de contenido de pasivador es bueno tomando como referencia la norma IEC 60422-2013\n\n• Se recomienda realizar menos monitoreos frecuente aceptable."
+        }
+      ]
+    }
+  ]
 }

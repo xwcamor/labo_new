@@ -336,6 +336,15 @@ class SampleReportController extends Controller
             'code'     => $report->code,
             'sample'   => $report->sample->code,
             'editable' => $report->isDraft(),
+            // Quién dio por bueno el análisis, y cuándo. La pantalla muestra el
+            // botón de confirmar mientras esto sea nulo, y la constancia cuando
+            // no lo sea: sin verlo, nadie sabe si lo que está leyendo ya lo
+            // revisó otra persona.
+            'confirmed' => $report->analysisIsConfirmed(),
+            'confirmed_at' => $report->analysis_confirmed_at?->toDateTimeString(),
+            'confirmed_by' => $report->analysis_confirmed_at
+                ? \App\Models\User::find($report->analysis_confirmed_by)?->name
+                : null,
             // Una hoja por familia, con sus filas: es el mismo corte que usa el
             // informe impreso, así que la pantalla y el papel dicen lo mismo.
             'sections' => $datos['sections'],
@@ -375,6 +384,10 @@ class SampleReportController extends Controller
         app(\App\Services\Lab\DiagnosisTextService::class)
             ->generate($report->sample, pisarEditados: true);
 
+        // Volver a componer los párrafos cambia lo que el informe va a decir,
+        // así que la confirmación anterior deja de valer.
+        $this->desconfirmar($report);
+
         return back()->with('success', __('sample_reports.diagnosed'));
     }
 
@@ -408,7 +421,91 @@ class SampleReportController extends Controller
             );
         }
 
+        // Editar un párrafo TIRA ABAJO la confirmación. Lo que se confirmó fue
+        // un texto, no un trámite: si el texto cambia, alguien tiene que volver
+        // a leerlo antes de que el informe salga con su firma.
+        $this->desconfirmar($report);
+
         return back()->with('success', __('sample_reports.analysis_saved'));
+    }
+
+    /**
+     * Dar por bueno el análisis de resultados.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ ES UN PASO APARTE Y NO SE DEDUCE                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El informe se podía emitir sin que nadie hubiera abierto esta pantalla, y
+     * entonces salía con los títulos de familia y ninguna línea debajo: el
+     * motor compone los párrafos al abrirla, así que sin abrirla no hay
+     * párrafos. Pasó de verdad en la muestra de demostración.
+     *
+     * Se podría exigir «que las familias tengan texto» y ahorrarse el botón,
+     * pero eso lo cumple el propio motor sin que nadie haya leído nada, y el
+     * análisis es justo la parte donde el laboratorio OPINA. Lo que tiene que
+     * constar es que una persona lo dio por bueno, con nombre y hora.
+     */
+    public function confirmAnalysis(Request $request, SampleReport $report): RedirectResponse
+    {
+        if ($report->isIssued()) {
+            return back()->withErrors(['status' => __('sample_reports.issued_is_final')]);
+        }
+
+        $faltantes = $this->familiasSinTexto($report);
+
+        if ($faltantes !== []) {
+            return back()->withErrors([
+                'analysis' => __('sample_reports.analysis_incomplete', [
+                    'families' => implode(', ', $faltantes),
+                ]),
+            ]);
+        }
+
+        $report->forceFill([
+            'analysis_confirmed_at' => now(),
+            'analysis_confirmed_by' => $request->user()?->id,
+        ])->save();
+
+        return back()->with('success', __('sample_reports.analysis_confirmed'));
+    }
+
+    /**
+     * Las familias del informe que todavía no tienen párrafo.
+     *
+     * Se mira contra las SECCIONES que el informe va a imprimir, no contra la
+     * tabla de textos: una familia sin fila en `sample_diagnoses` y una con la
+     * fila en blanco son el mismo problema —una hoja con título y sin opinión—
+     * y las dos tienen que frenar la confirmación.
+     *
+     * @return array<int,string>
+     */
+    private function familiasSinTexto(SampleReport $report): array
+    {
+        $datos = app(\App\Services\Lab\TestReportPayload::class)
+            ->forSample($report->sample, $report);
+
+        $faltantes = [];
+
+        foreach ($datos['analysis'] as $fila) {
+            if (trim((string) ($fila['body'] ?? '')) === '') {
+                $faltantes[] = $fila['label'] ?? $fila['family'];
+            }
+        }
+
+        return $faltantes;
+    }
+
+    /** Deja el informe sin confirmar. Silencioso si ya lo estaba. */
+    private function desconfirmar(SampleReport $report): void
+    {
+        if (! $report->analysisIsConfirmed()) {
+            return;
+        }
+
+        $report->forceFill([
+            'analysis_confirmed_at' => null,
+            'analysis_confirmed_by' => null,
+        ])->save();
     }
 
     public function store(Request $request, Sample $sample): RedirectResponse
@@ -442,6 +539,16 @@ class SampleReportController extends Controller
      */
     public function issue(Request $request, SampleReport $report): RedirectResponse
     {
+        // Sin análisis confirmado no sale. Es la puerta que faltaba: el motor
+        // compone los párrafos cuando se abre la pantalla del análisis, así que
+        // emitir sin pasar por ahí producía un informe con los títulos de
+        // familia y ninguna línea debajo de ninguno. El botón de la pantalla ya
+        // no aparece hasta confirmar; esto lo hace valer también para quien
+        // llegue por la ruta.
+        if (! $report->analysisIsConfirmed()) {
+            return back()->withErrors(['status' => __('sample_reports.analysis_not_confirmed')]);
+        }
+
         // La emisión entera vive en el servicio: congelar el contenido, marcar
         // informados los ensayos y auditar tienen que pasar juntos, y hay más de
         // una vía que emite (esta pantalla, el sembrador de demostración).
@@ -493,6 +600,12 @@ class SampleReportController extends Controller
         if (! $hecho) {
             return back()->withErrors(['status' => __('sample_reports.not_issued')]);
         }
+
+        // Desbloquear es admitir que salió un papel con un error, así que el
+        // análisis vuelve a quedar sin confirmar: quien lo emita de nuevo tiene
+        // que releerlo con el dato ya corregido. Es una relectura de más en el
+        // caso benigno y la única red en el caso que importa.
+        $this->desconfirmar($report->refresh());
 
         return back()->with('success', __('sample_reports.unissued', ['code' => $report->code]));
     }

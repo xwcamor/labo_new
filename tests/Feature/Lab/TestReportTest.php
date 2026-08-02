@@ -323,13 +323,30 @@ class TestReportTest extends TestCase
         unset($rigidez);
     }
 
-    public function test_el_titulo_de_la_pagina_compartida_es_el_grupo_del_catalogo(): void
+    /**
+     * El título de una página con varias pruebas es el de su FAMILIA.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ NO ES EL GRUPO DEL CATÁLOGO                                  │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Esta prueba exigía el nombre del GRUPO ("Fisico Quimico"), con el
+     * argumento de que el laboratorio lo edita desde Grupos de pruebas y el
+     * rótulo del archivo de idioma no. El argumento era bueno y la premisa
+     * falsa: grupo y familia son dos ejes distintos. El GRUPO ordena el
+     * catálogo; la FAMILIA decide qué pruebas comparten HOJA en el informe.
+     * Coinciden en fisicoquímico y no coinciden en el resto — las quince
+     * pruebas que no son fiqui ni cromas viven en el grupo cajón de sastre
+     * "Otros", y ahí adentro hay once familias.
+     *
+     * El resultado era que la hoja de los tres azufres se titulaba "OTROS" en
+     * el informe moderno mientras el clásico, que sí usa la familia, titulaba
+     * "AZUFRE CORROSIVO". El mismo papel con dos nombres.
+     *
+     * El grupo queda de respaldo para una familia sin rótulo declarado, que es
+     * lo que fija la segunda mitad de esta prueba.
+     */
+    public function test_el_titulo_de_la_pagina_compartida_es_el_de_su_familia(): void
     {
-        // "¿De dónde inventaste esa palabra?": el título de una página con
-        // varias pruebas salía de una lista escrita a mano en el archivo de
-        // idioma, una palabra del sistema que el laboratorio no podía cambiar
-        // desde ninguna pantalla. El título es el nombre del GRUPO del catálogo
-        // (Grupos de pruebas), que sí es suyo y sí se edita.
         $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
         $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
 
@@ -347,7 +364,31 @@ class TestReportTest extends TestCase
         $fisico = collect($this->payload->forSample($muestra)['sections'])
             ->firstWhere('family', 'fisicoquimico');
 
-        $this->assertSame('Fisico Quimico', $fisico['test']);
+        $this->assertSame(__('reports.family.fisicoquimico'), $fisico['test']);
+    }
+
+    public function test_una_familia_sin_rotulo_declarado_cae_al_grupo_del_catalogo(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $grupo = \App\Models\TestGroup::create([
+            'slug' => Str::random(22), 'name' => 'Ensayos propios',
+            'code' => 'propios', 'sort_order' => 1, 'tenant_id' => 1,
+        ]);
+
+        // Una familia que el laboratorio agregó y que no está en el archivo de
+        // idioma: el papel no puede imprimir la clave con puntos.
+        $this->prueba->forceFill([
+            'report_comment_group' => 'familia_del_laboratorio',
+            'test_group_id'        => $grupo->id,
+        ])->save();
+        $this->pruebaHermana('rigidez', 'Rigidez Dieléctrica', 'familia_del_laboratorio', $muestra, 64.9);
+
+        $seccion = collect($this->payload->forSample($muestra)['sections'])
+            ->firstWhere('family', 'familia_del_laboratorio');
+
+        $this->assertSame('Ensayos propios', $seccion['test']);
     }
 
     public function test_dentro_de_la_tabla_cada_fila_lleva_su_propia_norma(): void

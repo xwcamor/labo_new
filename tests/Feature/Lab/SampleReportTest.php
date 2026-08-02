@@ -392,4 +392,121 @@ class SampleReportTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]]);
     }
+
+    // ─── El análisis, antes de emitir ────────────────────────────────────
+
+    /**
+     * Sin análisis confirmado, la ruta de emitir no emite.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El motor compone los párrafos del análisis cuando se ABRE esa pantalla.
+     * Si nadie la abría, el informe se emitía igual y salía con los títulos de
+     * familia —FISICOQUIMICO, CROMATOGRAFICO, AZUFRE CORROSIVO…— y ni una línea
+     * debajo de ninguno: un papel firmado, con su código de verificación, mudo
+     * en la única sección donde el laboratorio opina.
+     *
+     * Pasó de verdad: la muestra de demostración, con las 29 pruebas cargadas y
+     * validadas, quedó con `sample_diagnoses` en CERO filas.
+     *
+     * El candado está en el CONTROLADOR y no en el servicio a propósito: el
+     * servicio es el mecanismo de emitir —lo usan los sembradores, que confirman
+     * por su cuenta— y la política de quién puede emitir vive en la frontera
+     * HTTP, igual que el rol que exige desbloquear.
+     */
+    public function test_sin_analisis_confirmado_la_ruta_no_emite(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+
+        $this->actingAs($this->usuarioAdmin())
+            ->post(route('lab_management.sample_reports.issue', $informe))
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(SampleReport::STATUS_DRAFT, $informe->fresh()->status);
+    }
+
+    public function test_con_el_analisis_confirmado_la_ruta_emite(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+
+        $informe->forceFill([
+            'analysis_confirmed_at' => now(),
+            'analysis_confirmed_by' => null,
+        ])->save();
+
+        $this->actingAs($this->usuarioAdmin())
+            ->post(route('lab_management.sample_reports.issue', $informe))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(SampleReport::STATUS_ISSUED, $informe->fresh()->status);
+    }
+
+    /**
+     * Desbloquear tira abajo la confirmación.
+     *
+     * Desbloquear es admitir que salió un papel con un error. Quien lo vuelva a
+     * emitir tiene que releer el análisis con el dato ya corregido: es una
+     * relectura de más en el caso benigno y la única red en el que importa.
+     */
+    public function test_desbloquear_deja_el_analisis_sin_confirmar(): void
+    {
+        $muestra = $this->muestra();
+        $informe = $this->service->create($muestra, [], null);
+        $informe->forceFill(['analysis_confirmed_at' => now()])->save();
+        $this->service->issue($informe->fresh(), null);
+
+        $this->actingAs($this->usuarioAdmin())
+            ->post(route('lab_management.sample_reports.unissue', $informe), [
+                'reason' => 'Un valor mal cargado en la placa.',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($informe->fresh()->analysis_confirmed_at);
+    }
+
+    private function usuarioAdmin(): User
+    {
+        // Esta clase siembra solo idioma y workspace; el usuario cuelga además
+        // de país y locale.
+        DB::table('locales')->insertOrIgnore([[
+            'id' => 1, 'slug' => Str::random(22), 'code' => 'es_PE',
+            'name' => 'Español', 'language_id' => 1, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+        DB::table('regions')->insertOrIgnore([[
+            'id' => 999, 'slug' => Str::random(22), 'name' => '__bs__',
+            'is_active' => false, 'deleted_at' => now(), 'deleted_description' => 'bs',
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+        DB::table('countries')->insertOrIgnore([[
+            'id' => 1, 'slug' => Str::random(22), 'region_id' => 999, 'name' => 'Peru',
+            'iso_code' => 'PE', 'currency' => 'PEN', 'timezone' => 'America/Lima',
+            'default_locale_id' => 1, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+
+        $rol = \Spatie\Permission\Models\Role::firstOrCreate(
+            ['name' => 'admin', 'guard_name' => 'web'],
+            ['description' => 'Rol de prueba.'],
+        );
+
+        // Las rutas piden `receptions.edit`; sin el permiso el middleware
+        // redirige y el controlador —que es lo que se está probando— ni se
+        // ejecuta.
+        $rol->givePermissionTo(\Spatie\Permission\Models\Permission::firstOrCreate(
+            ['name' => 'receptions.edit', 'guard_name' => 'web'],
+        ));
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $usuario = User::factory()->create([
+            'tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1,
+        ]);
+        $usuario->assignRole('admin');
+
+        return $usuario;
+    }
 }

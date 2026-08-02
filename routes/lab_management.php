@@ -345,6 +345,9 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('reports/{report}/unissue', [SampleReportController::class, 'unissue'])->name('sample_reports.unissue');
         Route::post('reports/{report}/autodiagnose', [SampleReportController::class, 'autodiagnose'])->name('sample_reports.autodiagnose');
         Route::put('reports/{report}/analysis', [SampleReportController::class, 'saveAnalysis'])->name('sample_reports.analysis.save');
+        // Dar por bueno el análisis. Es la condición para emitir: ver
+        // `SampleReportController::confirmAnalysis`.
+        Route::post('reports/{report}/analysis/confirm', [SampleReportController::class, 'confirmAnalysis'])->name('sample_reports.analysis.confirm');
     });
 
     // La descarga en Excel va con el permiso de LECTURA: es la misma

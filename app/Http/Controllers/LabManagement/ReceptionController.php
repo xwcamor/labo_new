@@ -237,6 +237,9 @@ class ReceptionController extends Controller
                     // que tiene otro cargado.
                     'oil_type'         => $muestra?->oilType?->name ?? $muestra?->equipment?->oilType?->name,
                     'received_at'      => $reception->received_at?->toDateString(),
+                    // De esto depende que aparezca el botón de emitir: un
+                    // informe cuyo análisis nadie dio por bueno no sale.
+                    'analysis_confirmed' => $informe->analysisIsConfirmed(),
                 ]);
             });
 

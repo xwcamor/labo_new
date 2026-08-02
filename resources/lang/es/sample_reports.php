@@ -18,6 +18,16 @@ return [
     'analysis_empty' => 'El sistema no tiene una plantilla para este aceite y este tipo de equipo, así que no propone texto. Escríbalo a mano.',
     'analysis_edited' => 'Corregido a mano',
     'analysis_readonly' => 'El informe está emitido: su análisis ya salió impreso y no se edita.',
+
+    // ── Confirmar el análisis: la condición para emitir ───────────────────
+    'analysis_confirm' => 'Confirmar análisis',
+    'analysis_confirmed' => 'Análisis confirmado. El informe ya se puede emitir.',
+    'analysis_confirmed_by' => 'Confirmado por :name el :at',
+    'analysis_missing' => 'Faltan :count familias sin párrafo. El informe no se emite con una hoja sin análisis.',
+    'analysis_incomplete' => 'Estas familias no tienen párrafo de análisis: :families.',
+    'analysis_not_confirmed' => 'El análisis de resultados todavía no está confirmado. Ábralo, revíselo y confírmelo antes de emitir.',
+    'analysis_pending' => 'Falta confirmar el análisis',
+    'issue_needs_analysis' => 'Para emitir, primero hay que revisar y confirmar el análisis de resultados. Se abre con el botón de al lado.',
     'no_sections' => 'Todavía no hay ensayos validados que analizar.',
     'col_item' => 'Ítem',
     'col_test' => 'Ensayo',

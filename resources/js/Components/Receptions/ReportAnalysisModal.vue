@@ -22,7 +22,7 @@
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Alert, Button, Modal, Spin, Tag, Textarea } from 'ant-design-vue';
-import { ExperimentOutlined, ThunderboltOutlined } from '@ant-design/icons-vue';
+import { CheckCircleOutlined, ExperimentOutlined, ThunderboltOutlined } from '@ant-design/icons-vue';
 
 import { useI18n } from '@/Plugins/i18n';
 
@@ -31,7 +31,7 @@ const props = defineProps({
     report: { type: Object, default: null },
 });
 
-const emit = defineEmits(['update:open']);
+const emit = defineEmits(['update:open', 'saved']);
 
 const { t } = useI18n();
 
@@ -89,6 +89,49 @@ const autodiagnosticar = () => Modal.confirm({
     ),
 });
 
+/**
+ * Las familias que todavía no tienen párrafo.
+ *
+ * Bloquean la confirmación. El servidor lo verifica igual —esto es solo para
+ * decirlo antes del viaje—, y por eso mira `sections` y no `analysis`: lo que
+ * importa es que cada HOJA que el informe va a imprimir tenga su opinión.
+ */
+const familiasSinTexto = computed(
+    () => [...new Set((data.value?.sections ?? []).map((s) => s.family))]
+        .filter((f) => !String(bodies.value[f] ?? '').trim()),
+);
+
+const confirmando = ref(false);
+
+/**
+ * Dar el análisis por bueno. Es lo que habilita EMITIR.
+ *
+ * Guarda PRIMERO y confirma después, en ese orden: el servidor juzga contra lo
+ * guardado, no contra lo que hay en pantalla, así que confirmar sin guardar
+ * dejaría confirmado un texto distinto del que la persona acaba de leer.
+ */
+const confirmar = () => {
+    confirmando.value = true;
+
+    router.put(
+        route('lab_management.sample_reports.analysis.save', props.report.slug),
+        { bodies: bodies.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => router.post(
+                route('lab_management.sample_reports.analysis.confirm', props.report.slug),
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => { close(); emit('saved'); },
+                    onFinish:  () => { confirmando.value = false; },
+                },
+            ),
+            onError: () => { confirmando.value = false; },
+        },
+    );
+};
+
 const guardar = () => {
     saving.value = true;
     router.put(
@@ -96,7 +139,7 @@ const guardar = () => {
         { bodies: bodies.value },
         {
             preserveScroll: true,
-            onSuccess: () => { close(); },
+            onSuccess: () => { close(); emit('saved'); },
             onFinish:  () => { saving.value = false; },
         },
     );
@@ -238,12 +281,38 @@ const guardar = () => {
             </Spin>
 
             <div class="ran__foot">
+                <!-- Quién lo dio por bueno y cuándo. Va en el pie y no en un
+                     aviso arriba porque es lo que responde la pregunta que se
+                     hace al llegar acá: ¿esto ya lo revisó alguien? -->
+                <span v-if="data?.confirmed" class="ran__stamp">
+                    <CheckCircleOutlined />
+                    {{ $t('sample_reports.analysis_confirmed_by', {
+                        name: data.confirmed_by ?? '—', at: data.confirmed_at ?? '',
+                    }) }}
+                </span>
+                <span v-else-if="data?.editable && familiasSinTexto.length > 0" class="ran__missing">
+                    {{ $t('sample_reports.analysis_missing', { count: familiasSinTexto.length }) }}
+                </span>
+
                 <Button @click="close">{{ $t('global.cancel') }}</Button>
                 <Button v-if="data?.editable" :loading="loading" @click="autodiagnosticar">
                     <ThunderboltOutlined /> {{ $t('sample_reports.autodiagnose') }}
                 </Button>
-                <Button v-if="data?.editable" type="primary" :loading="saving" @click="guardar">
+                <Button v-if="data?.editable" :loading="saving" @click="guardar">
                     {{ $t('global.save_changes') }}
+                </Button>
+                <!-- LA ACCIÓN PRINCIPAL DE ESTA PANTALLA. Guardar deja el texto
+                     escrito; confirmar es lo que habilita emitir, y por eso es
+                     el botón primario. Deshabilitado mientras falte algún
+                     párrafo: un informe con una hoja sin opinión no sale. -->
+                <Button
+                    v-if="data?.editable"
+                    type="primary"
+                    :loading="confirmando"
+                    :disabled="familiasSinTexto.length > 0"
+                    @click="confirmar"
+                >
+                    <CheckCircleOutlined /> {{ $t('sample_reports.analysis_confirm') }}
                 </Button>
             </div>
         </div>
@@ -298,6 +367,13 @@ const guardar = () => {
     font-weight: 600; margin-bottom: 6px; color: var(--color-text);
 }
 
+.ran__stamp {
+    margin-right: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; color: #237804;
+}
+.ran__missing { margin-right: auto; font-size: 0.78rem; color: #b45309; }
+
 .ran__foot {
     position: sticky; bottom: 0;
     display: flex; justify-content: flex-end; gap: 10px;
@@ -310,7 +386,14 @@ const guardar = () => {
     border-top: 1px solid var(--color-border);
 }
 @media (max-width: 767px) {
-    .ran__foot { margin: auto -16px -14px; padding: 12px 16px; }
+    .ran__stamp {
+    margin-right: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; color: #237804;
+}
+.ran__missing { margin-right: auto; font-size: 0.78rem; color: #b45309; }
+
+.ran__foot { margin: auto -16px -14px; padding: 12px 16px; }
 }
 
 /* ── Firmantes (módulo Firmas), debajo del índice de familias ─────────── */

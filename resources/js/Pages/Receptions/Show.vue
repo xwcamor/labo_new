@@ -708,14 +708,34 @@ const confirmarDesbloqueo = () => {
                                         <SolutionOutlined />
                                     </Button>
                                 </Tooltip>
-                                <Button
-                                    v-if="canEdit && record.status === 'draft'"
-                                    size="small"
-                                    type="primary"
-                                    @click="emitir(record)"
-                                >
-                                    {{ $t('sample_reports.issue') }}
-                                </Button>
+                                <!-- EMITIR APARECE RECIÉN CON EL ANÁLISIS
+                                     CONFIRMADO.
+
+                                     El motor compone los párrafos del análisis
+                                     al abrirse esa pantalla. Si nadie la abría,
+                                     el informe salía con los títulos de familia
+                                     —FISICOQUIMICO, CROMATOGRAFICO, AZUFRE
+                                     CORROSIVO…— y ni una línea debajo de
+                                     ninguno: un papel firmado que no dice nada
+                                     en la única sección donde el laboratorio
+                                     opina. Mientras falte, en lugar del botón va
+                                     el aviso de qué falta, para que el que
+                                     emite sepa adónde ir. -->
+                                <template v-if="canEdit && record.status === 'draft'">
+                                    <Button
+                                        v-if="record.analysis_confirmed"
+                                        size="small"
+                                        type="primary"
+                                        @click="emitir(record)"
+                                    >
+                                        {{ $t('sample_reports.issue') }}
+                                    </Button>
+                                    <Tooltip v-else :title="$t('sample_reports.issue_needs_analysis')">
+                                        <Tag :bordered="false" color="orange" class="rc-pending">
+                                            {{ $t('sample_reports.analysis_pending') }}
+                                        </Tag>
+                                    </Tooltip>
+                                </template>
                                 <!-- UN botón de descarga con las dos plantillas
                                      adentro. Antes eran dos botones con su
                                      rótulo, y en una fila que ya tiene cinco
@@ -723,7 +743,15 @@ const confirmarDesbloqueo = () => {
                                      decir dos veces "PDF". La elección de
                                      plantilla no es una acción distinta: es cómo
                                      se quiere el mismo papel. -->
-                                <Dropdown :trigger="['click']">
+                                <!-- Y DESCARGAR, RECIÉN CON EL INFORME EMITIDO.
+                                     Un borrador no es un informe: no tiene
+                                     número de verificación, su contenido todavía
+                                     puede cambiar y el análisis puede estar sin
+                                     escribir. Bajarlo en PDF es fabricar un
+                                     papel con aspecto de definitivo que después
+                                     alguien manda por correo. Para revisar antes
+                                     de emitir está la pantalla del análisis. -->
+                                <Dropdown v-if="record.status === 'issued'" :trigger="['click']">
                                     <Tooltip :title="$t('sample_reports.download')">
                                         <Button size="small">
                                             <DownloadOutlined />
@@ -823,9 +851,13 @@ const confirmarDesbloqueo = () => {
             @saved="tabActiva = 'reports'"
         />
 
+        <!-- `saved` recarga la ficha: de esa pantalla sale la confirmación del
+             análisis, y de ella depende que la fila muestre el botón de emitir.
+             Sin recargar, hay que salir y volver para verlo aparecer. -->
         <ReportAnalysisModal
             v-model:open="analysisOpen"
             :report="analysisReport"
+            @saved="router.reload({ only: ['reports'] })"
         />
 
         <!-- Desbloquear un informe emitido. El aviso va PRIMERO: lo que importa
@@ -905,6 +937,9 @@ const confirmarDesbloqueo = () => {
 <style scoped>
 .rc-alert { margin-bottom: 12px; }
 .rc-sub { color: var(--color-text-muted); font-size: 0.8125rem; }
+/* Ocupa el lugar del botón Emitir mientras el análisis no esté confirmado: sin
+   esto la fila pierde su acción principal y parece que le falta algo. */
+.rc-pending { margin: 0; }
 
 .rc-samples__bar {
     display: flex;

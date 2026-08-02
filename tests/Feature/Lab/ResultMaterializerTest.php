@@ -333,4 +333,47 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame('>75.000', $r->display);
         $this->assertFalse($r->isUsableInStatistics());
     }
+
+    /**
+     * Una columna de resultado que es LISTA se materializa con su texto.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La celda de una columna de lista guarda su respuesta en `option_id`, no
+     * en `value_text`. El materializador copiaba `value_num` y `value_text` y
+     * nada más, así que el resultado quedaba con los dos en nulo: existía la
+     * fila y no tenía valor.
+     *
+     * Son tres columnas en todo el catálogo —el resultado de los tres azufres
+     * corrosivos— y el efecto era doble: la hoja de azufre salía impresa con
+     * sus tres filas en blanco, y el motor del análisis, que juzga sobre el
+     * resultado, no tenía qué juzgar y dejaba esa familia sin párrafo.
+     */
+    public function test_una_columna_de_lista_materializa_el_texto_de_su_opcion(): void
+    {
+        $columna = TestField::where('code', 'resultado')->first();
+        $columna->update(['type' => 'select', 'formula' => null]);
+
+        $opcion = \App\Models\TestFieldOption::create([
+            'test_field_id' => $columna->id,
+            'value' => 'No Corrosivo',
+            'sort_order' => 1,
+        ]);
+
+        $w = $this->hoja();
+        $this->service->saveRow($w, [
+            'kind' => WorksheetRow::KIND_SAMPLE, 'equipment_id' => $this->equipo->id,
+        ], [
+            'nro_muestra' => '2026-0744', 'peso_aceite' => '20',
+            'volumen_gastado' => '1.20', 'resultado' => (string) $opcion->id,
+        ]);
+
+        $this->validar($w);
+
+        $r = Result::first();
+        $this->assertNotNull($r, 'La columna de lista no materializó ningún resultado.');
+        $this->assertSame('No Corrosivo', $r->value_text);
+        $this->assertNull($r->value_num);
+    }
 }

@@ -42,6 +42,9 @@ class SampleReport extends Model
         'issued_at'    => 'date',
         'delivered_at' => 'date',
         'snapshot'     => 'array',
+        // `datetime` y no `date`: importa la HORA. Es el momento en que una
+        // persona dio por bueno lo que el informe va a opinar.
+        'analysis_confirmed_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -85,6 +88,18 @@ class SampleReport extends Model
     public function isDraft(): bool
     {
         return $this->status === self::STATUS_DRAFT;
+    }
+
+    /**
+     * ¿Alguien dio por bueno el análisis de resultados?
+     *
+     * Es la condición para EMITIR. Sin esto el informe salía con los títulos de
+     * familia y ningún párrafo debajo: el motor compone los textos cuando se
+     * abre esa pantalla, y si nadie la abría, no había textos.
+     */
+    public function analysisIsConfirmed(): bool
+    {
+        return $this->analysis_confirmed_at !== null;
     }
 
     /** REP-LAB-2026-0800. */

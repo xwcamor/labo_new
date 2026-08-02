@@ -323,15 +323,31 @@ class TestReportPayload
             }
 
             // El título de la página. Con una sola prueba es su nombre; con
-            // varias, el nombre del GRUPO del catálogo ("Fisico Quimico", el
-            // que el laboratorio edita en Grupos de pruebas). Antes salía de
-            // una lista escrita a mano en el archivo de idioma
-            // (`reports.family.*`): una palabra que el sistema inventó y que
-            // el laboratorio no podía cambiar desde ninguna pantalla. Esa
-            // lista queda solo de respaldo para pruebas sin grupo asignado.
+            // varias, el rótulo de la FAMILIA.
+            //
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ POR QUÉ LA FAMILIA Y NO EL GRUPO DEL CATÁLOGO                │
+            // └──────────────────────────────────────────────────────────────┘
+            // Acá se prefería el nombre del GRUPO ("Fisico Quimico"), con el
+            // argumento de que el laboratorio puede editarlo desde Grupos de
+            // pruebas y el rótulo del archivo de idioma no. El argumento es
+            // bueno pero la premisa era falsa: grupo y familia son dos ejes
+            // distintos. El GRUPO ordena el catálogo de pruebas; la FAMILIA
+            // decide qué pruebas comparten HOJA en el informe. Coinciden en
+            // fisicoquímico y no coinciden en el resto: las quince pruebas que
+            // no son fiqui ni cromas viven todas en el grupo cajón de sastre
+            // "Otros", y ahí adentro hay once familias distintas.
+            //
+            // El resultado era que la hoja de los tres azufres —única familia
+            // con más de una prueba dentro de ese grupo— se titulaba "OTROS",
+            // mientras el informe clásico, que sí usa la familia, titulaba
+            // "AZUFRE CORROSIVO". El mismo papel con dos nombres.
+            //
+            // El grupo queda de respaldo para una familia que no tenga rótulo
+            // —una que el laboratorio agregue— y el código, de último recurso.
             $titulo = count($bloque['tests']) === 1
                 ? $bloque['tests'][0]->definition?->name
-                : ($bloque['group'] ?: __('reports.family.' . $familia));
+                : $this->rotuloDeFamilia($familia, $bloque['group']);
 
             $secciones[] = [
                 'test'   => $titulo,
@@ -414,6 +430,29 @@ class TestReportPayload
     }
 
     /**
+     * Cómo se titula la hoja de una familia con varias pruebas.
+     *
+     * El rótulo vive en el archivo de idioma (`reports.family.*`), que es la
+     * misma lista que usa el informe clásico: los dos papeles tienen que
+     * llamar igual a la misma hoja. Sin rótulo cae al nombre del grupo del
+     * catálogo, y sin grupo al código de la familia — que es feo, pero es
+     * cierto, y se ve enseguida que falta declararlo.
+     */
+    private function rotuloDeFamilia(string $familia, ?string $grupo): string
+    {
+        $clave  = 'reports.family.' . $familia;
+        $rotulo = __($clave);
+
+        // `__()` devuelve la CLAVE cuando no existe la traducción, y una clave
+        // con puntos impresa en un informe se lee como un error del sistema.
+        if ($rotulo !== $clave) {
+            return $rotulo;
+        }
+
+        return $grupo ?: $familia;
+    }
+
+    /**
      * La nota al pie propia de una prueba — la "(1) Tipo de celda: MC2A…" del
      * informe anterior.
      *
@@ -489,12 +528,13 @@ class TestReportPayload
         }
 
         // Con una sola prueba en la familia el rótulo es el nombre de la
-        // prueba; cuando el laboratorio agrupa varias bajo la misma familia, el
-        // del grupo. Así la fila dice algo en los dos casos, sin una lista de
-        // nombres escrita en el código.
+        // prueba; con varias, el de la FAMILIA — el mismo que titula la hoja
+        // del informe, para que la pantalla del análisis y el papel nombren
+        // igual a lo mismo. Acá se usaba el grupo del catálogo y la familia de
+        // los tres azufres aparecía como «Otros»; ver `rotuloDeFamilia`.
         foreach ($filas as $clave => $fila) {
             if ($fila['tests'] > 1) {
-                $filas[$clave]['label'] = $fila['group'] ?? $clave;
+                $filas[$clave]['label'] = $this->rotuloDeFamilia($clave, $fila['group']);
             }
         }
 

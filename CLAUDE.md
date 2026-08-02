@@ -106,7 +106,7 @@ hojas de trabajo y las cartas de control NO, porque no son catálogos.
 
 `php artisan setup:project` deja el sistema usable: 29 pruebas, 207 columnas,
 9 fórmulas, 37 parámetros, 24 instrumentos, 34 normas, 27 cuadros de límites,
-344 clientes y una demostración completa (18 recepciones, 36 muestras con su
+58 opciones de las listas del informe, 344 clientes y una demostración completa (18 recepciones, 36 muestras con su
 correlativo, 144 pruebas pedidas, 6 equipos, 24 hojas validadas, 504 resultados
 —301 dentro de norma, 53 fuera, 150 sin criterio—, 1 carta de control). El
 comando imprime esa tabla al terminar, con la ruta de cada pantalla.
@@ -127,6 +127,7 @@ llaman por dentro.
 | `LabAnalyteMapSeeder` | qué columna alimenta qué parámetro | `data/analyte_map.json` |
 | `LabStandardsSeeder` | 34 normas + 19 métodos de ensayo | `data/standards.json` |
 | `LabSpecSetsSeeder` | 27 cuadros de límites, con sus 16 anomalías anotadas | `data/spec_limits_legacy.json` |
+| `ReportCatalogsSeeder` | las 4 listas del formulario del informe (58 filas) | `data/report_catalogs.json` |
 | `LabDemoWorksheetsSeeder` | **lo único inventado**: recepciones, equipos, hojas, resultados | — |
 
 El orden importa y está anotado en `DatabaseSeeder`. Lo de demostración lleva la

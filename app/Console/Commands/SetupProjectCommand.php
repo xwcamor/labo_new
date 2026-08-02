@@ -124,6 +124,12 @@ class SetupProjectCommand extends Command
                 ? \Illuminate\Support\Facades\DB::table('results')->where('spec_status', 'out_of_spec')->count() : 0, ''],
             ['   sin criterio',          \Illuminate\Support\Facades\Schema::hasTable('results')
                 ? \Illuminate\Support\Facades\DB::table('results')->whereNull('spec_status')->count() : 0, ''],
+            // Las cuatro listas que llenan el formulario del informe. Van en el
+            // resumen porque es el único lugar donde su ausencia se nota a
+            // tiempo: sin sembrar, el formulario abre igual y los cuatro
+            // desplegables salen vacíos, que se lee como «todavía no cargaron
+            // nada» y no como «falta correr el seeder».
+            ['Listas del informe',       $cuenta('report_catalogs'),  '/lab_management/report_catalogs'],
             // El informe es el PRODUCTO del laboratorio y lo que el seed base
             // existe para poder abrir. No estaba en el resumen, así que había que
             // ir a buscarlo a la ficha de la entrega para saber si se había

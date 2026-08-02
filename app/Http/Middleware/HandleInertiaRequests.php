@@ -282,7 +282,7 @@ class HandleInertiaRequests extends Middleware
             'system_modules', 'settings', 'users', 'roles', 'customers',
             'oil_types', 'equipment_types', 'tap_changer_types', 'laboratories',
             'tap_changer_brands', 'tap_changer_models', 'tap_changer_technologies',
-            'brands', 'samplers', 'signatures', 'equipment', 'analytes', 'audit_logs', 'sidebar', 'imports',
+            'brands', 'samplers', 'signatures', 'entry_authorizers', 'equipment', 'analytes', 'audit_logs', 'sidebar', 'imports',
             'notifications', 'auth', 'profile', 'subscriptions', 'plans',
             'automations', 'dashboard', 'messages', 'sharing', 'comments',
             'search', 'approvals', 'locks',

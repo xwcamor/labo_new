@@ -638,18 +638,20 @@ class ReceptionTest extends TestCase
         $this->assertSame('Técnico de la contratista', Reception::sole()->sampler_name);
     }
 
-    public function test_el_autorizador_tiene_que_estar_habilitado(): void
+    public function test_el_autorizador_tiene_que_existir_en_el_catalogo(): void
     {
-        // El select solo ofrece firmas con «Autoriza ingresos», y el servidor
-        // lo verifica también: un id adivinado de otro firmante no pasa.
-        $firmanteComun = \App\Models\Signature::create([
-            'slug' => Str::random(22), 'name' => 'FIRMANTE SIN EL PAPEL',
-            'tenant_id' => 1, 'authorizes_entry' => false, 'is_active' => true,
+        // El autorizador sale del catálogo «Personal que autoriza»
+        // (`entry_authorizers`) — NO de los firmantes de informes. Un id dado
+        // de baja (o inventado) no pasa.
+        $borrado = \App\Models\EntryAuthorizer::create([
+            'slug' => Str::random(22), 'name' => 'PERSONA DADA DE BAJA',
+            'tenant_id' => 1, 'is_active' => true,
         ]);
+        $borrado->delete();
 
         $this->actingAs($this->usuarioConPermiso('receptions.create'))
             ->post(route('lab_management.receptions.store'), $this->payloadAlta([
-                'authorized_by_id' => $firmanteComun->id,
+                'authorized_by_id' => $borrado->id,
             ]))
             ->assertSessionHasErrors('authorized_by_id');
 
@@ -694,9 +696,9 @@ class ReceptionTest extends TestCase
 
     private function autorizadorId(): int
     {
-        return \App\Models\Signature::firstOrCreate(
+        return \App\Models\EntryAuthorizer::firstOrCreate(
             ['name' => 'AUTORIZADORA DE INGRESOS', 'tenant_id' => 1],
-            ['slug' => Str::random(22), 'authorizes_entry' => true, 'is_active' => true],
+            ['slug' => Str::random(22), 'is_active' => true],
         )->id;
     }
 

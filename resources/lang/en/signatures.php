@@ -44,8 +44,6 @@ return [
     'code'      => 'Code',
     'code_help' => 'Optional internal identifier. Rarely needed: the report uses the name and the job title.',
     'sort_order' => 'Order',
-    'authorizes_entry' => 'Authorizes intake',
-    'authorizes_entry_help' => 'Whether this person can authorize sample intake. Flagged people are the ones the reception form offers.',
     'is_active' => 'Status',
     'is_active_help' => 'If inactive, the signature will not appear in selectors of other modules.',
     'filter_name' => 'Name',

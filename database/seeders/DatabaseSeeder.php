@@ -150,6 +150,10 @@ class DatabaseSeeder extends Seeder
 
             SamplersSeeder::class,
             SignaturesSeeder::class,
+            // El personal que AUTORIZA el ingreso de muestras (catálogo aparte
+            // de Firmas, como en el sistema anterior). Obligatorio en el alta
+            // de recepciones: sin sembrarlo, registrar una entrega es imposible.
+            EntryAuthorizersSeeder::class,
             LabAnalyteMapSeeder::class,
 
             // ── Contra qué se compara el resultado ──────────────────────

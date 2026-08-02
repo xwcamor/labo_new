@@ -92,13 +92,14 @@ class Reception extends Model
     /**
      * Quién autorizó el ingreso de la muestra.
      *
-     * Sale del catálogo de FIRMAS, filtrado por `authorizes_entry`: es una
-     * persona del laboratorio con firma, igual que el firmante del informe, y
-     * en el sistema anterior su firma se estampaba en el acta de recepción.
+     * Sale del catálogo `entry_authorizers` — el «Personal de Laboratorio» del
+     * sistema anterior (`rem_user_signatures`), que es una lista PROPIA,
+     * separada de los firmantes de informes. Su firma es la que se imprime en
+     * el acta de recepción.
      */
     public function authorizer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Signature::class, 'authorized_by_id');
+        return $this->belongsTo(EntryAuthorizer::class, 'authorized_by_id');
     }
 
     public function confirmer(): BelongsTo

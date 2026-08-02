@@ -788,6 +788,13 @@ const menuStructure = computed(() => [
                 href: route('business_management.samplers.index'), inertia: true,
                 visible: () => can('samplers.view'),
             },
+            // El «Personal de Laboratorio» del sistema anterior: quiénes
+            // autorizan el ingreso de muestras. Catálogo APARTE de Firmas.
+            {
+                key: 'entry_authorizers', label: t('sidebar.entry_authorizers'), icon: IdcardOutlined,
+                href: route('business_management.entry_authorizers.index'), inertia: true,
+                visible: () => can('entry_authorizers.view'),
+            },
             {
                 key: 'signatures', label: t('sidebar.signatures'), icon: HighlightOutlined,
                 href: route('business_management.signatures.index'), inertia: true,

@@ -192,7 +192,8 @@ esté decidido qué reemplaza al enlace directo entre bases: una API, un archivo
 o que el diagnóstico lea de acá. Sin esa decisión no hay nada que construir.
 
 **Cuarto — lo que se ve.** Las ocho columnas del índice de equipos, ~~el
-autorizador del ingreso~~ (RESUELTO 2026-08-02: `authorized_by_id` +
-`signatures.authorizes_entry`, obligatorio en el alta; queda el acta con la
-firma impresa — ver GAP-1 §2), la pantalla de «Sistema de expansión», los
+autorizador del ingreso~~ (RESUELTO 2026-08-02: catálogo propio
+`entry_authorizers` — módulo «Personal que autoriza», como el
+`rem_user_signatures` del viejo — + `receptions.authorized_by_id` obligatorio;
+queda el acta con la firma impresa — ver GAP-1 §2), la pantalla de «Sistema de expansión», los
 filtros del listado de recepciones, la exportación del registro de auditoría.

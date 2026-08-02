@@ -168,16 +168,11 @@ class ReceptionController extends Controller
             // no existe acá (se crea al confirmar). Se cargan en el formulario
             // del informe, que es donde el laboratorio los completa.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
-            // Quiénes pueden autorizar el ingreso: el catálogo de firmas,
-            // filtrado por el papel. En el sistema anterior era un campo
-            // obligatorio del alta y su firma salía en el acta de recepción.
-            'authorizers' => \App\Models\Signature::authorizers()->get(['id', 'name', 'title']),
-            // Solo para mostrarlo: entre que se ve y se confirma pueden entrar
-            // otras recepciones, así que el número real es el que se emite.
-            'nextNumber' => Sample::formatCode(
-                (int) now()->year,
-                $this->allocator->peek(auth()->user()?->tenant_id, (int) now()->year)
-            ),
+            // Quiénes pueden autorizar el ingreso: el catálogo «Personal que
+            // autoriza» (el `rem_user_signatures` del sistema anterior, donde
+            // este campo era obligatorio y su firma salía en el acta).
+            'authorizers' => \App\Models\EntryAuthorizer::where('is_active', true)
+                ->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -218,7 +213,7 @@ class ReceptionController extends Controller
 
     public function show(Request $request, Reception $reception)
     {
-        $reception->load(['customer:id,name', 'sampler:id,name', 'authorizer:id,name,title', 'confirmer:id,name']);
+        $reception->load(['customer:id,name', 'sampler:id,name', 'authorizer:id,name', 'confirmer:id,name']);
 
         $samples = $reception->samples()
             ->with([
@@ -329,12 +324,11 @@ class ReceptionController extends Controller
             // Sin `catalogs`: ver el comentario en `create()`.
             'samplers'  => Sampler::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
             // Al editar, además del catálogo vigente, el autorizador YA elegido
-            // aunque después lo hayan desmarcado o dado de baja: si no, abrir el
+            // aunque después lo hayan puesto inactivo: si no, abrir el
             // formulario lo mostraría vacío y guardarlo lo perdería.
-            'authorizers' => \App\Models\Signature::authorizers()
-                ->orWhere('id', $reception->authorized_by_id)
-                ->get(['id', 'name', 'title']),
-            'nextNumber' => null,
+            'authorizers' => \App\Models\EntryAuthorizer::where('is_active', true)
+                ->when($reception->authorized_by_id, fn ($q) => $q->orWhere('id', $reception->authorized_by_id))
+                ->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -577,15 +571,11 @@ class ReceptionController extends Controller
         // que se puede tipear es un identificador que se puede repetir.
         return $request->validate([
             'service_order' => ['nullable', 'string', 'max:60'],
-            // El CONTACTO y el USUARIO FINAL viven en la recepción y el informe
-            // los imprime en su cabecera, pero esta validación no los aceptaba:
-            // solo se podían cargar desde el modal del informe, o sea recién al
-            // final, y quien recibía la muestra no tenía dónde anotarlos. El
-            // usuario final no siempre es el cliente —una contratista manda
-            // muestras del transformador de la minera— y el informe tiene que
-            // decir de quién es el equipo.
+            // El CONTACTO se anota al recibir (quien recibe tiene el correo del
+            // cliente delante) y el informe lo imprime en su cabecera. El
+            // USUARIO FINAL, en cambio, NO se pide acá: es un dato del informe
+            // y se carga en su formulario (pedido del laboratorio, 2026-08-02).
             'contact_info'  => ['nullable', 'string', 'max:190'],
-            'end_user'      => ['nullable', 'string', 'max:190'],
             'customer_id'   => ['required', 'integer', 'exists:customers,id'],
             // El muestreador es OBLIGATORIO (en el viejo también lo era), pero
             // por cualquiera de sus dos formas: del catálogo o el nombre suelto
@@ -594,12 +584,11 @@ class ReceptionController extends Controller
             'sampler_id'    => ['required_without:sampler_name', 'nullable', 'integer', 'exists:samplers,id'],
             'sampler_name'  => ['nullable', 'string', 'max:120'],
             // Quién autoriza el ingreso: obligatorio, como en el viejo
-            // (`_form_new.html.erb:69`), y solo alguien del catálogo de firmas
-            // MARCADO para ese papel — el exists filtra por la bandera para que
-            // un id adivinado de otro firmante no pase.
+            // (`_form_new.html.erb:69`). Sale del catálogo «Personal que
+            // autoriza» (`entry_authorizers`); el exists descarta borrados.
             'authorized_by_id' => [
                 'required', 'integer',
-                Rule::exists('signatures', 'id')->where('authorizes_entry', true),
+                Rule::exists('entry_authorizers', 'id')->whereNull('deleted_at'),
             ],
             'received_at'   => ['required', 'date'],
             'due_at'        => ['required', 'date', 'after_or_equal:received_at'],

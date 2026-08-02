@@ -36,6 +36,7 @@ return [
     'analytes'           => 'Parámetros',
     'instruments'        => 'Instrumentos',
     'samplers'           => 'Muestreadores',
+    'entry_authorizers'  => 'Personal que autoriza',
     'signatures'         => 'Firmas',
 
     // Catálogos del motor de diagnóstico. La clave faltaba y el menú

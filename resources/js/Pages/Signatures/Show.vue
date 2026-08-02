@@ -110,17 +110,6 @@ const fmt = (d) => formatDateTimeFull(d);
                             <span class="spec-cell__label">{{ $t('signatures.code') }}</span>
                             <span class="spec-cell__value"><code>{{ signature.code }}</code></span>
                         </div>
-                        <!-- El papel de autorizar el ingreso de muestras: es lo
-                             que decide si aparece en el select del alta de
-                             recepciones, así que la ficha lo tiene que decir. -->
-                        <div class="spec-cell">
-                            <span class="spec-cell__label">{{ $t('signatures.authorizes_entry') }}</span>
-                            <span class="spec-cell__value">
-                                <Tag :color="signature.authorizes_entry ? 'blue' : 'default'" :bordered="false">
-                                    {{ signature.authorizes_entry ? $t('global.yes') : $t('global.no') }}
-                                </Tag>
-                            </span>
-                        </div>
                         <!-- Estado: siempre al final. -->
                         <div class="spec-cell">
                             <span class="spec-cell__label">{{ $t('signatures.is_active') }}</span>

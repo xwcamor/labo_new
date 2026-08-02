@@ -103,11 +103,67 @@ class TenantsSeeder extends Seeder
 
         $this->command?->info('Tenants seeded: Empresa 1 (id=1), Empresa 2 (id=2), Independiente (id=3).');
 
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ LOS DOS LOGOS DEL INFORME CLÁSICO, SOLO WORKSPACE 1              │
+        // └──────────────────────────────────────────────────────────────────┘
+        // El papel viejo lleva el logotipo de la empresa arriba a la IZQUIERDA
+        // en todas las hojas, y el sello ANAB arriba a la DERECHA solo en las
+        // hojas acreditadas (fisicoquímico, cromatografía y azufre — la
+        // condición vive en `config/legacy_report.php`). El renderizador ya los
+        // imprime desde `tenants.logo` / `tenants.accreditation_logo`; lo que
+        // faltaba era CARGARLOS: sin esto, el informe salía sin cabecera.
+        //
+        // Los archivos no se versionan (repositorio público, marca registrada y
+        // sello de un acreditador): viven en `storage/app/legacy-assets`,
+        // copiados a mano del sistema viejo. Mismo criterio que las firmas: si
+        // el archivo está, se siembra; si no, no se inventa. Y NUNCA se pisa un
+        // logo que el laboratorio ya haya subido desde «Mi workspace».
+        $this->logosDelWorkspaceUno();
+
         // System users — invisibles, duenos de los tokens API. Idempotente.
         $service = app(\App\Services\SystemManagement\TenantSystemUserService::class);
         foreach (\App\Models\Tenant::all() as $tenant) {
             $service->ensureFor($tenant);
         }
         $this->command?->info('System users created/linked for all tenants.');
+    }
+
+    /** Copia los logos del sistema viejo al workspace 1, si están y si faltan. */
+    private function logosDelWorkspaceUno(): void
+    {
+        $mapa = [
+            'logo'               => 'hitachi_logo_new.png',
+            'accreditation_logo' => 'anab_logo.png',
+        ];
+
+        $sembrados = 0;
+
+        foreach ($mapa as $columna => $archivo) {
+            if (DB::table('tenants')->where('id', 1)->value($columna)) {
+                continue;   // el laboratorio ya subió el suyo: no se toca
+            }
+
+            $origen = storage_path('app/legacy-assets/' . $archivo);
+
+            if (! is_file($origen)) {
+                continue;   // sin archivo no se inventa nada
+            }
+
+            $destino = 'logos/empresa-1/' . $archivo;
+            \Illuminate\Support\Facades\Storage::disk('public')
+                ->put($destino, (string) file_get_contents($origen));
+
+            DB::table('tenants')->where('id', 1)->update([$columna => $destino]);
+            $sembrados++;
+        }
+
+        if ($sembrados > 0) {
+            $this->command?->info("Logos del informe (workspace 1): {$sembrados} cargado(s) desde legacy-assets.");
+        } elseif (! is_file(storage_path('app/legacy-assets/hitachi_logo_new.png'))) {
+            $this->command?->warn(
+                'Sin logos en storage/app/legacy-assets — el informe clásico sale sin cabecera. '
+                . 'Copiarlos del sistema viejo o subirlos en «Mi workspace».'
+            );
+        }
     }
 }

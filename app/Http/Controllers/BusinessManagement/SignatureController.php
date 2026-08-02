@@ -444,9 +444,6 @@ class SignatureController extends Controller
             // la relación en blanco y guardarlos los borraba.
             'title'      => $m->title,
             'relation'   => $m->relation,
-            // El papel de autorizar ingresos: sin esto el formulario lo abría
-            // apagado y guardar se lo quitaba a quien lo tenía.
-            'authorizes_entry' => (bool) $m->authorizes_entry,
             'user_id'    => $m->user_id,
             'sort_order' => $m->sort_order,
             'is_active'  => $m->is_active,

@@ -30,10 +30,6 @@ const form = useForm({
     relation:   props.signature?.relation ?? 'approved',
     user_id:    props.signature?.user_id ?? null,
     image:      null,
-    // El papel de autorizar el ingreso de muestras: habilita a esta persona
-    // en el select del alta de recepciones. Apagado por defecto — es un
-    // papel que se otorga, no que viene de fábrica.
-    authorizes_entry: !!props.signature?.authorizes_entry,
     is_active:  props.signature?.is_active ?? true,
 });
 
@@ -222,23 +218,6 @@ const submit = () => {
                         @change="tomarArchivo"
                     >
                     <SignatureDrawPad v-else @done="tomarDibujo" />
-                </FormItem>
-
-                <!-- Quién puede AUTORIZAR el ingreso de muestras: los marcados
-                     acá son los que ofrece el select del alta de recepciones.
-                     Es un papel aparte del de firmar informes. -->
-                <FormItem
-                    :label="$t('signatures.authorizes_entry')"
-                    :tooltip="$t('signatures.authorizes_entry_help')"
-                    :validate-status="form.errors.authorizes_entry ? 'error' : ''"
-                    :help="form.errors.authorizes_entry"
-                >
-                    <Space>
-                        <Switch v-model:checked="form.authorizes_entry" />
-                        <span class="state-label">
-                            {{ form.authorizes_entry ? $t('global.yes') : $t('global.no') }}
-                        </span>
-                    </Space>
                 </FormItem>
 
                 <FormItem

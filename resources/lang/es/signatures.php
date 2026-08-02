@@ -44,8 +44,6 @@ return [
     'code'      => 'Código',
     'code_help' => 'Identificador interno opcional. Casi nunca hace falta: el informe usa el nombre y el cargo.',
     'sort_order' => 'Orden',
-    'authorizes_entry' => 'Autoriza ingresos',
-    'authorizes_entry_help' => 'Si esta persona puede autorizar el ingreso de muestras. Los marcados son los que ofrece el formulario de recepción.',
     'is_active' => 'Estado',
     'is_active_help' => 'Si está inactivo, el firma no aparecerá en los selectores de otros módulos.',
     'filter_name' => 'Nombre',

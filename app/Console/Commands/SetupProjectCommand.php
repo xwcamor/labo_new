@@ -167,6 +167,9 @@ class SetupProjectCommand extends Command
             ['Instrumentos',             $cuenta('instruments'),      '/business_management/instruments'],
             ['Clientes',                 $cuenta('customers'),        '/business_management/customers'],
             ['Equipos (demostración)',   $cuenta('equipment'),        '/business_management/equipment'],
+            // Sin al menos una persona acá, el alta de recepciones no se puede
+            // completar (el autorizador del ingreso es obligatorio).
+            ['Personal que autoriza',    $cuenta('entry_authorizers'), '/business_management/entry_authorizers'],
             ['Recepciones',              $cuenta('receptions'),       '/lab_management/receptions'],
             ['Muestras',                 $cuenta('samples'),          ''],
             ['Pruebas pedidas',          $cuenta('sample_tests'),     ''],

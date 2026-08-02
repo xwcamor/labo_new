@@ -156,6 +156,10 @@ return [
             'model' => \App\Models\Signature::class,
             'days'  => 90,
         ],
+        'entry_authorizers' => [
+            'model' => \App\Models\EntryAuthorizer::class,
+            'days'  => 90,
+        ],
         // Suma modulos nuevos aqui:
         // 'patients' => [...],
         // 'doctors'  => [...],

@@ -32,10 +32,8 @@ const props = defineProps({
     reception:  { type: Object, default: null },
     customers:  { type: Array,  default: () => [] },
     samplers:   { type: Array,  default: () => [] },
-    // Quiénes pueden autorizar el ingreso: firmas con «Autoriza ingresos».
+    // Quiénes pueden autorizar el ingreso: el catálogo «Personal que autoriza».
     authorizers: { type: Array, default: () => [] },
-    // Solo en el alta: el próximo correlativo, como referencia.
-    nextNumber: { type: [String, null], default: null },
 });
 
 const isEdit = computed(() => !!props.reception);
@@ -53,7 +51,6 @@ const form = useForm({
     // imprime, pero solo se podían cargar desde el modal del informe, o sea al
     // final. Quien recibe la muestra tiene el correo del cliente delante.
     contact_info:  props.reception?.contact_info ?? '',
-    end_user:      props.reception?.end_user ?? '',
     customer_id:   props.reception?.customer_id ?? null,
     sampler_id:    props.reception?.sampler_id ?? null,
     sampler_name:  props.reception?.sampler_name ?? '',
@@ -128,18 +125,6 @@ const submit = () => {
                     class="rc-form__alert"
                 />
 
-                <!-- El próximo correlativo, como referencia. No es el que se va
-                     a emitir: entre esta pantalla y la confirmación pueden
-                     entrar otras entregas. -->
-                <Alert
-                    v-if="!isEdit && nextNumber"
-                    type="info"
-                    show-icon
-                    class="rc-form__alert"
-                    :message="$t('receptions.next_number', { code: nextNumber })"
-                    :description="$t('receptions.confirm_help')"
-                />
-
                 <Alert
                     v-if="isLocked"
                     type="info"
@@ -150,19 +135,15 @@ const submit = () => {
 
                 <h2 class="form-section-title">{{ $t('receptions.section_header') }}</h2>
                 <div class="form-grid">
-                    <!-- El N° de recepción NO se escribe: lo genera el
-                         servidor al guardar (REC-año-número). Se muestra
-                         deshabilitado para que se sepa que existe y cuál es. -->
+                    <!-- Solo al editar: el número ya existe. En el alta no se
+                         muestra — no hay nada que llenar; el sistema lo asigna
+                         al guardar. -->
                     <FormItem
+                        v-if="isEdit"
                         :label="$t('receptions.code')"
                         :extra="$t('receptions.code_help')"
                     >
-                        <Input
-                            :value="reception?.code ?? ''"
-                            :placeholder="$t('receptions.code_auto')"
-                            size="large"
-                            disabled
-                        />
+                        <Input :value="reception?.code ?? ''" size="large" disabled />
                     </FormItem>
 
                     <FormItem
@@ -171,28 +152,6 @@ const submit = () => {
                         :help="form.errors.service_order"
                     >
                         <Input v-model:value="form.service_order" size="large" :maxlength="60" />
-                    </FormItem>
-
-                    <FormItem
-                        :label="$t('receptions.contact_info')"
-                        :extra="$t('receptions.contact_info_help')"
-                        :validate-status="form.errors.contact_info ? 'error' : ''"
-                        :help="form.errors.contact_info"
-                    >
-                        <Input v-model:value="form.contact_info" size="large" :maxlength="190" />
-                    </FormItem>
-
-                    <!-- El usuario final NO siempre es el cliente: una
-                         contratista manda muestras del transformador de la
-                         minera, y el informe tiene que decir de quién es el
-                         equipo. -->
-                    <FormItem
-                        :label="$t('receptions.end_user')"
-                        :extra="$t('receptions.end_user_help')"
-                        :validate-status="form.errors.end_user ? 'error' : ''"
-                        :help="form.errors.end_user"
-                    >
-                        <Input v-model:value="form.end_user" size="large" :maxlength="190" />
                     </FormItem>
 
                     <FormItem
@@ -219,6 +178,15 @@ const submit = () => {
                                 {{ customer.name }}
                             </SelectOption>
                         </Select>
+                    </FormItem>
+
+                    <FormItem
+                        :label="$t('receptions.contact_info')"
+                        :extra="$t('receptions.contact_info_help')"
+                        :validate-status="form.errors.contact_info ? 'error' : ''"
+                        :help="form.errors.contact_info"
+                    >
+                        <Input v-model:value="form.contact_info" size="large" :maxlength="190" />
                     </FormItem>
 
                     <!-- El muestreador no siempre es alguien del laboratorio: puede
@@ -262,8 +230,7 @@ const submit = () => {
 
                     <!-- Quién autoriza el ingreso. En el sistema anterior era
                          obligatorio y su firma salía en el acta de recepción;
-                         acá la lista sale del catálogo de firmas con el papel
-                         «Autoriza ingresos». -->
+                         la lista sale del catálogo «Personal que autoriza». -->
                     <FormItem
                         :label="$t('receptions.authorized_by')"
                         required
@@ -284,7 +251,7 @@ const submit = () => {
                                 :value="person.id"
                                 :label="person.name"
                             >
-                                {{ person.name }}<template v-if="person.title"> — {{ person.title }}</template>
+                                {{ person.name }}
                             </SelectOption>
                         </Select>
                         <!-- Sin habilitados no hay nada que elegir: se dice

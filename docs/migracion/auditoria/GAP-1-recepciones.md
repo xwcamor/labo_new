@@ -34,7 +34,7 @@
 | # | Qué falta | Clasificación | Consecuencia |
 |---|-----------|---------------|--------------|
 | 1 | Los 15 contadores de envases por familia de ensayo (`num_fiq`…`num_pas`) y el total pactado | **AUSENTE** | El laboratorio no puede registrar cuántos frascos de cada tipo entraron ni contrastar lo pactado con lo emitido |
-| 2 | La persona que autoriza el ingreso de la muestra (`rem_user_signature_id`) y su firma en el acta | **PARCIAL** (era AUSENTE; el campo se RESOLVIÓ el 2026-08-02) | El campo ya existe: `receptions.authorized_by_id` → catálogo de firmas con la bandera `authorizes_entry`, obligatorio en el alta y visible en la ficha. QUEDA el acta imprimible con la imagen de su firma (`_xls_partial_report.erb:88-99`) |
+| 2 | La persona que autoriza el ingreso de la muestra (`rem_user_signature_id`) y su firma en el acta | **PARCIAL** (era AUSENTE; el campo se RESOLVIÓ el 2026-08-02) | Catálogo PROPIO `entry_authorizers` (módulo «Personal que autoriza», con nombre y firma escaneada, como el `rem_user_signatures` del viejo) + `receptions.authorized_by_id`, obligatorio en el alta y visible en la ficha. QUEDA el acta imprimible con la imagen de su firma (`_xls_partial_report.erb:88-99`) |
 | 3 | La validación "muestras a analizar ≤ envases recibidos" | **AUSENTE** | Se pueden emitir 40 correlativos para una entrega de 3 frascos sin que nada lo advierta |
 | 4 | Prioridad y fecha estimada **por muestra** (`is_urgent` + `date_urgent` del correlativo) | **PARCIAL** | No se puede adelantar una muestra suelta dentro de una entrega ni comprometerle una fecha propia |
 | 5 | Los filtros y el ordenamiento del listado de recepciones | **PARCIAL** | Quedan sin filtro el muestreador, la orden de servicio, la fecha comprometida, la serie del transformador, el correlativo y los cuatro chequeos de avance |
@@ -129,12 +129,15 @@ responsable de aceptar la muestra.
 **Consecuencia.** La recepción no deja constancia de quién autorizó el ingreso, y
 el acta de recepción firmada que el laboratorio entregaba no se puede emitir.
 
-**RESUELTO el campo (2026-08-02).** `receptions.authorized_by_id` →
-`signatures`, con la bandera `signatures.authorizes_entry` como papel (una
-persona puede firmar informes, autorizar ingresos, o las dos cosas — no se creó
-una cuarta tabla de personas). Obligatorio en el alta, con `exists` filtrado
-por la bandera; el select del formulario sale del catálogo y la ficha lo
-muestra. La bandera se administra desde el módulo Firmas.
+**RESUELTO el campo (2026-08-02).** Primero se intentó como bandera en Firmas
+(`signatures.authorizes_entry`) y el laboratorio lo corrigió: el autorizador NO
+tiene que ver con los firmantes de informes — en el viejo es un catálogo propio
+con su propia pantalla. Quedó como en el viejo: módulo **«Personal que
+autoriza»** (`entry_authorizers`: nombre completo + firma escaneada o dibujada,
+per-tenant, con su entrada de menú junto a Muestreadores) y
+`receptions.authorized_by_id` apuntando ahí, obligatorio en el alta. La
+migración `2026_08_02_203000` trasladó lo que hubiera quedado en la bandera y
+la eliminó.
 **QUEDA** el acta imprimible con la imagen de la firma del autorizador.
 
 ---

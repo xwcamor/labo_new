@@ -30,6 +30,7 @@ return [
     'analytes'           => 'Parameters',
     'instruments'        => 'Instruments',
     'samplers'           => 'Samplers',
+    'entry_authorizers'  => 'Intake authorizers',
     'signatures'         => 'Signatures',
 
     // Diagnostic engine catalogues. The key was missing and the menu showed

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BusinessManagement\EntryAuthorizerController;
 use App\Http\Controllers\BusinessManagement\SignatureController;
 use App\Http\Controllers\BusinessManagement\SamplerController;
 use App\Http\Controllers\BusinessManagement\InstrumentController;
@@ -1096,5 +1097,79 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('signatures/{signature}/lock',   [SignatureController::class, 'lock'])->name('signatures.lock');
         Route::post('signatures/{signature}/unlock', [SignatureController::class, 'unlock'])->name('signatures.unlock');
+    });
+
+
+    // ── EntryAuthorizers ──
+    // Bloque generado por make:module. Reordena o ajusta permisos según tu dominio.
+
+    // 1) Trash + restore + force_delete (super only — defense in depth)
+    Route::middleware('role:super')->group(function () {
+        Route::get('entry_authorizers/trash',                  [EntryAuthorizerController::class, 'trash'])->name('entry_authorizers.trash');
+        Route::post('entry_authorizers/bulk_restore',          [EntryAuthorizerController::class, 'bulkRestore'])->name('entry_authorizers.bulk_restore');
+        Route::post('entry_authorizers/{slug}/restore',        [EntryAuthorizerController::class, 'restore'])->name('entry_authorizers.restore');
+        Route::get('entry_authorizers/{slug}/restore',         fn () => redirect()->route('business_management.entry_authorizers.trash'));
+        Route::delete('entry_authorizers/{slug}/force_delete', [EntryAuthorizerController::class, 'forceDelete'])->name('entry_authorizers.force_delete');
+    });
+
+    // 2) Exports (gated por plan_feature por formato)
+    Route::middleware('permission:entry_authorizers.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('entry_authorizers/export_excel', [EntryAuthorizerController::class, 'exportExcel'])->name('entry_authorizers.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('entry_authorizers/export_pdf',   [EntryAuthorizerController::class, 'exportPdf'])->name('entry_authorizers.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('entry_authorizers/export_word',  [EntryAuthorizerController::class, 'exportWord'])->name('entry_authorizers.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('entry_authorizers/export_csv',   [EntryAuthorizerController::class, 'exportCsv'])->name('entry_authorizers.export_csv');
+    });
+
+    // 3) Imports
+    Route::middleware(['permission:entry_authorizers.create', 'plan_feature:bulk_operations'])->group(function () {
+        Route::post('entry_authorizers/import',          [EntryAuthorizerController::class, 'import'])->name('entry_authorizers.import');
+        Route::get('entry_authorizers/import_template',  [EntryAuthorizerController::class, 'importTemplate'])->name('entry_authorizers.import_template');
+    });
+
+    // 4) Bulk operations
+    Route::middleware(['permission:entry_authorizers.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('entry_authorizers/bulk_delete',     [EntryAuthorizerController::class, 'bulkDelete'])->name('entry_authorizers.bulk_delete');
+        Route::post('entry_authorizers/bulk_set_active', [EntryAuthorizerController::class, 'bulkSetActive'])->name('entry_authorizers.bulk_set_active');
+    });
+
+    // Undo del ultimo borrado (60s window)
+    Route::middleware('permission:entry_authorizers.delete')->group(function () {
+        Route::post('entry_authorizers/undo_last_delete', [EntryAuthorizerController::class, 'undoLastDelete'])->name('entry_authorizers.undo_last_delete');
+    });
+
+    // Edit All
+    Route::middleware('permission:entry_authorizers.edit')->group(function () {
+        Route::get('entry_authorizers/edit_all',         [EntryAuthorizerController::class, 'editAll'])->name('entry_authorizers.edit_all');
+        Route::post('entry_authorizers/edit_all/update', [EntryAuthorizerController::class, 'editAllUpdate'])->name('entry_authorizers.edit_all.update');
+    });
+
+    // 5) CRUD principal — paths estaticos PRIMERO.
+    Route::middleware('permission:entry_authorizers.create')->group(function () {
+        Route::get('entry_authorizers/create', [EntryAuthorizerController::class, 'create'])->name('entry_authorizers.create');
+        Route::post('entry_authorizers',       [EntryAuthorizerController::class, 'store'])->name('entry_authorizers.store');
+        Route::post('entry_authorizers/{entryAuthorizer}/duplicate', [EntryAuthorizerController::class, 'duplicate'])->name('entry_authorizers.duplicate');
+    });
+
+    Route::middleware('permission:entry_authorizers.view')->group(function () {
+        Route::get('entry_authorizers',                [EntryAuthorizerController::class, 'index'])->name('entry_authorizers.index');
+        Route::get('entry_authorizers/{entryAuthorizer}',  [EntryAuthorizerController::class, 'show'])->name('entry_authorizers.show');
+    });
+    Route::middleware('permission:entry_authorizers.edit')->group(function () {
+        Route::get('entry_authorizers/{entryAuthorizer}/edit', [EntryAuthorizerController::class, 'edit'])->name('entry_authorizers.edit');
+        Route::put('entry_authorizers/{entryAuthorizer}',      [EntryAuthorizerController::class, 'update'])->name('entry_authorizers.update');
+    });
+    Route::middleware('permission:entry_authorizers.delete')->group(function () {
+        Route::get('entry_authorizers/{entryAuthorizer}/delete',        [EntryAuthorizerController::class, 'delete'])->name('entry_authorizers.delete');
+        Route::delete('entry_authorizers/{entryAuthorizer}/deleteSave', [EntryAuthorizerController::class, 'deleteSave'])->name('entry_authorizers.deleteSave');
+    });
+
+    // Bloquear/desbloquear (Lockable) — solo super|admin.
+    Route::middleware('role:super|admin')->group(function () {
+        Route::post('entry_authorizers/{entryAuthorizer}/lock',   [EntryAuthorizerController::class, 'lock'])->name('entry_authorizers.lock');
+        Route::post('entry_authorizers/{entryAuthorizer}/unlock', [EntryAuthorizerController::class, 'unlock'])->name('entry_authorizers.unlock');
     });
 });

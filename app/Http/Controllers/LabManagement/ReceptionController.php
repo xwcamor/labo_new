@@ -290,6 +290,9 @@ class ReceptionController extends Controller
             // ficha no traía su estado y por eso el botón no existía.
             'lock'        => $this->lockMeta($reception->load('locker:id,name'), $request),
             'samples'   => $samples,
+            // Si la cantidad todavía se puede corregir (los números de esta
+            // entrega son la cola de la numeración del año).
+            'canAdjust' => $this->service->canAdjust($reception),
             'reports'   => $informes,
             // UNA consulta para el avance de todas las muestras.
             'progress'  => $this->progress->receptionBreakdown($reception->id),
@@ -368,6 +371,29 @@ class ReceptionController extends Controller
 
         return back()->with('success', __('receptions.confirmed', [
             'count' => $request->integer('samples'),
+        ]));
+    }
+
+    /**
+     * Corrige la cantidad de muestras de una entrega YA confirmada.
+     *
+     * El «puse 32 y eran 20»: solo procede mientras los números de la entrega
+     * sean los últimos emitidos del año (la regla y el porqué, en
+     * `ReceptionService::adjustSamples`).
+     */
+    public function adjustSamples(Request $request, Reception $reception): RedirectResponse
+    {
+        abort_if($reception->is_locked, 403, __('locks.cannot_edit_locked'));
+
+        $request->validate([
+            'samples' => ['required', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $resultado = $this->service->adjustSamples($reception, (int) $request->integer('samples'));
+
+        return back()->with('success', __('receptions.adjusted', [
+            'added'   => $resultado['added'],
+            'removed' => $resultado['removed'],
         ]));
     }
 

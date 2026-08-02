@@ -61,6 +61,11 @@ return [
     'will_issue'      => 'Se crearán :count muestras, con los números :from a :to.',
     'confirmed'       => 'Listo: se registraron :count muestras.',
     'confirmed_at'    => 'Confirmada el',
+    // Corregir la cantidad después de confirmar («puse 32 y eran 20»).
+    'adjust'          => 'Corregir la cantidad',
+    'adjust_title'    => '¿Cuántas muestras eran en realidad?',
+    'adjust_help'     => 'Se puede corregir porque los números de esta entrega son los últimos emitidos del año. Si eran menos, las muestras sobrantes se quitan y sus números vuelven a estar disponibles (no deben tener nada cargado). Si eran más, las nuevas se agregan con los números siguientes.',
+    'adjusted'        => 'Cantidad corregida: :added agregada(s), :removed quitada(s).',
     'confirmed_by'    => 'Confirmada por',
     'no_samples_yet'  => 'Esta entrega todavía no tiene muestras registradas.',
 
@@ -177,6 +182,8 @@ return [
         'unknown_test' => 'Alguna de las pruebas elegidas no existe. Vuelva a cargar la pantalla.',
         'equipment_not_of_customer' => 'Ese equipo no es del cliente de esta recepción.',
         'confirmed_no_edit' => 'Una recepción confirmada no cambia de cliente ni de fecha: sus correlativos ya están emitidos.',
+        'adjust_not_tail' => 'Ya se emitieron números de muestra después de esta entrega (o alguna muestra fue dada de baja), así que la cantidad ya no se puede corregir. Para quitar, dé de baja las muestras una por una; para agregar, registre otra entrega.',
+        'adjust_has_work' => 'La muestra :code ya tiene trabajo cargado y no se puede quitar con esta corrección. Revise la bancada, o dela de baja individualmente.',
     ],
     // Los dos datos de la cabecera del informe que se cargan al RECIBIR, no al
     // emitir: quien recibe la muestra tiene el correo del cliente delante.

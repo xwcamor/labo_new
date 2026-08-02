@@ -298,6 +298,10 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         // trabajo del laboratorio, y ocurre UNA vez.
         Route::post('receptions/{reception}/confirm', [ReceptionController::class, 'confirm'])->name('receptions.confirm');
 
+        // Corregir la cantidad después de confirmar («puse 32 y eran 20»),
+        // solo mientras los números sigan siendo la cola del año.
+        Route::post('receptions/{reception}/adjust', [ReceptionController::class, 'adjustSamples'])->name('receptions.adjust');
+
         // De qué equipo se tomó la muestra, y qué pruebas se le piden.
         Route::patch('receptions/{reception}/samples/{sample}/equipment', [ReceptionController::class, 'assignEquipment'])->name('receptions.samples.equipment');
         Route::post('receptions/{reception}/tests', [ReceptionController::class, 'requestTests'])->name('receptions.tests');

@@ -82,7 +82,9 @@ class ReceptionTest extends TestCase
         // En un laboratorio eso es un resultado atribuido al equipo equivocado.
         $primera = $this->makeReception();
         $this->service->confirm($primera, 2);
-        $primera->samples()->orderByDesc('number')->first()->delete();
+        // `reorder`, no `orderByDesc`: la relación ya ordena ASC y un orden
+        // agregado queda segundo — se estaría borrando la más BAJA.
+        $primera->samples()->reorder('number', 'desc')->first()->delete();
 
         $segunda = $this->makeReception();
         $this->service->confirm($segunda, 1);
@@ -556,6 +558,96 @@ class ReceptionTest extends TestCase
             ->assertSessionHasErrors('deleted_description');
 
         $this->assertNotNull(Reception::find($reception->id));
+    }
+
+    // ─── Corregir la cantidad después de confirmar ───────────────────────
+
+    public function test_achicar_el_lote_devuelve_los_numeros_al_contador(): void
+    {
+        // El «puse 32 y eran 20»: mientras la entrega sea la COLA de la
+        // numeración del año, quitar el excedente retrocede el contador y esos
+        // números se vuelven a emitir — nunca salieron del laboratorio.
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 5);
+
+        $resultado = $this->service->adjustSamples($reception, 3);
+
+        $this->assertSame(['added' => 0, 'removed' => 2], $resultado);
+        $this->assertSame(
+            ['2026-0001', '2026-0002', '2026-0003'],
+            $reception->samples()->pluck('code')->all(),
+        );
+
+        // La siguiente entrega arranca donde quedó la corrección, no donde
+        // había llegado el error.
+        $segunda = $this->makeReception();
+        $this->service->confirm($segunda, 1);
+        $this->assertSame('2026-0004', $segunda->samples()->first()->code);
+    }
+
+    public function test_agrandar_el_lote_emite_numeros_contiguos(): void
+    {
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 3);
+
+        $resultado = $this->service->adjustSamples($reception, 5);
+
+        $this->assertSame(['added' => 2, 'removed' => 0], $resultado);
+        $this->assertSame(
+            ['2026-0001', '2026-0002', '2026-0003', '2026-0004', '2026-0005'],
+            $reception->samples()->pluck('code')->all(),
+        );
+    }
+
+    public function test_la_correccion_se_cierra_cuando_otra_entrega_emitio_despues(): void
+    {
+        // En cuanto otra recepción confirma, los números de esta ya no son la
+        // cola: retroceder el contador reasignaría números ajenos. La ventana
+        // se cierra en las dos direcciones.
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 3);
+        $this->service->confirm($this->makeReception(), 1);
+
+        $this->assertFalse($this->service->canAdjust($reception));
+
+        $this->expectException(ValidationException::class);
+        $this->service->adjustSamples($reception, 2);
+    }
+
+    public function test_una_muestra_con_trabajo_no_se_quita_con_la_correccion(): void
+    {
+        // Con una fila de bancada cargada eso ya no es un error de tipeo: la
+        // corrección no procede y queda el camino por-muestra.
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 3);
+        // `reorder`: la relación ya ordena por número ASC y un orderBy
+        // agregado queda SEGUNDO — devolvería la primera, no la última.
+        $ultima = $reception->samples()->reorder('number', 'desc')->first();
+
+        $hoja = Worksheet::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->cromas->id,
+            'tenant_id' => 1, 'status' => 'open', 'run_date' => '2026-03-11',
+            'created_by' => auth()->id(),
+        ]);
+        $fila = WorksheetRow::create([
+            'worksheet_id' => $hoja->id, 'sample_id' => $ultima->id,
+            'sample_code' => $ultima->code, 'position' => 1, 'kind' => 'sample',
+        ]);
+        $this->assertNotNull($fila->id);
+
+        $this->expectException(ValidationException::class);
+        $this->service->adjustSamples($reception, 2);
+    }
+
+    public function test_con_una_muestra_dada_de_baja_la_correccion_no_procede(): void
+    {
+        // «Corregir la cantidad» sobre un lote al que ya le sacaron una muestra
+        // del medio es ambiguo: ahí se sigue por-muestra, no por-lote.
+        $reception = $this->makeReception();
+        $this->service->confirm($reception, 3);
+        $reception->samples()->orderBy('number')->first()->delete();
+
+        $this->assertFalse($this->service->canAdjust($reception));
     }
 
     // ─── El alta por la pantalla: N° generado y obligatorios ─────────────

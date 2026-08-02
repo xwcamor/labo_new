@@ -22,8 +22,8 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
-    Alert, Button, Card, Dropdown, Menu, MenuItem, Modal, Space, Tabs, TabPane,
-    Tag, Textarea, Tooltip,
+    Alert, Button, Card, Dropdown, InputNumber, Menu, MenuItem, Modal, Space,
+    Tabs, TabPane, Tag, Textarea, Tooltip,
 } from 'ant-design-vue';
 import {
     DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined,
@@ -65,6 +65,9 @@ const props = defineProps({
     equipment:  { type: Array,  default: () => [] },
     oilTypes:   { type: Array,  default: () => [] },
     nextNumber: { type: [String, null], default: null },
+    // Si la cantidad de muestras todavía se puede corregir: los números de
+    // esta entrega son los últimos emitidos del año.
+    canAdjust:  { type: Boolean, default: false },
     // El historial del registro, igual que en el resto de las fichas.
     activity:    { type: Array,  default: () => [] },
     recordAudit: { type: Object, default: null },
@@ -79,6 +82,35 @@ const page = usePage();
 const isDraft = computed(() => props.reception.status === 'draft');
 const canEdit   = computed(() => can('receptions.edit'));
 const canDelete = computed(() => can('receptions.delete'));
+
+// ── Corregir la cantidad después de confirmar («puse 32 y eran 20») ──────
+// Solo se ofrece mientras el servidor diga que se puede: los números de esta
+// entrega son la cola de la numeración del año. Después, la ventana se cierra
+// y quedan los caminos por-muestra.
+const adjustOpen = ref(false);
+const adjustCount = ref(props.samples.length);
+const adjustBusy = ref(false);
+const adjustError = ref(null);
+
+const openAdjust = () => {
+    adjustCount.value = props.samples.length;
+    adjustError.value = null;
+    adjustOpen.value = true;
+};
+
+const submitAdjust = () => {
+    if (!adjustCount.value || adjustCount.value < 1) return;
+
+    router.post(route('lab_management.receptions.adjust', props.reception.slug), {
+        samples: adjustCount.value,
+    }, {
+        preserveScroll: true,
+        onStart:  () => { adjustBusy.value = true; adjustError.value = null; },
+        onFinish: () => { adjustBusy.value = false; },
+        onSuccess: () => { adjustOpen.value = false; },
+        onError: (errors) => { adjustError.value = errors.samples ?? Object.values(errors)[0] ?? null; },
+    });
+};
 
 /**
  * Dar de baja UNA MUESTRA: solo admin y super, y no alcanza el permiso del
@@ -518,16 +550,30 @@ const confirmarDesbloqueo = () => {
                     <span class="rc-samples__count">{{ samples.length }}</span>
                 </h2>
 
-                <Tooltip :title="$t('receptions.assign_to_all_hint')">
-                    <Button
-                        v-if="canEdit && samples.length > 0"
-                        type="primary"
-                        size="small"
-                        @click="openForAll"
-                    >
-                        {{ $t('receptions.assign_to_all') }}
-                    </Button>
-                </Tooltip>
+                <Space>
+                    <!-- Corregir la cantidad: solo mientras los números de esta
+                         entrega sean los últimos emitidos del año. -->
+                    <Tooltip :title="$t('receptions.adjust_help')">
+                        <Button
+                            v-if="canEdit && canAdjust"
+                            size="small"
+                            @click="openAdjust"
+                        >
+                            {{ $t('receptions.adjust') }}
+                        </Button>
+                    </Tooltip>
+
+                    <Tooltip :title="$t('receptions.assign_to_all_hint')">
+                        <Button
+                            v-if="canEdit && samples.length > 0"
+                            type="primary"
+                            size="small"
+                            @click="openForAll"
+                        >
+                            {{ $t('receptions.assign_to_all') }}
+                        </Button>
+                    </Tooltip>
+                </Space>
             </div>
 
             <!-- `view="table"` a propósito: en móvil la tabla scrollea en
@@ -835,6 +881,34 @@ const confirmarDesbloqueo = () => {
 
         </Tabs>
 
+        <!-- El «puse 32 y eran 20»: corrige la cantidad mientras los números
+             sigan siendo la cola del año. El servidor re-verifica la condición
+             dentro de la misma transacción. -->
+        <Modal
+            v-model:open="adjustOpen"
+            :title="$t('receptions.adjust_title')"
+            :confirm-loading="adjustBusy"
+            :ok-text="$t('receptions.adjust')"
+            :cancel-text="$t('global.cancel')"
+            @ok="submitAdjust"
+        >
+            <p class="rc-adjust__help">{{ $t('receptions.adjust_help') }}</p>
+            <InputNumber
+                v-model:value="adjustCount"
+                :min="1"
+                :max="500"
+                size="large"
+                style="width: 160px"
+            />
+            <Alert
+                v-if="adjustError"
+                type="error"
+                show-icon
+                class="rc-adjust__error"
+                :message="adjustError"
+            />
+        </Modal>
+
         <AssignTestsModal
             v-model:open="modalOpen"
             :reception="reception"
@@ -985,4 +1059,6 @@ const confirmarDesbloqueo = () => {
 /* El bloque de trabajo se separa del registro: son dos grupos de pestañas y sin
    aire entre ellos se leen como un solo juego de seis. */
 .rc-tabs--work { margin-top: 6px; }
+.rc-adjust__help { font-size: 0.8125rem; color: var(--color-text-muted); margin: 0 0 12px; }
+.rc-adjust__error { margin-top: 12px; }
 </style>

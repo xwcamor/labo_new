@@ -497,7 +497,7 @@ class LabFullReportSeeder extends Seeder
                 'number'     => $this->numero($columna, $muestra),
                 default      => $columna->role === TestField::ROLE_SAMPLE_CODE
                     ? $muestra->code
-                    : $this->texto($columna),
+                    : $this->texto($columna, $muestra),
             };
 
             $celdas[$columna->code] = $this->porReplica($columna, $valor);
@@ -612,9 +612,27 @@ class LabFullReportSeeder extends Seeder
         return round($valor, $columna->decimals ?? 2);
     }
 
-    /** Un texto corto para las columnas de texto que no son el correlativo. */
-    private function texto(TestField $columna): ?string
+    /**
+     * Un texto para las columnas de texto que no son el correlativo.
+     *
+     * Si la columna ALIMENTA un parámetro cuyo criterio es cualitativo —hoy,
+     * condición visual contra «Brillante y Claro»— se escribe ese mismo texto.
+     * El guion servía mientras esas columnas no informaban nada; desde que sí lo
+     * hacen, el informe imprimía un guion en rojo, juzgado fuera de norma
+     * porque un guion no es «Brillante y Claro». La demostración existe para
+     * mostrar un informe coherente, y un aspecto ilegible en rojo no lo es.
+     *
+     * El guion queda para las columnas de texto que no van al informe (notas de
+     * bancada), donde solo hace falta que la celda obligatoria no esté vacía.
+     */
+    private function texto(TestField $columna, Sample $muestra): ?string
     {
+        $limite = $columna->output_analyte_id ? $this->limite($columna, $muestra) : null;
+
+        if ($limite?->text_value) {
+            return $limite->text_value;
+        }
+
         return $columna->is_required ? '—' : null;
     }
 

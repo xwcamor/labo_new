@@ -38,6 +38,8 @@
     "densidad_relativa.resultado": "dens",
     "viscocidad.resultado_mm2s": "visc",
     "color.resultado": "color",
+    "tension_interfacial.tension_interfacial_aceite_mnm": "ift",
+    "condicion_visual.resultado": "con",
     "inflamacion.resultado": "flash",
     "fluidez.resultado": "pour",
     "grado_de_polimerizacion.grado_de_polimerizacion": "dp",
@@ -61,11 +63,31 @@
     "_doc": [
       "Columnas que NO se declaran hasta que el laboratorio las confirme.",
       "Adivinar acá manda el dato equivocado al informe, así que se prefiere que",
-      "la prueba no informe nada antes que informar algo inventado."
+      "la prueba no informe nada antes que informar algo inventado.",
+      "",
+      "CUIDADO CON EL CRITERIO (corregido 2026-08-02). Acá estuvieron anotadas",
+      "'tension_interfacial' y 'condicion_visual', y el costo fue que la hoja de",
+      "FISICOQUÍMICOS imprimía ONCE filas donde el papel viejo imprime TRECE. Las",
+      "dos preguntas estaban mal planteadas:",
+      "",
+      "  · Tensión interfacial: 'cuál de las dos columnas es el resultado' ya lo",
+      "    contestaba el sistema anterior. Su formulario toma la ÚLTIMA columna por",
+      "    posición ('Busca el ultimo id de que llame RESULTADO',",
+      "    _form_add_details_physicals.html.erb:311) y esa es 'Tensión Interfacial",
+      "    Aceite (mN/m)'. Las otras once pruebas de la hoja ya estaban mapeadas",
+      "    con esa misma regla.",
+      "",
+      "  · Condición visual: la duda es cómo NORMALIZAR el vocabulario ('B Y C' y",
+      "    'Brillante y Claro' son el mismo resultado escrito de dos formas). Eso",
+      "    es el TIPO de la columna, no qué parámetro alimenta, y sigue abierto en",
+      "    test_field_types.json. El viejo imprimía el texto tal cual; no informar",
+      "    la fila no resuelve nada y deja incompleto un papel firmado.",
+      "",
+      "La regla: si la duda es CÓMO SE ESCRIBE el valor, se declara igual. Solo se",
+      "deja sin declarar cuando no se sabe QUÉ PARÁMETRO es —que es el caso de las",
+      "dos de abajo, donde el parámetro directamente no existe todavía."
     ],
-    "tension_interfacial": "La columna 'Tensión Interfacial Aceite (mN/m)' parece el resultado, pero la prueba trae además una 'Tensión Corregida Agua' y hay que confirmar cuál de las dos es la que va al informe.",
     "particulas": "Diez rangos de tamaño, todos resultados. Hay que crear un parámetro por rango y decidir cómo se informa el conteo.",
-    "metales_en_aceite": "Diez elementos, todos resultados. Hay que crear un parámetro por elemento.",
-    "condicion_visual": "Resultado cualitativo (aspecto). Definir si se informa como texto o con una escala."
+    "metales_en_aceite": "Diez elementos, todos resultados. Hay que crear un parámetro por elemento."
   }
 }

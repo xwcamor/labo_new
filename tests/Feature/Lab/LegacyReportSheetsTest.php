@@ -251,6 +251,45 @@ class LegacyReportSheetsTest extends TestCase
         $this->assertSame(range(1, 13), array_column($constante, 0));
     }
 
+    /**
+     * Los trece parámetros del fisicoquímico tienen QUIÉN los alimente.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La prueba de arriba verifica que los trece códigos EXISTAN en el catálogo
+     * de parámetros, y pasaba en verde mientras la hoja imprimía ONCE filas. Un
+     * parámetro que existe pero al que ninguna columna alimenta no produce
+     * resultado, y sin resultado el informe no dibuja su fila. Eso es lo que
+     * pasó con tensión interfacial y condición visual: los dos estaban anotados
+     * en `analyte_map.json` bajo «pendientes», y la hoja salió con dos filas
+     * menos que el papel del sistema anterior sin que nada avisara.
+     *
+     * Se verifica sobre el JSON y no sobre la base porque el JSON es la FUENTE:
+     * dejar de declarar una columna ahí es el error que hay que atajar.
+     */
+    public function test_los_trece_parametros_del_fisicoquimico_tienen_columna_declarada(): void
+    {
+        $renderer = new \App\Services\Lab\LegacyReportRenderer();
+        $constante = (new \ReflectionClass($renderer))->getConstant('FIQUIS');
+
+        $mapa = json_decode(
+            file_get_contents(database_path('seeders/data/analyte_map.json')),
+            true,
+        );
+        $declarados = array_values($mapa['map']);
+
+        foreach (array_keys($constante) as $codigo) {
+            $this->assertContains(
+                $codigo,
+                $declarados,
+                "Ninguna columna alimenta el parámetro «{$codigo}», así que la hoja del "
+                . 'fisicoquímico sale con una fila menos que el papel del sistema '
+                . 'anterior. Declararla en analyte_map.json → map.',
+            );
+        }
+    }
+
     // ─── Dónde va la firma en cada hoja ──────────────────────────────────
 
     /**

@@ -46,6 +46,12 @@ class SignaturesSeeder extends Seeder
             'title'    => 'Engineering Manager I',
             'relation' => 'approved',
             'file'     => 'higa-yagi.png',
+            // INACTIVO por pedido del laboratorio (2026-08-02): ya no firma los
+            // informes. La fila NO se borra —los informes que ya salieron con
+            // su firma tienen que poder explicar de dónde salió ese nombre— y
+            // por eso se da de baja en vez de eliminarse, que es el mismo
+            // criterio que las listas del informe.
+            'active'   => false,
         ],
     ];
 
@@ -73,7 +79,7 @@ class SignaturesSeeder extends Seeder
                     'title'      => $firmante['title'],
                     'relation'   => $firmante['relation'],
                     'sort_order' => $orden + 1,
-                    'is_active'  => true,
+                    'is_active'  => $firmante['active'] ?? true,
                 ]);
             }
 

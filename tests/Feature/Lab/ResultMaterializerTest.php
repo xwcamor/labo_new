@@ -376,4 +376,38 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame('No Corrosivo', $r->value_text);
         $this->assertNull($r->value_num);
     }
+
+    /**
+     * Sacarle el parámetro a una columna BORRA su resultado.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO FIJA                                             │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * `updateOrCreate` actualiza lo que sigue existiendo y crea lo nuevo, pero
+     * no se lleva lo que dejó de corresponder. Si a una columna se le quitaba
+     * el parámetro que alimentaba, su resultado viejo quedaba en la tabla para
+     * siempre y el informe lo seguía imprimiendo —con su valor y su veredicto—
+     * sin ninguna columna de bancada detrás.
+     *
+     * Eso rompe la regla que sostiene esta capa y que fija la prueba «la capa se
+     * reconstruye entera desde la bancada»: un resultado que no se puede
+     * reconstruir es un dato inventado en un papel firmado.
+     */
+    public function test_quitarle_el_parametro_a_una_columna_borra_su_resultado(): void
+    {
+        $w = $this->hoja();
+        $this->cargarMuestra($w);
+        $this->validar($w);
+
+        $this->assertSame(1, Result::count());
+
+        TestField::where('code', 'resultado')->update(['output_analyte_id' => null]);
+        $this->materializer->forWorksheet($w->fresh());
+
+        $this->assertSame(
+            0,
+            Result::count(),
+            'El resultado sobrevivió a la columna que lo alimentaba: la capa dejó de ser derivada.',
+        );
+    }
 }

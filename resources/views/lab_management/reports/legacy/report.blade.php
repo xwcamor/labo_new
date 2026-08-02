@@ -59,6 +59,13 @@
            que el tamaño de la letra. */
         .rel td { padding: 2px 4px; line-height: 1.2; }
         .rel__def { font-size: 9.5px; }
+        /* La etiqueta y el valor en DOS celdas: así los números de una columna
+           caen alineados entre sí, como en el papel viejo, en vez de arrancar
+           donde termine cada etiqueta. */
+        .rel__pares { width: 100%; border-collapse: collapse; }
+        .rel__pares td { padding: 0; border: 0; line-height: 1.25; }
+        .rel__k { white-space: nowrap; padding-right: 8px !important; }
+        .rel__v { text-align: right; }
         .foot { position: fixed; bottom: -26mm; left: 0; right: 0; }
         .foot .legal { font-size: 8px; text-align: justify; }
         .foot .company { font-size: 11px; text-align: center; font-weight: bold;
@@ -294,26 +301,56 @@
         @endif
 
         @if (! empty($pagina['relaciones']))
-            {{-- LAS RELACIONES DE GASES, EN CUATRO COLUMNAS.
+            {{-- LAS RELACIONES DE GASES, EN TRES COLUMNAS.
                  El original las apilaba en dos filas de dos columnas: totales
                  arriba, ratios abajo. Eso hace que el bloque mida lo que suman
                  las dos filas —diez renglones— aunque la columna de al lado
-                 quede en blanco. En una sola fila mide lo que la columna más
-                 larga, siete, y esos tres renglones son parte de lo que hace
-                 que la hoja de cromatografía siga entrando en una página. --}}
+                 quede en blanco. Acá van en una sola fila: mide lo que la
+                 columna más larga, siete, y esos tres renglones son parte de lo
+                 que hace que la hoja de cromatografía siga entrando en una
+                 página.
+
+                 DOS CORRECCIONES sobre esa versión aplanada (2026-08-02), las
+                 dos por lo mismo: aplanarla la había dejado peor que el
+                 original a la vista.
+
+                 · TGC(%) tenía una columna PARA ÉL SOLO — una celda de un
+                   cuarto del ancho con un renglón adentro y el resto en blanco,
+                   que es justo lo que hace ver un cuadro mal armado. Va con los
+                   totales, que es de lo que habla (TGC/TG).
+                 · Cada renglón era «etiqueta &nbsp; valor» en un mismo bloque
+                   de texto, así que los números quedaban donde terminara la
+                   etiqueta: 0.87 debajo de 0.29 pero arrancando dos caracteres
+                   más a la derecha. Ahora la etiqueta y el valor son DOS
+                   celdas, así que los números caen alineados como en el papel
+                   viejo. --}}
             <div><b>RELACIONES</b></div>
             <table class="grid rel">
                 <tr>
-                    @foreach (['totales', 'ratios', 'porcentaje_total', 'porcentajes'] as $grupo)
-                        <td style="width:25%">
-                            @foreach ($pagina['relaciones'][$grupo] as $etiqueta => $valor)
-                                <div>{{ $etiqueta }} &nbsp; {{ $valor }}</div>
-                            @endforeach
+                    @foreach (['totales', 'ratios', 'porcentajes'] as $grupo)
+                        @php
+                            $filas = $pagina['relaciones'][$grupo];
+
+                            // El total de combustibles cierra el bloque de
+                            // totales: es el mismo dato visto en porcentaje.
+                            if ($grupo === 'totales') {
+                                $filas = $filas + $pagina['relaciones']['porcentaje_total'];
+                            }
+                        @endphp
+                        <td style="width:33%; vertical-align:top">
+                            <table class="rel__pares">
+                                @foreach ($filas as $etiqueta => $valor)
+                                    <tr>
+                                        <td class="rel__k">{{ $etiqueta }}</td>
+                                        <td class="rel__v">{{ $valor }}</td>
+                                    </tr>
+                                @endforeach
+                            </table>
                         </td>
                     @endforeach
                 </tr>
                 <tr>
-                    <td colspan="4">
+                    <td colspan="3">
                         {{-- La leyenda de las fórmulas. Los anchos son más
                              holgados que los `col-1`/`col-3` del original
                              porque acá el cuerpo es más chico que el ancho de

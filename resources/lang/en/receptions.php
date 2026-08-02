@@ -29,6 +29,8 @@ return [
     'received_at' => 'Received on',
     'received_at_help' => 'The year of the sample number comes from this date, not from the day it is confirmed.',
     'due_at' => 'Committed date',
+    'days_left' => 'Days left',
+    'service_order_pending' => 'Pending',
     'packages' => 'Containers received',
     'is_urgent' => 'Urgent',
     'notes' => 'Notes',

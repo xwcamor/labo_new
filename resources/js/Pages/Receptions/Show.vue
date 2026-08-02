@@ -587,19 +587,17 @@ const confirmarDesbloqueo = () => {
                             >
                                 {{ $t('receptions.assign_tests') }}
                             </Button>
-                            <!-- El informe se ofrece solo cuando hay algo
-                                 firmado que informar. Un botón que abre un
-                                 informe vacío se lee como que el ensayo dio
-                                 cero. -->
-                            <Tooltip v-if="hasValidated(record)" :title="$t('receptions.report_help')">
-                                <Button
-                                    size="small"
-                                    :href="route('lab_management.samples.report', record.slug)"
-                                    target="_blank"
-                                >
-                                    <FilePdfOutlined /> {{ $t('sample_reports.preview') }}
-                                </Button>
-                            </Tooltip>
+                            <!-- ACÁ HABÍA UN BOTÓN "VISTA PREVIA" y se quitó.
+                                 Abría el PDF de la muestra en vivo, sin
+                                 correlativo, sin código de verificación y sin
+                                 firmas — pero con la misma pinta que el informe
+                                 de verdad, y a un clic del botón que lo crea.
+                                 Un papel con aspecto de definitivo, en la fila
+                                 de al lado del definitivo, es exactamente lo
+                                 que termina saliendo del laboratorio por
+                                 equivocación. Para revisar antes de emitir está
+                                 la pantalla del análisis, que además es donde
+                                 hay que confirmar. -->
                             <Tooltip v-if="canEdit && hasValidated(record)" :title="$t('sample_reports.new')">
                                 <Button size="small" type="primary" @click="nuevoInforme(record)">
                                     <PlusOutlined /> {{ $t('sample_reports.singular') }}

@@ -46,6 +46,37 @@ const { can } = useAuth();
 
 const columns = computed(() => receptionsTableColumns(t));
 
+/**
+ * Cuántos días faltan para la fecha comprometida.
+ *
+ * Se cuenta en DÍAS DE CALENDARIO y no en horas: el laboratorio dice "me quedan
+ * dos días", no "me quedan 41 horas", y con horas una entrega comprometida para
+ * hoy a las 9 aparecería vencida a las 10 de la mañana.
+ *
+ * Una entrega CERRADA ya no tiene plazo: mostrarle "-14" a algo que se entregó
+ * es ruido rojo en la mitad del listado.
+ */
+const diasRestantes = (record) => {
+    if (!record.due_at || record.status === 'closed') return null;
+
+    const hoy = new Date();
+    const fin = new Date(record.due_at);
+    const dia = 24 * 60 * 60 * 1000;
+
+    return Math.round(
+        (Date.UTC(fin.getFullYear(), fin.getMonth(), fin.getDate())
+            - Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / dia,
+    );
+};
+
+/** Vencido en rojo, los tres últimos días en ámbar, el resto sin color. */
+const colorDePlazo = (dias) => {
+    if (dias < 0) return 'red';
+    if (dias <= 3) return 'orange';
+
+    return 'default';
+};
+
 // ── Filtros ──────────────────────────────────────────────────────────────
 const statusFilter   = ref(props.filters.status ?? null);
 const customerFilter = ref(props.filters.customer ?? null);
@@ -268,6 +299,39 @@ const progressChips = (record) => {
                         >
                             {{ record.code || `#${record.id}` }}
                         </Link>
+                    </template>
+
+                    <template v-else-if="column.key === 'due_at'">
+                        {{ plainDate(record.due_at) || '—' }}
+                    </template>
+
+                    <!-- DÍAS RESTANTES. El color es el semáforo del sistema
+                         anterior: sin fecha comprometida no hay plazo que
+                         mostrar; vencido va en rojo; los tres últimos días en
+                         ámbar. Es la columna por la que se decide qué entrega
+                         se trabaja hoy. -->
+                    <template v-else-if="column.key === 'days_left'">
+                        <Tag
+                            v-if="diasRestantes(record) !== null"
+                            :bordered="false"
+                            :color="colorDePlazo(diasRestantes(record))"
+                        >{{ diasRestantes(record) }}</Tag>
+                        <span v-else>—</span>
+                    </template>
+
+                    <!-- El Nº de orden de servicio llega días después de la
+                         muestra. Marcarlo PENDIENTE en rojo convierte la
+                         columna en una lista de trabajo, que es para lo que la
+                         usaba el laboratorio. -->
+                    <template v-else-if="column.key === 'service_order'">
+                        <span v-if="record.service_order">{{ record.service_order }}</span>
+                        <Tag v-else :bordered="false" color="red">
+                            {{ $t('receptions.service_order_pending') }}
+                        </Tag>
+                    </template>
+
+                    <template v-else-if="column.key === 'sampler'">
+                        {{ record.sampler?.name ?? record.sampler_name ?? '—' }}
                     </template>
 
                     <template v-else-if="column.key === 'customer'">

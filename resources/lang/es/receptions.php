@@ -33,6 +33,8 @@ return [
     'received_at'     => 'Fecha de recepción',
     'received_at_help'=> 'El año del correlativo sale de esta fecha, no del día en que se confirma.',
     'due_at'          => 'Fecha comprometida',
+    'days_left'       => 'Días restantes',
+    'service_order_pending' => 'Pendiente',
     'packages'        => 'Envases recibidos',
     'is_urgent'       => 'Urgente',
     'notes'           => 'Observaciones',

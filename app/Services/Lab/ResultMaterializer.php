@@ -64,6 +64,29 @@ class ResultMaterializer
             ->with('analyte:id,code,unit,decimals,group')
             ->get();
 
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ LOS RESULTADOS HUÉRFANOS SE BORRAN ANTES DE ESCRIBIR             │
+        // └──────────────────────────────────────────────────────────────────┘
+        // `updateOrCreate` actualiza lo que sigue existiendo y crea lo nuevo,
+        // pero NO se lleva lo que dejó de corresponder. Si a una columna se le
+        // saca el parámetro que alimentaba —o se lo cambia por otro—, su
+        // resultado viejo quedaba en la tabla para siempre: el informe lo
+        // seguía imprimiendo, con su valor y su veredicto, sin ninguna columna
+        // de bancada detrás.
+        //
+        // Eso rompe la única regla que sostiene esta capa: `results` es DERIVADA
+        // de `worksheet_values` y se tiene que poder reconstruir entera desde
+        // allá. Un resultado que no se puede reconstruir es un dato inventado
+        // en un papel firmado.
+        //
+        // Se borra por PARÁMETRO y no la hoja entera para no tocar lo que otra
+        // columna de la misma hoja sí sigue produciendo.
+        $vigentes = $resultFields->pluck('output_analyte_id')->filter()->all();
+
+        Result::whereIn('worksheet_row_id', $worksheet->rows()->pluck('id'))
+            ->when($vigentes !== [], fn ($q) => $q->whereNotIn('analyte_id', $vigentes))
+            ->delete();
+
         if ($resultFields->isEmpty()) {
             return [
                 'written'  => 0,

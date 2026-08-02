@@ -262,8 +262,17 @@ class LegacyReportRenderer
         // {PAGE_NUM} y {PAGE_COUNT} acá: dentro de un elemento `position: fixed`
         // los imprimiría literales. El viejo lo resolvía con el JavaScript de
         // wkhtmltopdf, que dompdf no tiene.
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ 7.5 pt SON LOS 10 px DE LA DIRECCIÓN                             │
+        // └──────────────────────────────────────────────────────────────────┘
+        // Estaba en 10 y se veía más grande que la dirección del mismo renglón,
+        // que también dice 10: la hoja de estilo mide en PÍXELES
+        // (`.foot .addr { font-size: 10px }`) y `page_text` mide en PUNTOS. Un
+        // punto son 1.333 píxeles, así que ese 10 salía como 13.3 px — un
+        // tercio más grande, al lado de un texto con el que tiene que
+        // emparejar. 10 px ÷ 1.333 = 7.5 pt.
         $dompdf->getCanvas()->page_text(
-            455.0, 821.4, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 10, [0.13, 0.15, 0.16],
+            455.0, 821.4, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 7.5, [0.13, 0.15, 0.16],
         );
 
         return $pdf->output();

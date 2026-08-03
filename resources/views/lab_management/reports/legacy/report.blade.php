@@ -59,7 +59,13 @@
            renglones de números cortos, donde el interlineado del cuerpo pesa más
            que el tamaño de la letra. */
         .rel td { padding: 2px 4px; line-height: 1.2; }
+        /* Sin bordes propios: la leyenda vive DENTRO de una celda del `.grid`
+           y `.grid td` alcanza también a las celdas de esta tabla anidada, así
+           que cada fórmula quedaba con su cajita dentro de la caja — el borde
+           doble que no está en el papel viejo (allá la leyenda es UN td con
+           texto plano: `_report_cromas.erb:448-457`). */
         .rel__def { font-size: 9.5px; }
+        .rel__def td { border: 0; }
         /* La etiqueta y el valor en DOS celdas: así los números de una columna
            caen alineados entre sí, como en el papel viejo, en vez de arrancar
            donde termine cada etiqueta. */

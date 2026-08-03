@@ -27,7 +27,6 @@ const dash = '—';
         <Descriptions :column="{ xs: 1, sm: 2, lg: 3 }" size="small" bordered>
             <DescriptionsItem :label="$t('worksheets.test_definition')">
                 {{ definition?.name ?? dash }}
-                <span v-if="definition?.code" class="ws-head__code">{{ definition.code }}</span>
             </DescriptionsItem>
 
             <DescriptionsItem :label="$t('worksheets.run_date')">
@@ -74,11 +73,5 @@ const dash = '—';
 
 <style scoped>
 .ws-head { margin-bottom: 16px; }
-.ws-head__code {
-    margin-left: 6px;
-    font-family: ui-monospace, Consolas, monospace;
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-}
 .ws-head__help { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
 </style>

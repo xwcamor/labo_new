@@ -144,7 +144,6 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                 <Space :size="8" wrap>
                     <WorksheetStatusTag :status="worksheet.status" />
                     <span class="ws-sub">{{ plainDate(worksheet.run_date) }}</span>
-                    <span v-if="worksheet.analyst" class="ws-sub">{{ worksheet.analyst.name }}</span>
                 </Space>
             </template>
             <!-- Editar (la cabecera) / Eliminar / Bloquear: el estándar de los

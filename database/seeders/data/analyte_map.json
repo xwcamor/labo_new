@@ -57,7 +57,23 @@
     "furanos.hidroxi_metil_furfuraldehido_5": "hme",
     "furanos.acetilfurano_2": "ace",
     "furanos.metil_2_furfuraldehido_5": "mfu",
-    "furanos.furfuril_alcohol_2": "fua"
+    "furanos.furfuril_alcohol_2": "fua",
+    "particulas.codigo_iso_xyz": "par_iso",
+    "particulas.um_4": "par_4um",
+    "particulas.um_6": "par_6um",
+    "particulas.um_10": "par_10um",
+    "particulas.um_14": "par_14um",
+    "particulas.um_21": "par_21um",
+    "particulas.um_38": "par_38um",
+    "particulas.um_70": "par_70um",
+    "metales_en_aceite.aluminio_al": "met_al",
+    "metales_en_aceite.cobre_cu": "met_cu",
+    "metales_en_aceite.fierro_fe": "met_fe",
+    "metales_en_aceite.plomo_pb": "met_pb",
+    "metales_en_aceite.plata_ag": "met_ag",
+    "metales_en_aceite.estano_sn": "met_sn",
+    "metales_en_aceite.znic_zn": "met_zn",
+    "metales_en_aceite.silicio_sn": "met_si"
   },
   "pendientes": {
     "_doc": [
@@ -84,10 +100,16 @@
       "    la fila no resuelve nada y deja incompleto un papel firmado.",
       "",
       "La regla: si la duda es CÓMO SE ESCRIBE el valor, se declara igual. Solo se",
-      "deja sin declarar cuando no se sabe QUÉ PARÁMETRO es —que es el caso de las",
-      "dos de abajo, donde el parámetro directamente no existe todavía."
-    ],
-    "particulas": "Diez rangos de tamaño, todos resultados. Hay que crear un parámetro por rango y decidir cómo se informa el conteo.",
-    "metales_en_aceite": "Diez elementos, todos resultados. Hay que crear un parámetro por elemento."
+      "deja sin declarar cuando no se sabe QUÉ PARÁMETRO es.",
+      "",
+      "RESUELTAS (2026-08-03, pedido del laboratorio: las hojas de partículas y",
+      "metales faltaban en el informe clásico): 'particulas' y 'metales_en_aceite'",
+      "estuvieron acá por no tener parámetro creado. Los parámetros salieron de",
+      "las filas del papel viejo (_report_particles.erb: código ISO + 7 rangos;",
+      "_report_metales.erb: 8 elementos por ICP-AES) y ya están en analytes.json",
+      "(grupos 'particulas' y 'metales') y en el map de arriba. OJO con dos codigos",
+      "de columna del sistema viejo que parecen erratas y NO lo son (así se llaman",
+      "las columnas reales): 'znic_zn' (Zinc) y 'silicio_sn' (Silicio)."
+    ]
   }
 }

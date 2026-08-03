@@ -748,6 +748,15 @@ class LabFullReportSeeder extends Seeder
             return $limite->text_value;
         }
 
+        // El código ISO 4406 del conteo de partículas es texto sin criterio en
+        // los cuadros (tres escalas, una por canal >4/>6/>14 µm). Sin esto la
+        // hoja de partículas de la demostración imprimía un guion en su primera
+        // fila — y esa fila es justamente el resultado que el laboratorio cita.
+        if ($columna->output_analyte_id
+            && \App\Models\Analyte::whereKey($columna->output_analyte_id)->value('code') === 'par_iso') {
+            return '18/16/13';
+        }
+
         return $columna->is_required ? '—' : null;
     }
 

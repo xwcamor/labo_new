@@ -317,5 +317,122 @@
       "decimals": 0,
       "direction": "lower_better"
     }
+  ],
+  "particulas": [
+    {
+      "code": "par_iso",
+      "name": "Código ISO (4/6/14 µm)",
+      "unit": "",
+      "decimals": 0,
+      "direction": "qualitative",
+      "nota": "El código de limpieza ISO 4406 (\"18/16/13\"): tres números de escala, uno por canal >4/>6/>14 µm. Es texto, no un número — como la condición visual."
+    },
+    {
+      "code": "par_4um",
+      "name": "Partículas > 4 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_6um",
+      "name": "Partículas > 6 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_10um",
+      "name": "Partículas > 10 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_14um",
+      "name": "Partículas > 14 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_21um",
+      "name": "Partículas > 21 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_38um",
+      "name": "Partículas > 38 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    },
+    {
+      "code": "par_70um",
+      "name": "Partículas > 70 µm",
+      "unit": "partículas/mL",
+      "decimals": 0,
+      "direction": "lower_better"
+    }
+  ],
+  "metales": [
+    {
+      "code": "met_al",
+      "name": "Aluminio (Al)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_cu",
+      "name": "Cobre (Cu)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_fe",
+      "name": "Fierro (Fe)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_pb",
+      "name": "Plomo (Pb)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_ag",
+      "name": "Plata (Ag)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_sn",
+      "name": "Estaño (Sn)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_zn",
+      "name": "Zinc (Zn)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    },
+    {
+      "code": "met_si",
+      "name": "Silicio (Si)",
+      "unit": "ppm",
+      "decimals": 1,
+      "direction": "lower_better"
+    }
   ]
 }

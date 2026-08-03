@@ -25,13 +25,25 @@ class TenantsSeeder extends Seeder
     public function run(): void
     {
         // Disclaimer legal por defecto de los informes PDF (membrete del tenant).
-        // Texto genérico de laboratorio; cada empresa lo ajusta a su gusto.
-        $disclaimer = fn (string $empresa) => "Los resultados de este informe corresponden únicamente a las "
-            . "muestras analizadas bajo las condiciones de ensayo. {$empresa} no se responsabiliza por componentes "
-            . "proporcionados por el cliente ni por el uso inadecuado de este documento. No se otorga garantía "
-            . "expresa o implícita sobre la condición, productividad o correcto funcionamiento del equipo. Se prohíbe "
-            . "la reproducción total o parcial de este documento sin autorización previa escrita. Los análisis y "
-            . "opiniones representan el mejor juicio de {$empresa} y no son refrendados por un ente acreditador.";
+        // Es el descargo REAL del pie del informe viejo (`pdf_footer.erb`),
+        // pedido por el laboratorio (2026-08-03), con dos arreglos y nada más:
+        //   · el original traía DUPLICADA la frase "Cuando la muestra es
+        //     proporcionada... como se recibió" (la oración arrancaba dos veces
+        //     por un error de copiado en el ERB) — acá va una sola vez;
+        //   · el nombre de la empresa sale del workspace, no clavado: otro
+        //     laboratorio no puede emitir un papel que hable por otra empresa.
+        $disclaimer = fn (string $empresa) => 'Los resultados obtenidos en este reporte solo corresponden a las '
+            . 'muestras analizadas bajo las condiciones de ensayo. Cuando la muestra es proporcionada por el cliente '
+            . 'interno o externo los resultados se aplican a la muestra como se recibió. '
+            . "{$empresa} no se responsabiliza cuando algún componente de este informe ha sido proporcionado por el "
+            . "cliente y tampoco por el uso inadecuado de este documento. {$empresa} no hace ninguna garantía o "
+            . 'representación expresa o implícita en cuanto a condición, productividad o correcto funcionamiento de '
+            . 'cualquier equipo u otros bienes que pueda ser objeto de este informe o depender de ella para la razón '
+            . 'que sea. Se prohíbe la reproducción total o parcial de este documento sin autorización previa escrita. '
+            . 'Los resultados de los ensayos no deben ser utilizados como una certificación de conformidad o como un '
+            . 'certificado del sistema de calidad. Los análisis, opiniones o interpretaciones contenidas en este '
+            . "informe se basan en el material recolectado y representan el mejor juicio de {$empresa} y no son "
+            . 'refrendadas por el ente acreditador.';
 
         // ┌──────────────────────────────────────────────────────────────────┐
         // │ LOS DOS TEXTOS DEL INFORME QUE SOLO TIENE EL WORKSPACE 1         │

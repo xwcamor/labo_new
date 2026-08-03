@@ -77,6 +77,8 @@ import {
     UnorderedListOutlined,
     FileTextOutlined,
     FileProtectOutlined,
+    GoldOutlined,
+    SwapOutlined,
 } from '@ant-design/icons-vue';
 
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
@@ -733,6 +735,18 @@ const menuStructure = computed(() => [
                 key: 'ambient_logs', label: t('sidebar.ambient_logs'), icon: CloudOutlined,
                 href: route('lab_management.ambient_logs.index'), inertia: true,
                 visible: () => can('ambient_logs.view'),
+            },
+            // ── Almacén: el catálogo y los préstamos van juntos porque se
+            //    usan juntos (se busca el artículo, se ve que hay, se presta) ──
+            {
+                key: 'stock_items', label: t('sidebar.stock_items'), icon: GoldOutlined,
+                href: route('lab_management.stock_items.index'), inertia: true,
+                visible: () => can('stock_items.view'),
+            },
+            {
+                key: 'stock_loans', label: t('sidebar.stock_loans'), icon: SwapOutlined,
+                href: route('lab_management.stock_loans.index'), inertia: true,
+                visible: () => can('stock_loans.view'),
             },
             // ── Los 7 Excel del menú "Reportes de Lab." del sistema viejo ──
             {

@@ -27,6 +27,8 @@ return [
     'lab_reports'        => 'Reportes de Lab.',
     'ambient_logs'       => 'Condiciones ambientales',
     'trends'             => 'Tendencias',
+    'stock_items'        => 'Almacén',
+    'stock_loans'        => 'Préstamos',
 
     // Grupo: lo que el laboratorio configura de sí mismo. Se separó de
     // "Pruebas de Muestras" porque ese grupo tenía diez items y solo tres se

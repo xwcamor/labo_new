@@ -90,6 +90,13 @@ class SystemModulesSeeder extends Seeder
             // del sistema anterior, acceso 64). Permiso propio: la carga quien
             // abre el laboratorio, que no es necesariamente el analista.
             ['name' => 'AmbientLogs',      'permission_key' => 'ambient_logs'],
+            // El almacén: los artículos y los préstamos («Seguimiento de
+            // Equipos» del sistema anterior, accesos 57 y 58). Dos permisos
+            // porque son dos cosas distintas: mantener el catálogo lo hace
+            // quien administra el almacén, y prestar lo hace cualquier analista
+            // que se lleva un frasco a la bancada.
+            ['name' => 'StockItems',       'permission_key' => 'stock_items'],
+            ['name' => 'StockLoans',       'permission_key' => 'stock_loans'],
         ];
 
         foreach ($modules as $m) {

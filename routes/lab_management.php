@@ -16,6 +16,8 @@ use App\Http\Controllers\LabManagement\AmbientLogController;
 use App\Http\Controllers\LabManagement\TrendController;
 use App\Http\Controllers\LabManagement\ReportCatalogController;
 use App\Http\Controllers\LabManagement\SampleLabelController;
+use App\Http\Controllers\LabManagement\StockItemController;
+use App\Http\Controllers\LabManagement\StockLoanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -407,6 +409,56 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
 
     Route::middleware('permission:ambient_logs.delete')->group(function () {
         Route::delete('ambient_logs/{ambient_log}', [AmbientLogController::class, 'destroy'])->name('ambient_logs.destroy');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Almacén: artículos y préstamos
+    |----------------------------------------------------------------------
+    | El «Seguimiento de Equipos» del sistema anterior (accesos 57 y 58), con
+    | sus cinco tablas reducidas a cuatro y sus cuatro agujeros tapados — el
+    | detalle está en la migración `create_stock_tables`.
+    |
+    | Dos permisos separados, como allá: mantener el catálogo de artículos es
+    | tarea de quien administra el almacén; llevarse un frasco a la bancada lo
+    | hace cualquier analista.
+    */
+    Route::middleware('permission:stock_items.view')->group(function () {
+        Route::get('stock_items', [StockItemController::class, 'index'])->name('stock_items.index');
+    });
+
+    Route::middleware('permission:stock_items.create')->group(function () {
+        Route::post('stock_items', [StockItemController::class, 'store'])->name('stock_items.store');
+    });
+
+    Route::middleware('permission:stock_items.edit')->group(function () {
+        Route::put('stock_items/{stock_item}', [StockItemController::class, 'update'])->name('stock_items.update');
+    });
+
+    Route::middleware('permission:stock_items.delete')->group(function () {
+        Route::delete('stock_items/{stock_item}', [StockItemController::class, 'destroy'])->name('stock_items.destroy');
+    });
+
+    Route::middleware('permission:stock_loans.view')->group(function () {
+        Route::get('stock_loans', [StockLoanController::class, 'index'])->name('stock_loans.index');
+        Route::get('stock_loans/{stock_loan}', [StockLoanController::class, 'show'])->name('stock_loans.show');
+    });
+
+    Route::middleware('permission:stock_loans.create')->group(function () {
+        Route::post('stock_loans', [StockLoanController::class, 'store'])->name('stock_loans.store');
+    });
+
+    Route::middleware('permission:stock_loans.edit')->group(function () {
+        Route::put('stock_loans/{stock_loan}', [StockLoanController::class, 'update'])->name('stock_loans.update');
+        // La devolución va con el permiso de EDICIÓN del préstamo y no con uno
+        // propio: registrar que algo volvió es corregir el préstamo, y quien
+        // recibe el material en el almacén es quien lo anota.
+        Route::post('stock_loans/{stock_loan}/returns', [StockLoanController::class, 'storeReturn'])->name('stock_loans.returns.store');
+        Route::delete('stock_loans/{stock_loan}/returns/{stock_return}', [StockLoanController::class, 'destroyReturn'])->name('stock_loans.returns.destroy');
+    });
+
+    Route::middleware('permission:stock_loans.delete')->group(function () {
+        Route::delete('stock_loans/{stock_loan}', [StockLoanController::class, 'destroy'])->name('stock_loans.destroy');
     });
 
     /*

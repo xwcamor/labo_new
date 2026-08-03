@@ -24,6 +24,8 @@ return [
     'lab_reports'        => 'Lab reports',
     'ambient_logs'       => 'Ambient conditions',
     'trends'             => 'Trends',
+    'stock_items'        => 'Stock',
+    'stock_loans'        => 'Loans',
 
     // What the laboratory configures about itself. Split out of "Sample
     // testing": that group had ten items and only three are opened daily.

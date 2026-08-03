@@ -46,13 +46,24 @@ class ReportCatalog extends Model
     public const KIND_OIL_BRAND = 'oil_brand';
     /** Unidad en que se mide el volumen de aceite. */
     public const KIND_VOLUME_UNIT = 'volume_unit';
+    /**
+     * Unidad en que se cuenta un artículo del almacén (unidad, L, kg, caja).
+     *
+     * Es la quinta lista, y la única que no llena el formulario del informe.
+     * Vive acá igual porque tiene EXACTAMENTE la misma forma —nombre, activo,
+     * orden— y se administra en la misma pantalla. En el sistema anterior era
+     * `stock_units`: una tabla de una sola columna útil, con su controlador y
+     * sus cinco vistas, para guardar la palabra "Litro".
+     */
+    public const KIND_STOCK_UNIT = 'stock_unit';
 
-    /** Las cuatro listas, en el orden en que se muestran. */
+    /** Las cinco listas, en el orden en que se muestran. */
     public const KINDS = [
         self::KIND_REASON,
         self::KIND_POINT,
         self::KIND_OIL_BRAND,
         self::KIND_VOLUME_UNIT,
+        self::KIND_STOCK_UNIT,
     ];
 
     protected $fillable = [

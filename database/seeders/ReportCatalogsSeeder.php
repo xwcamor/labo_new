@@ -84,10 +84,59 @@ class ReportCatalogsSeeder extends Seeder
             }
         }
 
+        $creadas += $this->unidadesDeAlmacen();
+
         $this->command?->info(sprintf(
             'Catálogos del informe: %d filas creadas (%d centinelas «-» omitidos).',
             $creadas,
             $omitidas,
         ));
+    }
+
+    /**
+     * La quinta lista: en qué se cuenta un artículo del almacén.
+     *
+     * NO sale del volcado. El sistema anterior la tenía en `stock_units`, y de
+     * esa tabla solo se consiguió la estructura —el volcado es `--no-data`—,
+     * así que sembrar «lo que tenía el laboratorio» sería inventarlo. Estas son
+     * unidades de arranque para que la pantalla no abra vacía; el laboratorio
+     * las corrige desde el editor de listas.
+     *
+     * Se emparejan por NOMBRE y no por `legacy_id`, que acá no existe: con
+     * `legacy_id` nulo la comparación `= NULL` no encuentra nada en SQL y cada
+     * corrida del seed volvería a crearlas.
+     */
+    private function unidadesDeAlmacen(): int
+    {
+        $unidades = ['Unidad', 'Frasco', 'Caja', 'L', 'mL', 'kg', 'g'];
+        $creadas = 0;
+        $orden = 0;
+
+        foreach ($unidades as $nombre) {
+            $orden++;
+
+            $existe = ReportCatalog::withoutGlobalScopes()
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('kind', ReportCatalog::KIND_STOCK_UNIT)
+                ->where('name', $nombre)
+                ->exists();
+
+            if ($existe) {
+                continue;
+            }
+
+            ReportCatalog::withoutGlobalScopes()->create([
+                'slug'       => Str::random(22),
+                'tenant_id'  => self::TENANT_ID,
+                'kind'       => ReportCatalog::KIND_STOCK_UNIT,
+                'name'       => $nombre,
+                'sort_order' => $orden,
+                'is_active'  => true,
+            ]);
+
+            $creadas++;
+        }
+
+        return $creadas;
     }
 }

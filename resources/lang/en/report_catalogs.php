@@ -2,7 +2,7 @@
 
 return [
     'title' => 'Report lists',
-    'intro' => 'The options offered by four fields of the report form. They used to be free text, which is how the same unit ended up written three different ways.',
+    'intro' => 'The small lists of the system: the four that fill the report form, plus the stock unit. They used to be free text, which is how the same unit ended up written three different ways.',
 
     'frozen_note' => 'What the sample stores is the chosen TEXT, not the catalog row: editing or deactivating an option here does not change any report already issued.',
 
@@ -11,6 +11,7 @@ return [
         'sampling_point'  => 'Sampling point',
         'oil_brand'       => 'Oil brand',
         'volume_unit'     => 'Volume unit',
+        'stock_unit'      => 'Stock unit',
     ],
 
     'hint' => [
@@ -18,6 +19,7 @@ return [
         'sampling_point'  => 'Where the sample was drawn from: bottom, middle or top valve.',
         'oil_brand'       => 'The commercial brand of the oil (Nynas, Shell), distinct from the oil type.',
         'volume_unit'     => 'How the equipment oil volume is measured: L, Gl, Kg, Lb, drums.',
+        'stock_unit'      => 'How a stock item is counted: unit, bottle, litre, kilo, box.',
     ],
 
     'name'        => 'Name',

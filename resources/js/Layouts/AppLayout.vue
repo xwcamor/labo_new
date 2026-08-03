@@ -721,6 +721,13 @@ const menuStructure = computed(() => [
                 href: route('lab_management.qc_charts.index'), inertia: true,
                 visible: () => can('qc_charts.view'),
             },
+            // ── La historia del equipo del cliente. NO es la carta de
+            //    control: esa mira si el método mide bien hoy. ──
+            {
+                key: 'trends', label: t('sidebar.trends'), icon: LineChartOutlined,
+                href: route('lab_management.trends.index'), inertia: true,
+                visible: () => can('equipment.view'),
+            },
             // ── Bitácora ambiental de las salas ──
             {
                 key: 'ambient_logs', label: t('sidebar.ambient_logs'), icon: CloudOutlined,

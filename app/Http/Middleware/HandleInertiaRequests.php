@@ -295,6 +295,8 @@ class HandleInertiaRequests extends Middleware
             'lab_reports',
             // La bitácora ambiental de las salas.
             'ambient_logs',
+            // La historia del equipo del cliente en el tiempo.
+            'trends',
             // La redacción del análisis que el informe imprime, editable por pantalla.
             'diagnosis_templates',
             // Las cuatro listas chicas que llenan el formulario del informe.

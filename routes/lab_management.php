@@ -13,6 +13,7 @@ use App\Http\Controllers\LabManagement\TestReportController;
 use App\Http\Controllers\LabManagement\SampleReportController;
 use App\Http\Controllers\LabManagement\LabReportController;
 use App\Http\Controllers\LabManagement\AmbientLogController;
+use App\Http\Controllers\LabManagement\TrendController;
 use App\Http\Controllers\LabManagement\ReportCatalogController;
 
 /*
@@ -360,6 +361,18 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     // información de la pantalla, en un archivo.
     Route::middleware('permission:receptions.view')->group(function () {
         Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Tendencias del equipo del cliente
+    |----------------------------------------------------------------------
+    | La evolución del aceite de un transformador en el tiempo. Va con el
+    | permiso de LECTURA de equipos porque es la historia de ese activo: quien
+    | puede ver el equipo puede ver cómo viene.
+    */
+    Route::middleware('permission:equipment.view')->group(function () {
+        Route::get('trends', [TrendController::class, 'index'])->name('trends.index');
     });
 
     /*

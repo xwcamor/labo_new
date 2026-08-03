@@ -26,6 +26,7 @@ return [
     'qc_charts'          => 'Cartas de control',
     'lab_reports'        => 'Reportes de Lab.',
     'ambient_logs'       => 'Condiciones ambientales',
+    'trends'             => 'Tendencias',
 
     // Grupo: lo que el laboratorio configura de sí mismo. Se separó de
     // "Pruebas de Muestras" porque ese grupo tenía diez items y solo tres se

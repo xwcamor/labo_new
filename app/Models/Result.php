@@ -77,6 +77,18 @@ class Result extends Model
         return $this->belongsTo(Equipment::class);
     }
 
+    /**
+     * De qué muestra salió este valor.
+     *
+     * La columna existe desde el principio —el informe busca los resultados
+     * por ella—, pero la relación faltaba: para poner el código de muestra al
+     * lado de un punto de la tendencia había que consultarlo aparte.
+     */
+    public function sample(): BelongsTo
+    {
+        return $this->belongsTo(Sample::class);
+    }
+
     public function definition(): BelongsTo
     {
         return $this->belongsTo(TestDefinition::class, 'test_definition_id');

@@ -17,6 +17,7 @@ use App\Http\Controllers\BusinessManagement\EquipmentTypeController;
 use App\Http\Controllers\BusinessManagement\ReportShareController;
 use App\Http\Controllers\BusinessManagement\ReportShareLogController;
 use App\Http\Controllers\BusinessManagement\OilTypeController;
+use App\Http\Controllers\BusinessManagement\TransformerPreservationController;
 use App\Http\Controllers\BusinessManagement\CustomerController;
 use App\Http\Controllers\BusinessManagement\CustomerHierarchyController;
 use App\Http\Controllers\BusinessManagement\CommentController;
@@ -1171,5 +1172,23 @@ Route::prefix('business_management')->name('business_management.')->group(functi
     Route::middleware('role:super|admin')->group(function () {
         Route::post('entry_authorizers/{entryAuthorizer}/lock',   [EntryAuthorizerController::class, 'lock'])->name('entry_authorizers.lock');
         Route::post('entry_authorizers/{entryAuthorizer}/unlock', [EntryAuthorizerController::class, 'unlock'])->name('entry_authorizers.unlock');
+    });
+    /*
+    |----------------------------------------------------------------------
+    | Sistemas de preservación del aceite
+    |----------------------------------------------------------------------
+    | La tabla, el modelo y el desplegable del formulario de equipos ya
+    | existían; faltaba la pantalla, así que la lista solo se podía alimentar
+    | por seeder o por SQL a mano.
+    |
+    | Va con `role:super` y no con un permiso de módulo: es un catálogo GLOBAL
+    | (sin tenant), una clasificación técnica del equipo y no una preferencia de
+    | cada laboratorio — el mismo criterio que tipos de aceite y de equipo.
+    */
+    Route::middleware('role:super')->group(function () {
+        Route::get('transformer_preservations', [TransformerPreservationController::class, 'index'])->name('transformer_preservations.index');
+        Route::post('transformer_preservations', [TransformerPreservationController::class, 'store'])->name('transformer_preservations.store');
+        Route::put('transformer_preservations/{transformer_preservation}', [TransformerPreservationController::class, 'update'])->name('transformer_preservations.update');
+        Route::delete('transformer_preservations/{transformer_preservation}', [TransformerPreservationController::class, 'destroy'])->name('transformer_preservations.destroy');
     });
 });

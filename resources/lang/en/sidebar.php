@@ -26,6 +26,7 @@ return [
     'trends'             => 'Trends',
     'stock_items'        => 'Stock',
     'stock_loans'        => 'Loans',
+    'transformer_preservations' => 'Preservation systems',
 
     // What the laboratory configures about itself. Split out of "Sample
     // testing": that group had ten items and only three are opened daily.

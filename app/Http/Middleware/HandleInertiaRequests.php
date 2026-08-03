@@ -299,6 +299,8 @@ class HandleInertiaRequests extends Middleware
             'ambient_logs',
             // El almacén: artículos y préstamos.
             'stock_items', 'stock_loans',
+            // Sistemas de preservación del aceite (catálogo del equipo).
+            'transformer_preservations',
             // La historia del equipo del cliente en el tiempo.
             'trends',
             // La redacción del análisis que el informe imprime, editable por pantalla.

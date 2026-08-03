@@ -29,6 +29,7 @@ return [
     'trends'             => 'Tendencias',
     'stock_items'        => 'Almacén',
     'stock_loans'        => 'Préstamos',
+    'transformer_preservations' => 'Sistemas de preservación',
 
     // Grupo: lo que el laboratorio configura de sí mismo. Se separó de
     // "Pruebas de Muestras" porque ese grupo tenía diez items y solo tres se

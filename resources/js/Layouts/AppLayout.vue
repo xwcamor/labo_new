@@ -861,6 +861,11 @@ const menuStructure = computed(() => [
                 visible: () => hasRole('super'),
             },
             {
+                key: 'transformer_preservations', label: t('sidebar.transformer_preservations'), icon: ApartmentOutlined,
+                href: route('business_management.transformer_preservations.index'), inertia: true,
+                visible: () => hasRole('super'),
+            },
+            {
                 key: 'brands', label: t('sidebar.brands'), icon: TagsOutlined,
                 href: route('business_management.brands.index'), inertia: true,
                 visible: () => can('brands.view'),

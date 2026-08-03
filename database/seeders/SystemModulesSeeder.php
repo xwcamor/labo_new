@@ -81,6 +81,11 @@ class SystemModulesSeeder extends Seeder
             // cuatro permisos separados serían cuatro que nadie iba a otorgar
             // por separado.
             ['name' => 'ReportCatalogs',   'permission_key' => 'report_catalogs'],
+            // Los 7 Excel del menú "Reportes de Lab." del sistema viejo.
+            // Permiso propio (allá eran los accesos 50-55 y 66): quien carga
+            // recepciones no necesariamente puede bajarse la planilla de
+            // resultados de TODOS los clientes.
+            ['name' => 'LabReports',       'permission_key' => 'lab_reports'],
         ];
 
         foreach ($modules as $m) {

@@ -11,6 +11,7 @@ use App\Http\Controllers\LabManagement\ReceptionController;
 use App\Http\Controllers\LabManagement\InstrumentFileController;
 use App\Http\Controllers\LabManagement\TestReportController;
 use App\Http\Controllers\LabManagement\SampleReportController;
+use App\Http\Controllers\LabManagement\LabReportController;
 use App\Http\Controllers\LabManagement\ReportCatalogController;
 
 /*
@@ -358,6 +359,24 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     // información de la pantalla, en un archivo.
     Route::middleware('permission:receptions.view')->group(function () {
         Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Reportes de Lab. — los 7 Excel del sistema antiguo
+    |----------------------------------------------------------------------
+    | Una pantalla con el rango de fecha de recepción y una descarga GET
+    | síncrona por reporte. Permiso propio (`lab_reports`) porque en el viejo
+    | cada reporte tenía su acceso (50-55 y 66) y no todo el que carga
+    | recepciones debe ver la planilla completa de resultados de todos los
+    | clientes.
+    */
+    Route::middleware('permission:lab_reports.view')->group(function () {
+        Route::get('lab_reports', [LabReportController::class, 'index'])->name('lab_reports.index');
+        // El 404 del reporte inexistente lo da el controlador (la lista vive
+        // en su constante); un `whereIn` acá dejaba la URL sin ruta y el shell
+        // la convertía en redirección, no en 404.
+        Route::get('lab_reports/{report}', [LabReportController::class, 'download'])->name('lab_reports.download');
     });
 
     /*

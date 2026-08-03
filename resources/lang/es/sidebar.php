@@ -24,6 +24,7 @@ return [
     'worksheets'         => 'Hojas de trabajo',
     'sample_reports'     => 'Informes de ensayo',
     'qc_charts'          => 'Cartas de control',
+    'lab_reports'        => 'Reportes de Lab.',
 
     // Grupo: lo que el laboratorio configura de sí mismo. Se separó de
     // "Pruebas de Muestras" porque ese grupo tenía diez items y solo tres se

@@ -720,6 +720,12 @@ const menuStructure = computed(() => [
                 href: route('lab_management.qc_charts.index'), inertia: true,
                 visible: () => can('qc_charts.view'),
             },
+            // ── Los 7 Excel del menú "Reportes de Lab." del sistema viejo ──
+            {
+                key: 'lab_reports', label: t('sidebar.lab_reports'), icon: FileExcelOutlined,
+                href: route('lab_management.lab_reports.index'), inertia: true,
+                visible: () => can('lab_reports.view'),
+            },
         ],
     },
 

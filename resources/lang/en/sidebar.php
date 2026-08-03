@@ -21,6 +21,7 @@ return [
     'worksheets'         => 'Worksheets',
     'sample_reports'     => 'Test reports',
     'qc_charts'          => 'Control charts',
+    'lab_reports'        => 'Lab reports',
 
     // What the laboratory configures about itself. Split out of "Sample
     // testing": that group had ten items and only three are opened daily.

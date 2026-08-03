@@ -291,6 +291,8 @@ class HandleInertiaRequests extends Middleware
             'qc_charts', 'instruments', 'instrument_files',
             // Recepción de muestras y el informe que sale de ellas.
             'receptions', 'sample_reports', 'reports',
+            // Los 7 Excel del menú "Reportes de Lab.".
+            'lab_reports',
             // La redacción del análisis que el informe imprime, editable por pantalla.
             'diagnosis_templates',
             // Las cuatro listas chicas que llenan el formulario del informe.

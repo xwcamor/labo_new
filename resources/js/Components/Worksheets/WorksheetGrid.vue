@@ -51,6 +51,7 @@ import WorksheetCell from '@/Components/Worksheets/WorksheetCell.vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
 import SampleTestSelect from '@/Components/Worksheets/SampleTestSelect.vue';
 import { useI18n } from '@/Plugins/i18n';
+import { useDateFormat } from '@/Composables/useDateFormat';
 import { censoredText, kindColor } from '@/Pages/Worksheets/config/format';
 
 const props = defineProps({
@@ -64,15 +65,23 @@ const props = defineProps({
     // Las pruebas que esta hoja todavía espera. La fila de muestra se ata a una
     // de ellas por clave foránea, en vez de tipear el correlativo.
     pendingTests: { type: Array, default: () => [] },
+    // Quién registró cada fila: `{ [row_id]: { name, at } }`. Sale de
+    // `worksheet_values.entered_by`, que se escribe desde siempre y no se
+    // mostraba en ninguna pantalla.
+    enteredBy:   { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
     readonly:    { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
+const { formatDateTimeFull } = useDateFormat();
 
 const KINDS = ['control', 'duplicate', 'blank', 'sample'];
 
 const rows = computed(() => props.worksheet.rows ?? []);
+
+/** Quién registró la fila, y cuándo (para el tooltip). */
+const enteredByOf = (row) => props.enteredBy?.[row.id] ?? null;
 
 const storageOf = (field) => props.fieldTypes?.[field.type]?.storage ?? 'value_text';
 
@@ -123,13 +132,19 @@ const columnKind = (field) => {
 };
 
 /**
- * La columna de instrumento de la FILA solo se ofrece cuando la plantilla no
- * declara ninguna columna de instrumento propia. Si la declara, el equipo se
- * elige por columna —una misma prueba usa varios: el Número Ácido lleva bureta
- * y balanza— y repetirlo al costado solo confunde sobre cuál manda.
+ * La columna de instrumento de la FILA casi nunca corresponde.
+ *
+ * Si la plantilla declara columnas de instrumento propias (bureta, balanza…),
+ * el equipo se elige por columna y repetirlo al costado confunde sobre cuál
+ * manda. Y si NO las declara es porque la prueba no usa instrumentos
+ * (cromatografía, partículas, condición visual…): mostrar igual un selector
+ * con los 24 equipos del laboratorio era ofrecer un dato que no existe —
+ * "como si fuera global". Solo queda visible como respaldo de lectura cuando
+ * alguna fila vieja ya trae un instrumento cargado a nivel de fila.
  */
 const showRowInstrument = computed(
-    () => !props.fields.some((field) => field.type === 'instrument'),
+    () => !props.fields.some((field) => field.type === 'instrument')
+        && rows.value.some((row) => row.instrument_id),
 );
 
 const replicatesOf = (field) => Math.max(1, Number(field.replicates ?? 1));
@@ -239,7 +254,6 @@ const buildDraft = (row = null) => {
         position:      row?.position ?? null,
         instrument_id: row?.instrument_id ?? null,
         sample_test_id: row?.sample_test_id ?? null,
-        notes:         row?.notes ?? '',
         values,
     };
 };
@@ -474,7 +488,10 @@ const payloadOf = (draft) => {
         kind:          draft.kind,
         position:      draft.position,
         instrument_id: draft.instrument_id,
-        notes:         draft.notes || null,
+        // `notes` NO viaja: la columna Observaciones se quitó de la grilla
+        // (2026-08-03, pedido del laboratorio). La clave se OMITE en vez de
+        // mandarse en nulo para que `WorksheetService::saveRow` conserve lo que
+        // ya está escrito en las filas viejas — mandar null lo borraría.
         values:        draft.values,
     };
 
@@ -604,7 +621,10 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                         </th>
 
                         <th v-if="showRowInstrument" class="ws-th">{{ $t('instruments.singular') }}</th>
-                        <th class="ws-th">{{ $t('worksheets.notes') }}</th>
+                        <!-- Quién la registró. Reemplaza a Observaciones, que
+                             se quitó por pedido del laboratorio: nadie la
+                             llenaba y quién cargó el dato sí se pregunta. -->
+                        <th class="ws-th ws-th--who">{{ $t('worksheets.entered_by') }}</th>
                         <th v-if="!readonly" class="ws-th ws-th--actions">{{ $t('global.actions') }}</th>
                     </tr>
                 </thead>
@@ -684,14 +704,11 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td class="ws-td">
-                            <Input
-                                :value="drafts[row.id]?.notes ?? ''"
-                                :disabled="readonly"
-                                size="small"
-                                class="ws-notes"
-                                @change="(event) => (drafts[row.id].notes = event.target.value)"
-                            />
+                        <td class="ws-td ws-td--who">
+                            <Tooltip v-if="enteredByOf(row)" :title="formatDateTimeFull(enteredByOf(row).at)">
+                                <span>{{ enteredByOf(row).name }}</span>
+                            </Tooltip>
+                            <span v-else class="ws-who--empty">—</span>
                         </td>
 
                         <td v-if="!readonly" class="ws-td ws-td--actions">
@@ -771,14 +788,9 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td class="ws-td">
-                            <Input
-                                :value="newDraft.notes"
-                                size="small"
-                                class="ws-notes"
-                                @change="(event) => (newDraft.notes = event.target.value)"
-                            />
-                        </td>
+                        <!-- La fila nueva todavía no tiene autor: lo escribe el
+                             servidor al guardar, con el usuario de la sesión. -->
+                        <td class="ws-td ws-td--who"><span class="ws-who--empty">—</span></td>
 
                         <td class="ws-td ws-td--actions">
                             <Tooltip :title="$t('global.save')">
@@ -918,6 +930,11 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 .ws-col--text     { width: 150px; max-width: 150px; }
 .ws-col--instrument { width: 160px; max-width: 160px; }
 
+/* Quién registró la fila: es contexto, no dato de trabajo. */
+.ws-th--who { width: 150px; }
+.ws-td--who { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; }
+.ws-who--empty { color: var(--color-text-muted); }
+
 /* El selector de equipo necesita ancho: el nombre de un equipo es largo y
    recortarlo obliga a abrir el desplegable para saber cuál está elegido. */
 
@@ -934,10 +951,6 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 }
 .ws-td--actions { white-space: nowrap; }
 .ws-td--actions .ant-btn + .ant-btn { margin-left: 6px; }
-
-/* Las observaciones son la excepción, no la regla: se les da lo justo para
-   escribir una línea corta y no un tercio de la fila. */
-.ws-notes { min-width: 130px; width: 150px; }
 
 /* Tintes por tipo de fila. Van en rgba translúcido sobre la superficie para
    que funcionen igual en tema claro y oscuro.

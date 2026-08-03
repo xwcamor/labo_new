@@ -25,6 +25,7 @@ return [
     // Printed in the report's test-conditions block.
     'sample_temp_c'   => 'Sample temperature',
     'notes'           => 'Notes',
+    'entered_by'      => 'Entered by',
     'rows_count'      => 'Rows',
     'samples_count'   => 'Samples',
 

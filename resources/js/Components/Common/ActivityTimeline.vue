@@ -62,11 +62,14 @@ const feed = computed(() => {
 });
 
 // ── Filtros rápidos ───────────────────────────────────────────────────
+// Los eventos de fila de la hoja de trabajo entran en el mismo cajón que su
+// acción equivalente sobre el registro: si el filtro "Eliminaciones" no
+// contara las filas quitadas de la bancada, el contador mentiría.
 const FILTER_GROUPS = {
     all:       null,
-    creations: ['created'],
-    edits:     ['updated'],
-    deletions: ['deleted', 'force_deleted'],
+    creations: ['created', 'row_added'],
+    edits:     ['updated', 'row_updated'],
+    deletions: ['deleted', 'force_deleted', 'row_removed'],
 };
 
 const activeFilter = ref('all');
@@ -74,9 +77,9 @@ const viewMode = ref('tree'); // 'tree' (timeline) | 'table'
 
 const counts = computed(() => ({
     all:       feed.value.length,
-    creations: feed.value.filter(a => a.event === 'created').length,
-    edits:     feed.value.filter(a => a.event === 'updated').length,
-    deletions: feed.value.filter(a => ['deleted', 'force_deleted'].includes(a.event)).length,
+    creations: feed.value.filter(a => FILTER_GROUPS.creations.includes(a.event)).length,
+    edits:     feed.value.filter(a => FILTER_GROUPS.edits.includes(a.event)).length,
+    deletions: feed.value.filter(a => FILTER_GROUPS.deletions.includes(a.event)).length,
 }));
 
 const filters = computed(() => [
@@ -102,6 +105,12 @@ const eventMeta = (event) => {
         case 'restored':      return { icon: UndoOutlined,      color: '#1D7044', label: t('global.event_restored') };
         case 'exported':      return { icon: ExportOutlined,    color: '#6A6D70', label: t('global.event_exported') };
         case 'export_queued': return { icon: ExportOutlined,    color: '#6A6D70', label: t('global.event_export_queued') };
+        // Filas de la hoja de trabajo: comparten el color de su acción
+        // equivalente sobre el registro (alta verde, corrección azul, baja
+        // roja) para que el feed se lea de un vistazo.
+        case 'row_added':     return { icon: PlusCircleFilled, color: '#1D7044', label: t('global.event_row_added') };
+        case 'row_updated':   return { icon: EditFilled,       color: '#0A6ED1', label: t('global.event_row_updated') };
+        case 'row_removed':   return { icon: DeleteFilled,     color: '#C8281D', label: t('global.event_row_removed') };
         default:              return { icon: EyeFilled,         color: '#6A6D70', label: event };
     }
 };

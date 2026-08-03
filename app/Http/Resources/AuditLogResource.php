@@ -45,6 +45,11 @@ class AuditLogResource extends JsonResource
             'old_values' => $this->old_values,
             'new_values' => $this->new_values,
             'changes'    => $this->event === 'updated' ? $this->humanizeChanges() : null,
+            // De QUÉ se habla, cuando el evento no es sobre el registro entero.
+            // Hoy lo usan las filas de la hoja de trabajo: el historial dice
+            // "Muestra cargada en la hoja · 2026-0003" en vez de un evento sin
+            // sujeto repetido tres veces.
+            'subject'    => $this->subjectLabel(),
             'created_at' => $this->created_at?->toIso8601String(),
             'user'       => $this->user ? [
                 'id'    => $this->user->id,
@@ -52,6 +57,25 @@ class AuditLogResource extends JsonResource
                 'email' => $this->user->email,
             ] : null,
         ];
+    }
+
+    /**
+     * El sujeto del evento cuando no es el registro entero.
+     *
+     * Las filas de la hoja de trabajo no tienen pantalla propia, así que sus
+     * eventos cuelgan de la hoja; sin el código de la muestra el historial
+     * diría "Muestra cargada" tres veces sin distinguir cuál.
+     */
+    protected function subjectLabel(): ?string
+    {
+        if (! in_array($this->event, ['row_added', 'row_updated', 'row_removed'], true)) {
+            return null;
+        }
+
+        $valores = $this->new_values ?? [];
+
+        return $valores['sample_code']
+            ?: ($valores['kind'] ? __("worksheets.kind.{$valores['kind']}") : null);
     }
 
     /** Diff legible de un evento 'updated'. */

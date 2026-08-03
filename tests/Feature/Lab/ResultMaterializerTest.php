@@ -232,6 +232,55 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame(0, Result::count());
     }
 
+    public function test_el_historial_de_la_hoja_dice_quien_cargo_y_quien_quito_cada_fila(): void
+    {
+        // Antes solo se auditaba la CABECERA de la hoja: cargar o borrar una
+        // muestra en la bancada no dejaba rastro en ningún historial, y la
+        // pregunta "¿quién registró esta muestra?" se contestaba yendo a la
+        // base. La fila no tiene pantalla propia, así que su evento cuelga de
+        // la hoja —y por eso el borrado también queda registrado—.
+        $w = $this->hoja();
+        $fila = $this->cargarMuestra($w);
+
+        $alta = \App\Models\AuditLog::where('auditable_type', $w->getMorphClass())
+            ->where('auditable_id', $w->id)
+            ->where('event', 'row_added')
+            ->first();
+
+        $this->assertNotNull($alta, 'Cargar una fila no quedó en el historial.');
+        $this->assertSame(auth()->id(), $alta->user_id);
+        $this->assertSame('2026-0744', $alta->new_values['sample_code']);
+
+        // Editarla queda como corrección, no como una segunda alta.
+        $this->service->saveRow($w->fresh(), ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '1.30',
+        ], $fila->fresh());
+
+        $this->service->deleteRow($w->fresh(), $fila->fresh());
+
+        $eventos = \App\Models\AuditLog::where('auditable_type', $w->getMorphClass())
+            ->where('auditable_id', $w->id)
+            ->pluck('event');
+
+        $this->assertContains('row_updated', $eventos);
+        $this->assertContains('row_removed', $eventos);
+    }
+
+    public function test_quien_escribio_cada_celda_queda_registrado(): void
+    {
+        // Es el dato que alimenta la columna «Registrado por» de la grilla.
+        $w = $this->hoja();
+        $fila = $this->cargarMuestra($w);
+
+        $autores = DB::table('worksheet_values')
+            ->where('worksheet_row_id', $fila->id)
+            ->pluck('entered_by')
+            ->unique();
+
+        $this->assertCount(1, $autores);
+        $this->assertSame(auth()->id(), (int) $autores->first());
+    }
+
     public function test_borrar_la_unica_fila_devuelve_la_prueba_pedida_a_pendiente(): void
     {
         // El caso que reportó el laboratorio: se carga la fila, la hoja se

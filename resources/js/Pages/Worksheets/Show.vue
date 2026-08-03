@@ -42,6 +42,8 @@ const props = defineProps({
     // Las pruebas pedidas que esta hoja todavía espera, para el selector de
     // muestra de la grilla.
     pendingTests: { type: Array, default: () => [] },
+    // Quién registró cada fila, indexado por id de fila: `{ name, at }`.
+    enteredBy:   { type: Object, default: () => ({}) },
     can:         { type: Object, default: () => ({}) },
     // El candado del registro (trait Lockable): quién puede ponerlo y sacarlo.
     lock:        { type: Object, default: null },
@@ -233,6 +235,7 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                         :instruments="instruments"
                         :instruments-by-field="instrumentsByField"
                         :pending-tests="pendingTests"
+                        :entered-by="enteredBy"
                         :missing="missing"
                         :readonly="readonly"
                     />

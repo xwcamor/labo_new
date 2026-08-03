@@ -358,6 +358,9 @@ return [
     'event_restored'       => 'restored',
     'event_exported'       => 'exported',
     'event_export_queued'  => 'requested an export',
+    'event_row_added'      => 'entered on the bench',
+    'event_row_updated'    => 'corrected on the bench',
+    'event_row_removed'    => 'removed from the bench',
 
     // ── Page / pagination ─────────────────────────────────────────
     'page'                 => 'Page',

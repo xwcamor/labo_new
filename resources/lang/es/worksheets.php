@@ -29,7 +29,11 @@ return [
     'ambient_humidity'=> 'Humedad ambiente',
     // Se imprime en el bloque de condiciones de ensayo del informe.
     'sample_temp_c'   => 'Temperatura de la muestra',
+    // La columna Observaciones de la GRILLA se quitó (2026-08-03); la clave
+    // queda porque la cabecera de la hoja sí tiene su campo de notas.
     'notes'           => 'Observaciones',
+    // Quién cargó la fila en la bancada. Sale de `worksheet_values.entered_by`.
+    'entered_by'      => 'Registrado por',
     'rows_count'      => 'Filas',
     'samples_count'   => 'Muestras',
 

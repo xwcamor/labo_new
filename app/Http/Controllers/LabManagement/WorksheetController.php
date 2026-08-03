@@ -279,6 +279,10 @@ class WorksheetController extends Controller
             'activity'    => $this->recordActivity($worksheet, $request),
             'fields'      => $worksheet->definition->fields,
             'fieldTypes'  => config('lab_field_types'),
+            // Quién registró cada fila. El dato estaba en cada celda desde el
+            // principio (`worksheet_values.entered_by`) y no se mostraba en
+            // ningún lado.
+            'enteredBy'   => $this->enteredBy($worksheet),
             // Las pruebas de ESTA definición que todavía esperan resultado, para
             // que el analista elija la muestra en vez de tipear su código.
             'pendingTests' => $this->pendingTests($worksheet),
@@ -326,6 +330,49 @@ class WorksheetController extends Controller
      *
      * @return array<int,array{id:int,code:string,customer:?string,equipment:?string}>
      */
+    /**
+     * Quién cargó cada fila y cuándo, para la columna «Cargado por».
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DATO YA EXISTÍA Y NO SE VEÍA                                      │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Cada celda guarda su `entered_by` desde el primer día —es lo que pide una
+     * acreditación—, pero la grilla nunca lo mostraba: para saber quién había
+     * registrado una muestra en la bancada había que ir a la base. Se toma el
+     * ÚLTIMO que escribió en la fila, que es quien responde por lo que se ve.
+     *
+     * En UNA consulta agregada, no una por fila: una hoja de cromatografía con
+     * 40 muestras son 40 consultas para dibujar una columna.
+     *
+     * @return array<int,array{name:string,at:?string}>
+     */
+    private function enteredBy(Worksheet $worksheet): array
+    {
+        $filas = $worksheet->rows->pluck('id');
+
+        if ($filas->isEmpty()) {
+            return [];
+        }
+
+        return \App\Models\WorksheetValue::query()
+            ->whereIn('worksheet_row_id', $filas)
+            ->whereNotNull('entered_by')
+            ->orderBy('entered_at')
+            ->orderBy('id')
+            ->with('enteredBy:id,name')
+            ->get(['id', 'worksheet_row_id', 'entered_by', 'entered_at'])
+            ->reduce(function (array $mapa, $valor) {
+                if ($valor->enteredBy) {
+                    $mapa[$valor->worksheet_row_id] = [
+                        'name' => $valor->enteredBy->name,
+                        'at'   => $valor->entered_at?->toIso8601String(),
+                    ];
+                }
+
+                return $mapa;
+            }, []);
+    }
+
     private function pendingTests(Worksheet $worksheet): array
     {
         // Las que YA están en una fila de esta hoja entran siempre, sin mirar

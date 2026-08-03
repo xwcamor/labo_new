@@ -97,6 +97,8 @@ class WorksheetService
                 $this->assertSampleNotRepeated($worksheet, $row, $desdeLaMuestra, $attributes, $input, $fields);
             }
 
+            $esNueva = ! $row->exists;
+
             $row->fill([
                 'worksheet_id'  => $worksheet->id,
                 'kind'          => $kind,
@@ -123,6 +125,13 @@ class WorksheetService
 
             $this->writeValues($row, $fields, $input);
             $this->recalculate($row, $fields);
+
+            // Quién cargó esta fila queda en el historial de la hoja. Antes solo
+            // se auditaba la CABECERA (la hoja como registro), así que la
+            // pregunta "¿quién registró esta muestra en la bancada?" no tenía
+            // respuesta en pantalla: el dato estaba en `worksheet_values.
+            // entered_by`, celda por celda, y nadie lo mostraba.
+            $this->auditRow($worksheet, $row, $esNueva ? 'row_added' : 'row_updated');
 
             // La prueba pedida pasa a "en proceso". Se escribe acá, cuando
             // ocurre, y no al abrir la pantalla de la recepción.
@@ -177,6 +186,10 @@ class WorksheetService
         }
 
         DB::transaction(function () use ($worksheet, $row) {
+            // Se audita ANTES de borrar: después la fila ya no tiene de dónde
+            // leer su código de muestra.
+            $this->auditRow($worksheet, $row, 'row_removed');
+
             $row->delete();
             Result::where('worksheet_row_id', $row->id)->delete();
 
@@ -189,6 +202,37 @@ class WorksheetService
             // prueba pedida y el control de calidad sí pueden.
             $this->publishIfComplete($worksheet->refresh());
         });
+    }
+
+    /**
+     * Deja constancia en el historial de la HOJA de lo que pasó con una fila.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ CUELGA DE LA HOJA Y NO DE LA FILA                            │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La fila no tiene pantalla propia: no hay dónde abrir "el historial de la
+     * fila 3". Quien pregunta "¿quién cargó esta muestra?" está mirando la hoja,
+     * así que el rastro tiene que estar ahí. Además una fila borrada se lleva su
+     * historial si el evento cuelga de ella, y el borrado es justamente lo que
+     * hay que poder auditar.
+     *
+     * Se guarda el CÓDIGO de la muestra y no su id: el id no le dice nada a
+     * quien lee el historial, y si la fila se borró el id ya no resuelve nada.
+     */
+    private function auditRow(Worksheet $worksheet, WorksheetRow $row, string $evento): void
+    {
+        \App\Models\AuditLog::create([
+            'user_id'        => auth()->id(),
+            'auditable_type' => $worksheet->getMorphClass(),
+            'auditable_id'   => $worksheet->getKey(),
+            'event'          => $evento,
+            'old_values'     => null,
+            'new_values'     => [
+                'sample_code' => $row->sample_code,
+                'kind'        => $row->kind,
+                'position'    => $row->position,
+            ],
+        ]);
     }
 
     /**

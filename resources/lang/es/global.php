@@ -360,6 +360,11 @@ return [
     'event_restored'       => 'restauró',
     'event_exported'       => 'exportó',
     'event_export_queued'  => 'solicitó un export',
+    // Filas de la hoja de trabajo. Cuelgan de la HOJA porque la fila no tiene
+    // pantalla propia, y su borrado es justamente lo que hay que poder auditar.
+    'event_row_added'      => 'cargó en la bancada',
+    'event_row_updated'    => 'corrigió en la bancada',
+    'event_row_removed'    => 'quitó de la bancada',
 
     // ── Page / paginación ─────────────────────────────────────────
     'page'                 => 'Página',

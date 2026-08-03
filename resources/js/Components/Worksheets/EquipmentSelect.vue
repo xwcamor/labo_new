@@ -30,6 +30,16 @@ const props = defineProps({
      * la columna explica el motivo en vez de ofrecer un selector inservible.
      */
     applicable: { type: Boolean, default: true },
+    /**
+     * La fila viene de una muestra de RECEPCIÓN: el equipo lo define la
+     * recepción y acá solo se MUESTRA (el materializador usa el de la muestra,
+     * no la foto de la fila). Ofrecer el selector sobre una decisión que la
+     * bancada no toma es lo que hacía aparecer "Sin equipo" editable sobre una
+     * muestra que ya tenía su transformador asignado.
+     */
+    locked: { type: Boolean, default: false },
+    /** El equipo vivo de la muestra ({name, serial, tag}) o nulo si aún no se asignó. */
+    lockedEquipment: { type: Object, default: null },
 });
 
 const emit = defineEmits(['update:value']);
@@ -126,6 +136,25 @@ const isPending = computed(() => props.applicable && !props.value);
         </span>
     </Tooltip>
 
+    <!-- Fila atada a una muestra de recepción: se MUESTRA el equipo vivo de la
+         muestra, sin selector. Si aún no se asignó, se dice DÓNDE se asigna en
+         vez de reclamarlo acá, que no es donde se decide. -->
+    <div v-else-if="locked" class="ws-equipment">
+        <Tooltip :title="$t('worksheets.equipment_from_sample')">
+            <span v-if="lockedEquipment" class="ws-equipment__linked">
+                {{ lockedEquipment.tag || lockedEquipment.name }}
+            </span>
+            <span v-else class="ws-equipment__na">
+                <InfoCircleOutlined />
+                {{ $t('worksheets.equipment_in_reception') }}
+            </span>
+        </Tooltip>
+        <span
+            v-if="lockedEquipment && subtitle(lockedEquipment)"
+            class="ws-equipment__meta"
+        >{{ subtitle(lockedEquipment) }}</span>
+    </div>
+
     <div v-else class="ws-equipment">
         <!-- SIN botón de limpiar, a propósito: WorksheetService::saveRow resuelve
              el equipo con `?? $row->equipment_id`, de modo que un null enviado
@@ -216,4 +245,7 @@ const isPending = computed(() => props.applicable && !props.value);
     font-size: 0.72rem; line-height: 1.3;
     color: var(--color-text-muted);
 }
+
+/* El equipo heredado de la muestra: texto, no control. */
+.ws-equipment__linked { font-size: 0.8125rem; }
 </style>

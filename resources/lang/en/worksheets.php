@@ -85,6 +85,7 @@ return [
         'value_below_min'       => ':field: the value cannot be lower than :min.',
         'value_above_max'       => ':field: the value cannot be higher than :max.',
         'unknown_sample_test'   => 'That requested test does not exist. Pick the sample again.',
+        'duplicate_sample'      => 'Sample :code already has its row on this sheet. To fix a value, edit that row; for a second control measurement, use the Duplicate row.',
         'sample_test_other_definition' => 'That sample has a different test requested. Load it in the matching worksheet.',
     ],
 
@@ -134,6 +135,8 @@ return [
     'equipment_missing_help'   => 'Without equipment the result is still reported, but it feeds no equipment trend and cannot take limits that depend on a voltage class. If the sample comes from a drum or a loose container, leaving it empty is correct.',
     'equipment_missing_count'  => '{0} Every sample states its equipment.|{1} 1 sample without equipment: its result is reported, but with no equipment trend and no voltage-class limits.|[2,*] :count samples without equipment: their results are reported, but with no equipment trend and no voltage-class limits.',
     'equipment_na_short'       => 'Not applicable',
+    'equipment_from_sample'    => 'The equipment comes from the sample reception; if wrong, fix it there.',
+    'equipment_in_reception'   => 'Assigned at reception',
     'equipment_not_applicable' => 'The control standard, the duplicate and the reagent blank are method controls, not customer samples: they do not come from any equipment.',
 
     'kind_label'     => 'Row kind',

@@ -85,6 +85,19 @@ class WorksheetRow extends Model
         return $this->belongsTo(Worksheet::class);
     }
 
+    /**
+     * La muestra de la recepción a la que está atada esta fila.
+     *
+     * Es la dueña del EQUIPO vivo: la celda de equipo de la grilla lo muestra
+     * de acá (no de la foto `equipment_id` de la fila) porque la recepción lo
+     * asigna DESPUÉS de cargar la bancada, y el materializador ya resolvía con
+     * la muestra primero.
+     */
+    public function sample(): BelongsTo
+    {
+        return $this->belongsTo(Sample::class, 'sample_id');
+    }
+
     /** Con qué equipo se midió esta fila (ISO 17025). */
     public function instrument(): BelongsTo
     {

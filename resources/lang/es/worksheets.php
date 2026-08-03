@@ -98,6 +98,9 @@ return [
         'value_below_min'       => ':field: el valor no puede ser menor que :min.',
         'value_above_max'       => ':field: el valor no puede ser mayor que :max.',
         'unknown_sample_test'   => 'La prueba pedida no existe. Vuelva a elegir la muestra.',
+        // Una muestra, una fila: dos filas de la misma muestra son dos
+        // resultados oficiales para la misma medición.
+        'duplicate_sample'      => 'La muestra :code ya tiene su fila en esta hoja. Para corregir un valor, edite esa fila; si es una segunda medición de control, use la fila de Duplicado.',
         'sample_test_other_definition' => 'Esa muestra tiene pedida otra prueba. Cárguela en la hoja que corresponde.',
     ],
 
@@ -149,6 +152,8 @@ return [
     'equipment_missing_help'   => 'Sin equipo el resultado se informa igual, pero no alimenta la tendencia de ningun equipo y no puede tomar los limites que dependen de su clase de tension. Si la muestra viene de un cilindro o de un envase suelto, es correcto dejarlo vacio.',
     'equipment_missing_count'  => '{0} Todas las muestras indican su equipo.|{1} 1 muestra sin equipo: su resultado se informa, pero sin tendencia por equipo ni limites por clase de tension.|[2,*] :count muestras sin equipo: sus resultados se informan, pero sin tendencia por equipo ni limites por clase de tension.',
     'equipment_na_short'       => 'No aplica',
+    'equipment_from_sample'    => 'El equipo lo define la recepción de la muestra; si está mal, se corrige en la recepción.',
+    'equipment_in_reception'   => 'Se asigna en la recepción',
     'equipment_not_applicable' => 'El patrón control, el duplicado y el blanco de reactivos son controles del método, no muestras de un cliente: no provienen de un equipo.',
 
     'kind_label'     => 'Tipo de fila',

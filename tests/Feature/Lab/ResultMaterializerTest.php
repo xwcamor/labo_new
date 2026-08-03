@@ -217,6 +217,47 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame([], $informe['skipped']);
     }
 
+    public function test_borrar_una_fila_retira_su_resultado(): void
+    {
+        // El borrado era `$row->delete()` a secas: la fila desaparecía de la
+        // grilla pero su resultado quedaba vivo y el informe seguía imprimiendo
+        // un valor sin ninguna fila detrás — el fantasma que el analista veía
+        // después de rehacer una medición.
+        $w = $this->hoja();
+        $fila = $this->cargarMuestra($w);
+        $this->assertSame(1, Result::count());
+
+        $this->service->deleteRow($w, $fila);
+
+        $this->assertSame(0, Result::count());
+    }
+
+    public function test_rematerializar_sanea_los_fantasmas_de_filas_borradas(): void
+    {
+        // El huérfano dejado ANTES de la corrección (baja sin retiro): al
+        // republicarse la hoja, se sanea solo.
+        $w = $this->hoja();
+        $fila = $this->cargarMuestra($w);
+        $fila->delete();   // el camino viejo, sin retirar el resultado
+        $this->assertSame(1, Result::count());
+
+        $this->materializer->forWorksheet($w->refresh());
+
+        $this->assertSame(0, Result::count());
+    }
+
+    public function test_la_misma_muestra_no_entra_dos_veces_como_fila_de_muestra(): void
+    {
+        // Dos filas de la misma muestra son dos resultados oficiales para la
+        // misma medición. La segunda medición es el Duplicado (control) o una
+        // corrección editando la fila que ya está.
+        $w = $this->hoja();
+        $this->cargarMuestra($w);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->cargarMuestra($w);   // mismo código de muestra, misma hoja
+    }
+
     public function test_rematerializar_actualiza_y_no_duplica(): void
     {
         $w = $this->hoja();

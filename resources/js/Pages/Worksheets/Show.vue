@@ -108,7 +108,11 @@ const missingMessage = computed(() => (props.missing.length === 0 ? '' : t(
  */
 const samplesWithoutEquipment = computed(
     () => (props.worksheet.rows ?? []).filter(
-        (row) => row.kind === 'sample' && !row.equipment_id,
+        // El equipo VIVO de la muestra manda sobre la foto de la fila: la
+        // recepción lo asigna DESPUÉS de cargar la bancada, y el que usa el
+        // materializador es el de la muestra. Contar la foto hacía avisar
+        // "sin equipo" sobre muestras que ya tenían su transformador.
+        (row) => row.kind === 'sample' && !(row.sample?.equipment_id ?? row.equipment_id),
     ).length,
 );
 

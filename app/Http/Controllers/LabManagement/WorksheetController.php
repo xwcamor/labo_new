@@ -261,6 +261,13 @@ class WorksheetController extends Controller
             'rows.values',
             'rows.instrument:id,name,description',
             'rows.equipment:id,name,serial,tag',
+            // El equipo VIVO de la muestra, para la celda de equipo: la fila
+            // guarda una foto de cuando se creó, pero el que manda —y el que
+            // usa el materializador— es el de la muestra, que la recepción
+            // asigna DESPUÉS de cargar la bancada. Sin esto la celda mostraba
+            // "Sin equipo" sobre una muestra que ya tenía su transformador.
+            'rows.sample:id,code,equipment_id',
+            'rows.sample.equipment:id,name,serial,tag',
         ]);
 
         return Inertia::render('Worksheets/Show', [
@@ -523,7 +530,10 @@ class WorksheetController extends Controller
             return back()->withErrors(['worksheet' => __('worksheets.errors.not_draft')]);
         }
 
-        $row->delete();
+        // El servicio, no un `delete()` pelado: la baja tiene que retirar
+        // también el resultado que la fila ya había publicado, o el informe
+        // sigue imprimiendo un valor sin ninguna fila detrás.
+        $this->service->deleteRow($worksheet, $row);
 
         return back()->with('success', __('worksheets.row_deleted'));
     }

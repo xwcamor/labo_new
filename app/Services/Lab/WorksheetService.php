@@ -5,6 +5,7 @@ namespace App\Services\Lab;
 use App\Models\QcChart;
 use App\Models\QcDuplicate;
 use App\Models\QcPoint;
+use App\Models\Result;
 use App\Models\SampleTest;
 use App\Models\TestField;
 use App\Models\Worksheet;
@@ -84,6 +85,18 @@ class WorksheetService
             // transformador pertenece — ése lo puso quien lo recibió.
             $desdeLaMuestra = $this->inheritFromSampleTest($attributes, $row);
 
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ UNA MUESTRA, UNA FILA                                        │
+            // └──────────────────────────────────────────────────────────────┘
+            // La misma muestra dos veces como fila tipo "muestra" son DOS
+            // resultados oficiales para la misma medición, y el informe los
+            // imprime a los dos sin poder decidir cuál vale. Una segunda
+            // medición es el DUPLICADO (control de calidad, no se informa) o
+            // una corrección editando la fila que ya está.
+            if ($kind === WorksheetRow::KIND_SAMPLE) {
+                $this->assertSampleNotRepeated($worksheet, $row, $desdeLaMuestra, $attributes, $input, $fields);
+            }
+
             $row->fill([
                 'worksheet_id'  => $worksheet->id,
                 'kind'          => $kind,
@@ -133,6 +146,75 @@ class WorksheetService
 
             return $row->refresh();
         });
+    }
+
+    /**
+     * Da de baja una fila de la hoja Y retira lo que había publicado.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO CORRIGE                                          │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El borrado era `$row->delete()` a secas: la fila desaparecía de la
+     * grilla pero su resultado ya materializado quedaba vivo en `results`, y
+     * el informe seguía imprimiendo un valor que no estaba detrás de ninguna
+     * fila — el analista lo rehacía con otros números y el papel mostraba el
+     * viejo. `results` es una capa DERIVADA de la hoja: lo que la hoja ya no
+     * tiene, la capa tampoco.
+     */
+    public function deleteRow(Worksheet $worksheet, WorksheetRow $row): void
+    {
+        $this->assertEditable($worksheet);
+
+        DB::transaction(function () use ($worksheet, $row) {
+            $row->delete();
+            Result::where('worksheet_row_id', $row->id)->delete();
+
+            // Lo que queda en la hoja se republica si sigue completa: los
+            // resultados de las otras filas no cambian, pero el estado de la
+            // prueba pedida y el control de calidad sí pueden.
+            $this->publishIfComplete($worksheet->refresh());
+        });
+    }
+
+    /**
+     * @throws ValidationException si la muestra ya tiene su fila en esta hoja
+     */
+    private function assertSampleNotRepeated(
+        Worksheet $worksheet,
+        WorksheetRow $row,
+        array $desdeLaMuestra,
+        array $attributes,
+        array $input,
+        $fields,
+    ): void {
+        $sampleId = $desdeLaMuestra['sample_id'] ?? $row->sample_id;
+        $codigo   = $desdeLaMuestra['sample_code']
+            ?? $this->sampleCodeFrom($attributes, $input, $fields, WorksheetRow::KIND_SAMPLE)
+            ?? $row->sample_code;
+
+        // Una fila suelta sin muestra ni código todavía no repite nada.
+        if ($sampleId === null && ($codigo === null || $codigo === '')) {
+            return;
+        }
+
+        $repetida = WorksheetRow::where('worksheet_id', $worksheet->id)
+            ->where('kind', WorksheetRow::KIND_SAMPLE)
+            ->when($row->exists, fn ($q) => $q->whereKeyNot($row->id))
+            ->where(function ($q) use ($sampleId, $codigo) {
+                if ($sampleId !== null) {
+                    $q->orWhere('sample_id', $sampleId);
+                }
+                if ($codigo !== null && $codigo !== '') {
+                    $q->orWhere('sample_code', $codigo);
+                }
+            })
+            ->exists();
+
+        if ($repetida) {
+            throw ValidationException::withMessages([
+                'sample_code' => __('worksheets.errors.duplicate_sample', ['code' => $codigo ?? '#' . $sampleId]),
+            ]);
+        }
     }
 
     /**

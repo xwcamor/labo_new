@@ -87,6 +87,14 @@ class ResultMaterializer
             ->when($vigentes !== [], fn ($q) => $q->whereNotIn('analyte_id', $vigentes))
             ->delete();
 
+        // Y los de las filas BORRADAS de esta hoja. El borrado ya los retira
+        // (`WorksheetService::deleteRow`), pero los que quedaron huérfanos de
+        // antes de esa corrección seguían imprimiéndose en el informe con un
+        // valor que no está detrás de ninguna fila; rematerializar la hoja los
+        // sanea de una.
+        Result::whereIn('worksheet_row_id', $worksheet->rows()->onlyTrashed()->pluck('id'))
+            ->delete();
+
         if ($resultFields->isEmpty()) {
             return [
                 'written'  => 0,

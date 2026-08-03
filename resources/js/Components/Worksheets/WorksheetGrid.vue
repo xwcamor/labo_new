@@ -470,6 +470,23 @@ const onSamplePicked = (draft, test) => {
     setCell(draft, sampleCodeField.value, 1, test?.code ?? '');
 };
 
+// ── El equipo de una fila atada a una muestra de recepción ───────────────
+// El equipo lo define la RECEPCIÓN, no la bancada: cuando la fila viene de
+// una muestra, la celda lo MUESTRA (el vivo de la muestra, que es el que usa
+// el materializador) y no lo ofrece a elegir. El selector queda solo para
+// filas sueltas sin recepción.
+const rowLocked = (row, draft) => !!(row?.sample_id || draft?.sample_test_id);
+
+const lockedEquipmentOf = (row, draft) => {
+    if (row?.sample?.equipment) return row.sample.equipment;
+
+    // Fila recién atada a una prueba pedida (todavía sin guardar): el equipo
+    // viene como etiqueta en la lista de pendientes.
+    const test = props.pendingTests.find((x) => x.id === draft?.sample_test_id);
+
+    return test?.equipment ? { name: test.equipment } : null;
+};
+
 const sampleCodeOf = (draft) => {
     const field = sampleCodeField.value;
     if (!field) return null;
@@ -678,6 +695,8 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                 :equipment="equipment"
                                 :value="drafts[row.id]?.equipment_id ?? null"
                                 :applicable="equipmentApplies(row.kind)"
+                                :locked="rowLocked(row, drafts[row.id])"
+                                :locked-equipment="lockedEquipmentOf(row, drafts[row.id])"
                                 :disabled="readonly"
                                 @update:value="(value) => (drafts[row.id].equipment_id = value)"
                             />
@@ -780,6 +799,8 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                 :equipment="equipment"
                                 :value="newDraft.equipment_id"
                                 :applicable="equipmentApplies(newDraft.kind)"
+                                :locked="rowLocked(null, newDraft)"
+                                :locked-equipment="lockedEquipmentOf(null, newDraft)"
                                 @update:value="(value) => (newDraft.equipment_id = value)"
                             />
                         </td>

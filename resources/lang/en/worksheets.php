@@ -124,20 +124,10 @@ return [
     // equipment and never reaches the customer report. It warns, it does not
     // block: the analyst sometimes fills the bench before the sample intake is
     // on record.
-    'equipment'                => 'Equipment',
-    'equipment_hint'           => 'Where the sample was drawn from',
-    'equipment_no_customer' => 'No customer',
-    'equipment_placeholder'    => 'Search by name, serial or tag',
-    'equipment_missing'        => 'No equipment',
     // The result IS reported without equipment: confirmed by the laboratory
     // (2026-07-30). The sample number is associated with a transformer later, and
     // sometimes never — a sample from a drum of new oil comes from no equipment.
-    'equipment_missing_help'   => 'Without equipment the result is still reported, but it feeds no equipment trend and cannot take limits that depend on a voltage class. If the sample comes from a drum or a loose container, leaving it empty is correct.',
     'equipment_missing_count'  => '{0} Every sample states its equipment.|{1} 1 sample without equipment: its result is reported, but with no equipment trend and no voltage-class limits.|[2,*] :count samples without equipment: their results are reported, but with no equipment trend and no voltage-class limits.',
-    'equipment_na_short'       => 'Not applicable',
-    'equipment_from_sample'    => 'The equipment comes from the sample reception; if wrong, fix it there.',
-    'equipment_in_reception'   => 'Assigned at reception',
-    'equipment_not_applicable' => 'The control standard, the duplicate and the reagent blank are method controls, not customer samples: they do not come from any equipment.',
 
     'kind_label'     => 'Row kind',
     'instrument'     => 'Instrument',

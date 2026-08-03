@@ -39,7 +39,6 @@ const props = defineProps({
     // decía qué equipo va en qué columna (la bureta en la bureta, el
     // colorímetro en el color); sin esto la grilla ofrecía los 24 en todas.
     instrumentsByField: { type: Object, default: () => ({}) },
-    equipment:   { type: Array,  default: () => [] },
     // Las pruebas pedidas que esta hoja todavía espera, para el selector de
     // muestra de la grilla.
     pendingTests: { type: Array, default: () => [] },
@@ -234,7 +233,6 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                         :field-types="fieldTypes"
                         :instruments="instruments"
                         :instruments-by-field="instrumentsByField"
-                        :equipment="equipment"
                         :pending-tests="pendingTests"
                         :missing="missing"
                         :readonly="readonly"

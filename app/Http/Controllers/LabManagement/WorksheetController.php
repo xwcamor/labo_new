@@ -289,16 +289,11 @@ class WorksheetController extends Controller
             'instrumentsByField' => $this->instrumentsByField($worksheet),
             'instruments' => Instrument::where('is_active', true)
                 ->orderBy('name')->get(['id', 'name', 'description', 'calibration_due_at']),
-            // Los equipos del workspace, para que el analista indique de cuál
-            // es cada muestra. El scope por workspace lo aplica el modelo.
-            // Con su CLIENTE: el desplegable los agrupa por empresa. Una lista
-            // plana de cientos de equipos de veinte clientes obliga a saber de
-            // memoria el nombre exacto, y es el camino por el que una muestra
-            // termina cargada en el transformador de otra empresa.
-            'equipment'   => Equipment::where('is_active', true)
-                ->with('customer:id,name')
-                ->orderBy('customer_id')->orderBy('name')
-                ->limit(2000)->get(['id', 'name', 'serial', 'tag', 'customer_id']),
+            // Sin lista de equipos: la columna Equipo se quitó de la grilla
+            // (2026-08-03, pedido del laboratorio). El equipo de una muestra lo
+            // define la RECEPCIÓN y ya se ve en la celda del Nº de muestra; acá
+            // se mandaban hasta 2000 equipos para un selector que no decidía
+            // nada.
             // El candado, con quién puede ponerlo y sacarlo: es lo que dibuja
             // el botón Bloquear del encabezado, igual que en los catálogos.
             'lock'        => $this->lockMeta($worksheet->load('locker:id,name'), $request),

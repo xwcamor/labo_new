@@ -139,22 +139,12 @@ return [
     // equipo y no llega al informe del cliente. Se avisa, no se obliga: el
     // analista a veces carga la bancada antes de que el ingreso de la muestra
     // esté registrado.
-    'equipment'                => 'Equipo',
-    'equipment_hint'           => 'De dónde se tomó la muestra',
-    'equipment_no_customer' => 'Sin cliente',
-    'equipment_placeholder'    => 'Buscar por nombre, serie o etiqueta',
-    'equipment_missing'        => 'Sin equipo',
     // El resultado SE INFORMA sin equipo: lo confirmo el laboratorio (2026-07-30).
     // El numero de muestra se asocia a un transformador despues, y a veces no se
     // asocia nunca — una muestra de un cilindro de aceite nuevo no viene de
     // ningun equipo. Lo que se pierde sin el enlace es la TENDENCIA del equipo y
     // los limites que dependen de su clase de tension, no el informe.
-    'equipment_missing_help'   => 'Sin equipo el resultado se informa igual, pero no alimenta la tendencia de ningun equipo y no puede tomar los limites que dependen de su clase de tension. Si la muestra viene de un cilindro o de un envase suelto, es correcto dejarlo vacio.',
     'equipment_missing_count'  => '{0} Todas las muestras indican su equipo.|{1} 1 muestra sin equipo: su resultado se informa, pero sin tendencia por equipo ni limites por clase de tension.|[2,*] :count muestras sin equipo: sus resultados se informan, pero sin tendencia por equipo ni limites por clase de tension.',
-    'equipment_na_short'       => 'No aplica',
-    'equipment_from_sample'    => 'El equipo lo define la recepción de la muestra; si está mal, se corrige en la recepción.',
-    'equipment_in_reception'   => 'Se asigna en la recepción',
-    'equipment_not_applicable' => 'El patrón control, el duplicado y el blanco de reactivos son controles del método, no muestras de un cliente: no provienen de un equipo.',
 
     'kind_label'     => 'Tipo de fila',
     'instrument'     => 'Instrumento',

@@ -49,7 +49,6 @@ import {
 
 import WorksheetCell from '@/Components/Worksheets/WorksheetCell.vue';
 import InstrumentSelect from '@/Components/Worksheets/InstrumentSelect.vue';
-import EquipmentSelect from '@/Components/Worksheets/EquipmentSelect.vue';
 import SampleTestSelect from '@/Components/Worksheets/SampleTestSelect.vue';
 import { useI18n } from '@/Plugins/i18n';
 import { censoredText, kindColor } from '@/Pages/Worksheets/config/format';
@@ -62,8 +61,6 @@ const props = defineProps({
     fieldTypes:  { type: Object, default: () => ({}) },
     instruments: { type: Array,  default: () => [] },
     instrumentsByField: { type: Object, default: () => ({}) },
-    // Los equipos del workspace, para indicar de cuál es cada muestra.
-    equipment:   { type: Array,  default: () => [] },
     // Las pruebas que esta hoja todavía espera. La fila de muestra se ata a una
     // de ellas por clave foránea, en vez de tipear el correlativo.
     pendingTests: { type: Array, default: () => [] },
@@ -134,13 +131,6 @@ const columnKind = (field) => {
 const showRowInstrument = computed(
     () => !props.fields.some((field) => field.type === 'instrument'),
 );
-
-/**
- * Solo una muestra proviene de un equipo del cliente. El patrón control, el
- * duplicado y el blanco de reactivos son controles del método: no hay equipo
- * del que hayan salido, y `ResultMaterializer` ni siquiera los mira.
- */
-const equipmentApplies = (kind) => kind === 'sample';
 
 const replicatesOf = (field) => Math.max(1, Number(field.replicates ?? 1));
 
@@ -248,7 +238,6 @@ const buildDraft = (row = null) => {
         kind:          row?.kind ?? defaultKind(),
         position:      row?.position ?? null,
         instrument_id: row?.instrument_id ?? null,
-        equipment_id:  row?.equipment_id ?? null,
         sample_test_id: row?.sample_test_id ?? null,
         notes:         row?.notes ?? '',
         values,
@@ -470,23 +459,6 @@ const onSamplePicked = (draft, test) => {
     setCell(draft, sampleCodeField.value, 1, test?.code ?? '');
 };
 
-// ── El equipo de una fila atada a una muestra de recepción ───────────────
-// El equipo lo define la RECEPCIÓN, no la bancada: cuando la fila viene de
-// una muestra, la celda lo MUESTRA (el vivo de la muestra, que es el que usa
-// el materializador) y no lo ofrece a elegir. El selector queda solo para
-// filas sueltas sin recepción.
-const rowLocked = (row, draft) => !!(row?.sample_id || draft?.sample_test_id);
-
-const lockedEquipmentOf = (row, draft) => {
-    if (row?.sample?.equipment) return row.sample.equipment;
-
-    // Fila recién atada a una prueba pedida (todavía sin guardar): el equipo
-    // viene como etiqueta en la lista de pendientes.
-    const test = props.pendingTests.find((x) => x.id === draft?.sample_test_id);
-
-    return test?.equipment ? { name: test.equipment } : null;
-};
-
 const sampleCodeOf = (draft) => {
     const field = sampleCodeField.value;
     if (!field) return null;
@@ -513,14 +485,6 @@ const payloadOf = (draft) => {
     // resuelve — mandar null la fijaría en nulo por encima de su criterio.
     if (draft.kind === 'sample' && sampleCodeField.value) {
         body.sample_code = sampleCodeOf(draft);
-    }
-
-    // El equipo viaja solo en las filas de muestra, por el mismo motivo que el
-    // código: el patrón, el duplicado y el blanco no provienen de un equipo del
-    // cliente. En las demás la clave se omite en vez de mandar null, que sobre
-    // una fila ya guardada no la borraría igual.
-    if (draft.kind === 'sample' && draft.equipment_id) {
-        body.equipment_id = draft.equipment_id;
     }
 
     // El enlace con la prueba pedida. Solo en filas de muestra: un patrón, un
@@ -618,10 +582,6 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                              al código: es de qué se tomó la muestra, no un dato
                              medido. Si queda al final de treinta columnas, se
                              carga cuando alguien se acuerda. -->
-                        <th class="ws-th ws-th--equipment">
-                            <div class="ws-th__label">{{ $t('worksheets.equipment') }}</div>
-                            <div class="ws-th__meta">{{ $t('worksheets.equipment_hint') }}</div>
-                        </th>
 
                         <th
                             v-for="field in bodyFields"
@@ -690,17 +650,6 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td class="ws-td ws-td--equipment">
-                            <EquipmentSelect
-                                :equipment="equipment"
-                                :value="drafts[row.id]?.equipment_id ?? null"
-                                :applicable="equipmentApplies(row.kind)"
-                                :locked="rowLocked(row, drafts[row.id])"
-                                :locked-equipment="lockedEquipmentOf(row, drafts[row.id])"
-                                :disabled="readonly"
-                                @update:value="(value) => (drafts[row.id].equipment_id = value)"
-                            />
-                        </td>
 
                         <td
                             v-for="field in bodyFields"
@@ -794,16 +743,6 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                             />
                         </td>
 
-                        <td class="ws-td ws-td--equipment">
-                            <EquipmentSelect
-                                :equipment="equipment"
-                                :value="newDraft.equipment_id"
-                                :applicable="equipmentApplies(newDraft.kind)"
-                                :locked="rowLocked(null, newDraft)"
-                                :locked-equipment="lockedEquipmentOf(null, newDraft)"
-                                @update:value="(value) => (newDraft.equipment_id = value)"
-                            />
-                        </td>
 
                         <td
                             v-for="field in bodyFields"
@@ -981,8 +920,6 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
 
 /* El selector de equipo necesita ancho: el nombre de un equipo es largo y
    recortarlo obliga a abrir el desplegable para saber cuál está elegido. */
-.ws-th--equipment, .ws-td--equipment { min-width: 200px; }
-.ws-th--equipment .ws-th__meta { white-space: normal; max-width: 220px; }
 
 .ws-td {
     padding: 8px 10px;

@@ -72,10 +72,29 @@ class TenantsSeeder extends Seeder
 
         $descripcionMuestra = 'Se recibió muestra según procedimiento P-PG-TR-LA-18-20.';
 
+        // El workspace 1 lleva los datos REALES del laboratorio (nombre,
+        // dirección y descargo tal cual el papel, pedido 2026-08-03). El
+        // descargo va VERBATIM y no por la plantilla de abajo: el texto legal
+        // impreso es del laboratorio y se respeta letra por letra — solo se
+        // quitó la frase que el ERB viejo traía duplicada.
+        $descargoEmpresa1 = 'Los resultados obtenidos en este reporte solo corresponden a las muestras '
+            . 'analizadas bajo las condiciones de ensayo. Cuando la muestra es proporcionada por el cliente interno o '
+            . 'externo los resultados se aplican a la muestra como se recibio. Hitachi Energy Perú S.A. no se '
+            . 'responsabiliza cuando algun componente de este informe ha sido proporcionado por el cliente y tampoco '
+            . 'por el uso inadecuado de este documento. Hitachi Energy Perú S.A. no hace ninguna garantía o '
+            . 'representación expresa o implícita en cuanto a condición, productividad o correcto funcionamiento de '
+            . 'cualquier equipo u otros bienes que pueda ser objeto de este informe o depender de ella para la razón '
+            . 'que sea. Se prohíbe la reproducción total o parcial de este documento sin autorización previa escrita. '
+            . 'Los resultados de los ensayos no deben ser utilizados como una certificación de conformidad o como un '
+            . 'certificado del sistema de calidad. Los análisis, opiniones o interpretaciones contenidas en este '
+            . 'informe se basan en el material recolectado y representan el mejor juicio de Hitachi Energy Perú S.A. '
+            . 'y no son refrendadas por el ente acreditador.';
+
         $tenants = [
             [
-                'id' => 1, 'name' => 'Empresa 1',
-                'address' => 'Av. Industrial 1234, Urb. Las Praderas, Lima — Perú',
+                'id' => 1, 'name' => 'HITACHI ENERGY PERÚ SA',
+                'address' => 'Calle Kapalla Mz. B Lote 5-6 de Urbanización Las Praderas de Lurín-Lurín-Lima',
+                'report_disclaimer' => $descargoEmpresa1,
                 'accreditation_note' => $acreditacion,
                 'sample_description_default' => $descripcionMuestra,
             ],
@@ -95,7 +114,9 @@ class TenantsSeeder extends Seeder
                     'slug'              => $existingSlug ?? Str::random(22),
                     'name'              => $t['name'],
                     'address'           => $t['address'],
-                    'report_disclaimer' => $disclaimer($t['name']),
+                    // El descargo propio si el workspace lo trae; si no, la
+                    // plantilla genérica con su nombre.
+                    'report_disclaimer' => $t['report_disclaimer'] ?? $disclaimer($t['name']),
                     // Solo el workspace 1 los trae; ver el bloque de arriba.
                     'accreditation_note'         => $t['accreditation_note'] ?? null,
                     'sample_description_default' => $t['sample_description_default'] ?? null,

@@ -109,7 +109,6 @@ const restoreAccSheets = () => router.post(route('workspace.accreditation.update
 
 // ── Logo del workspace: clic en el logo/título → file picker → sube. ──
 const logoInput = ref(null);
-const logoVersion = ref(0);
 const logoUrl = ref(props.workspace.logo_url);
 const onLogoPicked = (e) => {
     const file = e.target.files?.[0];
@@ -117,11 +116,12 @@ const onLogoPicked = (e) => {
     router.post(route('workspace.logo.update'), { logo: file }, {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => {
-            logoVersion.value = Date.now();
-            if (logoUrl.value) logoUrl.value = logoUrl.value.split('?')[0] + '?v=' + logoVersion.value;
-            else router.reload({ only: ['workspace'] });
-        },
+        // La URL NUEVA sale de los props de la respuesta — igual que el sello
+        // de acreditación. Acá se reciclaba la URL vieja cambiándole el `?v=`,
+        // pero el backend guarda cada subida con un NOMBRE DE ARCHIVO nuevo (y
+        // borra el anterior), así que la URL reciclada apuntaba a un archivo
+        // que ya no existe y el logo "no se actualizaba".
+        onSuccess: (page) => { logoUrl.value = page.props.workspace?.logo_url ?? logoUrl.value; },
         onFinish: () => { if (e.target) e.target.value = ''; },
     });
 };

@@ -60,7 +60,8 @@ const props = defineProps({
     // Indexado por sample_id: { pedidas, pendientes, en_proceso, validadas, informadas }.
     progress:   { type: [Object, Array], default: () => ({}) },
     // 'equipment' y/o 'tests'. Vacío = la recepción está completa.
-    missing:    { type: Array,  default: () => [] },
+    // { equipment: n, tests: n } — cuántas muestras le faltan a cada cosa.
+    missing:    { type: Object, default: () => ({}) },
     tests:      { type: Array,  default: () => [] },
     equipment:  { type: Array,  default: () => [] },
     oilTypes:   { type: Array,  default: () => [] },
@@ -75,11 +76,21 @@ const props = defineProps({
     lock:        { type: Object, default: null },
 });
 
-const { t } = useI18n();
+const { t, tc } = useI18n();
 const { can, hasRole, canSeeAudit } = useAuth();
 const page = usePage();
 
 const isDraft = computed(() => props.reception.status === 'draft');
+
+// Lo que falta, en UNA frase con las cuentas: "3 muestras sin equipo
+// asignado · 2 muestras sin pruebas pedidas".
+const missingMessage = computed(() => {
+    const partes = [];
+    if (props.missing?.equipment) partes.push(tc('receptions.missing_equipment_count', props.missing.equipment));
+    if (props.missing?.tests) partes.push(tc('receptions.missing_tests_count', props.missing.tests));
+
+    return partes.join(' · ');
+});
 const canEdit   = computed(() => can('receptions.edit'));
 const canDelete = computed(() => can('receptions.delete'));
 
@@ -478,20 +489,20 @@ const confirmarDesbloqueo = () => {
             :message="error"
         />
 
-        <!-- Lo que falta para poder trabajar la entrega. Se dice arriba y con
-             todas las letras: una muestra sin equipo no se puede informar ni
-             graficar, y una sin pruebas pedidas no llega nunca a la bancada. -->
+        <!-- Lo que falta para poder trabajar la entrega: UN cartel con las
+             cuentas, no uno apilado por cada cosa. "Hay muestras sin equipo"
+             sobre una entrega de 200 no dice nada; "3 sin equipo · 2 sin
+             pruebas pedidas" sí. -->
         <template v-if="!isDraft">
             <Alert
-                v-for="item in missing"
-                :key="item"
+                v-if="missingMessage"
                 type="warning"
                 show-icon
                 class="rc-alert"
-                :message="$t(`receptions.missing_${item}`)"
+                :message="missingMessage"
             />
             <Alert
-                v-if="missing.length === 0 && samples.length > 0"
+                v-else-if="samples.length > 0"
                 type="success"
                 show-icon
                 class="rc-alert"

@@ -79,8 +79,15 @@ const checks = computed(() => [
                 {{ reception.authorizer?.name ?? dash }}
             </DescriptionsItem>
 
+            <!-- El Nº de orden de servicio llega días después de la muestra.
+                 PENDIENTE en rojo, igual que en el listado: la raya decía
+                 "no hay dato" donde el dato está esperándose — y esta es la
+                 pantalla desde la que se completa. -->
             <DescriptionsItem :label="$t('receptions.service_order')">
-                {{ reception.service_order || dash }}
+                <template v-if="reception.service_order">{{ reception.service_order }}</template>
+                <Tag v-else :bordered="false" color="red">
+                    {{ $t('receptions.service_order_pending') }}
+                </Tag>
             </DescriptionsItem>
 
             <DescriptionsItem :label="$t('receptions.packages')">

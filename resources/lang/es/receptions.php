@@ -165,8 +165,10 @@ return [
 
     // ── Lo que falta ────────────────────────────────────────────────────
     'missing'            => 'Falta',
-    'missing_equipment'  => 'Hay muestras sin equipo asignado.',
-    'missing_tests'      => 'Hay muestras sin pruebas pedidas.',
+    // Con la CUENTA: "hay muestras sin equipo" sobre una entrega de 200 no
+    // dice nada; "3 muestras sin equipo" sí.
+    'missing_equipment_count' => '{1} 1 muestra sin equipo asignado|[2,*] :count muestras sin equipo asignado',
+    'missing_tests_count'     => '{1} 1 muestra sin pruebas pedidas|[2,*] :count muestras sin pruebas pedidas',
     'nothing_missing'    => 'La recepción está completa.',
 
     // La descarga en Excel de la entrega y el aviso de la baja.

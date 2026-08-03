@@ -247,24 +247,36 @@ class Reception extends Model
     }
 
     /**
-     * Lo que le falta a la recepción para poder trabajarse.
+     * Lo que le falta a la recepción para poder trabajarse, CON su cuenta.
      *
      * Se calcula al pedirlo y NO se guarda porque no se lista por esto: la
      * pantalla lo muestra en la ficha de una sola recepción. Lo que sí se
      * guarda —porque se lista y se filtra— es el estado de cada prueba pedida.
      *
-     * @return array<int,string>
+     * Devuelve cuántas muestras le faltan a cada cosa y no solo la bandera:
+     * la pantalla apilaba un cartel por bandera ("hay muestras sin equipo",
+     * "hay muestras sin pruebas") y con una entrega grande eso no dice nada —
+     * "3 de 200 sin equipo" sí.
+     *
+     * @return array<string,int>
      */
     public function missingData(): array
     {
         $faltantes = [];
 
-        if ($this->samples()->whereNull('equipment_id')->exists()) {
-            $faltantes[] = 'equipment';
+        $sinEquipo = $this->samples()->whereNull('equipment_id')->count();
+        if ($sinEquipo > 0) {
+            $faltantes['equipment'] = $sinEquipo;
         }
 
-        if ($this->samples()->doesntHave('tests')->exists()) {
-            $faltantes[] = 'tests';
+        // Con el MISMO criterio que el listado: una prueba dada de baja no
+        // cuenta como pedida.
+        $sinPruebas = $this->samples()->whereDoesntHave(
+            'tests',
+            fn ($t) => $t->where('status', '!=', SampleTest::STATUS_CANCELLED)
+        )->count();
+        if ($sinPruebas > 0) {
+            $faltantes['tests'] = $sinPruebas;
         }
 
         return $faltantes;

@@ -134,8 +134,10 @@ return [
     'tests_saved' => 'Tests updated: :added added, :cancelled withdrawn.',
     'equipment_saved' => 'Equipment assigned.',
     'missing' => 'Missing',
-    'missing_equipment' => 'Some samples have no equipment assigned.',
-    'missing_tests' => 'Some samples have no tests requested.',
+    // With the COUNT: "some samples lack equipment" on a 200-sample delivery
+    // says nothing; "3 samples without equipment" does.
+    'missing_equipment_count' => '{1} 1 sample without equipment assigned|[2,*] :count samples without equipment assigned',
+    'missing_tests_count'     => '{1} 1 sample without tests requested|[2,*] :count samples without tests requested',
     'nothing_missing' => 'The reception is complete.',
     'download_hint' => 'Downloads this delivery\'s samples as Excel, with their equipment, what was requested and where they stand.',
     'delete_confirmed_warning' => 'This delivery already issued its sample numbers.',

@@ -510,7 +510,7 @@ class SampleReportController extends Controller
 
     public function store(Request $request, Sample $sample): RedirectResponse
     {
-        $datos = $this->validated($request);
+        $datos = $this->validated($request, $sample->reception?->received_at?->toDateString());
 
         $informe = $this->service->create($sample, $datos, $request->user()?->id);
 
@@ -525,7 +525,10 @@ class SampleReportController extends Controller
             return back()->withErrors(['status' => __('sample_reports.issued_is_final')]);
         }
 
-        $this->service->update($report, $this->validated($request));
+        $this->service->update($report, $this->validated(
+            $request,
+            $report->sample?->reception?->received_at?->toDateString(),
+        ));
 
         return back()->with('success', __('sample_reports.saved'));
     }
@@ -756,22 +759,32 @@ class SampleReportController extends Controller
     /**
      * @return array<string,mixed>
      */
-    private function validated(Request $request): array
+    /**
+     * @param  ?string $recibidaEl  la fecha de recepción de la muestra: la
+     *                              emisión no puede ser anterior a que el
+     *                              frasco entrara al laboratorio.
+     */
+    private function validated(Request $request, ?string $recibidaEl = null): array
     {
         return $request->validate([
-            'issued_at'    => ['nullable', 'date'],
-            'delivered_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
-            'notes'        => ['nullable', 'string', 'max:2000'],
+            // Los datos de la referencia son OBLIGATORIOS (pedido del
+            // laboratorio, 2026-08-03: en este formulario todo se llena — en el
+            // sistema anterior también). Las fechas además se ordenan:
+            // recepción ≤ emisión ≤ entrega.
+            'issued_at'    => array_values(array_filter([
+                'required', 'date', $recibidaEl ? 'after_or_equal:' . $recibidaEl : null,
+            ])),
+            'delivered_at' => ['required', 'date', 'after_or_equal:issued_at'],
 
-            'service_order' => ['nullable', 'string', 'max:60'],
-            'contact_info'  => ['nullable', 'string', 'max:1000'],
-            'end_user'      => ['nullable', 'string', 'max:255'],
+            'service_order' => ['required', 'string', 'max:60'],
+            'contact_info'  => ['required', 'string', 'max:1000'],
+            'end_user'      => ['required', 'string', 'max:255'],
 
             'report_number'   => ['nullable', 'string', 'max:40'],
-            'description'     => ['nullable', 'string', 'max:1000'],
-            'sampling_reason' => ['nullable', 'string', 'max:80'],
+            'description'     => ['required', 'string', 'max:1000'],
+            'sampling_reason' => ['required', 'string', 'max:80'],
             'sampling_point'  => ['nullable', 'string', 'max:80'],
-            'sampled_at'      => ['nullable', 'date'],
+            'sampled_at'      => ['required', 'date'],
 
             // Las condiciones de campo son medidas, no casillas: el rango evita
             // el 30000 de un dedo pesado, y el nulo se distingue del cero. En el

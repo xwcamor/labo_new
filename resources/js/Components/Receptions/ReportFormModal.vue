@@ -24,8 +24,8 @@
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
-    Alert, Button, Checkbox, DatePicker, Input, InputNumber, Modal, Select,
-    Spin, Textarea, Tooltip,
+    Alert, Button, DatePicker, Input, InputNumber, Modal, Select,
+    Spin, Switch, Tooltip,
 } from 'ant-design-vue';
 import { FileTextOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
@@ -79,9 +79,9 @@ const cargar = async () => {
             ...json.header,
             issued_at:    json.report?.issued_at ?? dayjs().format('YYYY-MM-DD'),
             delivered_at: json.report?.delivered_at ?? null,
-            notes:        json.report?.notes ?? null,
             tests: json.tests.filter((x) => x.is_visible).map((x) => x.id),
         };
+        errores.value = [];
     } finally {
         loading.value = false;
     }
@@ -118,6 +118,28 @@ const toggleTest = (id, checked) => {
 const asDate = (v) => (v ? dayjs(v) : null);
 const setDate = (campo, v) => { form.value[campo] = v ? dayjs(v).format('YYYY-MM-DD') : null; };
 
+// ── El orden de las fechas: recepción ≤ emisión ≤ entrega ────────────────
+// El calendario DESHABILITA lo que no puede ser, en vez de dejar elegir y
+// rebotar al guardar: no se emite antes de que el frasco entrara, y no se
+// entrega antes de emitir. Si la emisión se mueve para adelante y deja a la
+// entrega atrás, la entrega se limpia para volver a elegirla.
+const antesDeRecepcion = (d) => !!form.value.received_at
+    && d.isBefore(dayjs(form.value.received_at), 'day');
+
+const antesDeEmision = (d) => !!form.value.issued_at
+    && d.isBefore(dayjs(form.value.issued_at), 'day');
+
+const setEmision = (v) => {
+    setDate('issued_at', v);
+
+    if (form.value.delivered_at && v && dayjs(form.value.delivered_at).isBefore(dayjs(v), 'day')) {
+        form.value.delivered_at = null;
+    }
+};
+
+/** Lo que rebotó del servidor, visible arriba del formulario. */
+const errores = ref([]);
+
 const submit = () => {
     saving.value = true;
 
@@ -130,6 +152,7 @@ const submit = () => {
     router[method](url, form.value, {
         preserveScroll: true,
         onSuccess: () => { close(); emit('saved'); },
+        onError:   (errs) => { errores.value = Object.values(errs ?? {}).filter(Boolean); },
         onFinish:  () => { saving.value = false; },
     });
 };
@@ -166,48 +189,42 @@ const submit = () => {
                         :message="$t('sample_reports.no_equipment')"
                     />
 
-                    <!-- ── Referencia ──────────────────────────────────── -->
+                    <!-- ── Referencia ──────────────────────────────────────
+                         Dos filas fijas (pedido del laboratorio, 2026-08-03):
+                         la primera con los datos de la referencia y quién
+                         extrajo la muestra al final; la segunda con las TRES
+                         fechas juntas —se leen como una línea de tiempo:
+                         recepción ≤ emisión ≤ entrega— y el usuario final. -->
                     <div class="rfm__band">{{ $t('sample_reports.section_reference') }}</div>
-                    <div class="rfm__grid">
+                    <Alert
+                        v-for="(err, i) in errores"
+                        :key="i"
+                        type="error"
+                        show-icon
+                        class="rfm__note"
+                        :message="err"
+                    />
+                    <div class="rfm__grid rfm__grid--5">
                         <label class="rfm__f">
-                            <span>{{ $t('sample_reports.service_order') }}</span>
+                            <span>{{ $t('sample_reports.service_order') }} <b class="rfm__req">*</b></span>
                             <Input v-model:value="form.service_order" :maxlength="60" />
                         </label>
                         <label class="rfm__f">
-                            <span>{{ $t('sample_reports.sampling_reason') }}</span>
+                            <span>{{ $t('sample_reports.sampling_reason') }} <b class="rfm__req">*</b></span>
                             <Select
                                 v-model:value="form.sampling_reason"
                                 show-search
-                                allow-clear
                                 :placeholder="$t('sample_reports.pick_one')"
                                 :options="opciones('sampling_reason', form.sampling_reason)"
                             />
                         </label>
-                        <label class="rfm__f rfm__f--wide">
-                            <span>{{ $t('sample_reports.contact_info') }}</span>
-                            <Textarea v-model:value="form.contact_info" :rows="2" :maxlength="1000" />
+                        <label class="rfm__f">
+                            <span>{{ $t('sample_reports.contact_info') }} <b class="rfm__req">*</b></span>
+                            <Input v-model:value="form.contact_info" :maxlength="1000" />
                         </label>
                         <label class="rfm__f">
-                            <span>{{ $t('sample_reports.received_at') }}</span>
-                            <Input :value="form.received_at ?? '—'" disabled />
-                        </label>
-                        <label class="rfm__f rfm__f--wide">
-                            <span>{{ $t('sample_reports.description') }}</span>
-                            <Textarea v-model:value="form.description" :rows="2" :maxlength="1000" />
-                        </label>
-                        <label class="rfm__f">
-                            <span>{{ $t('sample_reports.end_user') }}</span>
-                            <Tooltip :title="$t('sample_reports.end_user_help')">
-                                <Input v-model:value="form.end_user" :maxlength="255" />
-                            </Tooltip>
-                        </label>
-                        <label class="rfm__f">
-                            <span>{{ $t('sample_reports.issued_at') }}</span>
-                            <DatePicker
-                                :value="asDate(form.issued_at)"
-                                style="width:100%"
-                                @update:value="(v) => setDate('issued_at', v)"
-                            />
+                            <span>{{ $t('sample_reports.description') }} <b class="rfm__req">*</b></span>
+                            <Input v-model:value="form.description" :maxlength="1000" />
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampler') }}</span>
@@ -220,13 +237,35 @@ const submit = () => {
                                 <Input :value="form.sampler ?? '—'" disabled />
                             </Tooltip>
                         </label>
+                    </div>
+                    <div class="rfm__grid rfm__grid--4">
                         <label class="rfm__f">
-                            <span>{{ $t('sample_reports.delivered_at') }}</span>
+                            <span>{{ $t('sample_reports.received_at') }}</span>
+                            <Input :value="form.received_at ?? '—'" disabled />
+                        </label>
+                        <label class="rfm__f">
+                            <span>{{ $t('sample_reports.issued_at') }} <b class="rfm__req">*</b></span>
+                            <DatePicker
+                                :value="asDate(form.issued_at)"
+                                :disabled-date="antesDeRecepcion"
+                                style="width:100%"
+                                @update:value="setEmision"
+                            />
+                        </label>
+                        <label class="rfm__f">
+                            <span>{{ $t('sample_reports.delivered_at') }} <b class="rfm__req">*</b></span>
                             <DatePicker
                                 :value="asDate(form.delivered_at)"
+                                :disabled-date="antesDeEmision"
                                 style="width:100%"
                                 @update:value="(v) => setDate('delivered_at', v)"
                             />
+                        </label>
+                        <label class="rfm__f">
+                            <span>{{ $t('sample_reports.end_user') }} <b class="rfm__req">*</b></span>
+                            <Tooltip :title="$t('sample_reports.end_user_help')">
+                                <Input v-model:value="form.end_user" :maxlength="255" />
+                            </Tooltip>
                         </label>
                     </div>
 
@@ -360,35 +399,41 @@ const submit = () => {
                             <Input :value="data.readonly.sample_code" disabled />
                         </label>
                         <label class="rfm__f">
-                            <span>{{ $t('sample_reports.sampled_at') }}</span>
+                            <span>{{ $t('sample_reports.sampled_at') }} <b class="rfm__req">*</b></span>
                             <DatePicker
                                 :value="asDate(form.sampled_at)"
                                 style="width:100%"
                                 @update:value="(v) => setDate('sampled_at', v)"
                             />
                         </label>
-                        <label class="rfm__f rfm__f--wide">
-                            <span>{{ $t('sample_reports.notes') }}</span>
-                            <Textarea
-                                v-model:value="form.notes"
-                                :rows="2"
-                                :maxlength="2000"
-                                :placeholder="$t('sample_reports.notes_help')"
-                            />
-                        </label>
+                        <!-- Sin «Observaciones internas»: no existía en el
+                             sistema anterior y era un campo más para llenar
+                             que no salía en ningún papel. -->
                     </div>
 
-                    <!-- ── Análisis ────────────────────────────────────── -->
+                    <!-- ── Análisis ──────────────────────────────────────
+                         El interruptor va AL INICIO de la fila, pegado al
+                         nombre (como la tabla sin bordes del sistema
+                         anterior): con la casilla sola a la derecha, el ojo
+                         tenía que cruzar toda la pantalla para saber de qué
+                         prueba era cada check. -->
                     <div class="rfm__band">{{ $t('sample_reports.section_tests') }}</div>
                     <table v-if="data.tests.length > 0" class="rfm__tests">
                         <thead>
                             <tr>
+                                <th class="rfm__tests-sw">{{ $t('sample_reports.show_in_report') }}</th>
                                 <th>{{ $t('sample_reports.test') }}</th>
-                                <th class="rfm__tests-col">{{ $t('sample_reports.show_in_report') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="test in data.tests" :key="test.id">
+                                <td class="rfm__tests-sw">
+                                    <Switch
+                                        size="small"
+                                        :checked="(form.tests ?? []).includes(test.id)"
+                                        @change="(v) => toggleTest(test.id, v)"
+                                    />
+                                </td>
                                 <td>
                                     {{ test.name ?? test.code }}
                                     <!-- Marcar una prueba sin validar no la
@@ -399,12 +444,6 @@ const submit = () => {
                                         v-if="!['validated', 'reported'].includes(test.status)"
                                         class="rfm__warn"
                                     >{{ $t('sample_reports.not_validated') }}</span>
-                                </td>
-                                <td class="rfm__tests-col">
-                                    <Checkbox
-                                        :checked="(form.tests ?? []).includes(test.id)"
-                                        @change="(e) => toggleTest(test.id, e.target.checked)"
-                                    />
                                 </td>
                             </tr>
                         </tbody>
@@ -449,16 +488,24 @@ const submit = () => {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px 16px;
 }
+/* Las dos filas fijas de Referencia. En pantalla angosta caen a la grilla
+   fluida de siempre: cinco columnas en un teléfono serían ilegibles. */
+.rfm__grid--5 { grid-template-columns: repeat(5, 1fr); margin-bottom: 12px; }
+.rfm__grid--4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) {
+    .rfm__grid--5, .rfm__grid--4 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
 .rfm__f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .rfm__f > span { font-size: 0.75rem; color: var(--color-text-muted); }
 .rfm__f--wide { grid-column: 1 / -1; }
+.rfm__req { color: var(--color-input-error, #c8281d); font-weight: 600; }
 
 .rfm__tests { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .rfm__tests th, .rfm__tests td {
     text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--color-border);
 }
 .rfm__tests th { font-size: 0.72rem; text-transform: uppercase; color: var(--color-text-muted); }
-.rfm__tests-col { width: 160px; text-align: center !important; }
+.rfm__tests-sw { width: 150px; text-align: center !important; }
 .rfm__warn { display: block; font-size: 0.72rem; color: #b45309; }
 .rfm__empty { color: var(--color-text-muted); font-size: 0.8125rem; }
 

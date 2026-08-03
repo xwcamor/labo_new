@@ -86,6 +86,10 @@ class SystemModulesSeeder extends Seeder
             // recepciones no necesariamente puede bajarse la planilla de
             // resultados de TODOS los clientes.
             ['name' => 'LabReports',       'permission_key' => 'lab_reports'],
+            // La bitácora ambiental de las salas (el «Control de Temperaturas»
+            // del sistema anterior, acceso 64). Permiso propio: la carga quien
+            // abre el laboratorio, que no es necesariamente el analista.
+            ['name' => 'AmbientLogs',      'permission_key' => 'ambient_logs'],
         ];
 
         foreach ($modules as $m) {

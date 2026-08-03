@@ -51,6 +51,7 @@ import {
     DownloadOutlined,
     DeleteOutlined,
     FileExcelOutlined,
+    CloudOutlined,
     FilePdfOutlined,
     FileWordOutlined,
     FileOutlined,
@@ -719,6 +720,12 @@ const menuStructure = computed(() => [
                 key: 'qc_charts', label: t('sidebar.qc_charts'), icon: DotChartOutlined,
                 href: route('lab_management.qc_charts.index'), inertia: true,
                 visible: () => can('qc_charts.view'),
+            },
+            // ── Bitácora ambiental de las salas ──
+            {
+                key: 'ambient_logs', label: t('sidebar.ambient_logs'), icon: CloudOutlined,
+                href: route('lab_management.ambient_logs.index'), inertia: true,
+                visible: () => can('ambient_logs.view'),
             },
             // ── Los 7 Excel del menú "Reportes de Lab." del sistema viejo ──
             {

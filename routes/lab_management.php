@@ -12,6 +12,7 @@ use App\Http\Controllers\LabManagement\InstrumentFileController;
 use App\Http\Controllers\LabManagement\TestReportController;
 use App\Http\Controllers\LabManagement\SampleReportController;
 use App\Http\Controllers\LabManagement\LabReportController;
+use App\Http\Controllers\LabManagement\AmbientLogController;
 use App\Http\Controllers\LabManagement\ReportCatalogController;
 
 /*
@@ -359,6 +360,33 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     // información de la pantalla, en un archivo.
     Route::middleware('permission:receptions.view')->group(function () {
         Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Bitácora de condiciones ambientales
+    |----------------------------------------------------------------------
+    | Una lectura por sala y por día. En el sistema anterior eran DOS módulos
+    | gemelos (cromatografía y fisicoquímico) con el mismo acceso 64; acá la
+    | sala es un dato y el módulo es uno solo.
+    |
+    | Un permiso propio y no el de hojas de trabajo: la carga la hace quien
+    | abre el laboratorio a la mañana, que no es necesariamente el analista.
+    */
+    Route::middleware('permission:ambient_logs.view')->group(function () {
+        Route::get('ambient_logs', [AmbientLogController::class, 'index'])->name('ambient_logs.index');
+    });
+
+    Route::middleware('permission:ambient_logs.create')->group(function () {
+        Route::post('ambient_logs', [AmbientLogController::class, 'store'])->name('ambient_logs.store');
+    });
+
+    Route::middleware('permission:ambient_logs.edit')->group(function () {
+        Route::put('ambient_logs/{ambient_log}', [AmbientLogController::class, 'update'])->name('ambient_logs.update');
+    });
+
+    Route::middleware('permission:ambient_logs.delete')->group(function () {
+        Route::delete('ambient_logs/{ambient_log}', [AmbientLogController::class, 'destroy'])->name('ambient_logs.destroy');
     });
 
     /*

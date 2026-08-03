@@ -55,6 +55,10 @@ return [
     'accredited_sheets_label' => 'Hojas del informe que llevan el sello',
     'accredited_sheets_help' => 'El alcance del certificado: el sello sale solo en las hojas marcadas. Si la acreditación suma o pierde una prueba, cámbielo acá — sin tocar código. La marca (A)/(NA) de cada fila es aparte: se edita en las normas de cada prueba.',
     'accredited_sheets_restore' => 'Volver a las de fábrica',
+    // Las tres pestañas de «Mi workspace».
+    'tab_identity'      => 'Identidad',
+    'tab_accreditation' => 'Acreditación',
+    'tab_reports'       => 'Informes',
     'accreditation_note_placeholder' => 'Esta prueba está acreditada bajo la acreditación ISO/IEC 17025 del laboratorio, emitida por… Consulte el certificado y el alcance de la acreditación AT-0000.',
     'logo_label'          => 'Logo de la empresa',
     'logo_upload'         => 'Subir logo',

@@ -2,8 +2,9 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { Card, Input, Textarea, Button, Form, FormItem, Alert, Tag, Switch, Checkbox, CheckboxGroup,
+    Tabs, TabPane,
 } from 'ant-design-vue';
-import { BankOutlined, CameraOutlined, HighlightOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
+import { BankOutlined, CameraOutlined, FileTextOutlined, HighlightOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SectionHeader from '@/Components/Common/SectionHeader.vue';
@@ -150,7 +151,21 @@ const onLogoPicked = (e) => {
             />
 
             <Form layout="vertical" @submit.prevent="submit">
-                <h2 class="form-section-title">{{ t('global.general_data') }}</h2>
+                <!-- ┌──────────────────────────────────────────────────────┐
+                     │ TRES PESTAÑAS, NADA CAMBIA DE LUGAR EN EL SISTEMA    │
+                     └──────────────────────────────────────────────────────┘
+                     La página era una sola columna con todo mezclado: logo,
+                     acreditación, dirección, descargo legal, descripción por
+                     omisión, aprobación y firmantes. Cada cosa sigue siendo
+                     del workspace —moverla de módulo repartiría un mismo
+                     certificado por tres pantallas—; lo que se reparte es la
+                     LECTURA: identidad, acreditación e informes. El botón de
+                     guardar del pie aplica a los campos del formulario, estén
+                     en la pestaña que estén. -->
+                <Tabs class="ws-tabs">
+                <TabPane key="identity">
+                    <template #tab><span><BankOutlined /> {{ t('tenants.tab_identity') }}</span></template>
+
                 <!-- ── Logo de la empresa: sección explícita (no solo el ícono) ── -->
                 <FormItem :label="t('tenants.logo_label')">
                     <div class="ws-logo-row">
@@ -166,6 +181,20 @@ const onLogoPicked = (e) => {
                         </div>
                     </div>
                 </FormItem>
+
+                <FormItem
+                    :label="t('tenants.form_address_label')"
+                    :tooltip="t('tenants.form_address_help')"
+                    :validate-status="form.errors.address ? 'error' : ''"
+                    :help="form.errors.address"
+                >
+                    <Input v-model:value="form.address" :maxlength="255" showCount />
+                </FormItem>
+
+                </TabPane>
+
+                <TabPane key="accreditation">
+                    <template #tab><span><SafetyCertificateOutlined /> {{ t('tenants.tab_accreditation') }}</span></template>
 
                 <!-- ── Sello de acreditación del informe ────────────────── -->
                 <FormItem :label="t('tenants.accreditation_label')" :tooltip="t('tenants.accreditation_help')">
@@ -218,14 +247,10 @@ const onLogoPicked = (e) => {
                     </div>
                 </FormItem>
 
-                <FormItem
-                    :label="t('tenants.form_address_label')"
-                    :tooltip="t('tenants.form_address_help')"
-                    :validate-status="form.errors.address ? 'error' : ''"
-                    :help="form.errors.address"
-                >
-                    <Input v-model:value="form.address" :maxlength="255" showCount />
-                </FormItem>
+                </TabPane>
+
+                <TabPane key="reports">
+                    <template #tab><span><FileTextOutlined /> {{ t('tenants.tab_reports') }}</span></template>
 
                 <FormItem
                     :label="t('tenants.form_disclaimer_label')"
@@ -309,6 +334,9 @@ const onLogoPicked = (e) => {
                     </Link>
                 </FormItem>
 
+                </TabPane>
+                </Tabs>
+
                 <FormFooter
                     :cancel-href="route('workspace.edit')"
                     :is-edit="true"
@@ -370,4 +398,5 @@ const onLogoPicked = (e) => {
 /* En columna: son títulos largos y en fila se leerían pegados. */
 .ws-acc-sheets :deep(.ant-checkbox-group) { display: flex; flex-direction: column; gap: 6px; }
 .ws-acc-sheets__item { margin-left: 0 !important; }
+.ws-tabs :deep(.ant-tabs-nav) { margin-bottom: 20px; }
 </style>

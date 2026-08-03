@@ -195,11 +195,15 @@ const columns = computed(() => [
         key: 'equipment',
         width: 260,
     },
+    // SIN ancho a propósito: cuando la pantalla es más ancha que la suma de
+    // columnas, Ant reparte el sobrante entre TODAS proporcionalmente y el
+    // select de equipo quedaba flotando en una columna enorme. Con una sola
+    // columna sin ancho, el sobrante se lo queda esta —que es la que crece
+    // con los datos— y las demás quedan del tamaño de su contenido.
     {
         title: t('receptions.requested_tests'),
         dataIndex: 'tests',
         key: 'tests',
-        width: 320,
     },
     {
         title: t('receptions.progress'),

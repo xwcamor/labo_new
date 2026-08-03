@@ -132,6 +132,52 @@ class SampleProgressService
     }
 
     /**
+     * Se borró la fila de bancada que respaldaba la prueba: vuelve a la cola.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO CORRIGE                                          │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * El estado avanzaba al cargar y al validar, y solo retrocedía al ANULAR
+     * la hoja entera. Borrar UNA fila no lo tocaba: la prueba quedaba
+     * "validada" en verde en la recepción con cero mediciones detrás, y hasta
+     * ofrecía el botón de crear informe sobre un ensayo que ya no existe.
+     *
+     * Solo retrocede si NINGUNA otra fila viva la respalda (los duplicados
+     * históricos de antes de la regla "una muestra, una fila"). Una prueba ya
+     * INFORMADA no pasa por acá: la baja de su fila se bloquea antes — el
+     * papel está en la calle.
+     */
+    public function markRowRemoved(WorksheetRow $row): void
+    {
+        if ($row->sample_test_id === null) {
+            return;
+        }
+
+        $prueba = SampleTest::find($row->sample_test_id);
+
+        if (! $prueba || in_array($prueba->status, [SampleTest::STATUS_CANCELLED, SampleTest::STATUS_REPORTED], true)) {
+            return;
+        }
+
+        $otraFilaViva = WorksheetRow::where('sample_test_id', $prueba->id)
+            ->whereKeyNot($row->id)
+            ->exists();
+
+        if ($otraFilaViva) {
+            return;
+        }
+
+        $prueba->update([
+            'status'           => SampleTest::STATUS_PENDING,
+            'worksheet_row_id' => null,
+            'started_at'       => null,
+            'validated_at'     => null,
+        ]);
+
+        $this->refreshSample($prueba->sample);
+    }
+
+    /**
      * Se emitió el informe: sus ensayos VISIBLES quedan informados.
      *
      * Era el eslabón que faltaba en la cadena de estados: sin esto ninguna

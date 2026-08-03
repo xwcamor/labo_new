@@ -102,6 +102,9 @@ return [
         // resultados oficiales para la misma medición.
         'duplicate_sample'      => 'La muestra :code ya tiene su fila en esta hoja. Para corregir un valor, edite esa fila; si es una segunda medición de control, use la fila de Duplicado.',
         'sample_test_other_definition' => 'Esa muestra tiene pedida otra prueba. Cárguela en la hoja que corresponde.',
+        // El papel está en la calle: el resultado de esta fila salió impreso
+        // en un informe emitido. Borrarla dejaría un certificado sin respaldo.
+        'row_reported'          => 'No se puede eliminar: el resultado de esta fila ya salió en un informe emitido. Retire primero ese informe (desbloquéelo) y vuelva a intentarlo.',
     ],
 
     // ── Cálculo ───────────────────────────────────────────────────────────

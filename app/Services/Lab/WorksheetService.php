@@ -165,9 +165,24 @@ class WorksheetService
     {
         $this->assertEditable($worksheet);
 
+        // Con la prueba ya INFORMADA la fila no se borra: su resultado está
+        // impreso en un papel que el cliente tiene en la mano. Primero se
+        // retira el informe (desbloquear / adicional); la fila, después.
+        if ($row->sample_test_id !== null
+            && SampleTest::whereKey($row->sample_test_id)
+                ->where('status', SampleTest::STATUS_REPORTED)->exists()) {
+            throw ValidationException::withMessages([
+                'row' => __('worksheets.errors.row_reported'),
+            ]);
+        }
+
         DB::transaction(function () use ($worksheet, $row) {
             $row->delete();
             Result::where('worksheet_row_id', $row->id)->delete();
+
+            // La prueba pedida vuelve a la cola si esta era su única fila:
+            // sin esto quedaba "validada" en verde con cero mediciones detrás.
+            $this->progress->markRowRemoved($row);
 
             // Lo que queda en la hoja se republica si sigue completa: los
             // resultados de las otras filas no cambian, pero el estado de la

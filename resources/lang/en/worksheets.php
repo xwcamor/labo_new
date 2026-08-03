@@ -87,6 +87,7 @@ return [
         'unknown_sample_test'   => 'That requested test does not exist. Pick the sample again.',
         'duplicate_sample'      => 'Sample :code already has its row on this sheet. To fix a value, edit that row; for a second control measurement, use the Duplicate row.',
         'sample_test_other_definition' => 'That sample has a different test requested. Load it in the matching worksheet.',
+        'row_reported'          => 'This row cannot be deleted: its result was printed on an issued report. Withdraw that report first (unlock it) and try again.',
     ],
 
     // ── Calculation ───────────────────────────────────────────────────────

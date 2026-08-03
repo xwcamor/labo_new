@@ -208,8 +208,17 @@ class ResultMaterializer
             $value = $row->valueFor($field, $replicate);
 
             // Una celda vacía no es un resultado. Escribirla como nulo llenaría
-            // la tendencia de puntos inexistentes.
+            // la tendencia de puntos inexistentes. Y si ANTES tenía valor y se
+            // publicó, el resultado viejo se RETIRA: acá se salteaba con
+            // `continue` y la corrección de vaciar una celda dejaba el número
+            // anterior vivo en el informe.
             if ($value === null || $value->isEmpty()) {
+                Result::where([
+                    'worksheet_row_id' => $row->id,
+                    'analyte_id'       => $field->output_analyte_id,
+                    'replicate_no'     => $replicate,
+                ])->delete();
+
                 continue;
             }
 

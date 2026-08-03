@@ -232,6 +232,105 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame(0, Result::count());
     }
 
+    public function test_borrar_la_unica_fila_devuelve_la_prueba_pedida_a_pendiente(): void
+    {
+        // El caso que reportó el laboratorio: se carga la fila, la hoja se
+        // publica y la prueba queda "validada" en verde en la recepción. Se
+        // borra la fila... y seguía en verde, con cero mediciones detrás y
+        // ofreciendo crear un informe sobre un ensayo que ya no existe.
+        $prueba = $this->pruebaPedida();
+        $w      = $this->hoja();
+
+        $fila = $this->service->saveRow($w, [
+            'kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id,
+        ], ['nro_muestra' => $prueba->sample->code, 'peso_aceite' => '20', 'volumen_gastado' => '1.20']);
+
+        $this->validar($w);
+        $this->assertSame(\App\Models\SampleTest::STATUS_VALIDATED, $prueba->fresh()->status);
+
+        $this->service->deleteRow($w->fresh(), $fila);
+
+        $prueba->refresh();
+        $this->assertSame(\App\Models\SampleTest::STATUS_PENDING, $prueba->status);
+        $this->assertNull($prueba->worksheet_row_id);
+        $this->assertNull($prueba->started_at);
+        $this->assertNull($prueba->validated_at);
+
+        // Y la muestra vuelve a deber ese ensayo: la recepción lo refleja.
+        $this->assertSame(\App\Models\Sample::STATUS_PENDING, $prueba->sample->fresh()->status);
+    }
+
+    public function test_una_fila_cuyo_resultado_ya_salio_en_un_informe_no_se_puede_borrar(): void
+    {
+        // El papel está en la calle: borrar la fila dejaría un certificado
+        // emitido sin ninguna medición que lo respalde. Primero se retira el
+        // informe (desbloquear); la fila, después.
+        $prueba = $this->pruebaPedida();
+        $w      = $this->hoja();
+
+        $fila = $this->service->saveRow($w, [
+            'kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id,
+        ], ['nro_muestra' => $prueba->sample->code, 'peso_aceite' => '20', 'volumen_gastado' => '1.20']);
+
+        $this->validar($w);
+        $prueba->update(['status' => \App\Models\SampleTest::STATUS_REPORTED]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        try {
+            $this->service->deleteRow($w->fresh(), $fila);
+        } finally {
+            // Nada se tocó: ni la fila ni el resultado ni el estado.
+            $this->assertNotNull(WorksheetRow::find($fila->id));
+            $this->assertSame(1, Result::count());
+            $this->assertSame(\App\Models\SampleTest::STATUS_REPORTED, $prueba->fresh()->status);
+        }
+    }
+
+    public function test_vaciar_una_celda_publicada_retira_su_resultado_al_rematerializar(): void
+    {
+        // Vaciar la celda que alimentaba un resultado ya publicado lo RETIRA:
+        // antes el materializador salteaba la celda vacía con `continue` y el
+        // número anterior seguía vivo en el informe.
+        $w   = $this->hoja();
+        $row = $this->cargarMuestra($w);
+        $this->validar($w);
+        $this->assertSame(1, Result::count());
+
+        $this->service->saveRow($w->fresh(), ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'nro_muestra' => '2026-0744', 'peso_aceite' => '20', 'volumen_gastado' => '',
+        ], $row->fresh());
+
+        $this->materializer->forWorksheet($w->fresh());
+
+        $this->assertSame(0, Result::count(), 'El resultado sobrevivió a su celda vaciada.');
+    }
+
+    /** Una muestra real con esta prueba pedida, como la carga la recepción. */
+    private function pruebaPedida(): \App\Models\SampleTest
+    {
+        $cliente = \App\Models\Customer::create([
+            'slug' => Str::random(22), 'name' => 'Cliente ' . Str::random(5), 'tenant_id' => 1,
+        ]);
+        $recepcion = \App\Models\Reception::create([
+            'slug' => Str::random(22), 'customer_id' => $cliente->id,
+            'received_at' => now(), 'tenant_id' => 1,
+            'status' => \App\Models\Reception::STATUS_CONFIRMED,
+        ]);
+        $muestra = \App\Models\Sample::create([
+            'slug' => Str::random(22), 'reception_id' => $recepcion->id,
+            'year' => 2026, 'number' => 744, 'code' => '2026-0744',
+            'tenant_id' => 1, 'is_urgent' => false,
+        ]);
+
+        return \App\Models\SampleTest::create([
+            'sample_id' => $muestra->id,
+            'test_definition_id' => $this->definition->id,
+            'status' => \App\Models\SampleTest::STATUS_PENDING,
+            'tenant_id' => 1,
+        ]);
+    }
+
     public function test_rematerializar_sanea_los_fantasmas_de_filas_borradas(): void
     {
         // El huérfano dejado ANTES de la corrección (baja sin retiro): al

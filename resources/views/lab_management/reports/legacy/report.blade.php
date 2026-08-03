@@ -225,7 +225,12 @@
                              ese alto la tabla empujaba las firmas a una segunda
                              hoja, donde quedaba una firma sola y sin contexto. --}}
                         <td class="bar" style="width:28%; vertical-align:middle; padding:5px 8px">{{ $fam['titulo'] }}</td>
-                        <td style="padding:5px 8px">{{ $fam['texto'] }}</td>
+                        {{-- Cada viñeta (•) en su propia línea: el texto trae
+                             las conclusiones separadas con saltos de línea y el
+                             HTML los colapsa — sin esto salían todas corridas en
+                             un solo párrafo. `nl2br` respeta línea por línea lo
+                             que escribió (o editó) el laboratorio. --}}
+                        <td style="padding:5px 8px">{!! nl2br(e($fam['texto'])) !!}</td>
                     </tr>
                 @endforeach
             </table>

@@ -37,6 +37,21 @@ class DiagnosisTemplatesSeeder extends Seeder
         $datos = json_decode((string) file_get_contents($ruta), true) ?: [];
         $plantillas = $datos['templates'] ?? [];
 
+        // Identidades JUBILADAS. La identidad de una plantilla de fábrica es
+        // (familia + caso + analito); cuando una cambia de identidad en el JSON
+        // —la de partículas pasó de analito nulo a `par_iso` al declararse el
+        // parámetro del código ISO (2026-08-03)— el refresco de abajo crea la
+        // nueva pero NO sabe que la vieja quedó huérfana, y como el resolvedor
+        // prueba las candidatas en orden, la vieja seguía ganando y el párrafo
+        // salía con rayas en vez del código. Solo filas GLOBALES: las copias de
+        // un workspace no se tocan.
+        DiagnosisTemplate::withoutGlobalScopes()
+            ->whereNull('tenant_id')
+            ->where('family', 'particulas')
+            ->where('case', 'any')
+            ->whereNull('analyte')
+            ->forceDelete();
+
         $orden = 0;
 
         foreach ($plantillas as $plantilla) {

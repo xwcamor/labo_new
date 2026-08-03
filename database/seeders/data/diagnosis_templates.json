@@ -65,8 +65,7 @@
     "Volver a diagnosticar NO pisa lo editado salvo que se pida expresamente."
   ],
   "_pendientes": {
-    "particulas": "La plantilla está escrita y NO se dispara todavía: la prueba no declara ningún parámetro medible (ver 'pendientes' en analyte_map.json), así que no produce resultados. En cuanto el laboratorio declare la columna del código ISO, el párrafo sale solo. Si además declara los siete rangos de tamaño, hay que agregar acá \"analyte\": \"<código del ISO>\" para que {value} sepa cuál de todos citar.",
-    "metales_en_aceite": "Igual: la plantilla usa `threshold` 0.05 sobre CUALQUIER parámetro de la familia, así que funciona con los ocho metales sin nombrarlos, pero la prueba todavía no declara ninguno.",
+    "_resueltas_2026_08_03": "particulas y metales_en_aceite ya declaran sus parámetros (analyte_map.json + grupos 'particulas' y 'metales' de analytes.json) y sus plantillas disparan: la de partículas con \"analyte\": \"par_iso\" para citar el código ISO y sus tres tramos, la de metales con su threshold 0.05 sobre cualquier parámetro de la familia.",
     "azufre_corrosivo": "Esta familia no existe hoy en la base: las tres pruebas de azufre tienen `report_comment_group` propio (azufre_1275b, azufre_62535_48_horas, azufre_62535_72_horas). Las plantillas quedan escritas para cuando se unifiquen en una sola hoja (punto A8 del checklist), que es una decisión del laboratorio y no de este archivo."
   },
   "templates": [
@@ -254,12 +253,13 @@
     },
     {
       "_origen": "_form_add_details_particles_default_values.html.erb:30-38",
-      "_nota": "Sin umbral: el párrafo transcribe el código ISO 4406 y explica qué significa cada uno de sus tres tramos.",
+      "_nota": "Sin umbral: el párrafo transcribe el código ISO 4406 y explica qué significa cada uno de sus tres tramos. `analyte` apunta al código ISO (par_iso, declarado 2026-08-03): sin él, {value_num} y sus tramos [n] no saben cuál de los ocho resultados de la familia citar y salen en raya.",
       "family": "particulas",
       "oil_types": [],
       "equipment_types": [],
       "case": "any",
-      "body": "CÓDIGO ISO: {value_num}\n\n• Según código ISO 4406: {value_num[1]} es el número de la escala que representa el número de partículas iguales ó más grandes que 4μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[2]} es el número de la escala que representa el número de partículas iguales ó más grandes que 6μm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[3]} es el número de la escala que representa el número de partículas iguales ó más grandes que 14μm por mililitro de líquido."
+      "analyte": "par_iso",
+      "body": "CÓDIGO ISO: {value_num}\n\n• Según código ISO 4406: {value_num[1]} es el número de la escala que representa el número de partículas iguales ó más grandes que 4µm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[2]} es el número de la escala que representa el número de partículas iguales ó más grandes que 6µm por mililitro de líquido.\n\n• Según código ISO 4406: {value_num[3]} es el número de la escala que representa el número de partículas iguales ó más grandes que 14µm por mililitro de líquido."
     },
     {
       "_origen": "_form_add_details_sedimentos_default_values.html.erb:31-41",

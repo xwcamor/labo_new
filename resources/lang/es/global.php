@@ -365,6 +365,9 @@ return [
     'event_row_added'      => 'cargó en la bancada',
     'event_row_updated'    => 'corrigió en la bancada',
     'event_row_removed'    => 'quitó de la bancada',
+    // La impresión del pliego de etiquetas de los envases. Cuelga de la
+    // ENTREGA: es la constancia de quién sacó las etiquetas y cuántas.
+    'event_labels_printed' => 'imprimió etiquetas',
 
     // ── Page / paginación ─────────────────────────────────────────
     'page'                 => 'Página',

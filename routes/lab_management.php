@@ -15,6 +15,7 @@ use App\Http\Controllers\LabManagement\LabReportController;
 use App\Http\Controllers\LabManagement\AmbientLogController;
 use App\Http\Controllers\LabManagement\TrendController;
 use App\Http\Controllers\LabManagement\ReportCatalogController;
+use App\Http\Controllers\LabManagement\SampleLabelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -361,6 +362,12 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     // información de la pantalla, en un archivo.
     Route::middleware('permission:receptions.view')->group(function () {
         Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
+
+        // El pliego de etiquetas para los envases. Va con el permiso de
+        // LECTURA a propósito: imprimir una etiqueta no cambia la muestra, y
+        // quien reparte los envases a la bancada no siempre es quien puede
+        // editar la entrega. Lo que sí queda es la constancia de la impresión.
+        Route::get('receptions/{reception}/labels', [SampleLabelController::class, 'sheet'])->name('receptions.labels');
     });
 
     /*

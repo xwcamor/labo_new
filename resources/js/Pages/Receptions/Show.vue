@@ -28,7 +28,7 @@ import {
 import {
     DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined,
     FileTextOutlined, FilePdfOutlined, HistoryOutlined, InboxOutlined,
-    LockOutlined, PlusOutlined, SolutionOutlined, ThunderboltFilled,
+    LockOutlined, PlusOutlined, PrinterOutlined, SolutionOutlined, ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -93,6 +93,22 @@ const missingMessage = computed(() => {
 });
 const canEdit   = computed(() => can('receptions.edit'));
 const canDelete = computed(() => can('receptions.delete'));
+
+// ── Etiquetas de los envases ─────────────────────────────────────────────
+// Sin `samples` sale el pliego con TODAS las muestras de la entrega, que es
+// como se usa: una vez, al confirmar los correlativos y antes de repartir los
+// frascos a la bancada. Con una muestra sale solo la suya, para reponer una
+// etiqueta despegada sin gastar el pliego entero.
+const labelSheetUrl = (sample = null) => route(
+    'lab_management.receptions.labels',
+    sample ? [props.reception.slug, { 'samples[]': sample.id }] : props.reception.slug,
+);
+
+// La muestra que venía en el QR del frasco. Al escanear se abre esta ficha con
+// ?sample=2026-0003 y la fila queda resaltada: una entrega de veinte frascos
+// sin esto obliga a buscar el número a ojo, que es justo lo que el QR evita.
+const scanned = new URL(window.location.href).searchParams.get('sample');
+const rowClass = (record) => (scanned && record.code === scanned ? 'rc-row--scanned' : '');
 
 // ── Corregir la cantidad después de confirmar («puse 32 y eran 20») ──────
 // Solo se ofrece mientras el servidor diga que se puede: los números de esta
@@ -591,6 +607,20 @@ const confirmarDesbloqueo = () => {
                         </Button>
                     </Tooltip>
 
+                    <!-- El pliego de etiquetas para los envases. Se abre en otra
+                         pestaña: es un PDF para mandar a la impresora, no una
+                         pantalla de la que se vuelve. -->
+                    <Tooltip :title="$t('labels.print_help')">
+                        <Button
+                            v-if="samples.length > 0"
+                            size="small"
+                            :href="labelSheetUrl()"
+                            target="_blank"
+                        >
+                            <PrinterOutlined /> {{ $t('labels.print') }}
+                        </Button>
+                    </Tooltip>
+
                     <Tooltip :title="$t('receptions.assign_to_all_hint')">
                         <Button
                             v-if="canEdit && samples.length > 0"
@@ -614,6 +644,7 @@ const confirmarDesbloqueo = () => {
                 :scroll="{ x: 'max-content' }"
                 view="table"
                 row-key="id"
+                :row-class-name="rowClass"
             >
                 <template #empty>
                     <div class="rc-empty">{{ $t('receptions.no_samples_yet') }}</div>
@@ -661,6 +692,13 @@ const confirmarDesbloqueo = () => {
                             >
                                 {{ $t('receptions.assign_tests') }}
                             </Button>
+                            <!-- Reponer UNA etiqueta despegada sin gastar el
+                                 pliego entero. -->
+                            <Tooltip :title="$t('labels.print_one', { code: record.code })">
+                                <Button size="small" :href="labelSheetUrl(record)" target="_blank">
+                                    <PrinterOutlined />
+                                </Button>
+                            </Tooltip>
                             <!-- ACÁ HABÍA UN BOTÓN "VISTA PREVIA" y se quitó.
                                  Abría el PDF de la muestra en vivo, sin
                                  correlativo, sin código de verificación y sin
@@ -1081,6 +1119,13 @@ const confirmarDesbloqueo = () => {
 }
 
 .rc-code { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* La fila del frasco recién escaneado. `:deep` porque la clase la pone
+   ant-design en el <tr>, fuera del alcance del scoped. */
+:deep(.rc-row--scanned) > td {
+    background: var(--color-primary-bg, #e6f4ff) !important;
+    box-shadow: inset 3px 0 0 0 var(--color-primary, #0A6ED1);
+}
 .rc-muted { color: var(--color-text-muted); font-size: 0.8125rem; }
 .rc-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 .rc-empty__hint { margin-top: 4px; font-size: 0.8125rem; }

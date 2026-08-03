@@ -50,6 +50,15 @@ class SettingsSeeder extends Seeder
             // ─── Grupo: lab ───────────────────────────────────────────────────
             ['key' => 'worksheets.auto_lock_months', 'name' => 'Meses hasta bloquear la hoja', 'type' => 'int', 'value' => '4', 'group' => 'lab', 'description' => 'A los N meses de su fecha de ensayo, la hoja se bloquea sola y deja de ser editable. Para modificarla hay que desbloquearla a mano, y ese desbloqueo queda auditado. 0 apaga el bloqueo automático.'],
 
+            // El pliego de etiquetas de los envases. NO hay ancho ni alto de
+            // etiqueta: se derivan de la grilla y del margen para que el pliego
+            // entre siempre en la hoja A4. Con medidas propias, "3 columnas de
+            // 90 mm" —270 mm en una hoja de 210— salía cortado sin avisar.
+            ['key' => 'labels.columns',   'name' => 'Etiquetas por fila',        'type' => 'int',  'value' => '3',    'group' => 'lab', 'description' => 'Cuántas etiquetas de muestra entran a lo ancho de la hoja A4. El ancho de cada una se calcula solo: (210 mm - 2 x margen) / columnas.'],
+            ['key' => 'labels.rows',      'name' => 'Filas de etiquetas',        'type' => 'int',  'value' => '8',    'group' => 'lab', 'description' => 'Cuántas filas de etiquetas entran a lo alto de la hoja A4. El alto de cada una se calcula solo: (297 mm - 2 x margen) / filas. Con 3 columnas y 8 filas salen 24 etiquetas por hoja.'],
+            ['key' => 'labels.margin_mm', 'name' => 'Margen del pliego (mm)',    'type' => 'int',  'value' => '6',    'group' => 'lab', 'description' => 'Margen en milímetros alrededor del pliego de etiquetas. Si se usan hojas precortadas, ajustar este valor y la grilla para que coincidan con el troquel.'],
+            ['key' => 'labels.show_qr',   'name' => 'QR en la etiqueta',         'type' => 'bool', 'value' => 'true', 'group' => 'lab', 'description' => 'Si true, cada etiqueta lleva un QR que abre la entrega de esa muestra en el sistema. La URL se arma con APP_URL, no está escrita en el código.'],
+
             // ─── Grupo: security ──────────────────────────────────────────────
             ['key' => 'security.session_lifetime_minutes', 'name' => 'Duración de sesión (min)', 'type' => 'int', 'value' => '120', 'group' => 'security', 'description' => 'Tiempo de inactividad antes de cerrar la sesión automáticamente. 120 = 2 horas.'],
             ['key' => 'security.max_login_attempts', 'name' => 'Máx intentos de login', 'type' => 'int', 'value' => '5', 'group' => 'security', 'description' => 'Intentos fallidos antes de bloquear temporalmente la cuenta (lockout).'],

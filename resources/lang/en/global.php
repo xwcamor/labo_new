@@ -361,6 +361,7 @@ return [
     'event_row_added'      => 'entered on the bench',
     'event_row_updated'    => 'corrected on the bench',
     'event_row_removed'    => 'removed from the bench',
+    'event_labels_printed' => 'printed labels',
 
     // ── Page / pagination ─────────────────────────────────────────
     'page'                 => 'Page',

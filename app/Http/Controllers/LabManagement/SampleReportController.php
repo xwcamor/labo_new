@@ -737,14 +737,19 @@ class SampleReportController extends Controller
 
             // Las pruebas pedidas, con su estado: el operador ve cuáles todavía
             // no están validadas y por qué no van a salir impresas aunque las
-            // deje marcadas.
-            'tests' => $sample->tests->map(fn ($t) => [
-                'id'         => $t->id,
-                'name'       => $t->definition?->name,
-                'code'       => $t->definition?->code,
-                'status'     => $t->status,
-                'is_visible' => $visibles[$t->id] ?? true,
-            ])->values(),
+            // deje marcadas. SIN las dadas de baja: una prueba que se dejó de
+            // pedir no es del informe — acá se listaban todas y el formulario
+            // ofrecía "Rigidez (sin validar)" sobre una prueba que la recepción
+            // ya ni muestra, dos pantallas contando historias distintas.
+            'tests' => $sample->tests
+                ->reject(fn ($t) => $t->status === \App\Models\SampleTest::STATUS_CANCELLED)
+                ->map(fn ($t) => [
+                    'id'         => $t->id,
+                    'name'       => $t->definition?->name,
+                    'code'       => $t->definition?->code,
+                    'status'     => $t->status,
+                    'is_visible' => $visibles[$t->id] ?? true,
+                ])->values(),
         ];
     }
 

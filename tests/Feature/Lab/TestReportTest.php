@@ -517,6 +517,32 @@ class TestReportTest extends TestCase
         );
     }
 
+    /**
+     * El formulario del informe no ofrece pruebas DADAS DE BAJA.
+     *
+     * Se listaban todas las de la muestra, así que el formulario mostraba
+     * "Rigidez (sin validar)" sobre una prueba que se dejó de pedir y que la
+     * recepción ya ni muestra: dos pantallas contando historias distintas.
+     */
+    public function test_el_formulario_del_informe_no_ofrece_pruebas_dadas_de_baja(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.10, min: null, max: 0.15, estado: 'in_spec');
+
+        $baja = TestDefinition::create([
+            'slug' => Str::random(22), 'code' => 'rigidez', 'name' => 'Rigidez Dieléctrica',
+        ]);
+        SampleTest::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $baja->id,
+            'status' => SampleTest::STATUS_CANCELLED, 'tenant_id' => 1,
+        ]);
+
+        $json = $this->getJson(route('lab_management.sample_reports.create', $muestra))->json();
+
+        $this->assertCount(1, $json['tests']);
+        $this->assertSame('Número Ácido', $json['tests'][0]['name']);
+    }
+
     // ─── La emisión ──────────────────────────────────────────────────────
 
     public function test_emitir_deja_constancia_con_su_codigo_de_verificacion(): void

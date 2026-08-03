@@ -254,7 +254,10 @@
             ];
             $columnas = $pagina['columnas'];
         @endphp
-        <div><b style="font-size:12px">RESULTADOS DE ENSAYOS</b></div>
+        {{-- Con `.sec`, como INFORMACIÓN DEL EQUIPO: el mismo respiro arriba.
+             Era un <div> pelado y el título quedaba pegado al cuadro anterior
+             en todas las hojas. --}}
+        <span class="sec">RESULTADOS DE ENSAYOS</span>
         <table class="grid">
             <tr class="bar"><td colspan="{{ count($columnas) }}" class="c"><span class="ttl">{{ $pagina['titulo'] }}</span></td></tr>
             <tr>

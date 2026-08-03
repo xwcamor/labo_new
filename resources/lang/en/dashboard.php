@@ -17,6 +17,15 @@ return [
     'widget_auto_failures'   => 'Recent failures',
     'widget_plan_days_left'  => 'Days in your plan',
 
+    'lab_alerts'              => 'Laboratory backlog',
+    'widget_lab_overdue'      => 'Overdue deliveries',
+    'widget_lab_no_order'     => 'No service order',
+    'widget_lab_no_equipment' => 'Samples without equipment',
+    'widget_lab_no_tests'     => 'Samples without tests',
+    'widget_lab_no_values'    => 'Samples without results',
+    'widget_lab_no_report'    => 'Ready to report',
+    'widget_lab_undelivered'  => 'Reports not delivered',
+
     'expiring_soon'        => 'Subscriptions expiring soon',
     'recent_automations'   => 'Recent automations',
     'no_automations_yet'   => 'No automation runs yet.',

@@ -8,6 +8,9 @@ import {
     CheckCircleFilled, CloseCircleFilled, LoadingOutlined,
     PlusCircleFilled, EditFilled, DeleteFilled, ExportOutlined,
     UndoOutlined, HistoryOutlined,
+    // Alerta de pendientes del laboratorio.
+    FileTextOutlined, ApartmentOutlined, ExperimentOutlined,
+    ProfileOutlined, FileProtectOutlined, SendOutlined,
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -30,7 +33,9 @@ const props = defineProps({
     expiringSoon:      { type: Array, default: () => [] },
     // Para la vista simple del non-super: últimas acciones del propio user.
     recentActivity:    { type: Array, default: () => [] },
-    // Dashboard de flota del tenant (non-super).
+    // «Alerta de pendientes» del laboratorio: qué está trabado y dónde. Es la
+    // pantalla de inicio del sistema anterior, con el alcance del que mira.
+    labAlerts:         { type: Array, default: () => [] },
 });
 
 const userName = computed(() => page.props.auth?.user?.name ?? '');
@@ -44,7 +49,12 @@ const greeting = computed(() => {
 const iconMap = {
     BankOutlined, CrownOutlined, ClockCircleOutlined, ThunderboltOutlined,
     UserOutlined, WarningOutlined,
+    FileTextOutlined, ApartmentOutlined, ExperimentOutlined,
+    ProfileOutlined, FileProtectOutlined, SendOutlined,
 };
+
+/** Lo que está trabado hoy. Con todo al día, la sección no se dibuja. */
+const alertasVivas = computed(() => props.labAlerts.filter((a) => a.value > 0));
 const resolveIcon = (key) => iconMap[key] ?? DashboardOutlined;
 
 const widgetColor = (color) => ({
@@ -97,6 +107,34 @@ const fmtRel = (d) => d ? dayjs(d).fromNow() : '—';
                 </div>
             </div>
         </div>
+
+        <!-- ─── ALERTA DE PENDIENTES DEL LABORATORIO ─────────────────────
+             Va ARRIBA de todo y para los dos roles: es lo que hay que hacer
+             hoy. Con todo al día no se dibuja nada — un tablero de ceros
+             enseña a ignorar el tablero. -->
+        <Card v-if="alertasVivas.length > 0" class="block-card lab-alerts">
+            <template #title>
+                <WarningOutlined /> {{ $t('dashboard.lab_alerts') }}
+            </template>
+            <div class="widgets-grid">
+                <component
+                    v-for="a in alertasVivas"
+                    :key="a.key"
+                    :is="a.href ? Link : 'div'"
+                    :href="a.href"
+                    class="widget-card"
+                    :class="{ 'widget-card--link': !!a.href }"
+                >
+                    <div class="widget-card__icon" :style="{ background: widgetColor(a.color) }">
+                        <component :is="resolveIcon(a.icon)" />
+                    </div>
+                    <div class="widget-card__body">
+                        <div class="widget-card__value">{{ a.value }}</div>
+                        <div class="widget-card__label">{{ $t('dashboard.widget_' + a.label) }}</div>
+                    </div>
+                </component>
+            </div>
+        </Card>
 
         <!-- ─── VISTA SUPER: dashboard completo ─────────────────────────── -->
         <template v-if="isSuper">

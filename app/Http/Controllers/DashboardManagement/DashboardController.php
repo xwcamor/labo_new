@@ -9,6 +9,10 @@ use App\Models\AuditLog;
 use App\Models\Brand;
 use App\Models\Country;
 use App\Models\Customer;
+use App\Models\Reception;
+use App\Models\Sample;
+use App\Models\SampleReport;
+use App\Models\SampleTest;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\EquipmentType;
@@ -133,19 +137,90 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard de FLOTA para el tenant (admin/operativo). TODOS los conteos
-     * usan Eloquent NORMAL → respetan el scope de tenant Y la restricción por
-     * clientes asignados (sin fuga). Filtros: f_customer / f_type / f_rating.
-     * La tendencia es real (dgaf_score de las muestras de cromatografía).
-     */
-    /**
-     * Fase 11: acá van los indicadores del laboratorio (OTD, tiempo de emisión,
-     * carga por analista, muestras vencidas). El tablero de flota de TrafoDex se
-     * eliminó: el laboratorio no diagnostica equipos.
+     * «Alerta de Pendientes»: qué está trabado y dónde.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ DE DÓNDE SALE                                                        │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Es la pantalla de inicio del sistema Rails viejo
+     * (`UserManagement::AuthenticationsController#index`), que resolvía sus
+     * contadores con `find_by_sql` y `COUNT(IF(...))` sobre TODA la base. Acá se
+     * hace con Eloquent normal para que el scope de tenant —y la restricción por
+     * clientes asignados— se apliquen solos: el viejo contaba las recepciones de
+     * todos los clientes para cualquiera que abriera el sistema.
+     *
+     * Se cuenta por MUESTRA y no por prueba: "faltan 3 muestras" es accionable,
+     * "faltan 17 pruebas" no le dice a nadie a qué frasco ir. Y cada tarjeta
+     * lleva su enlace, porque un número que no dice dónde ir obliga a buscar a
+     * mano lo que ya se sabe que falta.
      */
     protected function labDashboard(?User $user, Request $request): array
     {
-        return [];
+        if (! $user) {
+            return ['labAlerts' => []];
+        }
+
+        $sinEquipo = Sample::query()->whereNull('equipment_id')->count();
+
+        $sinPruebas = Sample::query()
+            ->whereDoesntHave('tests', fn ($q) => $q->where('status', '!=', SampleTest::STATUS_CANCELLED))
+            ->count();
+
+        $sinValores = Sample::query()
+            ->whereHas('tests', fn ($q) => $q->whereIn('status', [
+                SampleTest::STATUS_PENDING, SampleTest::STATUS_IN_PROGRESS,
+            ]))
+            ->count();
+
+        // Listas para informar: todas sus pruebas validadas y sin informe
+        // principal. Es el trabajo que ya está hecho y que nadie entregó.
+        $sinInforme = Sample::query()
+            ->whereHas('tests', fn ($q) => $q->where('status', '!=', SampleTest::STATUS_CANCELLED))
+            ->whereDoesntHave('tests', fn ($q) => $q->whereIn('status', [
+                SampleTest::STATUS_PENDING, SampleTest::STATUS_IN_PROGRESS,
+            ]))
+            ->whereDoesntHave('reports', fn ($q) => $q->where('kind', SampleReport::KIND_PRIMARY))
+            ->count();
+
+        $sinEntregar = SampleReport::query()
+            ->where('status', SampleReport::STATUS_ISSUED)
+            ->whereNull('delivered_at')
+            ->count();
+
+        $sinOrden = Reception::query()
+            ->where('status', '!=', Reception::STATUS_CANCELLED)
+            ->where(fn ($q) => $q->whereNull('service_order')->orWhere('service_order', ''))
+            ->count();
+
+        // Vencidas: pasó la fecha comprometida y la entrega sigue abierta.
+        $vencidas = Reception::query()
+            ->where('status', Reception::STATUS_CONFIRMED)
+            ->whereNotNull('due_at')
+            ->whereDate('due_at', '<', now())
+            ->count();
+
+        $tarjeta = fn (string $key, int $valor, string $icono, string $color, string $href) => [
+            'key'   => $key,
+            'label' => $key,
+            'value' => $valor,
+            'color' => $valor > 0 ? $color : 'default',
+            'icon'  => $icono,
+            'href'  => $valor > 0 ? $href : null,
+        ];
+
+        $receptions = route('lab_management.receptions.index');
+
+        return [
+            'labAlerts' => [
+                $tarjeta('lab_overdue',      $vencidas,    'ClockCircleOutlined',  'red',    $receptions),
+                $tarjeta('lab_no_order',     $sinOrden,    'FileTextOutlined',     'orange', $receptions),
+                $tarjeta('lab_no_equipment', $sinEquipo,   'ApartmentOutlined',    'orange', $receptions),
+                $tarjeta('lab_no_tests',     $sinPruebas,  'ExperimentOutlined',   'orange', $receptions),
+                $tarjeta('lab_no_values',    $sinValores,  'ProfileOutlined',      'blue',   route('lab_management.worksheets.index')),
+                $tarjeta('lab_no_report',    $sinInforme,  'FileProtectOutlined',  'green',  route('lab_management.sample_reports.index')),
+                $tarjeta('lab_undelivered',  $sinEntregar, 'SendOutlined',         'cyan',   route('lab_management.sample_reports.index')),
+            ],
+        ];
     }
 
     protected function recentAutomations(?User $user): array

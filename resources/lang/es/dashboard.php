@@ -18,6 +18,17 @@ return [
     'widget_auto_failures'   => 'Fallas recientes',
     'widget_plan_days_left'  => 'Días en tu plan',
 
+    // Alerta de pendientes del laboratorio (la pantalla de inicio del sistema
+    // anterior). Las etiquetas dicen QUÉ FALTA, no el nombre de la tabla.
+    'lab_alerts'              => 'Pendientes del laboratorio',
+    'widget_lab_overdue'      => 'Entregas vencidas',
+    'widget_lab_no_order'     => 'Sin orden de servicio',
+    'widget_lab_no_equipment' => 'Muestras sin equipo',
+    'widget_lab_no_tests'     => 'Muestras sin pruebas',
+    'widget_lab_no_values'    => 'Muestras sin resultados',
+    'widget_lab_no_report'    => 'Listas para informar',
+    'widget_lab_undelivered'  => 'Informes sin entregar',
+
     // Bloques
     'expiring_soon'        => 'Suscripciones por vencer',
     'recent_automations'   => 'Automatizaciones recientes',

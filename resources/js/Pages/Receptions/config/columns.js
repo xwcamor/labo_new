@@ -16,6 +16,17 @@ import {
  * consultas.
  */
 export const receptionsTableColumns = (t) => [
+    // El pin de favoritos: la estrella que fija la entrega arriba del listado.
+    // `is_favorite` lo calcula el servidor en la misma consulta (HasFavorites).
+    {
+        title: '★',
+        dataIndex: 'is_favorite',
+        key: 'favorite',
+        width: 52,
+        align: 'center',
+        alwaysVisible: true,
+        mobile: { role: 'pin' },
+    },
     {
         title: t('receptions.received_at'),
         dataIndex: 'received_at',

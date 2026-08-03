@@ -177,6 +177,10 @@ return [
     'created' => 'Recepción registrada.',
     'saved'   => 'Recepción actualizada.',
     'deleted' => 'Recepción eliminada.',
+    // La baja masiva desde el listado: lo que se saltó y por qué.
+    'bulk_skipped_issued' => ':count con informe emitido se omitieron (el cliente los tiene en la mano).',
+    'bulk_none_deleted'   => 'No se eliminó ninguna: :locked bloqueada(s) por candado y :issued con informe emitido.',
+    'bulk_cascade_note'   => 'La baja arrastra las muestras y los informes de cada entrega, y los números de muestra ya emitidos NO se devuelven. Las entregas con informes emitidos y las bloqueadas por candado se omiten solas.',
 
     'errors' => [
         'not_draft'  => 'La recepción ya fue confirmada. Los correlativos se emiten una sola vez.',

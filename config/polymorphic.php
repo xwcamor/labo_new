@@ -128,6 +128,10 @@ return [
             'model'      => \App\Models\EntryAuthorizer::class,
             'show_route' => 'business_management.entry_authorizers.show',
         ],
+        'receptions' => [
+            'model'      => \App\Models\Reception::class,
+            'show_route' => 'lab_management.receptions.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

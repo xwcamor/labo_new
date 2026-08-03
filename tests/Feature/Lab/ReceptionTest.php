@@ -40,6 +40,13 @@ class ReceptionTest extends TestCase
     {
         parent::setUp();
 
+        // Los redirects de localización de mcamara mandan a /en cualquier GET
+        // sin prefijo de idioma — mismo apagado que CustomerTestCase.
+        $this->withoutMiddleware([
+            \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter::class,
+            \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,
+        ]);
+
         $this->seedParentRows();
         $this->service = new ReceptionService();
         $this->cromas = $this->makeTest('cromas', 'Cromatografía');
@@ -558,6 +565,127 @@ class ReceptionTest extends TestCase
             ->assertSessionHasErrors('deleted_description');
 
         $this->assertNotNull(Reception::find($reception->id));
+    }
+
+    // ─── El estándar de los índices: favoritos, filtros y baja masiva ────
+
+    public function test_el_listado_filtra_por_favoritos(): void
+    {
+        $favorita = $this->makeReception();
+        $otra     = $this->makeReception();
+
+        $usuario = $this->usuarioConPermiso('receptions.view');
+        \App\Models\UserFavorite::create([
+            'user_id'          => $usuario->id,
+            'favoritable_id'   => $favorita->id,
+            'favoritable_type' => Reception::class,
+        ]);
+
+        $this->actingAs($usuario)
+            ->get(route('lab_management.receptions.index', ['only_favorites' => 1]))
+            ->assertOk()
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->component('Receptions/Index')
+                ->has('receptions.data', 1)
+                ->where('receptions.data.0.id', $favorita->id)
+                ->has('filterSchema'));
+
+        // Sin el filtro salen las dos, con la favorita PRIMERA (el pin).
+        $this->actingAs($usuario)
+            ->get(route('lab_management.receptions.index'))
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->has('receptions.data', 2)
+                ->where('receptions.data.0.id', $favorita->id)
+                ->where('receptions.data.1.id', $otra->id));
+    }
+
+    public function test_los_filtros_avanzados_aplican_contra_el_esquema(): void
+    {
+        $urgente = $this->makeReception(['is_urgent' => true]);
+        $this->makeReception();
+
+        $this->actingAs($this->usuarioConPermiso('receptions.view'))
+            ->get(route('lab_management.receptions.index', [
+                'advanced_where' => json_encode([
+                    ['field' => 'is_urgent', 'op' => '=', 'value' => true],
+                ]),
+            ]))
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->has('receptions.data', 1)
+                ->where('receptions.data.0.id', $urgente->id));
+    }
+
+    public function test_la_baja_masiva_borra_y_salta_las_que_tienen_informe(): void
+    {
+        $this->conPlanQueDesbloqueaBulk();
+
+        $borrable = $this->makeReception();
+        $this->service->confirm($borrable, 1);
+
+        $protegida = $this->makeReception();
+        $this->service->confirm($protegida, 1);
+        \App\Models\SampleReport::create([
+            'slug'      => Str::random(22),
+            'sample_id' => $protegida->samples()->first()->id,
+            'tenant_id' => 1,
+            'year'      => 2026,
+            'number'    => 1,
+            'code'      => \App\Models\SampleReport::formatCode(2026, 1),
+            'kind'      => \App\Models\SampleReport::KIND_PRIMARY,
+            'status'    => \App\Models\SampleReport::STATUS_ISSUED,
+        ]);
+
+        $this->actingAs($this->usuarioConPermiso())
+            ->post(route('lab_management.receptions.bulk_delete'), [
+                'ids'                 => [$borrable->id, $protegida->id],
+                'deleted_description' => 'Se registraron por duplicado.',
+            ])
+            ->assertSessionHas('success');
+
+        // La borrable se fue CON sus muestras; la del informe emitido sigue
+        // viva — el cliente tiene ese papel en la mano.
+        $this->assertNull(Reception::find($borrable->id));
+        $this->assertSame(0, Sample::where('reception_id', $borrable->id)->count());
+        $this->assertNotNull(Reception::find($protegida->id));
+        $this->assertSame(1, $protegida->samples()->count());
+    }
+
+    public function test_la_baja_masiva_exige_motivo(): void
+    {
+        $this->conPlanQueDesbloqueaBulk();
+        $reception = $this->makeReception();
+
+        $this->actingAs($this->usuarioConPermiso())
+            ->post(route('lab_management.receptions.bulk_delete'), [
+                'ids' => [$reception->id],
+            ])
+            ->assertSessionHasErrors('deleted_description');
+
+        $this->assertNotNull(Reception::find($reception->id));
+    }
+
+    /**
+     * El middleware `plan_feature:bulk_operations` resuelve el plan por la
+     * suscripción vigente del tenant — sin esto, la ruta contesta que la
+     * feature está bloqueada y el test no prueba nada.
+     */
+    private function conPlanQueDesbloqueaBulk(): void
+    {
+        DB::table('plans')->insertOrIgnore([[
+            'id' => 1, 'slug' => 'enterprise', 'name' => 'Enterprise',
+            'sort_order' => 1, 'max_users' => -1, 'max_records_per_module' => -1,
+            'export_rate_limit' => 50, 'support_level' => 'priority',
+            'features' => json_encode(['bulk_operations' => true, 'saved_views' => true]),
+            'price_monthly' => 0, 'price_yearly' => 0, 'currency' => 'USD',
+            'is_active' => true, 'is_public' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
+        DB::table('subscriptions')->insertOrIgnore([[
+            'id' => 1, 'tenant_id' => 1, 'plan' => 'enterprise', 'status' => 'active',
+            'starts_at' => now()->subDay(), 'ends_at' => now()->addYear(),
+            'currency' => 'USD', 'payment_method' => 'manual',
+            'created_at' => now(), 'updated_at' => now(),
+        ]]);
     }
 
     // ─── Corregir la cantidad después de confirmar ───────────────────────

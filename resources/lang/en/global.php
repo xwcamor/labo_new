@@ -197,6 +197,7 @@ return [
     'saved_views'          => 'Saved views',
     'saved_views_hint'     => 'Switch between saved views or save the current one (filters + columns)',
     'save_current_view'    => 'Save current view',
+    'save_filter'          => 'Save filter',
     'manage_views'         => 'Manage',
     'no_saved_views'       => 'No saved views',
     'set_as_default'       => 'Set as default',

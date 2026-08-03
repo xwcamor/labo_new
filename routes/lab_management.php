@@ -376,6 +376,13 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::delete('reports/{report}', [SampleReportController::class, 'destroy'])->name('sample_reports.destroy');
     });
 
+    // Baja masiva desde el listado — mismo gating que el resto de los bulk
+    // (plan + throttle). Cada entrega pasa por las MISMAS reglas que la baja
+    // individual: candado e informes emitidos la saltan, no la fuerzan.
+    Route::middleware(['permission:receptions.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('receptions/bulk_delete', [ReceptionController::class, 'bulkDelete'])->name('receptions.bulk_delete');
+    });
+
     /*
      * Dar de baja UNA MUESTRA: solo admin y super.
      *

@@ -144,6 +144,10 @@ return [
     'created' => 'Reception logged.',
     'saved' => 'Reception updated.',
     'deleted' => 'Reception deleted.',
+    // Bulk delete from the listing: what was skipped and why.
+    'bulk_skipped_issued' => ':count with an issued report were skipped (the customer holds them).',
+    'bulk_none_deleted'   => 'Nothing was deleted: :locked locked and :issued with an issued report.',
+    'bulk_cascade_note'   => 'Deleting takes each delivery\'s samples and reports with it, and issued sample numbers are NOT returned. Deliveries with issued reports, or locked ones, are skipped automatically.',
     'errors' => 
   [
       'not_draft' => 'This reception was already confirmed. Sample numbers are issued once.',

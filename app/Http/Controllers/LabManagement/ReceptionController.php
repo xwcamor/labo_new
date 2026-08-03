@@ -78,6 +78,12 @@ class ReceptionController extends Controller
         $perPage = in_array($perPage, [10, 25, 50, 100, 200], true) ? $perPage : 25;
 
         $query = Reception::query()
+            // `select` explícito ANTES de `orderByFavoriteFirst`: ese scope hace
+            // left join a `user_favorites` y sin acotar el select las columnas
+            // del join (id, created_at…) pisarían las de la recepción.
+            ->select('receptions.*')
+            ->orderByFavoriteFirst(auth()->id())
+            ->filter($request)
             ->with(['customer:id,name', 'sampler:id,name'])
             ->withCount([
                 'samples',
@@ -111,23 +117,9 @@ class ReceptionController extends Controller
                 'samples as reported_count' => fn ($q) => $q->where('status', Sample::STATUS_REPORTED),
             ]);
 
-        $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->status));
-        $query->when($request->filled('customer'), fn ($q) => $q->whereHas(
-            'customer',
-            fn ($c) => $c->where('slug', $request->customer)
-        ));
-        $query->when($request->filled('from'), fn ($q) => $q->whereDate('received_at', '>=', $request->from));
-        $query->when($request->filled('to'), fn ($q) => $q->whereDate('received_at', '<=', $request->to));
-        $query->when($request->boolean('urgent'), fn ($q) => $q->where('is_urgent', true));
-
-        // Buscar por número de muestra. Es lo que el cliente cita por teléfono,
-        // y por eso es una búsqueda por COLUMNA y no un parseo de la cadena:
-        // el sistema anterior partía "2026-0695" en tres lugares distintos,
-        // cada uno con su propia forma de romperse.
-        $query->when($request->filled('sample'), fn ($q) => $q->whereHas(
-            'samples',
-            fn ($s) => $s->where('code', 'like', '%' . $request->sample . '%')
-        ));
+        // Los filtros (rápidos + avanzados + solo favoritos) viven en el modelo
+        // (`Reception::scopeFilter`), ya aplicados arriba — el estándar de los
+        // índices, con FilterApplier contra `filterSchema()`.
 
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
@@ -147,12 +139,23 @@ class ReceptionController extends Controller
         $pedido = (string) $request->get('sort', '');
         $columna = in_array($pedido, $ordenables, true) ? $pedido : 'received_at';
 
-        $receptions = $query->orderBy($columna, $direction)->orderByDesc('id')
+        $receptions = $query->orderBy('receptions.' . $columna, $direction)->orderByDesc('receptions.id')
             ->paginate($perPage)->withQueryString();
+
+        // `advanced_where` viaja como JSON en la URL y la pantalla lo necesita
+        // como array para rehidratar el builder al recargar/compartir el enlace.
+        $advanced = $request->input('advanced_where');
+        if (is_string($advanced)) {
+            $advanced = json_decode($advanced, true) ?: null;
+        }
 
         return Inertia::render('Receptions/Index', [
             'receptions' => $receptions,
-            'filters'    => $request->only(['status', 'customer', 'from', 'to', 'urgent', 'sample', 'sort', 'direction', 'per_page']),
+            'filters'    => array_merge(
+                $request->only(['status', 'customer', 'from', 'to', 'urgent', 'sample', 'only_favorites', 'sort', 'direction', 'per_page']),
+                ['advanced_where' => is_array($advanced) ? $advanced : null],
+            ),
+            'filterSchema' => Reception::filterSchema(),
             'customers'  => Customer::orderBy('name')->get(['id', 'slug', 'name']),
             'statuses'   => Reception::STATUSES,
         ]);
@@ -542,49 +545,125 @@ class ReceptionController extends Controller
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($reception, $request) {
-            $motivo = $request->input('deleted_description');
-
-            // ┌──────────────────────────────────────────────────────────────┐
-            // │ LA BAJA ARRASTRA LO QUE CUELGA                               │
-            // └──────────────────────────────────────────────────────────────┘
-            // Acá se daba de baja SOLO la fila de la entrega. Sus muestras
-            // quedaban vivas: la bancada las seguía ofreciendo para cargar y el
-            // listado global seguía mostrando sus informes. O sea que se podía
-            // trabajar y emitir el papel de una entrega que ya no existe.
-            //
-            // El sistema anterior sí arrastraba (`rem.rb:327-339`). Se hace en
-            // una transacción para que no quede a medias, y con el MISMO motivo:
-            // quien mire la muestra en la papelera tiene que leer por qué se fue.
-            $muestras = $reception->samples()->get();
-
-            foreach ($muestras as $muestra) {
-                \App\Models\SampleReport::where('sample_id', $muestra->id)
-                    ->get()
-                    ->each(function ($informe) use ($motivo) {
-                        $informe->update([
-                            'deleted_by'          => auth()->id(),
-                            'deleted_description' => $motivo,
-                        ]);
-                        $informe->delete();
-                    });
-
-                $muestra->update([
-                    'deleted_by'          => auth()->id(),
-                    'deleted_description' => $motivo,
-                ]);
-                $muestra->delete();
-            }
-
-            $reception->update([
-                'deleted_by'          => auth()->id(),
-                'deleted_description' => $motivo,
-            ]);
-            $reception->delete();
+            $this->cascadeDelete($reception, $request->input('deleted_description'));
         });
 
         return redirect()
             ->route('lab_management.receptions.index')
             ->with('success', __('receptions.deleted'));
+    }
+
+    /**
+     * La baja en cadena de UNA entrega, dentro de la transacción del caller.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ LA BAJA ARRASTRA LO QUE CUELGA                                       │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Acá se daba de baja SOLO la fila de la entrega. Sus muestras quedaban
+     * vivas: la bancada las seguía ofreciendo para cargar y el listado global
+     * seguía mostrando sus informes. O sea que se podía trabajar y emitir el
+     * papel de una entrega que ya no existe.
+     *
+     * El sistema anterior sí arrastraba (`rem.rb:327-339`). Va con el MISMO
+     * motivo en cada pieza: quien mire la muestra en la papelera tiene que
+     * leer por qué se fue. Lo comparten `destroy()` y `bulkDelete()`.
+     */
+    private function cascadeDelete(Reception $reception, string $motivo): void
+    {
+        $muestras = $reception->samples()->get();
+
+        foreach ($muestras as $muestra) {
+            \App\Models\SampleReport::where('sample_id', $muestra->id)
+                ->get()
+                ->each(function ($informe) use ($motivo) {
+                    $informe->update([
+                        'deleted_by'          => auth()->id(),
+                        'deleted_description' => $motivo,
+                    ]);
+                    $informe->delete();
+                });
+
+            $muestra->update([
+                'deleted_by'          => auth()->id(),
+                'deleted_description' => $motivo,
+            ]);
+            $muestra->delete();
+        }
+
+        $reception->update([
+            'deleted_by'          => auth()->id(),
+            'deleted_description' => $motivo,
+        ]);
+        $reception->delete();
+    }
+
+    /**
+     * Baja masiva desde el listado, con motivo — el estándar de los índices.
+     *
+     * Cada entrega pasa por las MISMAS reglas que la baja individual: las
+     * bloqueadas por candado y las que tienen informes EMITIDOS se saltan (no
+     * se abortan las demás — quien selecciona veinte no tiene por qué perder
+     * la operación por una), y las que sí se pueden borrar arrastran sus
+     * muestras e informes en cadena, cada una en su transacción.
+     */
+    public function bulkDelete(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids'                 => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*'               => ['integer'],
+            'deleted_description' => ['required', 'string', 'min:3', 'max:1000'],
+        ]);
+
+        // La consulta pasa por el scope de tenant del modelo: los ids ajenos
+        // simplemente no aparecen.
+        $receptions = Reception::query()
+            ->whereIn('id', $data['ids'])
+            ->get();
+
+        $borradas = 0;
+        $saltadasCandado = 0;
+        $saltadasInforme = 0;
+
+        foreach ($receptions as $reception) {
+            if ($reception->is_locked) {
+                $saltadasCandado++;
+                continue;
+            }
+
+            $emitidos = \App\Models\SampleReport::query()
+                ->whereIn('sample_id', $reception->samples()->pluck('id'))
+                ->where('status', \App\Models\SampleReport::STATUS_ISSUED)
+                ->exists();
+
+            if ($emitidos) {
+                $saltadasInforme++;
+                continue;
+            }
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($reception, $data) {
+                $this->cascadeDelete($reception, $data['deleted_description']);
+            });
+            $borradas++;
+        }
+
+        if ($borradas === 0) {
+            return back()->withErrors([
+                'ids' => __('receptions.bulk_none_deleted', [
+                    'locked' => $saltadasCandado,
+                    'issued' => $saltadasInforme,
+                ]),
+            ]);
+        }
+
+        $msg = __('global.deleted_success') . ' (' . $borradas . ')';
+        if ($saltadasCandado > 0) {
+            $msg .= ' · ' . __('locks.bulk_skipped_locked', ['count' => $saltadasCandado]);
+        }
+        if ($saltadasInforme > 0) {
+            $msg .= ' · ' . __('receptions.bulk_skipped_issued', ['count' => $saltadasInforme]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**

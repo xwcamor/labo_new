@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\BelongsToTenant;
+use App\Traits\HasFavorites;
 use App\Traits\Lockable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -39,6 +40,7 @@ class Reception extends Model
     use BelongsToTenant;
     use Auditable;
     use Lockable;
+    use HasFavorites;
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_CONFIRMED = 'confirmed';
@@ -137,6 +139,90 @@ class Reception extends Model
     public function isConfirmed(): bool
     {
         return $this->status === self::STATUS_CONFIRMED;
+    }
+
+    // ── Filtros del listado ──────────────────────────────────────────────
+
+    /**
+     * Los filtros del listado, en el modelo — el estándar de los índices
+     * (mismo patrón que Sampler/Customer). Los rápidos son los que la pantalla
+     * siempre tuvo (estado, cliente, fechas, urgente, número de muestra); los
+     * avanzados llegan como cláusulas estructuradas (`advanced_where`) y los
+     * aplica FilterApplier contra `filterSchema()`. El ORDEN no vive acá: el
+     * controlador lo resuelve por lista blanca.
+     */
+    public function scopeFilter(Builder $query, $request): Builder
+    {
+        // Prefijo `receptions.` en todo: `orderByFavoriteFirst` agrega un left
+        // join a `user_favorites` y las columnas sin calificar quedan ambiguas.
+        $query->when($request->filled('status'), fn ($q) => $q->where('receptions.status', $request->status));
+        $query->when($request->filled('customer'), fn ($q) => $q->whereHas(
+            'customer',
+            fn ($c) => $c->where('slug', $request->customer)
+        ));
+        $query->when($request->filled('from'), fn ($q) => $q->whereDate('receptions.received_at', '>=', $request->from));
+        $query->when($request->filled('to'), fn ($q) => $q->whereDate('receptions.received_at', '<=', $request->to));
+        $query->when($request->boolean('urgent'), fn ($q) => $q->where('receptions.is_urgent', true));
+
+        // Buscar por número de muestra. Es lo que el cliente cita por teléfono,
+        // y por eso es una búsqueda por COLUMNA y no un parseo de la cadena:
+        // el sistema anterior partía "2026-0695" en tres lugares distintos,
+        // cada uno con su propia forma de romperse.
+        $query->when($request->filled('sample'), fn ($q) => $q->whereHas(
+            'samples',
+            fn ($s) => $s->where('code', 'like', '%' . $request->sample . '%')
+        ));
+
+        $advanced = $request->input('advanced_where');
+        if (is_string($advanced)) {
+            $advanced = json_decode($advanced, true) ?: null;
+        }
+        if (is_array($advanced) && !empty($advanced)) {
+            \App\Services\Automations\Support\FilterApplier::apply(
+                $query,
+                ['where' => $advanced],
+                static::filterSchema()
+            );
+        }
+
+        if ($request->filled('only_favorites') && filter_var($request->only_favorites, FILTER_VALIDATE_BOOLEAN)) {
+            $userId = auth()->id();
+            if ($userId) {
+                $query->whereExists(function ($q) use ($userId) {
+                    $q->select(\DB::raw(1))
+                      ->from('user_favorites')
+                      ->whereColumn('user_favorites.favoritable_id', 'receptions.id')
+                      ->where('user_favorites.favoritable_type', static::class)
+                      ->where('user_favorites.user_id', $userId);
+                });
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public static function filterSchema(): array
+    {
+        return [
+            ['key' => 'code',          'label' => __('receptions.code'),          'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            ['key' => 'service_order', 'label' => __('receptions.service_order'), 'type' => 'string',  'operators' => ['=', '!=', 'contains']],
+            [
+                'key' => 'status', 'label' => __('receptions.status'), 'type' => 'enum',
+                'operators' => ['=', '!=', 'in'],
+                'options'   => array_map(fn ($s) => [
+                    'value' => $s,
+                    'label' => __('receptions.status_' . $s),
+                ], self::STATUSES),
+            ],
+            ['key' => 'is_urgent',   'label' => __('receptions.is_urgent'),   'type' => 'boolean', 'operators' => ['=']],
+            ['key' => 'packages',    'label' => __('receptions.packages'),    'type' => 'number',  'operators' => ['=', '!=', '>', '<', '>=', '<=']],
+            ['key' => 'received_at', 'label' => __('receptions.received_at'), 'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
+            ['key' => 'due_at',      'label' => __('receptions.due_at'),      'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
+            ['key' => 'created_at',  'label' => __('global.created_at'),      'type' => 'date',    'operators' => ['>', '<', '>=', '<=']],
+        ];
     }
 
     /**

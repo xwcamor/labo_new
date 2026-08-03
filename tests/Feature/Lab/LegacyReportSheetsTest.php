@@ -327,6 +327,40 @@ class LegacyReportSheetsTest extends TestCase
         }
     }
 
+    /**
+     * Los ítems del fisicoquímico se numeran CONTANDO las filas presentes.
+     *
+     * Es la numeración del sistema anterior (el "mandrakeo" que el laboratorio
+     * hizo a propósito): si de los trece parámetros solo se corrieron el número
+     * ácido, el factor de potencia a 100 °C y la rigidez, la hoja imprime TRES
+     * filas numeradas 1-2-3 — el f100 es el ítem 2 —, no las posiciones fijas
+     * 1, 4 y 5 con huecos, ni filas fantasma para lo que no se pidió.
+     */
+    public function test_el_fisicoquimico_renumera_sobre_las_filas_presentes(): void
+    {
+        $renderer = new \App\Services\Lab\LegacyReportRenderer();
+        $metodo = new \ReflectionMethod($renderer, 'paginaFiquis');
+        $metodo->setAccessible(true);
+
+        $r = function (float $v) {
+            $x = new \App\Models\Result();
+            $x->forceFill(['value_num' => $v]);
+
+            return $x;
+        };
+
+        $hoja = $metodo->invoke(
+            $renderer,
+            collect(['acid' => $r(0.28), 'fp100' => $r(3.0), 'rig' => $r(65.0)]),
+            [],
+            ['sample_temp' => '-', 'temp' => '-', 'humedad' => '-'],
+        );
+
+        $this->assertCount(3, $hoja['filas']);
+        $this->assertSame([1, 2, 3], array_column($hoja['filas'], 'item'));
+        $this->assertSame('Factor de Potencia 100°C,60HZ', $hoja['filas'][1]['ensayo']);
+    }
+
     // ─── Dónde va la firma en cada hoja ──────────────────────────────────
 
     /**

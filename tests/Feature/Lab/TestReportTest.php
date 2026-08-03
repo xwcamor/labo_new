@@ -464,6 +464,59 @@ class TestReportTest extends TestCase
         $this->assertSame($informe->code, $log->new_values['report']);
     }
 
+    /**
+     * El informe CLÁSICO solo lee los resultados que el payload publica.
+     *
+     * Las hojas de fisicoquímico y cromatografía del clásico se arman de los
+     * resultados crudos (su maqueta es la del papel viejo), y leían TODOS los
+     * de la muestra: una prueba que se dejó de pedir imprimía igual su fila,
+     * con la celda de NORMA vacía —el payload sí la excluía— y corriendo la
+     * numeración de los ítems. El filtro tiene que ser el MISMO del payload:
+     * prueba validada/informada, selección del emisor, snapshot congelado.
+     */
+    public function test_el_clasico_solo_lee_los_resultados_que_el_informe_publica(): void
+    {
+        $muestra = $this->muestraCon(SampleTest::STATUS_VALIDATED);
+        $this->resultado($muestra, 0.28, min: null, max: 0.15, estado: 'out_of_spec');
+
+        // Una segunda prueba con su resultado CARGADO… pero dada de baja (se
+        // dejó de pedir). Su fila queda en `results` y no debe imprimirse.
+        $fp25 = Analyte::create([
+            'slug' => Str::random(22), 'code' => 'fp25', 'name' => 'Factor de potencia a 25 °C',
+        ]);
+        $otra = TestDefinition::create([
+            'slug' => Str::random(22), 'code' => 'factor_de_potencia_25o', 'name' => 'Factor De Potencia 25º',
+        ]);
+        $columna = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $otra->id,
+            'code' => 'valor', 'label' => 'Valor', 'type' => 'number',
+            'role' => 'result', 'sort_order' => 1, 'decimals' => 3, 'report_visible' => true,
+        ]);
+        SampleTest::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $otra->id,
+            'status' => SampleTest::STATUS_CANCELLED, 'tenant_id' => 1,
+        ]);
+        Result::create([
+            'sample_id' => $muestra->id, 'test_definition_id' => $otra->id,
+            'test_field_id' => $columna->id, 'analyte_id' => $fp25->id,
+            'value_num' => 0.3, 'unit' => '%', 'replicate_no' => 1,
+            'measured_at' => now(), 'spec_status' => null, 'tenant_id' => 1,
+        ]);
+
+        $datos = $this->payload->forSample($muestra->fresh());
+
+        $renderer = new \App\Services\Lab\LegacyReportRenderer();
+        $metodo = new \ReflectionMethod($renderer, 'resultadosPublicados');
+        $metodo->setAccessible(true);
+        $publicados = $metodo->invoke($renderer, $muestra->fresh(), $datos);
+
+        $this->assertTrue($publicados->has('acid'));
+        $this->assertFalse(
+            $publicados->has('fp25'),
+            'El resultado de una prueba dada de baja se sigue imprimiendo en el clásico.',
+        );
+    }
+
     // ─── La emisión ──────────────────────────────────────────────────────
 
     public function test_emitir_deja_constancia_con_su_codigo_de_verificacion(): void

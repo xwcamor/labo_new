@@ -122,10 +122,7 @@ class LegacyReportRenderer
             'equipment.oilType', 'equipment.brand', 'equipment.preservation',
             'equipment.tapChangerType', 'equipment.location']);
 
-        $resultados = Result::where('sample_id', $muestra->id)
-            ->with(['analyte:id,code,name', 'field:id,decimals'])
-            ->get()
-            ->keyBy(fn ($r) => $r->analyte?->code);
+        $resultados = $this->resultadosPublicados($muestra, $datos);
 
         $paginas = [];
 
@@ -339,6 +336,42 @@ class LegacyReportRenderer
 
         return e($norma['label'])
             . (($norma['flag'] ?? null) ? '<sup>(' . e($norma['flag']) . ')</sup>' : '');
+    }
+
+    /**
+     * Los resultados de la muestra que EL INFORME PUBLICA, por código de parámetro.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ SOLO LO QUE EL INFORME PUBLICA                                       │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Las hojas de fisicoquímico y cromatografía se arman de los RESULTADOS
+     * crudos (su maqueta es la del papel viejo, no la del catálogo), y acá se
+     * leían TODOS los de la muestra. Con eso, una prueba que se dejó de pedir
+     * —o que el emisor destildó en "Mostrar en el informe"— imprimía igual su
+     * fila, con la celda de NORMA vacía porque el payload sí la excluía: medio
+     * sistema la ocultaba y el otro medio la mostraba. Y como el fisicoquímico
+     * numera sus ítems contando las filas presentes, la fila de más también
+     * corría la numeración.
+     *
+     * El filtro es POR LO QUE PUBLICAN LAS SECCIONES del payload (los códigos
+     * de parámetro de sus filas): es la única fuente que ya aplica las tres
+     * reglas —prueba validada/informada, selección del emisor, y el snapshot
+     * congelado de un informe emitido— sin repetirlas acá.
+     *
+     * @return \Illuminate\Support\Collection<string,Result>
+     */
+    private function resultadosPublicados(Sample $muestra, array $datos)
+    {
+        $publicados = collect($datos['sections'] ?? [])
+            ->flatMap(fn ($s) => array_column($s['rows'] ?? [], 'code'))
+            ->filter()
+            ->flip();
+
+        return Result::where('sample_id', $muestra->id)
+            ->with(['analyte:id,code,name', 'field:id,decimals'])
+            ->get()
+            ->filter(fn ($r) => isset($publicados[$r->analyte?->code]))
+            ->keyBy(fn ($r) => $r->analyte?->code);
     }
 
     /** @param \Illuminate\Support\Collection<string,Result> $resultados */

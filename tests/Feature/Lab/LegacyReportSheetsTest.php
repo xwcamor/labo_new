@@ -343,17 +343,23 @@ class LegacyReportSheetsTest extends TestCase
      * pone el cuadro en un `col-5` y la firma en el `col-7` de al lado, mientras
      * `_report_physicals.erb` la deja abajo.
      */
-    public function test_solo_la_hoja_de_cromatografia_lleva_la_firma_al_costado(): void
+    public function test_cromatografia_y_fisicoquimico_llevan_la_firma_al_costado(): void
     {
+        // Al costado del cuadro de condiciones en estas DOS hojas (pedido del
+        // laboratorio 2026-08-03; en el papel viejo solo cromas), debajo en el
+        // resto. Lo decide la maqueta (`side_signature` en el config), no una
+        // condición inferida.
+        $this->assertTrue($this->hoja('fisicoquimico')['firma_lado']);
+        $this->assertTrue($this->hoja('analisis_cromatografico')['firma_lado']);
+        $this->assertFalse($this->hoja('pcb')['firma_lado']);
+        $this->assertFalse($this->hoja('furanos')['firma_lado']);
+
         $blade = file_get_contents(
             resource_path('views/lab_management/reports/legacy/report.blade.php'),
         );
 
-        // La condición es la presencia de la grilla de relaciones, que solo trae
-        // la cromatografía. Si alguien la cambia por el nombre de la familia, el
-        // día que la familia se renombre la hoja vuelve a partirse en dos.
         $this->assertStringContainsString(
-            '$firmasAlLado = ! empty($pagina[\'relaciones\'])',
+            '$firmasAlLado = ! empty($pagina[\'firma_lado\'])',
             $blade,
         );
 

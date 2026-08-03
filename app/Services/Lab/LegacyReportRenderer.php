@@ -493,6 +493,9 @@ class LegacyReportRenderer
             // partículas— y es texto, así que sale del archivo de idioma.
             'col3'        => $this->textoDeFamilia('legacy_col3', $familia, 'ENSAYO'),
             'anab'        => $this->hojaConSello($familia, (bool) $maqueta['anab']),
+            // Si la firma va al COSTADO del cuadro de condiciones (cromas y
+            // fisicoquímico) o debajo (el resto). Es maqueta, así que config.
+            'firma_lado'  => (bool) ($maqueta['side_signature'] ?? false),
             'pie_celda'   => (bool) $maqueta['cell_note'],
             'nota'        => isset($maqueta['footnote']) ? __($maqueta['footnote']) : null,
             'filas'       => $filas,

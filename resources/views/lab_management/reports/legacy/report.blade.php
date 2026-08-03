@@ -29,19 +29,20 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 3mm 10mm 30mm 10mm; }
-        /* ── EL TAMAÑO DEL PAPEL VIEJO ─────────────────────────────────────
-           Acá había un cuerpo de 9px con un comentario que decía que el papel
-           viejo "aprieta la letra". Estaba mal: el informe original NO fijaba
-           tamaño en su plantilla, así que heredaba el `body { font-size: 1rem }`
-           de Bootstrap —16px— con celdas de `.table-sm` a `.3rem`. Nuestro 9px
-           era poco más de la mitad, y por eso el papel se veía diminuto al lado
-           del que el laboratorio conoce.
-           
-           11px es el punto donde el cuerpo se lee y cada prueba SIGUE entrando
-           en una hoja, que es la condición que no se puede perder: verificado
-           contando las páginas del informe de las 29 pruebas. Subirlo más parte
-           la cromatografía en dos, y ahí deja de ser el mismo papel. */
-        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 11px; margin: 0; }
+        /* ── EL TAMAÑO DEL PAPEL VIEJO: 10px, MEDIDO ───────────────────────
+           Tercera vez que se toca y esta vez con la fuente a la vista, porque
+           las dos anteriores se equivocaron en direcciones opuestas: primero
+           9px («el papel viejo aprieta la letra»), después 11px («el original
+           no fijaba tamaño y heredaba el 1rem de Bootstrap»). Falso lo
+           segundo: cada hoja del viejo abre con
+           `<div id="main_content" style="font-size: 10px;">`
+           (`_report_cromas.erb:9`, `_report_physicals.erb`, y la cabecera en
+           `_report_main_info.erb:11,52`). El cuerpo del papel viejo es 10px,
+           los títulos de sección 12px, el título de la hoja 14px y la página
+           de análisis 12px/14px — exactamente lo que este blade tiene ahora.
+           A 10px todo sigue entrando en una hoja por prueba (a 11px ya
+           entraba; achicar no rompe el paginado). */
+        body { font-family: Helvetica, sans-serif; color: #212529; font-size: 10px; margin: 0; }
         table { width: 100%; border-collapse: collapse; }
         .grid, .grid td, .grid th { border: 1px solid #343a40; }
         .grid td, .grid th { padding: 3px 4px; }
@@ -120,17 +121,15 @@
 @foreach ($paginas as $i => $pagina)
 @php
     /* ── DÓNDE VA LA FIRMA EN ESTA HOJA ────────────────────────────────────
-       Debajo del cuadro de condiciones en todas las pruebas, MENOS en la
-       cromatografía: esa hoja lleva además la grilla de RELACIONES (totales,
-       ratios, porcentajes y la leyenda de las fórmulas), y con el cuerpo a
-       11 px el bloque de firmas la empujaba a una segunda página. El sistema
-       anterior resolvía lo mismo del mismo modo —`_report_cromas.erb` pone el
-       cuadro de condiciones en un `col-5` y la firma en el `col-7` de al
-       lado, mientras `_report_physicals.erb` la deja abajo—, así que además
-       de recuperar el alto reproduce el papel que el laboratorio conoce.
-       La grilla de relaciones solo la trae la hoja de cromatografía, así que
-       es la condición que identifica esa hoja sin nombrar la prueba. */
-    $firmasAlLado = ! empty($pagina['relaciones']) && ! empty($firmantes);
+       Al costado del cuadro de condiciones en cromatografía y fisicoquímico;
+       debajo en el resto. Lo decide la maqueta de la hoja
+       (`config/legacy_report.php`, `side_signature`), no una condición
+       derivada: antes se infería por la grilla de RELACIONES —que solo la trae
+       cromas— y al pedir el laboratorio que el fisicoquímico también la lleve
+       al costado (2026-08-03), la inferencia dejó de alcanzar. En el papel
+       viejo solo cromas la tenía al costado (`_report_cromas.erb`, col-5/col-7);
+       el fisicoquímico al costado es decisión nueva del laboratorio. */
+    $firmasAlLado = ! empty($pagina['firma_lado']) && ! empty($firmantes);
 @endphp
 <div @if($i > 0) class="brk" @endif>
 
@@ -373,8 +372,8 @@
 
         @unless ($firmasAlLado)<br>@endunless
         @if ($firmasAlLado)
-            {{-- La hoja de cromatografía: condiciones a la izquierda, firmas a
-                 la derecha. Ver el comentario de `$firmasAlLado` más arriba. --}}
+            {{-- Cromatografía y fisicoquímico: condiciones a la izquierda,
+                 firmas a la derecha. Ver `$firmasAlLado` más arriba. --}}
             <table><tr>
                 <td style="width:42%; vertical-align:top">
                     @include('lab_management.reports.legacy._condiciones', [

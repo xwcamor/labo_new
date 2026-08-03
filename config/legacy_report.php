@@ -72,6 +72,10 @@ return [
         'fisicoquimico' => [
             'columns'   => ['item', 'norma', 'ensayo', 'unidad', 'orientacion', 'resultado'],
             'anab'      => true,
+            // La firma va a la DERECHA del cuadro de condiciones, no debajo
+            // (pedido del laboratorio, 2026-08-03; en el papel viejo esta hoja
+            // la llevaba debajo y solo la cromatografía al costado).
+            'side_signature' => true,
             // La leyenda del tipo de celda de la resistividad volumétrica y las
             // dos marcas de acreditación. Solo esta hoja las lleva.
             'cell_note' => true,
@@ -81,6 +85,8 @@ return [
         'analisis_cromatografico' => [
             'columns'   => ['item', 'norma', 'ensayo', 'unidad', 'orientacion', 'resultado'],
             'anab'      => true,
+            // Como en el papel viejo: condiciones en col-5, firma en col-7.
+            'side_signature' => true,
             'standard_note' => 'IEC 60599-2022',
             // El bloque RELACIONES (TG, TGC, cocientes de gases) es exclusivo de
             // esta hoja y lo calcula el renderizador.

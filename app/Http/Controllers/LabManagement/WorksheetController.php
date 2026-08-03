@@ -283,6 +283,13 @@ class WorksheetController extends Controller
             // principio (`worksheet_values.entered_by`) y no se mostraba en
             // ningún lado.
             'enteredBy'   => $this->enteredBy($worksheet),
+            // Los tipos de fila que la PRUEBA exige. La grilla los abre solos
+            // cuando faltan y les quita el botón de borrar: son parte de la
+            // corrida, no una opción escondida en un menú.
+            'requiredKinds' => array_values(array_filter([
+                $worksheet->definition->requires_control ? WorksheetRow::KIND_CONTROL : null,
+                $worksheet->definition->requires_duplicate ? WorksheetRow::KIND_DUPLICATE : null,
+            ])),
             // Las pruebas de ESTA definición que todavía esperan resultado, para
             // que el analista elija la muestra en vez de tipear su código.
             'pendingTests' => $this->pendingTests($worksheet),

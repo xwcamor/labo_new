@@ -44,6 +44,8 @@ const props = defineProps({
     pendingTests: { type: Array, default: () => [] },
     // Quién registró cada fila, indexado por id de fila: `{ name, at }`.
     enteredBy:   { type: Object, default: () => ({}) },
+    // Los tipos de fila que la prueba exige (patrón, duplicado).
+    requiredKinds: { type: Array, default: () => [] },
     can:         { type: Object, default: () => ({}) },
     // El candado del registro (trait Lockable): quién puede ponerlo y sacarlo.
     lock:        { type: Object, default: null },
@@ -237,6 +239,7 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                         :pending-tests="pendingTests"
                         :entered-by="enteredBy"
                         :missing="missing"
+                        :required-kinds="requiredKinds"
                         :readonly="readonly"
                     />
                 </Card>

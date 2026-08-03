@@ -99,11 +99,39 @@ class WorksheetService
 
             $esNueva = ! $row->exists;
 
+            $codigo = $desdeLaMuestra['sample_code']
+                ?? $this->sampleCodeFrom($attributes, $input, $fields, $kind);
+
+            // ┌──────────────────────────────────────────────────────────────┐
+            // │ UN CÓDIGO TIPEADO SE ATA A SU MUESTRA SI ESA MUESTRA EXISTE  │
+            // └──────────────────────────────────────────────────────────────┘
+            // La pantalla hace elegir la muestra de una lista, pero el código
+            // todavía puede llegar como TEXTO por otros caminos (la carga de
+            // datos históricos, una hoja armada antes de que existiera la
+            // recepción). Sin esto la fila quedaba con el número escrito y
+            // `sample_id` en nulo: su resultado no aparece en ningún informe,
+            // porque el informe busca por muestra, no por texto.
+            //
+            // Se resuelve por código exacto y solo si la muestra tiene PEDIDA
+            // esta prueba: atarla a otra cosa sería inventar el enlace.
+            if ($kind === WorksheetRow::KIND_SAMPLE
+                && $codigo !== null
+                && ($desdeLaMuestra['sample_test_id'] ?? $row->sample_test_id) === null) {
+                $prueba = SampleTest::query()
+                    ->where('test_definition_id', $worksheet->test_definition_id)
+                    ->whereHas('sample', fn ($q) => $q->where('code', $codigo))
+                    ->first();
+
+                if ($prueba) {
+                    $desdeLaMuestra['sample_test_id'] = $prueba->id;
+                    $desdeLaMuestra['sample_id']      = $prueba->sample_id;
+                }
+            }
+
             $row->fill([
                 'worksheet_id'  => $worksheet->id,
                 'kind'          => $kind,
-                'sample_code'   => $desdeLaMuestra['sample_code']
-                    ?? $this->sampleCodeFrom($attributes, $input, $fields, $kind),
+                'sample_code'   => $codigo,
                 'position'      => $attributes['position'] ?? $row->position ?? $this->nextPosition($worksheet),
 
                 'sample_id'      => $desdeLaMuestra['sample_id'] ?? $row->sample_id,

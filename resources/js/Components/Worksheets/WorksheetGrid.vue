@@ -70,6 +70,9 @@ const props = defineProps({
     // mostraba en ninguna pantalla.
     enteredBy:   { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
+    // Los tipos de fila que la PRUEBA exige (patrón, duplicado). No se pueden
+    // borrar mientras sean el único de su tipo en la hoja.
+    requiredKinds: { type: Array, default: () => [] },
     readonly:    { type: Boolean, default: false },
 });
 
@@ -528,6 +531,9 @@ const save = (draft) => {
                 if (draft.row_id) return;
                 forgetPreview('new');
                 newDraft.value = null;
+                // Si la prueba exige otro control, su fila se abre sola: el
+                // analista no tiene que descubrir en un menú qué le falta.
+                abrirPendiente();
             },
             onFinish:  () => { savingId.value = null; },
         },
@@ -573,6 +579,49 @@ const missingReason = computed(() => t('worksheets.errors.missing_prerequisites'
 }));
 
 const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
+
+/**
+ * La fila de control que la prueba exige se abre SOLA.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ POR QUÉ NO ALCANZABA CON ESCONDER LA OPCIÓN "MUESTRA"                    │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Si la prueba declara que necesita patrón y duplicado, esas dos filas no son
+ * una opción del menú: son parte de la corrida. Antes había que descubrirlas
+ * abriendo el desplegable de «Agregar fila», y el analista veía una hoja vacía
+ * sin saber por qué no podía cargar su muestra. Ahora la primera que falta ya
+ * está puesta y lista para llenar, y al guardarla aparece la siguiente.
+ *
+ * Se abre como BORRADOR, no como fila guardada en la base: una fila vacía
+ * grabada dejaría la hoja incompleta para siempre —`missingRequiredValues` la
+ * contaría— y la hoja no publicaría nunca sus resultados.
+ */
+const abrirPendiente = () => {
+    if (props.readonly || newDraft.value || props.missing.length === 0) {
+        return;
+    }
+
+    startRow(props.missing[0]);
+};
+
+/**
+ * El control que la prueba EXIGE no se puede borrar mientras sea el único de
+ * su tipo: borrarlo dejaría la hoja sin el respaldo de calidad que ya la
+ * publicó. Los demás (un segundo duplicado, un blanco extra) sí.
+ */
+const canRemove = (row) => {
+    if (! props.requiredKinds.includes(row.kind)) {
+        return true;
+    }
+
+    return rows.value.filter((r) => r.kind === row.kind).length > 1;
+};
+
+watch(
+    () => [props.missing, props.readonly],
+    () => abrirPendiente(),
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
@@ -651,10 +700,25 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                         </td>
 
                         <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <!-- ┌──────────────────────────────────────────┐
+                                 │ SIEMPRE EL SELECTOR EN FILAS DE MUESTRA  │
+                                 └──────────────────────────────────────────┘
+                                 Antes acá decía `&& pendingTests.length`: si la
+                                 lista venía vacía —porque en la recepción le
+                                 cambiaron la prueba a la muestra, o la
+                                 cancelaron— la celda caía a un campo de TEXTO
+                                 LIBRE. El analista escribía un código, lo
+                                 guardaba, y esa fila quedaba sin muestra
+                                 detrás: su resultado no llega a ningún
+                                 informe. Y al volver a pedir la prueba
+                                 reaparecía el selector y el texto desaparecía.
+                                 Sin lista, el selector se muestra vacío y dice
+                                 por qué. -->
                             <SampleTestSelect
-                                v-if="drafts[row.id]?.kind === 'sample' && pendingTests.length"
+                                v-if="drafts[row.id]?.kind === 'sample'"
                                 :tests="pendingTests"
                                 :value="drafts[row.id].sample_test_id"
+                                :stored-code="row.sample_code"
                                 :disabled="readonly"
                                 @update:value="(value) => (drafts[row.id].sample_test_id = value)"
                                 @picked="(test) => onSamplePicked(drafts[row.id], test)"
@@ -723,10 +787,17 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                                     <SaveOutlined />
                                 </Button>
                             </Tooltip>
-                            <Tooltip :title="$t('global.delete')">
+                            <!-- El patrón y el duplicado que la prueba EXIGE no
+                                 llevan botón de borrar mientras sean el único
+                                 de su tipo: son parte de la corrida, no una
+                                 fila más. -->
+                            <Tooltip v-if="canRemove(row)" :title="$t('global.delete')">
                                 <Button danger size="small" @click="remove(row)">
                                     <DeleteOutlined />
                                 </Button>
+                            </Tooltip>
+                            <Tooltip v-else :title="$t('worksheets.required_kind_help')">
+                                <Tag :bordered="false" class="ws-req-tag">{{ $t('worksheets.required_kind') }}</Tag>
                             </Tooltip>
                         </td>
                     </tr>
@@ -743,8 +814,10 @@ const kindDisabled = (kind) => kind === 'sample' && props.missing.length > 0;
                         </td>
 
                         <td v-if="sampleCodeField" class="ws-td ws-td--code">
+                            <!-- Mismo criterio que en las filas guardadas: la
+                                 muestra se ELIGE, nunca se tipea. -->
                             <SampleTestSelect
-                                v-if="newDraft.kind === 'sample' && pendingTests.length"
+                                v-if="newDraft.kind === 'sample'"
                                 :tests="pendingTests"
                                 :value="newDraft.sample_test_id"
                                 @update:value="(value) => (newDraft.sample_test_id = value)"

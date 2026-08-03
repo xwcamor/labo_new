@@ -27,6 +27,12 @@ const props = defineProps({
     tests:    { type: Array,  default: () => [] },
     value:    { type: [Number, null], default: null },
     disabled: { type: Boolean, default: false },
+    /**
+     * El código que la fila tiene GUARDADO, para no perderlo de vista cuando la
+     * prueba pedida desapareció (la cambiaron en la recepción, la cancelaron).
+     * Antes ese caso hacía caer la celda a un campo de texto libre.
+     */
+    storedCode: { type: [String, null], default: null },
 });
 
 const emit = defineEmits(['update:value', 'picked']);
@@ -55,7 +61,8 @@ const elegir = (id) => {
         option-filter-prop="label"
         size="small"
         class="sts"
-        :placeholder="$t('worksheets.pick_sample')"
+        :placeholder="tests.length ? $t('worksheets.pick_sample') : $t('worksheets.no_pending_samples')"
+        :not-found-content="$t('worksheets.no_pending_samples_help')"
         @update:value="elegir"
     >
         <SelectOption
@@ -69,10 +76,16 @@ const elegir = (id) => {
             <span v-if="opcion.test.equipment" class="sts__meta">{{ opcion.test.equipment }}</span>
         </SelectOption>
     </Select>
+
+    <!-- La fila quedó sin su prueba pedida (la cambiaron en la recepción o la
+         cancelaron). Se muestra el código GUARDADO para que se entienda de qué
+         fila se trata; antes acá aparecía un campo de texto libre. -->
+    <div v-if="storedCode && !value" class="sts__orphan">{{ storedCode }}</div>
 </template>
 
 <style scoped>
 .sts { width: 100%; min-width: 150px; }
 .sts__code { font-weight: 600; }
 .sts__meta { margin-left: 6px; font-size: 0.75rem; color: var(--color-text-muted); }
+.sts__orphan { margin-top: 4px; font-size: 0.72rem; color: var(--color-text-muted); }
 </style>

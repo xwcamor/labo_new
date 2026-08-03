@@ -394,6 +394,41 @@ class ResultMaterializerTest extends TestCase
         $this->assertSame(0, Result::count());
     }
 
+    public function test_un_codigo_tipeado_se_ata_a_su_muestra_si_esa_muestra_existe(): void
+    {
+        // La pantalla obliga a ELEGIR la muestra de una lista, pero el código
+        // todavía puede llegar como texto (carga de datos históricos, API). Sin
+        // este enlace la fila quedaba con el número escrito y `sample_id` nulo:
+        // su resultado no aparece en ningún informe, porque el informe busca por
+        // muestra y no por texto.
+        $prueba = $this->pruebaPedida();
+        $w = $this->hoja();
+
+        $fila = $this->service->saveRow($w, ['kind' => WorksheetRow::KIND_SAMPLE], [
+            'nro_muestra' => $prueba->sample->code,   // tipeado, sin sample_test_id
+            'peso_aceite' => '20', 'volumen_gastado' => '1.20',
+        ]);
+
+        $fila->refresh();
+        $this->assertSame($prueba->id, $fila->sample_test_id, 'la fila no quedó atada a su prueba pedida');
+        $this->assertSame($prueba->sample_id, $fila->sample_id);
+
+        // Y el resultado sale con dueño, que es de lo que se trata.
+        $this->assertSame($prueba->sample_id, Result::first()->sample_id);
+    }
+
+    public function test_un_codigo_que_no_es_de_ninguna_muestra_no_inventa_el_enlace(): void
+    {
+        // Atarlo a "la muestra más parecida" sería fabricar un dato. La fila se
+        // guarda con su texto y sin muestra; es el caso de las hojas cargadas
+        // antes de que existiera la recepción.
+        $w = $this->hoja();
+        $fila = $this->cargarMuestra($w);   // código 2026-0744, sin Sample detrás
+
+        $this->assertNull($fila->fresh()->sample_test_id);
+        $this->assertNull($fila->fresh()->sample_id);
+    }
+
     public function test_la_misma_muestra_no_entra_dos_veces_como_fila_de_muestra(): void
     {
         // Dos filas de la misma muestra son dos resultados oficiales para la

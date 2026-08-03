@@ -85,6 +85,14 @@ return [
     // Todos se verifican del lado del servidor. En el sistema viejo estas
     // cuatro reglas vivían en el HTML y un envío directo las salteaba.
     'pick_sample' => 'Elegir la muestra…',
+    // Cuando ninguna muestra tiene pedida esta prueba. Antes la celda caía a
+    // texto libre y se podía escribir un código que no existía.
+    // El patrón/duplicado que la prueba exige: parte de la corrida, no una fila
+    // más, así que no lleva botón de borrar mientras sea el único de su tipo.
+    'required_kind'      => 'Obligatoria',
+    'required_kind_help' => 'Esta prueba exige esta fila de control. No se puede borrar mientras sea la única de su tipo.',
+    'no_pending_samples'      => 'Sin muestras con esta prueba',
+    'no_pending_samples_help' => 'Ninguna muestra tiene pedida esta prueba. Pídala en el ingreso de muestras y volverá a aparecer acá.',
     'errors' => [
         'locked'                => 'La hoja está bloqueada por el supervisor. No admite cambios.',
         'not_draft'             => 'La hoja ya no está en carga. Solo se puede escribir mientras está en carga.',

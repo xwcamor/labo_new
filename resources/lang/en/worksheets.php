@@ -72,6 +72,10 @@ return [
 
     // ── Errors ────────────────────────────────────────────────────────────
     'pick_sample' => 'Pick the sample…',
+    'required_kind'      => 'Required',
+    'required_kind_help' => 'This test requires this control row. It cannot be deleted while it is the only one of its kind.',
+    'no_pending_samples'      => 'No samples with this test',
+    'no_pending_samples_help' => 'No sample has this test requested. Request it in the sample intake and it will show up here.',
     'errors' => [
         'locked'                => 'The worksheet is locked by the supervisor. No changes allowed.',
         'not_draft'             => 'The worksheet is no longer in progress. Only an in-progress worksheet is writable.',

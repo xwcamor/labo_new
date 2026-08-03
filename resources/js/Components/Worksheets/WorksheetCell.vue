@@ -36,6 +36,13 @@ const props = defineProps({
     previewState: { type: String, default: 'idle' },
     /** Ciclo, fórmula rota o servidor inalcanzable, ya traducido. */
     previewMessage: { type: String, default: '' },
+    /**
+     * `(replicate) => 'la fórmula con los números de ESTA fila'`. La arma la
+     * grilla, que es la que tiene todos los valores de la fila; acá solo se
+     * dibuja. NO evalúa nada: el número de la celda sigue siendo el que
+     * devolvió el servidor.
+     */
+    formulaTrace: { type: Function, default: null },
     instruments: { type: Array,  default: () => [] },
     disabled:    { type: Boolean, default: false },
 });
@@ -99,6 +106,19 @@ const computedHelp = computed(() => {
 
     return 'worksheets.computed_help';
 });
+
+/**
+ * La cuenta de ESTA celda, con los números que se usaron.
+ *
+ * Es lo que se revisa cuando un calculado no cierra: hasta ahora la celda decía
+ * 2.71 y para saber de dónde salía había que recorrer las columnas de la fila a
+ * ojo. Una columna sin cargar sale como raya, no como cero.
+ */
+const trace = (replicate) => {
+    if (! props.formulaTrace || ! String(props.field.formula ?? '').trim()) return '';
+
+    return props.formulaTrace(replicate) || '';
+};
 </script>
 
 <template>
@@ -110,7 +130,15 @@ const computedHelp = computed(() => {
     <div v-if="isComputed" class="ws-cell ws-cell--computed">
         <div v-for="r in replicates" :key="r" class="ws-cell__line">
             <span v-if="many" class="ws-cell__rep">{{ r }}</span>
-            <Tooltip :title="$t(computedHelp)">
+            <Tooltip>
+                <template #title>
+                    <div class="ws-fx">
+                        <div class="ws-fx__label">{{ $t(computedHelp) }}</div>
+                        <!-- La misma fórmula del encabezado, pero con los
+                             valores de esta fila puestos en su lugar. -->
+                        <div v-if="trace(r)" class="ws-fx__human">{{ trace(r) }}</div>
+                    </div>
+                </template>
                 <span class="ws-computed">
                     <!-- Sin icono de calculadora: el rótulo "Calculado" ya está
                          en el ENCABEZADO de la columna. Repetirlo fila por fila
@@ -272,5 +300,14 @@ const computedHelp = computed(() => {
 }
 
 .ws-computed__wait { color: var(--color-text-muted); font-size: 0.8rem; }
+
+/* El bloque de la fórmula dentro del tooltip. `:deep` porque ant-design monta
+   el tooltip fuera del componente y el scoped no lo alcanza. La fórmula cruda
+   va en monoespaciada: son códigos de columna, no prosa. */
+:deep(.ws-fx) { display: flex; flex-direction: column; gap: 4px; max-width: 380px; }
+:deep(.ws-fx__label) { font-size: 0.72rem; opacity: 0.75; }
+:deep(.ws-fx__human) { font-size: 0.8rem; line-height: 1.4; }
+:deep(.ws-fx__raw)   { font-size: 0.7rem; opacity: 0.6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+
 .ws-computed__warn { color: var(--color-warning, #f59e0b); font-size: 0.85rem; }
 </style>

@@ -53,6 +53,7 @@ import SampleTestSelect from '@/Components/Worksheets/SampleTestSelect.vue';
 import { useI18n } from '@/Plugins/i18n';
 import { useDateFormat } from '@/Composables/useDateFormat';
 import { censoredText, kindColor } from '@/Pages/Worksheets/config/format';
+import { formulaInLabels, formulaWithValues } from '@/Pages/Worksheets/config/formula';
 
 const props = defineProps({
     worksheet:   { type: Object, required: true },
@@ -125,6 +126,15 @@ const bodyFields = computed(
  * completo: es preferible ofrecer de más que dejar la columna sin opciones.
  */
 const instrumentsFor = (field) => props.instrumentsByField?.[field.id] ?? props.instruments;
+
+/**
+ * QUÉ calcula la columna, con las etiquetas en vez de los códigos.
+ *
+ * Va en el encabezado. Antes el rótulo "Calculado" decía que había una cuenta y
+ * no cuál, y para verla había que salir de la hoja y abrir la plantilla — con
+ * la corrida a medio cargar.
+ */
+const formulaTitle = (field) => formulaInLabels(field.formula, props.fields);
 
 const columnKind = (field) => {
     if (isComputed(field)) return 'computed';
@@ -395,6 +405,43 @@ const previewMessage = (key, field) => {
     return preview.status === 'failed' ? t('worksheets.preview_failed') : '';
 };
 
+/**
+ * La fórmula de esta celda CON LOS NÚMEROS de esta fila.
+ *
+ * Contesta la pregunta que se hace el analista cuando un calculado no cierra:
+ * «¿con qué valores lo hizo?». Hasta ahora la celda mostraba 2.71 y para
+ * revisarlo había que ir columna por columna leyendo lo cargado.
+ *
+ * Cada nombre se resuelve en este orden: lo que hay TIPEADO (aunque todavía no
+ * se guardó, que es el caso normal mientras se carga la corrida), lo que
+ * devolvió la vista previa del servidor —así una fórmula que se apoya en otra
+ * columna calculada muestra su número y no su nombre— y por último lo guardado.
+ *
+ * NO se evalúa nada: se sustituye texto. El resultado que se ve en la celda
+ * sigue siendo el que devolvió el servidor.
+ */
+const formulaTrace = (key, rowId, field) => (replicate) => {
+    // `rowId` nulo es la fila que se está agregando. Se distingue por el id y
+    // no con un `??` encadenado: con el encadenado, una fila guardada cuyo
+    // borrador todavía no se armó caía en los valores de la fila NUEVA y la
+    // celda mostraba la cuenta de otra muestra.
+    const tipeado  = (rowId === null ? newDraft.value?.values : drafts.value[rowId]?.values) ?? {};
+    const previsto = previews.value[key]?.values ?? {};
+    const guardado = (rowId === null ? {} : stored.value[rowId]) ?? {};
+
+    return formulaWithValues(field.formula, props.fields, (code, rep) => {
+        const enBorrador = tipeado?.[code]?.[rep];
+        if (enBorrador !== null && enBorrador !== undefined && enBorrador !== '') {
+            return enBorrador;
+        }
+
+        const enPrevia = previsto?.[code]?.[rep];
+        if (enPrevia !== null && enPrevia !== undefined) return enPrevia;
+
+        return guardado?.[code]?.[rep] ?? null;
+    }, replicate);
+};
+
 const forgetPreview = (key) => {
     clearTimeout(timers[key]);
     inflight[key]?.abort();
@@ -661,7 +708,20 @@ watch(
                             </div>
                             <div class="ws-th__meta">
                                 <span v-if="field.unit">{{ field.unit }}</span>
-                                <Tooltip v-if="isComputed(field)" :title="$t('worksheets.computed_help')">
+                                <!-- El rótulo decía que había una cuenta, no
+                                     cuál. Ahora el tooltip muestra la fórmula
+                                     con las etiquetas de las columnas, y debajo
+                                     la fórmula tal como está escrita en la
+                                     plantilla — la primera es para el analista,
+                                     la segunda para quien la mantiene. -->
+                                <Tooltip v-if="isComputed(field)">
+                                    <template #title>
+                                        <div class="ws-fx">
+                                            <div class="ws-fx__label">{{ $t('worksheets.computed_help') }}</div>
+                                            <div v-if="field.formula" class="ws-fx__human">{{ formulaTitle(field) }}</div>
+                                            <code v-if="field.formula" class="ws-fx__raw">{{ field.formula }}</code>
+                                        </div>
+                                    </template>
                                     <Tag :bordered="false" class="ws-th__tag">
                                         <CalculatorOutlined /> {{ $t('worksheets.computed') }}
                                     </Tag>
@@ -748,6 +808,7 @@ watch(
                                 :preview="previews[row.id]?.values?.[field.code] ?? {}"
                                 :preview-state="previews[row.id]?.status ?? 'idle'"
                                 :preview-message="previewMessage(row.id, field)"
+                                :formula-trace="formulaTrace(row.id, row.id, field)"
                                 :instruments="instrumentsFor(field)"
                                 :disabled="readonly"
                                 @update="(replicate, value) => setCell(drafts[row.id], field, replicate, value)"
@@ -847,6 +908,7 @@ watch(
                                 :preview="previews.new?.values?.[field.code] ?? {}"
                                 :preview-state="previews.new?.status ?? 'idle'"
                                 :preview-message="previewMessage('new', field)"
+                                :formula-trace="formulaTrace('new', null, field)"
                                 :instruments="instrumentsFor(field)"
                                 @update="(replicate, value) => setCell(newDraft, field, replicate, value)"
                             />
@@ -967,6 +1029,15 @@ watch(
 .ws-th__req   { color: var(--color-danger-bright); margin-left: 2px; }
 .ws-th__meta  { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--color-text-muted); }
 .ws-th__tag   { font-size: 0.62rem; }
+
+/* El bloque de la fórmula dentro del tooltip. `:deep` porque ant-design monta
+   el tooltip fuera del componente y el scoped no lo alcanza. La fórmula cruda
+   va en monoespaciada: son códigos de columna, no prosa. */
+:deep(.ws-fx) { display: flex; flex-direction: column; gap: 4px; max-width: 380px; }
+:deep(.ws-fx__label) { font-size: 0.72rem; opacity: 0.75; }
+:deep(.ws-fx__human) { font-size: 0.8rem; line-height: 1.4; }
+:deep(.ws-fx__raw)   { font-size: 0.7rem; opacity: 0.6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+
 
 /* Las dos columnas de identificación quedan fijas: al correr la tabla de
    costado hay que seguir sabiendo si lo que se lee es una muestra o el patrón,

@@ -25,7 +25,7 @@ import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
     Alert, Button, DatePicker, Input, InputNumber, Modal, Select,
-    Spin, Switch, Tooltip,
+    Spin, Switch, Textarea, Tooltip,
 } from 'ant-design-vue';
 import { FileTextOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
@@ -81,7 +81,7 @@ const cargar = async () => {
             delivered_at: json.report?.delivered_at ?? null,
             tests: json.tests.filter((x) => x.is_visible).map((x) => x.id),
         };
-        errores.value = [];
+        errores.value = {};
     } finally {
         loading.value = false;
     }
@@ -137,8 +137,11 @@ const setEmision = (v) => {
     }
 };
 
-/** Lo que rebotó del servidor, visible arriba del formulario. */
-const errores = ref([]);
+// Lo que rebotó del servidor, POR CAMPO: el campo se pinta de rojo con su
+// mensaje debajo, como en el resto de los formularios — un cartel arriba
+// obliga a adivinar a qué casilla se refiere.
+const errores = ref({});
+const err = (campo) => errores.value?.[campo] ?? null;
 
 const submit = () => {
     saving.value = true;
@@ -152,7 +155,7 @@ const submit = () => {
     router[method](url, form.value, {
         preserveScroll: true,
         onSuccess: () => { close(); emit('saved'); },
-        onError:   (errs) => { errores.value = Object.values(errs ?? {}).filter(Boolean); },
+        onError:   (errs) => { errores.value = errs ?? {}; },
         onFinish:  () => { saving.value = false; },
     });
 };
@@ -196,35 +199,42 @@ const submit = () => {
                          fechas juntas —se leen como una línea de tiempo:
                          recepción ≤ emisión ≤ entrega— y el usuario final. -->
                     <div class="rfm__band">{{ $t('sample_reports.section_reference') }}</div>
-                    <Alert
-                        v-for="(err, i) in errores"
-                        :key="i"
-                        type="error"
-                        show-icon
-                        class="rfm__note"
-                        :message="err"
-                    />
                     <div class="rfm__grid rfm__grid--5">
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.service_order') }} <b class="rfm__req">*</b></span>
-                            <Input v-model:value="form.service_order" :maxlength="60" />
+                            <Input v-model:value="form.service_order" :maxlength="60" :status="err('service_order') ? 'error' : ''" />
+                            <small v-if="err('service_order')" class="rfm__err">{{ err('service_order') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampling_reason') }} <b class="rfm__req">*</b></span>
                             <Select
                                 v-model:value="form.sampling_reason"
                                 show-search
+                                :status="err('sampling_reason') ? 'error' : ''"
                                 :placeholder="$t('sample_reports.pick_one')"
                                 :options="opciones('sampling_reason', form.sampling_reason)"
                             />
+                            <small v-if="err('sampling_reason')" class="rfm__err">{{ err('sampling_reason') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.contact_info') }} <b class="rfm__req">*</b></span>
-                            <Input v-model:value="form.contact_info" :maxlength="1000" />
+                            <Textarea
+                                v-model:value="form.contact_info"
+                                :maxlength="1000"
+                                :auto-size="{ minRows: 1, maxRows: 4 }"
+                                :status="err('contact_info') ? 'error' : ''"
+                            />
+                            <small v-if="err('contact_info')" class="rfm__err">{{ err('contact_info') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.description') }} <b class="rfm__req">*</b></span>
-                            <Input v-model:value="form.description" :maxlength="1000" />
+                            <Textarea
+                                v-model:value="form.description"
+                                :maxlength="1000"
+                                :auto-size="{ minRows: 1, maxRows: 4 }"
+                                :status="err('description') ? 'error' : ''"
+                            />
+                            <small v-if="err('description')" class="rfm__err">{{ err('description') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sampler') }}</span>
@@ -248,24 +258,29 @@ const submit = () => {
                             <DatePicker
                                 :value="asDate(form.issued_at)"
                                 :disabled-date="antesDeRecepcion"
+                                :status="err('issued_at') ? 'error' : ''"
                                 style="width:100%"
                                 @update:value="setEmision"
                             />
+                            <small v-if="err('issued_at')" class="rfm__err">{{ err('issued_at') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.delivered_at') }} <b class="rfm__req">*</b></span>
                             <DatePicker
                                 :value="asDate(form.delivered_at)"
                                 :disabled-date="antesDeEmision"
+                                :status="err('delivered_at') ? 'error' : ''"
                                 style="width:100%"
                                 @update:value="(v) => setDate('delivered_at', v)"
                             />
+                            <small v-if="err('delivered_at')" class="rfm__err">{{ err('delivered_at') }}</small>
                         </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.end_user') }} <b class="rfm__req">*</b></span>
                             <Tooltip :title="$t('sample_reports.end_user_help')">
-                                <Input v-model:value="form.end_user" :maxlength="255" />
+                                <Input v-model:value="form.end_user" :maxlength="255" :status="err('end_user') ? 'error' : ''" />
                             </Tooltip>
+                            <small v-if="err('end_user')" class="rfm__err">{{ err('end_user') }}</small>
                         </label>
                     </div>
 
@@ -330,7 +345,11 @@ const submit = () => {
                                 style="width:100%"
                             />
                         </label>
-                        <label class="rfm__f">
+                        <!-- Un <div>, no un <label>: el label asocia el clic
+                             con su PRIMER control (el número), así que abrir el
+                             desplegable de la unidad disparaba también el foco
+                             del número y el desplegable se cerraba solo. -->
+                        <div class="rfm__f">
                             <span>{{ $t('sample_reports.oil_volume') }}</span>
                             <!-- La unidad va PEGADA al número, igual que en la
                                  ficha del equipo. Sin ella «2500» no dice nada, y
@@ -346,7 +365,7 @@ const submit = () => {
                                     />
                                 </template>
                             </InputNumber>
-                        </label>
+                        </div>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.tap_changer') }}</span>
                             <Input :value="form.tap_changer ?? '—'" disabled />
@@ -387,13 +406,12 @@ const submit = () => {
                         </label>
                     </div>
 
-                    <!-- ── Datos de la muestra ─────────────────────────── -->
+                    <!-- ── Datos de la muestra ───────────────────────────
+                         Sin «Nº de informe»: lo genera el sistema al guardar y
+                         ya se lee en el título del modal — un campo bloqueado
+                         para repetirlo era ruido. -->
                     <div class="rfm__band">{{ $t('sample_reports.section_sample') }}</div>
                     <div class="rfm__grid">
-                        <label class="rfm__f">
-                            <span>{{ $t('sample_reports.code') }}</span>
-                            <Input :value="data.report?.code ?? '—'" disabled />
-                        </label>
                         <label class="rfm__f">
                             <span>{{ $t('sample_reports.sample') }}</span>
                             <Input :value="data.readonly.sample_code" disabled />
@@ -402,9 +420,11 @@ const submit = () => {
                             <span>{{ $t('sample_reports.sampled_at') }} <b class="rfm__req">*</b></span>
                             <DatePicker
                                 :value="asDate(form.sampled_at)"
+                                :status="err('sampled_at') ? 'error' : ''"
                                 style="width:100%"
                                 @update:value="(v) => setDate('sampled_at', v)"
                             />
+                            <small v-if="err('sampled_at')" class="rfm__err">{{ err('sampled_at') }}</small>
                         </label>
                         <!-- Sin «Observaciones internas»: no existía en el
                              sistema anterior y era un campo más para llenar
@@ -499,6 +519,7 @@ const submit = () => {
 .rfm__f > span { font-size: 0.75rem; color: var(--color-text-muted); }
 .rfm__f--wide { grid-column: 1 / -1; }
 .rfm__req { color: var(--color-input-error, #c8281d); font-weight: 600; }
+.rfm__err { font-size: 0.72rem; color: var(--color-input-error, #c8281d); line-height: 1.3; }
 
 .rfm__tests { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .rfm__tests th, .rfm__tests td {

@@ -23,22 +23,34 @@ están respaldadas por ningún conteo. Escribir un ETL sin saber si son 5.000 o
 
 ## BLOQUE A — Lo que se puede cerrar ya (esta semana)
 
-### Paso 1 · Decidir qué pasa con los CSV de clientes
-**Quién:** tú, y yo ejecuto.
-**Qué:** hay 344 razones sociales reales con dirección versionadas en un repo
-público (`database/seeders/data/customers.csv` y los tres de la jerarquía).
-Entraron heredadas de TrafoDex, que es privado.
+### Paso 1 · Qué se versiona — RESUELTO (2026-08-04)
+Decisión del dueño, ya aplicada. Queda escrita acá porque condiciona el resto.
 
-Tres opciones. Elige una:
+Los datos de negocio del laboratorio **sí se versionan** en este repositorio,
+aunque sea público: razones sociales de empresas, sedes, padrón de equipos,
+números de muestra y mediciones de aceite son información comercial corriente.
+No identifican a una persona ni habilitan a nadie a entrar a ningún lado.
 
-| | Qué hace | Costo |
-|---|---|---|
-| **A** | Sacarlos del control de versiones (`.gitignore` + `git rm --cached`). Siguen en tu máquina, el seed los sigue cargando, dejan de estar en el repo. | 10 minutos, reversible |
-| **B** | A + reescribir el historial para borrarlos del commit inicial. | Rompe cualquier clon existente. Solo si de verdad importa |
-| **C** | Dejarlos. Son empresas, no personas. | Cero, pero hay que **escribirlo** en la cabecera de `esquema/catalogos-definiciones.sql`, porque hoy el criterio escrito dice una cosa y el repo contiene otra |
+Lo que se gana no es comodidad: **la migración se vuelve reproducible desde un
+clon limpio**. Quien clona corre `setup:project` y obtiene la base con su
+historia, y la verificación se puede repetir cuantas veces haga falta sin
+pedirle archivos a nadie. Es el mismo criterio con el que TrafoDex versiona sus
+`*_legacy.sql`, y es lo que permitió auditar aquella migración meses después.
 
-**Cómo se sabe que terminó:** el criterio escrito y el contenido del repositorio
-dicen lo mismo.
+**Dos excepciones, y no son de estilo:**
+
+- La tabla **`users`**: su columna `real_password` guarda la contraseña en texto
+  plano. Una contraseña no es un dato de negocio, es una credencial, la gente
+  las reutiliza entre servicios, y publicarla perjudica a alguien que no
+  participó de esta decisión. Tampoco hace falta para migrar: los usuarios del
+  sistema nuevo se dan de alta de nuevo. Cubierto por el `.gitignore`.
+- Las **imágenes de firma escaneada**. El nombre del firmante sí se versiona
+  (hace falta para que el informe diga quién firma); la firma manuscrita vive
+  fuera del repositorio, en `storage/app/legacy-assets`.
+
+El criterio completo está en la cabecera de
+[`esquema/catalogos-definiciones.sql`](esquema/catalogos-definiciones.sql), que
+es donde lo va a leer el próximo que toque un volcado.
 
 ---
 
@@ -100,17 +112,19 @@ mysqldump -u USUARIO -p --no-create-info --skip-extended-insert \
   lab_app_development \
   rems rem_correlatives rem_jobs rem_reports rem_report_details \
   labs lab_details lab_sub_details transformers \
-  > lab_app_development-datos.sql
+  > database/seeders/data/legacy/lab_app-datos.sql
 ```
 
-Va a `database/seeders/data/legacy/`, que **está en el `.gitignore`**. Ese archivo
-NUNCA se commitea: tiene muestras y equipos de clientes reales.
+`--skip-extended-insert` importa: escribe una tupla por línea, que es lo que el
+lector de volcados espera y lo que hace legible el `diff` de git cuando llegue
+un volcado nuevo.
 
-Deliberadamente **no** se piden `users`, `rem_signatures`, `rem_user_signatures`
-ni `samplers`: son nombres de personas y contraseñas en texto plano.
+El archivo **se commitea** (paso 1). Lo que no se pide es `users`: su columna
+`real_password` guarda la contraseña en texto plano.
 
-**Cómo se sabe que terminó:** el archivo está en esa carpeta y `git status` no lo
-menciona.
+**Cómo se sabe que terminó:** el archivo está en
+`database/seeders/data/legacy/`, `git status` sí lo menciona, y `head -40` sobre
+él muestra `INSERT INTO` con una tupla por línea.
 
 ---
 

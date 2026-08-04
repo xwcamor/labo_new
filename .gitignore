@@ -65,13 +65,13 @@ docs/migracion/esquema/ori_aplicados.sql
 *.sql.gz
 *.sql.zip
 
-# Los volcados CON DATOS del sistema viejo que alimentan el ETL del historico
-# (ver docs/migracion/15-PASO-A-PASO.md, paso 3). Traen muestras, equipos e
-# informes de clientes reales: no se versionan NUNCA. Se ignora la carpeta
-# ENTERA, para que agregar un volcado nuevo no obligue a acordarse de esta
-# linea. Los importadores avisan y siguen cuando el archivo no esta, asi que el
-# repositorio publico se sigue instalando sin ellos.
-/database/seeders/data/legacy/
+# OJO con database/seeders/data/legacy/: los volcados con datos del sistema
+# viejo SI se versionan (decision del dueno del 2026-08-04; el criterio completo
+# esta en la cabecera de docs/migracion/esquema/catalogos-definiciones.sql).
+# Es lo que hace reproducible la migracion desde un clon limpio.
+# Lo que NO entra ahi es el volcado de `users`: su columna real_password guarda
+# la contrasena en texto plano, y eso es una credencial, no un dato de negocio.
+/database/seeders/data/legacy/users*.sql
 
 # Los logotipos del sistema viejo (marca de la empresa y sello del organismo
 # acreditador) que usa `php artisan report:compare` para reproducir el papel

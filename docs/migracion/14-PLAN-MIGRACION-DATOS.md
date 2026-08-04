@@ -466,20 +466,23 @@ idempotentes, sin red de por medio.
    "IEC 610203-2025" es errata). La primera afecta directamente a esta
    migración.
 
-### 9.3 Una cuestión ajena a la migración, pero que la toca
+### 9.3 Qué se versiona — RESUELTO (2026-08-04)
 
-`database/seeders/data/customers.csv` está versionado en este repositorio
-**público** y contiene 344 razones sociales reales con dirección y código. Junto
-con `customer_locations.csv` (843), `customer_areas.csv` (1.940) y
-`customer_substations.csv` (1.368). Vinieron heredados de TrafoDex, que es
-privado, en el commit inicial.
+Los datos de negocio del laboratorio **sí se versionan** en este repositorio
+público. Quedan fuera la tabla `users` (su `real_password` es una contraseña en
+texto plano, o sea una credencial y no un dato) y las imágenes de firma
+escaneada. El criterio completo está en la cabecera de
+`esquema/catalogos-definiciones.sql`, que era donde el texto y el contenido del
+repositorio se contradecían.
 
-El criterio escrito en la cabecera de `esquema/catalogos-definiciones.sql`
-excluye "equipos y muestras de clientes reales" y enumera tablas de muestras y
-equipos, pero no la de clientes. **Hoy el criterio escrito y el contenido del
-repositorio no dicen lo mismo.** Sea cual sea la respuesta, tiene que quedar
-anotada ahí junto al resto del criterio, antes de que esta migración agregue una
-sola fila más de origen comercial.
+Consecuencia para este plan, y es buena: **los volcados del sistema viejo entran
+al repositorio**, en `database/seeders/data/legacy/`. Eso convierte la migración
+en reproducible desde un clon limpio —`setup:project` y listo— y permite repetir
+la verificación cuantas veces haga falta sin depender de que alguien pase
+archivos por otro canal. Es exactamente lo que hizo auditable la migración de
+TrafoDex meses después de hecha. El paso 3 del
+[paso a paso](15-PASO-A-PASO.md) deja de ser un bloqueo permanente y pasa a ser
+un trámite de una sola vez.
 
 ---
 

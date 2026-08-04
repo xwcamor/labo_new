@@ -1,15 +1,44 @@
 -- Catálogos y definiciones del sistema Rails viejo (lab_app_development).
--- FILTRADO A PROPOSITO: este repo es PUBLICO.
 --
--- INCLUYE solo tablas de DEFINICION: qué pruebas existen, qué columnas tiene
--- cada hoja de trabajo, qué opciones y normas hay cargadas, los catálogos de
--- equipo y el modelo de permisos del sistema viejo.
+-- Trae solo tablas de DEFINICION: qué pruebas existen, qué columnas tiene cada
+-- hoja de trabajo, qué opciones y normas hay cargadas, los catálogos de equipo
+-- y el modelo de permisos del sistema viejo.
 --
--- NO INCLUYE, y no debe incluirse nunca:
---   samplers, rem_user_signatures  -> nombres del personal del laboratorio
---   transformers, rems, rem_*      -> equipos y muestras de clientes reales
---   labs, lab_details, lab_files   -> hojas de trabajo con resultados
---   stocks, stickers, import_*     -> operativo
+-- Los datos OPERATIVOS (recepciones, muestras, bancada, resultados, informes y
+-- el padrón de equipos) no están acá: viven en `database/seeders/data/legacy/`,
+-- que es lo que leen los importadores del histórico. Ver
+-- `docs/migracion/15-PASO-A-PASO.md`.
+--
+-- ─────────────────────────────────────────────────────────────────────────
+-- QUE SE PUEDE VERSIONAR EN ESTE REPOSITORIO, QUE ES PUBLICO
+-- ─────────────────────────────────────────────────────────────────────────
+-- Decisión del dueño (2026-08-04). Reemplaza al criterio anterior, que decía
+-- que no iban "datos de clientes reales" mientras el repositorio ya tenía 344
+-- razones sociales versionadas: el texto y el contenido se contradecían.
+--
+-- SI se versiona. Los datos de negocio del laboratorio son información
+-- comercial corriente: razones sociales de empresas, sedes, padrón de equipos,
+-- números de muestra, mediciones de aceite. No identifican a una persona ni
+-- habilitan a nadie a entrar a ningún lado. Y versionarlos es lo que hace que
+-- la migración sea REPRODUCIBLE desde un clon limpio: quien clona corre
+-- `setup:project` y obtiene la base con su historia, sin depender de que
+-- alguien le pase archivos por otro canal. Es el mismo criterio con el que
+-- TrafoDex versiona sus `*_legacy.sql`.
+--
+-- NO se versiona, y esto no es preferencia de estilo:
+--
+--   users            -> la columna `real_password` guarda la contraseña en
+--                       TEXTO PLANO. Una contraseña no es un dato de negocio:
+--                       es una credencial, la gente las reutiliza entre
+--                       servicios, y publicarla perjudica a un tercero que no
+--                       participó de esta decisión. Además no hace falta para
+--                       migrar: los usuarios del sistema nuevo se dan de alta
+--                       de nuevo.
+--   las IMAGENES de
+--   firma escaneada  -> son la firma manuscrita de una persona. El NOMBRE del
+--                       firmante sí se versiona (hace falta para que el informe
+--                       diga quién firma); la imagen vive fuera del repo, en
+--                       storage/app/legacy-assets.
 --
 -- Exportado del volcado completo que el dueño facilitó el 2026-07-28.
 

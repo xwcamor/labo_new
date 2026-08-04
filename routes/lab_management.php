@@ -248,6 +248,13 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
 
     Route::middleware('permission:worksheets.edit')->group(function () {
         Route::post('worksheets/{worksheet}/rows',        [WorksheetController::class, 'saveRow'])->name('worksheets.rows.save');
+        // "Guardar todo": las filas con cambios, en una sola transacción. Va
+        // ANTES de `rows/{row}` para que la palabra "bulk" no se lea como el id
+        // de una fila.
+        Route::post('worksheets/{worksheet}/rows/bulk',   [WorksheetController::class, 'saveRows'])->name('worksheets.rows.bulk');
+        // "Traer las muestras pendientes": las agrega todas de una vez. La
+        // lista la resuelve el servidor, no llega del navegador.
+        Route::post('worksheets/{worksheet}/rows/fill',   [WorksheetController::class, 'fillPending'])->name('worksheets.rows.fill');
         Route::delete('worksheets/{worksheet}/rows/{row}', [WorksheetController::class, 'destroyRow'])->name('worksheets.rows.destroy');
         // Vista previa del cálculo mientras el analista escribe. NO guarda nada.
         //

@@ -53,6 +53,145 @@ class WorksheetService
     }
 
     /**
+     * Deja puestas las filas de control de calidad que la prueba EXIGE.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ SE CREAN EN LA BASE Y NO SE DIBUJAN EN PANTALLA              │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La plantilla ya declara si la corrida lleva patrón y duplicado
+     * (`requires_control`, `requires_duplicate`), y el sistema ya EXIGE que
+     * estén antes de admitir la primera muestra: `assertKindAllowed` rechaza la
+     * fila de muestra mientras falten. O sea que el analista está obligado a
+     * agregarlas a mano, de a una, en toda hoja nueva — un trámite que el
+     * sistema le impone y que él no decide.
+     *
+     * Si son parte de la corrida, las pone la corrida. Se crean VACÍAS, que es
+     * lo mismo que un pliego de bancada preimpreso: los renglones están, los
+     * números los pone el analista.
+     *
+     * Se crean en la BASE y no como filas de adorno en la pantalla porque el
+     * estado de la hoja tiene que ser real desde el minuto cero: una fila de
+     * patrón vacía deja la hoja INCOMPLETA y por lo tanto sin publicar. Si
+     * fueran solo visuales, un analista que nunca las toca publicaría una hoja
+     * sin control de calidad y nadie se enteraría.
+     *
+     * Idempotente: solo crea el tipo que falta. Volver a llamarla no duplica.
+     *
+     * @return array<int,string> Los tipos que se crearon.
+     */
+    public function seedRequiredRows(Worksheet $worksheet): array
+    {
+        $faltan = $worksheet->missingPrerequisites();
+
+        foreach ($faltan as $kind) {
+            $this->saveRow($worksheet, ['kind' => $kind], []);
+        }
+
+        return $faltan;
+    }
+
+    /**
+     * Pone en la hoja TODAS las muestras que esta corrida espera.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL SISTEMA YA SABE CUÁLES SON                                        │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La recepción registró qué pruebas se le pidieron a cada muestra. La hoja
+     * de trabajo de una prueba tiene, por definición, una lista cerrada de
+     * muestras que la esperan — es la misma lista que alimenta el desplegable
+     * del Nº de muestra. Hacer que el analista las elija de a una es pedirle
+     * que copie a mano algo que la máquina ya tiene resuelto, con el riesgo de
+     * que se saltee una y esa muestra quede sin ensayar.
+     *
+     * Las filas salen VACÍAS y atadas a su prueba pedida: los números los pone
+     * el analista, el enlace con la muestra lo pone el sistema.
+     *
+     * La lista se resuelve ACÁ y no llega desde el navegador. Si viniera del
+     * cliente, un envío armado a mano podría meter en esta hoja pruebas de otra
+     * definición o muestras de otro workspace.
+     *
+     * @return int Cuántas filas se agregaron.
+     */
+    public function fillPendingSamples(Worksheet $worksheet): int
+    {
+        $this->assertEditable($worksheet);
+
+        // El patrón y el duplicado primero: el propio sistema los exige antes
+        // de admitir una muestra, así que sin esto la primera fila fallaría.
+        $this->seedRequiredRows($worksheet);
+
+        $yaEstan = $worksheet->rows()->whereNotNull('sample_test_id')->pluck('sample_test_id')->all();
+
+        $pendientes = SampleTest::query()
+            ->where('test_definition_id', $worksheet->test_definition_id)
+            ->whereIn('status', [SampleTest::STATUS_PENDING, SampleTest::STATUS_IN_PROGRESS])
+            ->whereNotIn('id', $yaEstan ?: [0])
+            ->whereHas('sample')
+            ->with('sample:id,code')
+            ->get()
+            ->sortBy(fn (SampleTest $p) => $p->sample->code);
+
+        $puestas = 0;
+
+        foreach ($pendientes as $prueba) {
+            $this->saveRow(
+                $worksheet,
+                ['kind' => WorksheetRow::KIND_SAMPLE, 'sample_test_id' => $prueba->id],
+                [],
+                null,
+                publicar: false,
+            );
+
+            $puestas++;
+        }
+
+        // Una sola vez, al final: ver el comentario de `$publicar` en saveRow.
+        $this->publishIfComplete($worksheet->fresh());
+
+        return $puestas;
+    }
+
+    /**
+     * Guarda VARIAS filas en una sola transacción.
+     *
+     * Es el "Guardar todo" de la grilla. Manda solo lo que cambió, y o entran
+     * todas o no entra ninguna: si la fila catorce choca con la regla de una
+     * muestra por fila, dejar guardadas las trece anteriores le deja al
+     * analista una hoja a medio escribir sin decirle dónde quedó.
+     *
+     * Cada fila es `['row_id' => ?int, 'kind' => string, ..., 'values' => []]`.
+     *
+     * @param  array<int,array<string,mixed>> $filas
+     * @return int Cuántas se guardaron.
+     *
+     * @throws ValidationException
+     */
+    public function saveRows(Worksheet $worksheet, array $filas): int
+    {
+        $this->assertEditable($worksheet);
+
+        return DB::transaction(function () use ($worksheet, $filas) {
+            foreach ($filas as $fila) {
+                $row = ! empty($fila['row_id'])
+                    ? $worksheet->rows()->findOrFail($fila['row_id'])
+                    : null;
+
+                $this->saveRow(
+                    $worksheet,
+                    collect($fila)->except(['row_id', 'values'])->all(),
+                    $fila['values'] ?? [],
+                    $row,
+                    publicar: false,
+                );
+            }
+
+            $this->publishIfComplete($worksheet->fresh());
+
+            return count($filas);
+        });
+    }
+
+    /**
      * Guarda una fila completa con sus valores.
      *
      * @param  array<string,mixed> $attributes kind, sample_code, position,
@@ -68,6 +207,7 @@ class WorksheetService
         array $attributes,
         array $input,
         ?WorksheetRow $row = null,
+        bool $publicar = true,
     ): WorksheetRow {
         $this->assertEditable($worksheet);
 
@@ -76,7 +216,7 @@ class WorksheetService
 
         $fields = $worksheet->definition->fields()->with('options')->get();
 
-        return DB::transaction(function () use ($worksheet, $attributes, $input, $row, $fields, $kind) {
+        return DB::transaction(function () use ($worksheet, $attributes, $input, $row, $fields, $kind, $publicar) {
             $row ??= new WorksheetRow(['worksheet_id' => $worksheet->id]);
 
             // La muestra manda. Si la fila referencia una prueba pedida, el
@@ -179,7 +319,13 @@ class WorksheetService
             // firmantes y queda auditada. La hoja solo tiene que dejar el dato
             // consultable en cuanto esté completo, y dejar de admitir cambios
             // cuando el candado la cierre.
-            $this->publishIfComplete($worksheet);
+            // En la carga en LOTE esto se saltea y se corre una sola vez al
+            // final: el chequeo recorre todas las filas y todas sus celdas
+            // obligatorias, así que hacerlo por fila convierte veinte muestras
+            // en veinte recorridos de la hoja entera.
+            if ($publicar) {
+                $this->publishIfComplete($worksheet);
+            }
 
             return $row->refresh();
         });
@@ -802,9 +948,15 @@ class WorksheetService
     /**
      * Qué celdas obligatorias quedaron vacías.
      *
+     * Es PÚBLICA porque la pantalla la necesita: guardar una fila incompleta
+     * está permitido a propósito —el analista mide la rigidez a las diez, se va
+     * y vuelve a la tarde— pero hasta ahora eso no se decía en ningún lado. El
+     * analista guardaba, veía el tilde y creía que había terminado, cuando en
+     * realidad la hoja no publica hasta que no falte ninguna.
+     *
      * @return array<int,array{row:int,field:string}>
      */
-    private function missingRequiredValues(Worksheet $worksheet): array
+    public function missingRequiredValues(Worksheet $worksheet): array
     {
         $required = $worksheet->definition->fields()
             ->where('is_required', true)

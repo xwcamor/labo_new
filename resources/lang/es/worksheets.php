@@ -140,6 +140,24 @@ return [
 
     // Mensajes de resultado de las acciones.
     'created'     => 'Hoja de trabajo creada.',
+    'created_with_rows' => 'Hoja de trabajo creada, con su :kinds ya puesto.',
+    'rows_saved'  => ':count filas guardadas.',
+    'filled'      => 'Se agregaron :count muestras pendientes.',
+    'fill_none'   => 'No quedan muestras pendientes para esta prueba.',
+
+    // ── La hoja incompleta ────────────────────────────────────────────
+    // Guardar con obligatorios vacíos está PERMITIDO (el analista mide a la
+    // mañana y termina a la tarde). Lo que faltaba era decirlo.
+    'fill_pending'      => 'Traer muestras pendientes',
+    'fill_pending_help' => 'Agrega de una vez todas las muestras que esta prueba todavía espera. Salen vacías: los números los carga usted.',
+    'save_all'          => 'Guardar todo',
+    'save_all_help'     => 'Guarda solo las filas con cambios, todas juntas. El botón de cada fila sigue estando.',
+    'incomplete_row'    => 'A esta fila le falta :count dato obligatorio.|A esta fila le faltan :count datos obligatorios.',
+    'incomplete_sheet'  => 'Falta :count dato obligatorio.|Faltan :count datos obligatorios.',
+    'incomplete_why'    => 'La hoja se guarda igual, pero no publica resultados hasta completarlos.',
+    'complete_sheet'    => 'No falta ningún dato obligatorio: la hoja publica sus resultados.',
+    'required_to_publish' => 'Obligatorio para publicar. Se puede guardar vacío, pero la hoja no publica hasta completarlo.',
+    'kind_change'       => 'Cambiar el tipo de fila',
     'saved'       => 'Cabecera de la hoja guardada.',
     'row_saved'   => 'Fila guardada.',
     'row_deleted' => 'Fila eliminada.',

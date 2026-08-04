@@ -139,9 +139,22 @@ class WorksheetController extends Controller
 
         $worksheet = Worksheet::create($data);
 
+        // El patrón y el duplicado que la prueba EXIGE quedan puestos, vacíos.
+        // El porqué está en `WorksheetService::seedRequiredRows`: el sistema ya
+        // los reclama antes de admitir la primera muestra, así que hacérselos
+        // agregar de a uno era un trámite que él mismo imponía.
+        $puestas = $this->service->seedRequiredRows($worksheet->load('definition'));
+
         return redirect()
             ->route('lab_management.worksheets.show', $worksheet)
-            ->with('success', __('worksheets.created'));
+            ->with('success', $puestas === []
+                ? __('worksheets.created')
+                : __('worksheets.created_with_rows', [
+                    'kinds' => implode(', ', array_map(
+                        fn (string $k) => __("worksheets.kind.{$k}"),
+                        $puestas
+                    )),
+                ]));
     }
 
     /**
@@ -293,6 +306,14 @@ class WorksheetController extends Controller
             // Las pruebas de ESTA definición que todavía esperan resultado, para
             // que el analista elija la muestra en vez de tipear su código.
             'pendingTests' => $this->pendingTests($worksheet),
+            // Cuántas celdas obligatorias le faltan a CADA fila, y a la hoja.
+            //
+            // Guardar una fila incompleta está permitido a propósito (el
+            // analista mide la rigidez a la mañana y termina a la tarde), pero
+            // eso no se decía en ningún lado: guardaba, veía el tilde verde y
+            // creía que había terminado. La hoja no publica hasta que no falte
+            // ninguna, así que el número tiene que estar a la vista.
+            'incomplete'   => $this->incomplete($worksheet),
             // Los equipos que cada columna ofrece, indexados por columna. La
             // columna que no declara ninguno cae a la lista completa: es lo
             // correcto para las que el sistema anterior dejó como texto libre,
@@ -380,6 +401,27 @@ class WorksheetController extends Controller
             }, []);
     }
 
+    /**
+     * Qué le falta a la hoja para poder publicar.
+     *
+     * `rows` es el mapa fila → cuántas celdas obligatorias tiene vacías, y
+     * `total` la suma. La grilla pinta la fila en ámbar y pone la cuenta al
+     * pie: el estado real de la hoja deja de ser algo que hay que deducir
+     * mirando columna por columna.
+     *
+     * @return array{rows: array<int,int>, total: int}
+     */
+    private function incomplete(Worksheet $worksheet): array
+    {
+        $porFila = [];
+
+        foreach ($this->service->missingRequiredValues($worksheet) as $falta) {
+            $porFila[$falta['row']] = ($porFila[$falta['row']] ?? 0) + 1;
+        }
+
+        return ['rows' => $porFila, 'total' => array_sum($porFila)];
+    }
+
     private function pendingTests(Worksheet $worksheet): array
     {
         // Las que YA están en una fila de esta hoja entran siempre, sin mirar
@@ -458,6 +500,49 @@ class WorksheetController extends Controller
     }
 
     /**
+     * Guarda VARIAS filas de una vez. Es el "Guardar todo" de la grilla.
+     *
+     * La pantalla manda SOLO las filas con cambios. El guardado por fila sigue
+     * existiendo y sigue siendo el camino normal en bancada —se termina una
+     * muestra, se guarda, queda a salvo—; esto es para cerrar la corrida sin
+     * apretar el botón quince veces.
+     */
+    public function saveRows(Request $request, Worksheet $worksheet): RedirectResponse
+    {
+        $data = $request->validate([
+            'rows'                  => ['required', 'array', 'min:1', 'max:200'],
+            'rows.*.row_id'         => ['nullable', 'integer'],
+            'rows.*.kind'           => ['required', Rule::in(WorksheetRow::KINDS)],
+            'rows.*.sample_code'    => ['nullable', 'string', 'max:60'],
+            'rows.*.sample_test_id' => ['nullable', 'integer'],
+            'rows.*.position'       => ['nullable', 'integer', 'min:0'],
+            'rows.*.instrument_id'  => ['nullable', 'integer', Rule::exists('instruments', 'id')],
+            'rows.*.equipment_id'   => ['nullable', 'integer', Rule::exists('equipment', 'id')],
+            'rows.*.notes'          => ['nullable', 'string', 'max:2000'],
+            'rows.*.values'         => ['array'],
+        ]);
+
+        $guardadas = $this->service->saveRows($worksheet, $data['rows']);
+
+        return back()->with('success', __('worksheets.rows_saved', ['count' => $guardadas]));
+    }
+
+    /**
+     * Pone en la hoja todas las muestras que esta corrida espera.
+     *
+     * No recibe la lista: la resuelve el servicio. Ver
+     * `WorksheetService::fillPendingSamples` para el porqué.
+     */
+    public function fillPending(Worksheet $worksheet): RedirectResponse
+    {
+        $puestas = $this->service->fillPendingSamples($worksheet);
+
+        return back()->with('success', $puestas === 0
+            ? __('worksheets.fill_none')
+            : __('worksheets.filled', ['count' => $puestas]));
+    }
+
+    /**
      * Vista previa del cálculo: qué daría la hoja con lo que hay tipeado, sin
      * guardar absolutamente nada.
      *
@@ -520,17 +605,60 @@ class WorksheetController extends Controller
             'values'     => ['array', 'max:120'],
             'values.*'   => ['nullable'],
             'values.*.*' => ['nullable'],
+            // Varias filas en UNA petición: `rows` es `{ clave de fila: values }`.
+            // El tope de 200 es el mismo que el del guardado en lote.
+            'rows'       => ['array', 'max:200'],
+            'rows.*'     => ['array', 'max:120'],
         ]);
 
         $fields = $worksheet->definition->fields()->with('options')->get();
         $computed = $fields->filter(fn (TestField $field) => filled($field->formula));
 
+        // Con `rows` la respuesta viene indexada por fila; sin él, plana. Se
+        // acepta una sola clave de las dos y no las dos mezcladas.
+        $enLote = array_key_exists('rows', $data);
+
         if ($computed->isEmpty()) {
-            return response()->json(['values' => [], 'unresolved' => [], 'errors' => [], 'cycles' => []]);
+            $vacio = ['values' => [], 'unresolved' => [], 'errors' => [], 'cycles' => []];
+
+            return response()->json($enLote
+                ? ['rows' => array_map(fn () => $vacio, $data['rows'])]
+                : $vacio);
         }
 
+        if ($enLote) {
+            return response()->json([
+                'rows' => array_map(
+                    fn (array $valores) => $this->previewOne($fields, $computed, $valores),
+                    $data['rows'],
+                ),
+            ]);
+        }
+
+        return response()->json($this->previewOne($fields, $computed, $data['values'] ?? []));
+    }
+
+    /**
+     * El cálculo de UNA fila. Es el cuerpo que antes vivía dentro de preview();
+     * se separó para poder resolver varias filas en la misma petición.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ POR QUÉ VARIAS FILAS EN UNA PETICIÓN                                 │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * La grilla pide la previa por fila, 400 ms después de que el analista deja
+     * de tipear. Con la hoja cargada de a una eso es una petición cada tanto;
+     * desde que se pueden traer todas las muestras pendientes de golpe, son
+     * veinte filas en pantalla y veinte peticiones casi simultáneas — que
+     * además chocan contra el límite de 120 por minuto del propio endpoint.
+     *
+     * @param  \Illuminate\Support\Collection<int,TestField> $fields
+     * @param  \Illuminate\Support\Collection<int,TestField> $computed
+     * @param  array<string,mixed> $input
+     * @return array<string,mixed>
+     */
+    private function previewOne($fields, $computed, array $input): array
+    {
         $resolver = new FormulaResolver();
-        $input = $data['values'] ?? [];
         $replicates = max(1, (int) $fields->max('replicates'));
 
         $values = [];
@@ -563,12 +691,12 @@ class WorksheetController extends Controller
             $unresolved = array_unique(array_merge($unresolved, $result['unresolved']));
         }
 
-        return response()->json([
+        return [
             'values'     => $values,
             'unresolved' => array_values($unresolved),
             'errors'     => $errors,
             'cycles'     => $cycles,
-        ]);
+        ];
     }
 
     public function destroyRow(Worksheet $worksheet, WorksheetRow $row): RedirectResponse

@@ -116,6 +116,21 @@ return [
 
     // Action result messages.
     'created'     => 'Worksheet created.',
+    'created_with_rows' => 'Worksheet created, with its :kinds already in place.',
+    'rows_saved'  => ':count rows saved.',
+    'filled'      => ':count pending samples added.',
+    'fill_none'   => 'No pending samples left for this test.',
+
+    'fill_pending'      => 'Bring pending samples',
+    'fill_pending_help' => 'Adds every sample this test is still waiting for, at once. They come in empty: you enter the numbers.',
+    'save_all'          => 'Save all',
+    'save_all_help'     => 'Saves only the rows with changes, together. The per-row button is still there.',
+    'incomplete_row'    => 'This row is missing :count required value.|This row is missing :count required values.',
+    'incomplete_sheet'  => ':count required value missing.|:count required values missing.',
+    'incomplete_why'    => 'The sheet still saves, but it does not publish results until they are filled in.',
+    'complete_sheet'    => 'No required value is missing: the sheet publishes its results.',
+    'required_to_publish' => 'Required to publish. It can be saved empty, but the sheet does not publish until it is filled in.',
+    'kind_change'       => 'Change the row type',
     'saved'       => 'Worksheet header saved.',
     'row_saved'   => 'Row saved.',
     'row_deleted' => 'Row deleted.',

@@ -41,10 +41,12 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
-    Button, Dropdown, Menu, MenuItem, MenuDivider, Input, Modal, Tag, Tooltip, Empty,
+    Alert, Button, Dropdown, Menu, MenuItem, MenuDivider, Input, Modal, Select,
+    SelectOption, Tag, Tooltip, Empty,
 } from 'ant-design-vue';
 import {
     PlusOutlined, SaveOutlined, DeleteOutlined, CalculatorOutlined,
+    DownloadOutlined, WarningFilled,
 } from '@ant-design/icons-vue';
 
 import WorksheetCell from '@/Components/Worksheets/WorksheetCell.vue';
@@ -71,13 +73,18 @@ const props = defineProps({
     // mostraba en ninguna pantalla.
     enteredBy:   { type: Object, default: () => ({}) },
     missing:     { type: Array,  default: () => [] },
+    // Cuántas celdas obligatorias le faltan a cada fila y a la hoja:
+    // `{ rows: { [row_id]: n }, total: n }`. Lo resuelve el servidor con el
+    // MISMO recorrido que decide si la hoja publica, así que la pantalla y el
+    // motor no pueden decir cosas distintas.
+    incomplete:  { type: Object, default: () => ({ rows: {}, total: 0 }) },
     // Los tipos de fila que la PRUEBA exige (patrón, duplicado). No se pueden
     // borrar mientras sean el único de su tipo en la hoja.
     requiredKinds: { type: Array, default: () => [] },
     readonly:    { type: Boolean, default: false },
 });
 
-const { t } = useI18n();
+const { t, tc } = useI18n();
 const { formatDateTimeFull } = useDateFormat();
 
 const KINDS = ['control', 'duplicate', 'blank', 'sample'];
@@ -322,8 +329,21 @@ const previews = ref({});
  */
 const PREVIEW_DELAY = 400;
 
-const timers   = {};
-const inflight = {};
+/**
+ * UNA petición para TODAS las filas que estén esperando cálculo.
+ *
+ * Antes había un temporizador y una petición POR FILA. Con la hoja cargada de a
+ * una eso era una consulta cada tanto; desde que se pueden traer de golpe todas
+ * las muestras pendientes, son veinte filas en pantalla y veinte peticiones
+ * casi simultáneas — que además chocan contra el límite de 120 por minuto del
+ * propio endpoint y dejarían la mitad de la grilla sin calcular.
+ *
+ * `pendientes` junta las filas que cambiaron mientras corre la espera; al
+ * vencer se manda el lote entero y se reparte la respuesta por clave.
+ */
+let timer = null;
+let inflight = null;
+const pendientes = new Set();
 
 const previewKey = (draft) => draft.row_id ?? 'new';
 
@@ -337,27 +357,42 @@ const setPreview = (key, patch) => {
     };
 };
 
-const askPreview = async (key, draft) => {
+/** Los valores que hay en pantalla para una clave de fila. */
+const draftOf = (key) => (key === 'new' ? newDraft.value : drafts.value[key]);
+
+const askPreview = async () => {
     // Si el analista siguió tecleando, la respuesta que viene en camino ya no
     // corresponde a lo que hay en pantalla: se cancela en vez de dejar que
     // llegue tarde y pise el resultado de la petición nueva.
-    inflight[key]?.abort();
+    inflight?.abort();
+
+    const claves = [...pendientes].filter((key) => draftOf(key));
+    pendientes.clear();
+
+    if (claves.length === 0) return;
 
     const controller = new AbortController();
-    inflight[key] = controller;
+    inflight = controller;
+
+    const cuerpo = {};
+    claves.forEach((key) => { cuerpo[key] = draftOf(key).values; });
 
     try {
         const { data } = await window.axios.post(
             route('lab_management.worksheets.preview', props.worksheet.slug),
-            { values: draft.values },
+            { rows: cuerpo },
             { signal: controller.signal },
         );
 
-        setPreview(key, {
-            status: 'ready',
-            values: data?.values ?? {},
-            errors: data?.errors ?? {},
-            cycles: data?.cycles ?? [],
+        claves.forEach((key) => {
+            const fila = data?.rows?.[key] ?? {};
+
+            setPreview(key, {
+                status: 'ready',
+                values: fila.values ?? {},
+                errors: fila.errors ?? {},
+                cycles: fila.cycles ?? [],
+            });
         });
     } catch (error) {
         // La abortó una petición más nueva: esa es la que manda, no hay nada
@@ -366,9 +401,11 @@ const askPreview = async (key, draft) => {
 
         // Sin servidor la celda queda VACÍA con el aviso. Calcularla acá sería
         // volver exactamente al sistema viejo.
-        setPreview(key, { status: 'failed', values: {}, errors: {}, cycles: [] });
+        claves.forEach((key) => setPreview(key, {
+            status: 'failed', values: {}, errors: {}, cycles: [],
+        }));
     } finally {
-        if (inflight[key] === controller) inflight[key] = null;
+        if (inflight === controller) inflight = null;
     }
 };
 
@@ -381,9 +418,10 @@ const schedulePreview = (draft) => {
     // petición: un número viejo que ya no corresponde a lo que hay en pantalla
     // se lee como si fuera el actual, y eso es peor que una celda en blanco.
     setPreview(key, { status: 'loading' });
+    pendientes.add(key);
 
-    clearTimeout(timers[key]);
-    timers[key] = setTimeout(() => askPreview(key, draft), PREVIEW_DELAY);
+    clearTimeout(timer);
+    timer = setTimeout(askPreview, PREVIEW_DELAY);
 };
 
 /**
@@ -443,9 +481,7 @@ const formulaTrace = (key, rowId, field) => (replicate) => {
 };
 
 const forgetPreview = (key) => {
-    clearTimeout(timers[key]);
-    inflight[key]?.abort();
-    inflight[key] = null;
+    pendientes.delete(key);
 
     const next = { ...previews.value };
     delete next[key];
@@ -453,8 +489,8 @@ const forgetPreview = (key) => {
 };
 
 onBeforeUnmount(() => {
-    Object.keys(timers).forEach((key) => clearTimeout(timers[key]));
-    Object.values(inflight).forEach((controller) => controller?.abort());
+    clearTimeout(timer);
+    inflight?.abort();
 });
 
 /**
@@ -587,6 +623,79 @@ const save = (draft) => {
     );
 };
 
+// ── Lo que falta para publicar ───────────────────────────────────────────
+
+const faltanTotal = computed(() => Number(props.incomplete?.total ?? 0));
+const faltanEnFila = (id) => Number(props.incomplete?.rows?.[id] ?? 0);
+
+/**
+ * ¿A esta fila se le puede cambiar el tipo?
+ *
+ * Solo a las que NO están atadas a una muestra: cambiarle el tipo a la fila de
+ * una muestra la sacaría del informe (o la metería) sin tocar sus valores, y
+ * eso no es "corregir un tipo", es otra cosa. Para eso está desasignar la
+ * muestra. Y tampoco al patrón o al duplicado que la prueba exige mientras sean
+ * el único de su tipo, por lo mismo que no se pueden borrar.
+ */
+const canChangeKind = (row) => ! row.sample_test_id && canRemove(row);
+
+const changeKind = (row, kind) => {
+    if (kind === row.kind) return;
+
+    drafts.value[row.id].kind = kind;
+    save(drafts.value[row.id]);
+};
+
+// ── Trabajo en lote ──────────────────────────────────────────────────────
+
+const trayendo      = ref(false);
+const guardandoTodo = ref(false);
+
+/** Las filas YA GUARDADAS que tienen cambios sin mandar. */
+const sucias = computed(() => rows.value.filter((row) => isDirty(row.id)));
+
+/**
+ * Trae de una vez todas las muestras que esta hoja espera.
+ *
+ * No manda la lista: la resuelve el servidor. Si viniera de acá, un envío
+ * armado a mano podría meter en esta hoja pruebas de otra definición.
+ */
+const traerPendientes = () => {
+    trayendo.value = true;
+
+    router.post(
+        route('lab_management.worksheets.rows.fill', props.worksheet.slug),
+        {},
+        { preserveScroll: true, onFinish: () => { trayendo.value = false; } },
+    );
+};
+
+/**
+ * "Guardar todo": SOLO las filas con cambios, en una transacción.
+ *
+ * No reemplaza al botón de cada fila. En bancada se termina una muestra y se
+ * guarda, y así lo cargado queda a salvo apenas se termina; un único guardado
+ * al pie invita a cargar veinte y perderlas si se cierra el navegador. Esto es
+ * para cerrar la corrida sin apretar quince veces.
+ *
+ * La fila que se está agregando NO entra: todavía no existe y tiene su propio
+ * botón, que además es el que sabe qué hacer después de crearla.
+ */
+const guardarTodo = () => {
+    const lote = sucias.value.map((row) => payloadOf(drafts.value[row.id]));
+
+    if (lote.length === 0) return;
+
+    guardandoTodo.value = true;
+    lastSaved.value = null;
+
+    router.post(
+        route('lab_management.worksheets.rows.bulk', props.worksheet.slug),
+        { rows: lote },
+        { preserveScroll: true, onFinish: () => { guardandoTodo.value = false; } },
+    );
+};
+
 const remove = (row) => {
     Modal.confirm({
         title:      t('global.delete_confirm_title'),
@@ -687,7 +796,9 @@ watch(
                         <th v-if="sampleCodeField" class="ws-th ws-th--code">
                             <div class="ws-th__label">
                                 {{ sampleCodeField.label }}
-                                <span v-if="sampleCodeField.is_required" class="ws-th__req">*</span>
+                                <Tooltip v-if="sampleCodeField.is_required" :title="$t('worksheets.required_to_publish')">
+                                    <span class="ws-th__req">*</span>
+                                </Tooltip>
                             </div>
                         </th>
 
@@ -704,7 +815,12 @@ watch(
                         >
                             <div class="ws-th__label">
                                 {{ field.label }}
-                                <span v-if="field.is_required" class="ws-th__req">*</span>
+                                <!-- El asterisco decía "obligatorio" a secas y eso se leía como
+                                     "no te dejo guardar sin esto", que no es lo que pasa:
+                                     se guarda igual, lo que no ocurre es la publicación. -->
+                                <Tooltip v-if="field.is_required" :title="$t('worksheets.required_to_publish')">
+                                    <span class="ws-th__req">*</span>
+                                </Tooltip>
                             </div>
                             <div class="ws-th__meta">
                                 <span v-if="field.unit">{{ field.unit }}</span>
@@ -743,13 +859,39 @@ watch(
                         v-for="row in rows"
                         :key="row.id"
                         class="ws-row"
-                        :class="`ws-row--${row.kind}`"
+                        :class="[`ws-row--${row.kind}`, { 'ws-row--incomplete': faltanEnFila(row.id) > 0 }]"
                     >
                         <td class="ws-td ws-td--kind">
-                            <Tooltip :title="$t(`worksheets.kind_help.${row.kind}`)">
+                            <!-- El tipo se puede corregir en las filas que NO
+                                 están atadas a una muestra: es el caso "elegí
+                                 patrón y era duplicado", que hasta ahora se
+                                 arreglaba borrando y volviendo a cargar. -->
+                            <Select
+                                v-if="!readonly && canChangeKind(row)"
+                                :value="row.kind"
+                                size="small"
+                                class="ws-kind-pick"
+                                :title="$t('worksheets.kind_change')"
+                                @change="(k) => changeKind(row, k)"
+                            >
+                                <SelectOption v-for="k in KINDS.filter((x) => x !== 'sample')" :key="k" :value="k">
+                                    {{ $t(`worksheets.kind.${k}`) }}
+                                </SelectOption>
+                            </Select>
+                            <Tooltip v-else :title="$t(`worksheets.kind_help.${row.kind}`)">
                                 <Tag :color="kindColor(row.kind)" :bordered="false">
                                     {{ $t(`worksheets.kind.${row.kind}`) }}
                                 </Tag>
+                            </Tooltip>
+
+                            <!-- Cuántos obligatorios le faltan a ESTA fila. -->
+                            <Tooltip
+                                v-if="faltanEnFila(row.id) > 0"
+                                :title="tc('worksheets.incomplete_row', faltanEnFila(row.id))"
+                            >
+                                <span class="ws-td__missing">
+                                    <WarningFilled /> {{ faltanEnFila(row.id) }}
+                                </span>
                             </Tooltip>
                             <!-- El código guardado se repite acá SOLO si la
                                  plantilla no declara su columna: con la columna
@@ -955,7 +1097,47 @@ watch(
             class="ws-empty"
         />
 
+        <!-- Qué le falta a la hoja para publicar. Guardar con obligatorios
+             vacíos SÍ está permitido —el analista mide a la mañana y termina a
+             la tarde—, pero hasta ahora eso no se decía: guardaba, veía el
+             tilde y creía que había terminado. -->
+        <Alert
+            v-if="faltanTotal > 0"
+            type="warning"
+            show-icon
+            class="ws-missing"
+            :message="tc('worksheets.incomplete_sheet', faltanTotal)"
+            :description="$t('worksheets.incomplete_why')"
+        />
+        <Alert
+            v-else-if="rows.length > 0"
+            type="success"
+            show-icon
+            class="ws-missing"
+            :message="$t('worksheets.complete_sheet')"
+        />
+
         <div v-if="!readonly" class="ws-grid__foot">
+            <!-- Lo que más clics saca: las muestras que esta hoja espera ya las
+                 sabe el sistema. Elegirlas de a una del desplegable es copiar a
+                 mano una lista que ya está resuelta. -->
+            <Tooltip :title="$t('worksheets.fill_pending_help')">
+                <Button type="primary" :loading="trayendo" @click="traerPendientes">
+                    <DownloadOutlined /> {{ $t('worksheets.fill_pending') }}
+                </Button>
+            </Tooltip>
+
+            <Tooltip :title="$t('worksheets.save_all_help')">
+                <Button
+                    :disabled="sucias.length === 0"
+                    :loading="guardandoTodo"
+                    @click="guardarTodo"
+                >
+                    <SaveOutlined /> {{ $t('worksheets.save_all') }}
+                    <span v-if="sucias.length > 0"> ({{ sucias.length }})</span>
+                </Button>
+            </Tooltip>
+
             <Dropdown :trigger="['click']" placement="topLeft">
                 <Button type="dashed">
                     <PlusOutlined /> {{ $t('worksheets.actions.add_row') }}
@@ -1113,6 +1295,22 @@ watch(
 .ws-row--new       :is(.ws-td--kind, .ws-td--code) { background-image: linear-gradient(var(--tint-dirty), var(--tint-dirty)); }
 
 .ws-menu__why { font-size: 0.75rem; color: var(--color-text-muted); white-space: normal; display: block; max-width: 260px; line-height: 1.4; }
+
+/* La franja de "falta esto para publicar". */
+.ws-missing { margin-top: 4px; }
+
+/* La fila guardada a la que le faltan obligatorios. Ámbar y no rojo: no es un
+   error —guardar incompleto está permitido a propósito— es un pendiente. El
+   filo a la izquierda se ve con la tabla corrida de costado, que es cuando el
+   analista deja de ver el resto de la fila. */
+.ws-row--incomplete > td { background: var(--color-warning-bg, #fffbe6); }
+.ws-row--incomplete > td:first-child { box-shadow: inset 3px 0 0 0 #E9A23B; }
+.ws-td__missing { margin-left: 6px; font-size: 0.7rem; color: #B45309; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* El selector del tipo de fila ocupa lo mismo que la etiqueta que reemplaza:
+   la columna del tipo tiene ancho fijo y de él depende dónde arranca la del
+   Nº de muestra, que va clavada al lado. */
+.ws-kind-pick { width: 100%; max-width: 104px; }
 .ws-empty { padding: 24px 8px; }
 .ws-grid__foot { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>

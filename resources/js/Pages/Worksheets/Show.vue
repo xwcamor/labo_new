@@ -50,6 +50,9 @@ const props = defineProps({
     // El candado del registro (trait Lockable): quién puede ponerlo y sacarlo.
     lock:        { type: Object, default: null },
     missing:     { type: Array,  default: () => [] },
+    // Cuántas celdas obligatorias faltan, por fila y en total. Lo calcula el
+    // servidor con el mismo recorrido que decide si la hoja publica.
+    incomplete:  { type: Object, default: () => ({ rows: {}, total: 0 }) },
     // El historial del registro, como en el resto de las fichas. En un
     // laboratorio acreditado es lo primero que pide una auditoría: quién cargó
     // la bancada, quién la cerró y qué se le cambió.
@@ -239,6 +242,7 @@ const serverErrors = computed(() => Object.values(page.props.errors ?? {}).filte
                         :pending-tests="pendingTests"
                         :entered-by="enteredBy"
                         :missing="missing"
+                        :incomplete="incomplete"
                         :required-kinds="requiredKinds"
                         :readonly="readonly"
                     />

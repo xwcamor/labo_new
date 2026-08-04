@@ -58,6 +58,21 @@
       "por_que": "Igual que Furanos."
     },
 
+    "tension_interfacial.tensiometro_pp_la_01c": {
+      "label": "Tensiómetro",
+      "por_que": "Igual que la bureta del Número Ácido: el código del equipo salía impreso en el encabezado en vez de elegirse por fila."
+    },
+
+    "tension_interfacial.densimetro_pp_la_01c": {
+      "label": "Densímetro",
+      "por_que": "Igual que el tensiómetro."
+    },
+
+    "tension_interfacial.termometro_pp_la_01c": {
+      "label": "Termómetro",
+      "por_que": "Igual que el tensiómetro."
+    },
+
     "contenido_de_agua.balanza_pp_la_01c": {
       "label": "Balanza",
       "por_que": "Igual que la balanza del Número Ácido."

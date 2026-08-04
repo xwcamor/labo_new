@@ -58,6 +58,21 @@
       "por_que": "Igual que Furanos."
     },
 
+    "contenido_de_agua.balanza_pp_la_01c": {
+      "label": "Balanza",
+      "por_que": "Igual que la balanza del Número Ácido."
+    },
+
+    "contenido_de_agua.r1_pp_la_01c": {
+      "label": "Equipo R1",
+      "por_que": "El agua se determina DOS veces (R1 y R2) y el resultado es el promedio; la repetibilidad es la diferencia entre ambas. El sistema anterior tenía una sola columna 'R1 PP-LA-01C-007' donde se escribía la lectura, con la serie del titulador clavada en el encabezado: si esa determinación se corría en otro equipo, el papel decía el equipo equivocado. Acá son dos columnas —el equipo se elige, la lectura se escribe— y el encabezado dice a cuál de las dos determinaciones pertenece el equipo."
+    },
+
+    "contenido_de_agua.r2_pp_la_01c": {
+      "label": "Equipo R2",
+      "por_que": "La segunda determinación. El sistema anterior clavaba en su encabezado la serie PP-LA-01C-011."
+    },
+
     "azufre_1275b.equipo_pp_la_01c": {
       "label": "Equipo",
       "por_que": "Mismo caso que la bureta del Número Ácido: el código del equipo salía impreso en el encabezado. Cuál equipo se usó es un dato de cada corrida y se elige en la celda."

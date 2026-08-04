@@ -65,6 +65,14 @@ docs/migracion/esquema/ori_aplicados.sql
 *.sql.gz
 *.sql.zip
 
+# Los volcados CON DATOS del sistema viejo que alimentan el ETL del historico
+# (ver docs/migracion/15-PASO-A-PASO.md, paso 3). Traen muestras, equipos e
+# informes de clientes reales: no se versionan NUNCA. Se ignora la carpeta
+# ENTERA, para que agregar un volcado nuevo no obligue a acordarse de esta
+# linea. Los importadores avisan y siguen cuando el archivo no esta, asi que el
+# repositorio publico se sigue instalando sin ellos.
+/database/seeders/data/legacy/
+
 # Los logotipos del sistema viejo (marca de la empresa y sello del organismo
 # acreditador) que usa `php artisan report:compare` para reproducir el papel
 # anterior. NO se versionan: este repositorio es público, y ni una marca

@@ -157,6 +157,11 @@ return [
     'instrument'     => 'Instrument',
     'sample_code'    => 'Sample code',
     'date_all'       => 'No date filter: every worksheet is listed, including those from previous years.',
+
+    'range_this_year'  => 'This year',
+    'range_this_month' => 'This month',
+    'range_90_days'    => 'Last 90 days',
+    'range_last_year'  => 'Last year',
     'no_edit_permission' => 'You do not have permission to enter values in this worksheet.',
 
     'configure_columns_hint' => 'Defines the columns of the :test test. The change applies to every worksheet of that test, not just this one.',

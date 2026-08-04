@@ -91,18 +91,26 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         mobile: { role: 'status' },
     },
     {
-        // Quien terminó de cargarla, no quien la revisó: nadie la revisa.
+        // AUDITORÍA, las dos ocultas por omisión.
+        //
+        // "Completada por" salió de la vista por pedido del laboratorio: quien
+        // corrió el ensayo y quien guardó la última fila son la misma persona
+        // salvo en el turno partido, así que la columna repetía al analista en
+        // casi todas las filas. El dato SE SIGUE guardando —es constancia, y
+        // cuando los dos nombres difieren es justo cuando hay que poder verlo—,
+        // solo que ahora hay que encenderla desde el selector de columnas.
         title: t('worksheets.validated_by'),
         dataIndex: ['validator', 'name'],
         key: 'validator',
         width: 190,
         sorter: true,
+        defaultHidden: true,
         mobile: { role: 'meta' },
     },
     {
-        // Auditoría: quién la creó en el sistema. Oculta por omisión — casi
-        // siempre repite al analista, y cuando NO lo repite es justo el caso en
-        // que hay que poder mirarla.
+        // Quién la creó en el sistema, que no es lo mismo que quién corrió el
+        // ensayo. Casi siempre repite al analista; cuando NO lo repite es justo
+        // el caso en que hay que poder mirarla.
         title: t('worksheets.created_by'),
         dataIndex: ['creator', 'name'],
         key: 'creator',

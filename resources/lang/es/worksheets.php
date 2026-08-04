@@ -193,6 +193,15 @@ return [
     'instrument'     => 'Instrumento',
     'sample_code'    => 'Código de la muestra',
     'date_all'       => 'Sin filtro de fecha: se listan todas las hojas, incluidas las de años anteriores.',
+
+    // Los atajos del selector de fechas. Son ATAJOS, no un valor por omisión:
+    // arrancar con "desde el 1 de enero" puesto haría que quien busca una hoja
+    // del año pasado no la encuentre y concluya que se perdió — que es lo que
+    // hacía el sistema anterior con su "últimos tres meses" en silencio.
+    'range_this_year'  => 'Este año',
+    'range_this_month' => 'Este mes',
+    'range_90_days'    => 'Últimos 90 días',
+    'range_last_year'  => 'Año pasado',
     'no_edit_permission' => 'No tiene permiso para cargar valores en esta hoja.',
 
     // El acceso al editor de columnas desde la bancada. Avisa el alcance: lo

@@ -31,6 +31,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import dayjs from 'dayjs';
 import {
     Button, Card, DatePicker, Dropdown, Menu, MenuItem, Select, SelectOptGroup,
     SelectOption, Tag, Tooltip,
@@ -147,6 +148,33 @@ const hasFilters = computed(() => !!(
 
 /** Sin rango no se manda fecha, y sin fecha el servidor no acota nada. */
 const noDateFilter = computed(() => !filters.value.from && !filters.value.to);
+
+/**
+ * Los atajos del selector de fechas.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ ATAJOS, NO UN VALOR POR OMISIÓN                                          │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Arrancar con "desde el 1 de enero" puesto es cómodo el 95% de las veces y
+ * mentiroso el 5% restante: quien busca por Nº de muestra una hoja del año
+ * pasado no la encuentra, y lo que concluye es que se perdió. Es exactamente
+ * lo que hacía el sistema anterior con su "últimos tres meses" en silencio.
+ *
+ * Con un atajo, el mismo clic deja el listado en el año en curso Y el rango
+ * queda ESCRITO en el campo, así que quien no encuentra algo ve por qué. Y si
+ * alguien quiere que su sesión abra siempre así, guarda la vista con el rango
+ * puesto y la marca como predeterminada: eso ya existe.
+ */
+const datePresets = computed(() => {
+    const hoy = dayjs();
+
+    return [
+        { label: t('worksheets.range_this_year'),  value: [hoy.startOf('year'), hoy] },
+        { label: t('worksheets.range_this_month'), value: [hoy.startOf('month'), hoy] },
+        { label: t('worksheets.range_90_days'),    value: [hoy.subtract(90, 'day'), hoy] },
+        { label: t('worksheets.range_last_year'),  value: [hoy.subtract(1, 'year').startOf('year'), hoy.subtract(1, 'year').endOf('year')] },
+    ];
+});
 
 // ── Filtros avanzados (builder inline contra filterSchema del backend) ───
 const advancedWhere = ref(Array.isArray(props.filters?.advanced_where) ? props.filters.advanced_where : []);
@@ -510,6 +538,7 @@ const onTableChange = (page, _filters, sorter) => {
                         v-model:value="dateRange"
                         value-format="YYYY-MM-DD"
                         class="ws-toolbar__dates"
+                        :presets="datePresets"
                         :placeholder="[$t('global.from'), $t('global.to')]"
                     />
                 </Tooltip>

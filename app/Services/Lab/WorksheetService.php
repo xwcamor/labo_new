@@ -649,6 +649,59 @@ class WorksheetService
     }
 
     /**
+     * Deshace la baja: la hoja vuelve, y con ella todo lo que la baja retiró.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ NO ALCANZA CON RESTAURAR LA FILA                                     │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * `void()` no borra una fila: retira los resultados de la capa consultable,
+     * marca los puntos de la carta de control y devuelve los ensayos a la cola.
+     * Un `restore()` pelado traería la hoja de vuelta al listado con sus
+     * resultados fuera del informe, sus puntos excluidos de la carta y sus
+     * pruebas otra vez pendientes — o sea, una hoja que se ve viva y no lo está.
+     *
+     * El estado anterior NO se guarda en ninguna columna y no hace falta: se
+     * DERIVA. `publishIfComplete()` es la misma puerta por la que la hoja pasó
+     * a validada la primera vez, así que una hoja completa vuelve a validada y
+     * re-materializa sus resultados, y una a medio cargar vuelve a borrador —
+     * que es exactamente lo que era.
+     *
+     * De la carta de control solo se des-marcan los puntos que excluyó ESTA
+     * baja (los que llevan su mismo motivo). Un patrón que Westgard descartó
+     * antes sigue descartado: esa constancia no la puede borrar un "deshacer".
+     */
+    public function unvoid(Worksheet $worksheet): Worksheet
+    {
+        if (! $worksheet->trashed()) {
+            return $worksheet;
+        }
+
+        $motivo = $worksheet->void_reason;
+
+        $worksheet->restore();
+
+        // `validated_at` y `validated_by` NO se tocan: la baja tampoco los tocó,
+        // y quién validó la hoja es constancia, no estado de la pantalla.
+        $worksheet->forceFill([
+            'status'      => Worksheet::STATUS_DRAFT,
+            'void_reason' => null,
+        ])->save();
+
+        if (filled($motivo)) {
+            QcPoint::whereIn('worksheet_row_id', $worksheet->rows()->pluck('id'))
+                ->where('is_excluded', true)
+                ->where('exclusion_reason', $motivo)
+                ->update(['is_excluded' => false, 'exclusion_reason' => null]);
+        }
+
+        // La misma puerta de siempre: si la hoja está completa vuelve a
+        // validada y sus resultados vuelven al informe; si no, queda borrador.
+        $this->publishIfComplete($worksheet->fresh()->load('definition'));
+
+        return $worksheet->fresh();
+    }
+
+    /**
      * Bloquea las hojas que ya cumplieron su antigüedad.
      *
      * ┌──────────────────────────────────────────────────────────────────────┐

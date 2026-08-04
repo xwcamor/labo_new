@@ -221,6 +221,58 @@ class WorksheetIndexTest extends TestCase
         $this->assertCount(1, $props['worksheets']['data']);
     }
 
+    /**
+     * Se ordena por TODAS las columnas del listado, no solo por las que son
+     * columna propia de la hoja. Prueba, analista y validador viven en otra
+     * tabla y entran como subconsulta; los dos recuentos, por el alias que
+     * `withCount` dejó en el SELECT.
+     */
+    public function test_ordena_por_las_columnas_que_viven_en_otra_tabla(): void
+    {
+        // "Número Ácido" antes que "Rigidez Dieléctrica" por nombre de prueba.
+        $conAcidez  = $this->hoja($this->acidez);
+        $conRigidez = $this->hoja($this->rigidez);
+
+        $porPrueba = $this->propsDelIndice(['sort' => 'definition', 'direction' => 'asc']);
+        $this->assertSame(
+            [$conAcidez->id, $conRigidez->id],
+            array_column($porPrueba['worksheets']['data'], 'id'),
+        );
+
+        // Y por analista, alfabético.
+        $ana  = User::factory()->create(['name' => 'Ana Quispe',  'tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $zoe  = User::factory()->create(['name' => 'Zoe Ramirez', 'tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $conAcidez->forceFill(['analyst_id' => $zoe->id])->save();
+        $conRigidez->forceFill(['analyst_id' => $ana->id])->save();
+
+        $porAnalista = $this->propsDelIndice(['sort' => 'analyst', 'direction' => 'asc']);
+        $this->assertSame(
+            [$conRigidez->id, $conAcidez->id],
+            array_column($porAnalista['worksheets']['data'], 'id'),
+        );
+    }
+
+    public function test_ordena_por_la_cantidad_de_filas(): void
+    {
+        $vacia = $this->hoja($this->acidez);
+        $cargada = $this->hoja($this->rigidez);
+
+        foreach ([1, 2, 3] as $posicion) {
+            WorksheetRow::create([
+                'slug' => Str::random(22), 'worksheet_id' => $cargada->id,
+                'kind' => WorksheetRow::KIND_SAMPLE, 'position' => $posicion,
+            ]);
+        }
+
+        $props = $this->propsDelIndice(['sort' => 'rows_count', 'direction' => 'desc']);
+
+        $this->assertSame(
+            [$cargada->id, $vacia->id],
+            array_column($props['worksheets']['data'], 'id'),
+        );
+        $this->assertSame(3, $props['worksheets']['data'][0]['rows_count']);
+    }
+
     // ─── La baja masiva ──────────────────────────────────────────────────
 
     public function test_la_baja_masiva_da_de_baja_las_hojas_con_su_motivo(): void
@@ -319,6 +371,86 @@ class WorksheetIndexTest extends TestCase
             ->assertRedirect();
 
         $this->assertNull(Worksheet::withTrashed()->find($trabada->id)->deleted_at);
+    }
+
+    // ─── Deshacer la última baja ─────────────────────────────────────────
+
+    /**
+     * Deshacer no es un `restore()`: la baja retiró los resultados de la capa
+     * consultable, marcó los puntos de control de calidad y devolvió los
+     * ensayos a la cola. Volver a poner la hoja en el listado sin revertir eso
+     * dejaría una hoja que se ve viva y no lo está.
+     */
+    public function test_deshacer_devuelve_la_hoja_y_lo_que_la_baja_se_llevo(): void
+    {
+        $hoja = $this->hoja($this->acidez);
+        $hoja->forceFill(['status' => Worksheet::STATUS_VALIDATED])->save();
+
+        $this->actingAs($this->usuario())
+            ->delete(route('lab_management.worksheets.destroy', $hoja->slug), [
+                'void_reason' => 'Se cargó en la hoja equivocada',
+            ])
+            ->assertRedirect();
+
+        $this->assertNotNull(Worksheet::withTrashed()->find($hoja->id)->deleted_at);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.undo_last_delete'))
+            ->assertSessionHas('success');
+
+        $devuelta = Worksheet::withTrashed()->find($hoja->id);
+        $this->assertNull($devuelta->deleted_at);
+        // El motivo se va con la baja: la hoja volvió, no quedó "de baja viva".
+        $this->assertNull($devuelta->void_reason);
+        $this->assertNotSame(Worksheet::STATUS_VOIDED, $devuelta->status);
+    }
+
+    public function test_deshacer_alcanza_a_todas_las_de_una_baja_masiva(): void
+    {
+        $this->conPlanQueDesbloqueaBulk();
+        $una = $this->hoja($this->acidez);
+        $otra = $this->hoja($this->rigidez);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.bulk_delete'), [
+                'ids' => [$una->id, $otra->id],
+                'deleted_description' => 'Corrida repetida',
+            ]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.undo_last_delete'))
+            ->assertSessionHas('success');
+
+        foreach ([$una, $otra] as $hoja) {
+            $this->assertNull(Worksheet::withTrashed()->find($hoja->id)->deleted_at);
+        }
+    }
+
+    /** Sin nada que deshacer, lo dice — no finge un éxito. */
+    public function test_deshacer_sin_baja_reciente_avisa(): void
+    {
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.undo_last_delete'))
+            ->assertSessionHas('error');
+    }
+
+    /** Pasada la ventana de 60 segundos, la baja queda firme. */
+    public function test_deshacer_fuera_de_la_ventana_no_revive_nada(): void
+    {
+        $hoja = $this->hoja($this->acidez);
+
+        $this->actingAs($this->usuario())
+            ->delete(route('lab_management.worksheets.destroy', $hoja->slug), [
+                'void_reason' => 'Motivo suficiente',
+            ]);
+
+        $this->travel(2)->minutes();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.undo_last_delete'))
+            ->assertSessionHas('error');
+
+        $this->assertNotNull(Worksheet::withTrashed()->find($hoja->id)->deleted_at);
     }
 
     // ─── Fixtures ────────────────────────────────────────────────────────

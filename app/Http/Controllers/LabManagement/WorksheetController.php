@@ -53,6 +53,18 @@ class WorksheetController extends Controller
     ) {
     }
 
+    /**
+     * Las columnas por las que el listado se deja ordenar.
+     *
+     * Es la LISTA BLANCA: lo que llega de la URL se busca acá y, si no está,
+     * cae al orden por fecha de ensayo. Coincide una a una con las columnas
+     * que la tabla marca como ordenables.
+     */
+    private const ORDENABLES = [
+        'run_date', 'status', 'validated_at', 'created_at',
+        'definition', 'analyst', 'validator', 'rows_count', 'samples_count', 'id',
+    ];
+
     public function index(Request $request)
     {
         $perPage = (int) $request->get('per_page', 25);
@@ -76,9 +88,14 @@ class WorksheetController extends Controller
         // índices, con FilterApplier contra `filterSchema()`.
 
         // El orden, por LISTA BLANCA: lo que llega de la URL no entra al SQL.
-        $ordenables = ['run_date', 'status', 'validated_at', 'id'];
+        //
+        // Se ordena por TODAS las columnas del listado, no solo por las tres que
+        // son columna propia de la hoja. Las otras cuatro salen de una relación
+        // o de un recuento, y por eso van como SUBCONSULTA correlacionada y no
+        // como join: un join a `users` para ordenar por analista multiplicaría
+        // filas y ensuciaría los `withCount` que ya viajan en la consulta.
         $pedido = (string) $request->get('sort', '');
-        $sort = in_array($pedido, $ordenables, true) ? $pedido : 'run_date';
+        $sort = in_array($pedido, self::ORDENABLES, true) ? $pedido : 'run_date';
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
         // `advanced_where` viaja como JSON en la URL y la pantalla lo necesita
@@ -88,9 +105,16 @@ class WorksheetController extends Controller
             $advanced = json_decode($advanced, true) ?: null;
         }
 
+        $pagina = $this->aplicarOrden($query, $sort, $direction)
+            ->orderByDesc('worksheets.id')
+            ->paginate($perPage)->withQueryString();
+
         return Inertia::render('Worksheets/Index', [
-            'worksheets' => $query->orderBy('worksheets.' . $sort, $direction)->orderByDesc('worksheets.id')
-                ->paginate($perPage)->withQueryString(),
+            // `total_unfiltered` alimenta el contador de la franja ("12 de 240
+            // hojas"): sin él la franja no puede decir cuánto recortó el filtro.
+            'worksheets' => array_merge($pagina->toArray(), [
+                'total_unfiltered' => Worksheet::count(),
+            ]),
             'filterSchema' => Worksheet::filterSchema(),
             // Los analistas que EFECTIVAMENTE corrieron alguna hoja. Ofrecer los
             // 40 usuarios del sistema en un desplegable donde 35 no tienen ni
@@ -128,6 +152,38 @@ class WorksheetController extends Controller
                 'delete' => $this->allows('worksheets.delete'),
             ],
         ]);
+    }
+
+    /**
+     * Traduce la columna pedida a un ORDER BY, ya validada contra la lista blanca.
+     *
+     * Las tres primeras son columna propia de la hoja. Las tres siguientes viven
+     * en otra tabla y entran como SUBCONSULTA correlacionada: un join a `users`
+     * para ordenar por analista multiplicaría filas y falsearía los `withCount`.
+     * Los dos recuentos se ordenan por el alias que `withCount` ya dejó en el
+     * SELECT — no se vuelven a calcular.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Worksheet> $query
+     * @return \Illuminate\Database\Eloquent\Builder<Worksheet>
+     */
+    private function aplicarOrden($query, string $sort, string $direction)
+    {
+        return match ($sort) {
+            'definition' => $query->orderBy(
+                TestDefinition::select('name')->whereColumn('test_definitions.id', 'worksheets.test_definition_id'),
+                $direction,
+            ),
+            'analyst' => $query->orderBy(
+                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.analyst_id'),
+                $direction,
+            ),
+            'validator' => $query->orderBy(
+                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.validated_by'),
+                $direction,
+            ),
+            'rows_count', 'samples_count' => $query->orderBy($sort, $direction),
+            default => $query->orderBy('worksheets.' . $sort, $direction),
+        };
     }
 
     public function create(Request $request)
@@ -765,10 +821,66 @@ class WorksheetController extends Controller
         ]);
 
         $this->service->void($worksheet, $data['void_reason']);
+        $this->guardarClaimDeshacer([$worksheet->id]);
 
         return redirect()
             ->route('lab_management.worksheets.index')
-            ->with('success', __('worksheets.deleted'));
+            ->with('success', __('worksheets.deleted'))
+            ->with('recentDelete', ['count' => 1, 'seconds' => self::UNDO_SEGUNDOS]);
+    }
+
+    /**
+     * Deshacer la última baja, dentro de la ventana de 60 segundos.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ NO ES UN `restore()`: ES EL INVERSO DE LA BAJA                       │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Dar de baja una hoja retira sus resultados de la capa consultable, marca
+     * sus puntos de control de calidad y devuelve sus ensayos a la cola. Volver
+     * a ponerla en el listado sin deshacer eso dejaría una hoja que se ve viva
+     * y no lo está. Lo revierte `WorksheetService::unvoid()`, entero.
+     *
+     * El claim vive en la sesión y trae los ids: solo se deshace lo que ESTE
+     * usuario acaba de dar de baja, y solo mientras la ventana esté abierta.
+     */
+    public function undoLastDelete(Request $request): RedirectResponse
+    {
+        $claim = session('worksheets.recent_delete');
+
+        if (! is_array($claim) || empty($claim['ids']) || empty($claim['expires_at'])
+            || now()->isAfter($claim['expires_at'])) {
+            session()->forget('worksheets.recent_delete');
+
+            return back()->with('error', __('global.undo_failed'));
+        }
+
+        session()->forget('worksheets.recent_delete');
+
+        // `withTrashed` + el scope de workspace del modelo: un id de otra
+        // empresa metido en la sesión no encuentra fila que restaurar.
+        $hojas = Worksheet::onlyTrashed()->whereIn('id', $claim['ids'])->get();
+
+        foreach ($hojas as $hoja) {
+            $this->service->unvoid($hoja);
+        }
+
+        if ($hojas->isEmpty()) {
+            return back()->with('error', __('global.undo_failed'));
+        }
+
+        return back()->with('success', __('global.undo_done'));
+    }
+
+    /** La ventana para arrepentirse, en segundos. */
+    private const UNDO_SEGUNDOS = 60;
+
+    /** Deja en sesión qué se acaba de dar de baja, por si el usuario se arrepiente. */
+    private function guardarClaimDeshacer(array $ids): void
+    {
+        session(['worksheets.recent_delete' => [
+            'ids'        => array_values($ids),
+            'expires_at' => now()->addSeconds(self::UNDO_SEGUNDOS)->toIso8601String(),
+        ]]);
     }
 
     /**
@@ -797,7 +909,7 @@ class WorksheetController extends Controller
         // simplemente no aparecen.
         $hojas = Worksheet::query()->whereIn('id', $data['ids'])->get();
 
-        $borradas = 0;
+        $borradas = [];
         $saltadasCandado = 0;
         $saltadasEstado = 0;
 
@@ -809,14 +921,14 @@ class WorksheetController extends Controller
 
             try {
                 $this->service->void($hoja, $data['deleted_description']);
-                $borradas++;
+                $borradas[] = $hoja->id;
             } catch (ValidationException) {
                 // Ya estaba dada de baja: su motivo original se conserva.
                 $saltadasEstado++;
             }
         }
 
-        if ($borradas === 0) {
+        if ($borradas === []) {
             return back()->withErrors([
                 'ids' => __('worksheets.bulk_none_deleted', [
                     'locked' => $saltadasCandado,
@@ -825,7 +937,7 @@ class WorksheetController extends Controller
             ]);
         }
 
-        $msg = __('global.deleted_success') . ' (' . $borradas . ')';
+        $msg = __('global.deleted_success') . ' (' . count($borradas) . ')';
         if ($saltadasCandado > 0) {
             $msg .= ' · ' . __('locks.bulk_skipped_locked', ['count' => $saltadasCandado]);
         }
@@ -833,7 +945,14 @@ class WorksheetController extends Controller
             $msg .= ' · ' . __('worksheets.bulk_skipped_voided', ['count' => $saltadasEstado]);
         }
 
-        return back()->with('success', $msg);
+        // Solo las que SE dieron de baja entran al claim: deshacer no puede
+        // revivir una que se saltó por el candado ni tocar una que ya estaba
+        // de baja de antes, con su propio motivo.
+        $this->guardarClaimDeshacer($borradas);
+
+        return back()
+            ->with('success', $msg)
+            ->with('recentDelete', ['count' => count($borradas), 'seconds' => self::UNDO_SEGUNDOS]);
     }
 
     /**

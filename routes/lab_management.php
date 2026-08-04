@@ -287,6 +287,13 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::post('worksheets/bulk_delete', [WorksheetController::class, 'bulkDelete'])->name('worksheets.bulk_delete');
     });
 
+    // Deshacer la última baja (ventana de 60 s). NO lleva `plan_feature`: es el
+    // arrepentimiento de una acción que el plan ya permitió, y cobrarle el plan
+    // dejaría al usuario con la baja hecha y sin forma de volver atrás.
+    Route::middleware('permission:worksheets.delete')->group(function () {
+        Route::post('worksheets/undo_last_delete', [WorksheetController::class, 'undoLastDelete'])->name('worksheets.undo_last_delete');
+    });
+
     /*
     |----------------------------------------------------------------------
     | Recepción de muestras

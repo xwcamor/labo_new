@@ -10,6 +10,12 @@ import { CalendarOutlined, ExperimentOutlined, UserOutlined } from '@ant-design/
  * La estrella abre el listado y las acciones lo cierran, fijas a la derecha: es
  * el mismo esqueleto que el resto de los índices del sistema, y el de bancada
  * era el único que no lo tenía.
+ *
+ * TODAS las columnas de dato se ordenan. El servidor las resuelve por su `key`
+ * (`sorter.columnKey`) contra su lista blanca, incluidas las que viven en otra
+ * tabla —prueba, analista, validador— y los dos recuentos. Antes solo se
+ * ordenaba por fecha y estado, y "las hojas del analista tal, alfabéticas" no
+ * tenía forma.
  */
 export const worksheetsTableColumns = (t, isMobile = false) => [
     // El pin de favoritos. `is_favorite` lo calcula el servidor en la misma
@@ -35,6 +41,7 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         title: t('worksheets.test_definition'),
         dataIndex: ['definition', 'name'],
         key: 'definition',
+        sorter: true,
         mobile: { role: 'title', icon: ExperimentOutlined },
     },
     {
@@ -42,6 +49,7 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         dataIndex: ['analyst', 'name'],
         key: 'analyst',
         width: 200,
+        sorter: true,
         mobile: { role: 'meta', icon: UserOutlined },
     },
     {
@@ -58,6 +66,7 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         key: 'rows_count',
         width: 100,
         align: 'right',
+        sorter: true,
         mobile: { role: 'meta' },
     },
     {
@@ -66,6 +75,7 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         key: 'samples_count',
         width: 110,
         align: 'right',
+        sorter: true,
         mobile: { role: 'meta' },
     },
     {
@@ -73,6 +83,7 @@ export const worksheetsTableColumns = (t, isMobile = false) => [
         dataIndex: ['validator', 'name'],
         key: 'validator',
         width: 190,
+        sorter: true,
         mobile: { role: 'meta' },
     },
     {

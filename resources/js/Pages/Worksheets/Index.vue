@@ -13,28 +13,38 @@
  * letras junto al filtro. Un filtro que no se ve es un filtro que miente.
  *
  * ┌──────────────────────────────────────────────────────────────────────────┐
- * │ EL MISMO ESQUELETO QUE EL RESTO DE LOS ÍNDICES                           │
+ * │ LA FRANJA DE RESULTADOS ES DEL ESTÁNDAR, NO UN ADORNO                    │
  * └──────────────────────────────────────────────────────────────────────────┘
- * Este listado era el único del sistema sin acciones de fila, sin favoritos,
- * sin vistas guardadas, sin filtros avanzados y sin selección múltiple: para
- * editar la cabecera de una hoja había que entrar a la ficha, y para dar de
- * baja cinco hojas había que hacerlo cinco veces. Ahora comparte las piezas
- * comunes (`SavedViews`, `InlineFilterBuilder`, `useModuleFavorites`,
- * `useModuleBulkActions`) con Recepciones, que es la referencia del módulo.
+ * Entre los filtros y la tabla va la franja Fiori (`mi-tabletoolbar`): a la
+ * izquierda CUÁNTAS hojas está mirando —y cuántas hay en total si un filtro
+ * recortó—, a la derecha las herramientas que operan sobre esa lista. Es el
+ * mismo bloque que el índice de Marcas, y este listado era el único que no lo
+ * tenía: sus botones quedaban desperdigados entre la cabecera y los filtros, y
+ * no había forma de saber cuánto se estaba viendo.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ LA FILA NO ES UN ENLACE                                                  │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Se entra a la hoja por el botón Ver o por la fecha, que están para eso. Con
+ * toda la fila navegable, marcar un favorito, tildar una casilla o arrastrar
+ * para copiar un dato terminaba abriendo la hoja.
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
-    Button, Card, DatePicker, Input, Select, SelectOptGroup, SelectOption,
-    Space, Tag, Tooltip,
+    Button, Card, DatePicker, Dropdown, Menu, MenuItem, Select, SelectOptGroup,
+    SelectOption, Space, Tag, Tooltip,
 } from 'ant-design-vue';
 import {
-    ClearOutlined, FilterOutlined, InfoCircleOutlined, PlusOutlined,
-    ProfileOutlined, SaveOutlined, SearchOutlined, StarFilled, StarOutlined,
+    AppstoreOutlined, AudioOutlined, BarsOutlined, ClearOutlined, CloseOutlined,
+    ControlOutlined, FilterOutlined, InfoCircleOutlined, PlusOutlined,
+    ProfileOutlined, SaveOutlined, SearchOutlined, SortAscendingOutlined,
+    SortDescendingOutlined, StarFilled, StarOutlined, TableOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ResponsiveTable from '@/Components/Common/ResponsiveTable.vue';
+import ColumnSelector from '@/Components/Common/ColumnSelector.vue';
 import InlineFilterBuilder from '@/Components/Common/InlineFilterBuilder.vue';
 import SavedViews from '@/Components/Common/SavedViews.vue';
 import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
@@ -42,11 +52,15 @@ import WorksheetsActionsCell from '@/Components/Worksheets/WorksheetsActionsCell
 import WorksheetsBulkBar from '@/Components/Worksheets/WorksheetsBulkBar.vue';
 import WorksheetsBulkDeleteModal from '@/Components/Worksheets/WorksheetsBulkDeleteModal.vue';
 import { useAuth } from '@/Composables/useAuth';
+import { useColumnPreferences } from '@/Composables/useColumnPreferences';
 import { useModuleBulkActions } from '@/Composables/useModuleBulkActions';
 import { useModuleFavorites } from '@/Composables/useModuleFavorites';
+import { useModuleListMeta } from '@/Composables/useModuleListMeta';
 import { useModuleSavedViews } from '@/Composables/useModuleSavedViews';
+import { useModuleUndoToast } from '@/Composables/useModuleUndoToast';
 import { usePlanFeatures } from '@/Composables/usePlanFeatures';
 import { useViewport } from '@/Composables/useViewport';
+import { useVoiceSearch } from '@/Composables/useVoiceSearch';
 import { useI18n } from '@/Plugins/i18n';
 import { groupTests, isGrouped } from '@/Utils/testGroups';
 import { plainDate } from './config/format';
@@ -71,7 +85,8 @@ const { isMobile: isMobileScreen } = useViewport(768);
 const isAdmin = computed(() => hasRole('admin'));
 
 const allColumns = computed(() => worksheetsTableColumns(t, isMobileScreen.value));
-const columns = allColumns;
+const { visibleColumnKeys, columns } = useColumnPreferences(allColumns);
+const colSel = ref(null);
 
 /**
  * Las pruebas del filtro, por grupo (Físico Químico · Cromatografías · Otros).
@@ -101,6 +116,14 @@ const hydrateFilters = (src = {}) => ({
 });
 
 const filters = ref(hydrateFilters(props.filters));
+
+// El buscador de la franja escribe en el MISMO filtro que ya viajaba por la
+// URL: no hay dos búsquedas que puedan contradecirse.
+const quickSearch = computed({
+    get: () => filters.value.sample,
+    set: (v) => { filters.value.sample = v; },
+});
+const { micSupported, listening, startVoiceSearch } = useVoiceSearch(quickSearch);
 
 // El RangePicker necesita [from, to] como un solo valor.
 const dateRange = computed({
@@ -216,11 +239,49 @@ const applyInlineFilters = () => {
 };
 onBeforeUnmount(() => clearTimeout(inlineTimer));
 
-// ── Vistas guardadas ─────────────────────────────────────────────────────
-// Sin selector de columnas en este listado: se persisten todas las keys y el
-// estado guardado queda compatible si algún día se agrega.
-const visibleColumnKeys = ref(worksheetsTableColumns((k) => k).map((c) => c.key));
+// ── La franja: contador de resultados y realce de filas recientes ────────
+const { isHighlighted, counterLabel } = useModuleListMeta({
+    pagination: computed(() => props.worksheets),
+    hasActiveFilters: computed(() => hasFilters.value || activeFilterCount.value > 0),
+    t,
+});
 
+// ── Modo de vista (tabla · tarjetas · lista), recordado por navegador ────
+const VIEW_KEY = 'worksheets.view_mode';
+const viewMode = ref('table');
+onMounted(() => {
+    const guardado = localStorage.getItem(VIEW_KEY);
+    if (guardado === 'cards' || guardado === 'table' || guardado === 'list') viewMode.value = guardado;
+});
+watch(viewMode, (v) => localStorage.setItem(VIEW_KEY, v));
+
+const viewOptions = computed(() => [
+    { value: 'table', label: t('global.view_table'),      icon: TableOutlined },
+    { value: 'list',  label: t('global.view_list_short'), icon: BarsOutlined },
+    { value: 'cards', label: t('global.view_cards'),      icon: AppstoreOutlined },
+]);
+const currentView = computed(() => viewOptions.value.find((o) => o.value === viewMode.value) ?? viewOptions.value[0]);
+const setView = ({ key }) => { viewMode.value = key; };
+
+// ── Orden ────────────────────────────────────────────────────────────────
+// En tabla se ordena por la cabecera. En tarjetas y en móvil no hay cabecera
+// que clickear, así que la franja ofrece el mismo orden como desplegable.
+const sortOptions = computed(() => allColumns.value
+    .filter((c) => c.sorter)
+    .map((c) => ({ value: c.key, label: c.title })));
+const currentSort = computed(() => props.filters.sort ?? 'run_date');
+const currentDir  = computed(() => props.filters.direction ?? 'desc');
+const currentSortLabel = computed(
+    () => sortOptions.value.find((o) => o.value === currentSort.value)?.label ?? t('worksheets.run_date'),
+);
+const setSort = ({ key }) => {
+    // Volver a elegir la misma columna invierte la dirección: es lo que hace
+    // la cabecera de la tabla, y el desplegable no puede decir otra cosa.
+    const direction = key === currentSort.value && currentDir.value === 'desc' ? 'asc' : 'desc';
+    apply({ page: 1, sort: key, direction });
+};
+
+// ── Vistas guardadas ─────────────────────────────────────────────────────
 const applySavedViewState = (clauses, meta) => {
     const data = { ...buildQueryData(), sort: meta.sort, direction: meta.direction, per_page: meta.perPage };
     if (clauses.length > 0) data.advanced_where = JSON.stringify(clauses);
@@ -277,7 +338,13 @@ const {
     rowDisabled:     (r) => !!(r.is_locked ?? r.locked_at),
 });
 
-// ── Paginación y orden ───────────────────────────────────────────────────
+// ── "Eliminado. Deshacer (60 s)" ─────────────────────────────────────────
+// Dar de baja una hoja retira sus resultados del informe, marca sus puntos de
+// control de calidad y devuelve sus ensayos a la cola. Sin este aviso, el
+// error de un clic solo se arreglaba entrando a rehacer la carga entera.
+useModuleUndoToast('lab_management.worksheets.undo_last_delete');
+
+// ── Paginación y orden de la tabla ───────────────────────────────────────
 const pagination = computed(() => ({
     current:  props.worksheets.current_page,
     pageSize: props.worksheets.per_page,
@@ -286,18 +353,19 @@ const pagination = computed(() => ({
     pageSizeOptions: ['10', '25', '50', '100'],
 }));
 
+/**
+ * El orden viaja por la CLAVE de la columna (`columnKey`), no por su
+ * `dataIndex`: las columnas que salen de una relación lo tienen como arreglo
+ * (`['analyst','name']`) y eso no es un nombre que el servidor pueda validar.
+ */
 const onTableChange = (page, _filters, sorter) => {
-    const sort = sorter?.field || props.filters.sort;
+    const sort = sorter?.columnKey || sorter?.field || props.filters.sort;
     const direction = sorter?.order === 'ascend' ? 'asc'
         : sorter?.order === 'descend' ? 'desc'
             : props.filters.direction;
 
     apply({ page: page.current, per_page: page.pageSize, sort, direction });
 };
-
-const openWorksheet = (record) => router.visit(
-    route('lab_management.worksheets.show', record.slug),
-);
 </script>
 
 <template>
@@ -312,49 +380,39 @@ const openWorksheet = (record) => router.visit(
                     <p>{{ $t('worksheets.intro') }}</p>
                 </div>
             </div>
-            <div class="mi-title__actions">
-                <Tooltip v-if="can('worksheets.create')" :title="$t('worksheets.create')">
-                    <Link :href="route('lab_management.worksheets.create')">
-                        <Button type="primary">
-                            <PlusOutlined /> {{ $t('worksheets.create') }}
-                        </Button>
-                    </Link>
-                </Tooltip>
-            </div>
         </div>
 
-        <!-- Vistas rápidas + guardadas, y el interruptor de "solo favoritas"
-             (el estándar de los índices, gateado por plan como en el resto). -->
-        <div v-if="canUsePlanFeature('saved_views')" class="mi-viewsbar ws-viewsbar">
-            <SavedViews
-                ref="savedViewsRef"
-                layout="bar"
-                variant="tabs"
-                module="worksheets"
-                :show-add="false"
-                :current-state="currentViewState"
-                :show-favorites="true"
-                :favorites-active="onlyFavorites"
-                @apply="applySavedState"
-                @default-loaded="applySavedState"
-                @toggle-favorites="toggleOnlyFavorites"
-            />
+        <!-- Vistas rápidas + guardadas, y el interruptor de "solo favoritas". -->
+        <div class="mi-console mi-console--v2">
+            <div v-if="canUsePlanFeature('saved_views')" class="mi-viewsbar">
+                <SavedViews
+                    ref="savedViewsRef"
+                    layout="bar"
+                    variant="tabs"
+                    module="worksheets"
+                    :show-add="false"
+                    :current-state="currentViewState"
+                    :show-favorites="true"
+                    :favorites-active="onlyFavorites"
+                    @apply="applySavedState"
+                    @default-loaded="applySavedState"
+                    @toggle-favorites="toggleOnlyFavorites"
+                />
+            </div>
+
+            <!-- ColumnSelector montado oculto: solo expone open() al engranaje. -->
+            <span class="mi-colsel-host" aria-hidden="true">
+                <ColumnSelector
+                    ref="colSel"
+                    :columns="allColumns"
+                    v-model="visibleColumnKeys"
+                    storage-key="worksheets"
+                />
+            </span>
         </div>
 
         <Card class="ws-filters" :body-style="{ padding: '14px 16px' }">
             <Space :size="10" wrap>
-                <!-- El número de muestra: lo que el cliente cita por teléfono.
-                     Busca contra la COLUMNA de la fila de bancada, no partiendo
-                     el texto. -->
-                <Input
-                    v-model:value="filters.sample"
-                    allow-clear
-                    class="ws-filters__search"
-                    :placeholder="$t('worksheets.search_sample')"
-                >
-                    <template #prefix><SearchOutlined /></template>
-                </Input>
-
                 <Select
                     v-model:value="filters.test_definition"
                     allow-clear
@@ -444,7 +502,47 @@ const openWorksheet = (record) => router.visit(
                     </strong>
                 </Tag>
 
-                <!-- El builder de filtros avanzados (contra filterSchema). -->
+                <Button v-if="hasFilters || activeFilterCount > 0" type="link" @click="clear">
+                    <ClearOutlined /> {{ $t('global.clear_filters') }}
+                </Button>
+            </Space>
+        </Card>
+
+        <!-- Franja Fiori: cuántas hojas a la izquierda, herramientas a la
+             derecha. Va pegada a la tabla porque es de la tabla. -->
+        <div class="mi-tabletoolbar">
+            <div class="mi-tabletoolbar__left">
+                <span class="mi-toolbar-count">{{ counterLabel }}</span>
+            </div>
+            <div class="mi-tabletoolbar__right">
+                <!-- El número de muestra: lo que el cliente cita por teléfono.
+                     Busca contra la COLUMNA de la fila de bancada, no partiendo
+                     el texto. -->
+                <label class="mi-bar mi-bar--toolbar" :class="{ 'is-active': quickSearch }">
+                    <SearchOutlined class="mi-bar__icon" />
+                    <input
+                        v-model="quickSearch"
+                        class="mi-bar__input"
+                        :placeholder="$t('worksheets.search_sample')"
+                        autocomplete="off"
+                        spellcheck="false"
+                        type="text"
+                    />
+                    <button v-if="quickSearch" type="button" class="mi-bar__act" :title="$t('global.clear')" @click="quickSearch = ''">
+                        <CloseOutlined />
+                    </button>
+                    <Tooltip v-if="micSupported" :title="$t('global.voice_search')">
+                        <button
+                            type="button"
+                            class="mi-bar__act mi-bar__mic"
+                            :class="{ 'mi-bar__mic--on': listening }"
+                            @click="startVoiceSearch"
+                        >
+                            <AudioOutlined />
+                        </button>
+                    </Tooltip>
+                </label>
+
                 <Tooltip :title="$t('global.filters')">
                     <Button
                         class="mi-iconbtn"
@@ -456,11 +554,54 @@ const openWorksheet = (record) => router.visit(
                     </Button>
                 </Tooltip>
 
-                <Button v-if="hasFilters || activeFilterCount > 0" type="link" @click="clear">
-                    <ClearOutlined /> {{ $t('global.clear_filters') }}
-                </Button>
-            </Space>
-        </Card>
+                <!-- En tarjetas y en móvil no hay cabecera que clickear: el
+                     mismo orden, como desplegable. -->
+                <span v-if="viewMode !== 'table' || isMobileScreen" class="mi-sortgroup">
+                    <Dropdown :trigger="['click']" placement="bottomRight">
+                        <Tooltip :title="$t('global.sort_by_hint')">
+                            <Button class="sort-btn">
+                                <SortAscendingOutlined v-if="currentDir === 'asc'" />
+                                <SortDescendingOutlined v-else />
+                                <span class="sort-btn__label">{{ $t('global.sort_by') }}: {{ currentSortLabel }}</span>
+                            </Button>
+                        </Tooltip>
+                        <template #overlay>
+                            <Menu :selected-keys="[currentSort]" @click="setSort">
+                                <MenuItem v-for="o in sortOptions" :key="o.value">{{ o.label }}</MenuItem>
+                            </Menu>
+                        </template>
+                    </Dropdown>
+                </span>
+
+                <Tooltip v-if="viewMode === 'table'" :title="$t('global.columns')">
+                    <Button class="mi-iconbtn" @click="colSel?.open()"><ControlOutlined /></Button>
+                </Tooltip>
+
+                <Dropdown :trigger="['click']" placement="bottomRight">
+                    <Tooltip :title="$t('global.view_mode_hint')">
+                        <Button class="sort-btn">
+                            <component :is="currentView.icon" />
+                            <span class="sort-btn__label">{{ $t('global.view_mode') }}: {{ currentView.label }}</span>
+                        </Button>
+                    </Tooltip>
+                    <template #overlay>
+                        <Menu :selected-keys="[viewMode]" @click="setView">
+                            <MenuItem v-for="o in viewOptions" :key="o.value">
+                                <component :is="o.icon" /> {{ o.label }}
+                            </MenuItem>
+                        </Menu>
+                    </template>
+                </Dropdown>
+
+                <Tooltip v-if="can('worksheets.create')" :title="$t('worksheets.create')">
+                    <Link :href="route('lab_management.worksheets.create')">
+                        <Button type="primary" class="mi-iconbtn mi-create-btn" :aria-label="$t('worksheets.create')">
+                            <PlusOutlined />
+                        </Button>
+                    </Link>
+                </Tooltip>
+            </div>
+        </div>
 
         <div v-if="showFilters" class="mi-builder mi-builder--table">
             <InlineFilterBuilder
@@ -482,6 +623,7 @@ const openWorksheet = (record) => router.visit(
         </div>
 
         <Card :body-style="{ padding: 0 }" class="grid-card">
+            <!-- Sin `@row-click`: se entra por Ver o por la fecha. -->
             <ResponsiveTable
                 :columns="columns"
                 :data-source="worksheets.data"
@@ -489,9 +631,10 @@ const openWorksheet = (record) => router.visit(
                 :loading="loading"
                 :row-selection="can('worksheets.delete') ? rowSelection : null"
                 :scroll="{ x: 'max-content' }"
+                :view="viewMode"
+                :row-class-name="(r) => (isHighlighted(r.id) ? 'row-highlight' : '')"
                 row-key="id"
                 @change="onTableChange"
-                @row-click="openWorksheet"
             >
                 <template #empty>
                     <div class="ws-empty">{{ $t('worksheets.empty') }}</div>
@@ -570,9 +713,7 @@ const openWorksheet = (record) => router.visit(
 </template>
 
 <style scoped>
-.ws-viewsbar { margin-bottom: 10px; }
 .ws-filters { margin-bottom: 12px; }
-.ws-filters__search { min-width: 200px; }
 .ws-filters__scope { color: var(--color-text-muted); }
 .ws-filters__scope strong { color: var(--color-text); }
 .ws-link { font-weight: 600; }

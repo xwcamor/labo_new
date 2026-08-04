@@ -119,6 +119,20 @@ class LabTestFieldTypesSeeder extends Seeder
                 $atributos['max_value'] = $spec['max'];
             }
 
+            // OBLIGATORIA o no. El sistema anterior no tenía la noción —todas
+            // sus columnas se podían dejar vacías, y de ahí salieron los ceros
+            // y los huecos del histórico—, así que el importador las trajo
+            // todas opcionales. Lo que decide cuáles son obligatorias es el
+            // laboratorio, y se anota acá.
+            //
+            // Marcar una columna obligatoria NO impide guardar la fila: la hoja
+            // se guarda igual y simplemente no PUBLICA hasta que esté completa
+            // (ver `WorksheetService::publishIfComplete`). El analista mide la
+            // rigidez a la mañana y termina a la tarde.
+            if (array_key_exists('required', $spec)) {
+                $atributos['is_required'] = (bool) $spec['required'];
+            }
+
             if ($atributos === []) {
                 continue;
             }

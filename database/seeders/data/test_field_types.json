@@ -33,6 +33,26 @@
       "  por_que    la evidencia"
     ],
 
+    "numero_acido.bureta_pp_la_01c": {
+      "label": "Bureta",
+      "por_que": "El sistema anterior metía el CÓDIGO DEL EQUIPO en el nombre de la columna ('Bureta PP-LA-01C'). Eso ató la plantilla a una bureta concreta: el día que el laboratorio compre otra, o calibre la que tiene con otro código, el encabezado queda mintiendo y hay que editar la prueba. Cuál bureta se usó es un DATO de cada corrida —lo elige el analista en la celda, de la lista de instrumentos— y por eso el encabezado dice solo qué es la columna."
+    },
+
+    "numero_acido.balanza_pp_la_01c": {
+      "label": "Balanza",
+      "por_que": "Mismo caso que la bureta: el código del equipo salía impreso en el encabezado de la columna en vez de elegirse por fila."
+    },
+
+    "numero_acido.peso_aceite_g": {
+      "required": true,
+      "por_que": "Entra en la fórmula del resultado (mgKOH/g aceite = (V − Vb) × F × 56.1 / peso). Sin el peso no hay número ácido: la fila queda con el resultado en blanco y la hoja no publica. Marcarla obligatoria hace que la pantalla lo diga ANTES, en vez de dejar al analista descubrirlo cuando el resultado no sale."
+    },
+
+    "numero_acido.volumen_gastado_ml": {
+      "required": true,
+      "por_que": "La otra mitad de la misma fórmula: es la titulación. Igual que el peso, sin ella no hay resultado que calcular."
+    },
+
     "color.lec_1": {
       "type": "number", "decimals": 1, "min": 0, "min_exclusive": true,
       "por_que": "Escala ASTM D1500, que empieza en 0.5. El sistema anterior comparaba el color con `.to_f <= límite` y sus criterios eran '0.5 - máximo', '1.0 - máximo', '15 - máximo'."

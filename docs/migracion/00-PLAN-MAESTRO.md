@@ -316,6 +316,11 @@ sistema viejo con los mismos datos históricos.
 
 La fase más larga y la que más depende de decisiones del laboratorio.
 
+> **Desarrollada en [`14-PLAN-MIGRACION-DATOS.md`](14-PLAN-MIGRACION-DATOS.md)**:
+> la frontera real con trapp (quince tablas, no cinco), el orden, el método,
+> las seis trampas que rompen la importación, cómo se demuestra que salió bien
+> y lo que falta decidir. Lo de abajo queda como el enunciado de la fase.
+
 - ETL MySQL → PostgreSQL, seeders idempotentes con volcados versionados
   (mismo patrón que los `Legacy*Seeder` de TRAFODEX).
 - **La transposición**: cada `rem_report_details` de ~250 columnas se convierte

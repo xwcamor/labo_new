@@ -47,6 +47,17 @@ const canUnlock = computed(() => isLocked.value
 
 const lockedBySystem = computed(() => props.record.lock_scope === 'super');
 
+/**
+ * El popup de confirmación se monta en el BODY, no en la celda.
+ *
+ * La columna de acciones va fija a la derecha, y una celda fija de Ant Design
+ * es su propio contexto de apilado con recorte. El popup nacía adentro: se
+ * dibujaba a tamaño completo, la biblioteca lo volvía a medir contra el
+ * recorte y lo reacomodaba, y eso se veía como un cartel que aparece grande y
+ * se achica de golpe. Montado en el body se mide una sola vez.
+ */
+const popupToBody = () => document.body;
+
 const showUrl   = computed(() => route('lab_management.worksheets.show', props.record.slug));
 const editUrl   = computed(() => route('lab_management.worksheets.edit', props.record.slug));
 const deleteUrl = computed(() => route('lab_management.worksheets.delete', props.record.slug));
@@ -107,14 +118,14 @@ const onMenu = ({ key }) => {
                 </Button>
             </Link>
         </Tooltip>
-        <Popconfirm v-if="canLock" :title="t('locks.lock_confirm')" :ok-text="t('locks.lock')" @confirm="doLock">
+        <Popconfirm v-if="canLock" :get-popup-container="popupToBody" :title="t('locks.lock_confirm')" :ok-text="t('locks.lock')" @confirm="doLock">
             <Tooltip :title="t('locks.lock')">
                 <Button type="text" class="row-icon-btn" :aria-label="t('locks.lock')">
                     <LockOutlined />
                 </Button>
             </Tooltip>
         </Popconfirm>
-        <Popconfirm v-if="canUnlock" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
+        <Popconfirm v-if="canUnlock" :get-popup-container="popupToBody" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
             <Tooltip :title="t('locks.unlock')">
                 <Button type="text" class="row-icon-btn" :aria-label="t('locks.unlock')">
                     <UnlockOutlined />
@@ -149,14 +160,14 @@ const onMenu = ({ key }) => {
                 </Button>
             </Link>
         </Tooltip>
-        <Popconfirm v-if="canLock" :title="t('locks.lock_confirm')" :ok-text="t('locks.lock')" @confirm="doLock">
+        <Popconfirm v-if="canLock" :get-popup-container="popupToBody" :title="t('locks.lock_confirm')" :ok-text="t('locks.lock')" @confirm="doLock">
             <Tooltip :title="t('locks.lock')">
                 <Button size="small" type="text" :aria-label="t('locks.lock')">
                     <LockOutlined />
                 </Button>
             </Tooltip>
         </Popconfirm>
-        <Popconfirm v-if="canUnlock" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
+        <Popconfirm v-if="canUnlock" :get-popup-container="popupToBody" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
             <Tooltip :title="t('locks.unlock')">
                 <Button size="small" type="text" :aria-label="t('locks.unlock')">
                     <UnlockOutlined />

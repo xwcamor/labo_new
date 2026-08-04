@@ -80,11 +80,18 @@ class WorksheetIndexTest extends TestCase
         $props = $this->propsDelIndice();
 
         $this->assertCount(2, $props['worksheets']['data']);
-        // El esqueleto del estándar: el esquema del filtro avanzado y la lista
-        // de analistas viajan con la página, no se piden aparte.
+        // El esqueleto del estándar: el esquema del filtro avanzado y los topes
+        // de exportación viajan con la página, no se piden aparte.
         $this->assertNotEmpty($props['filterSchema']);
-        $this->assertArrayHasKey('analysts', $props);
+        $this->assertArrayHasKey('exportLimits', $props);
         $this->assertArrayHasKey('can', $props);
+        // El contador de la franja necesita el total SIN filtrar.
+        $this->assertArrayHasKey('total_unfiltered', $props['worksheets']);
+
+        // El ANALISTA salió del filtro rápido pero no se perdió: vive en el
+        // esquema del filtro avanzado.
+        $claves = array_column($props['filterSchema'], 'key');
+        $this->assertContains('analyst_id', $claves);
     }
 
     public function test_filtra_por_prueba(): void
@@ -453,6 +460,159 @@ class WorksheetIndexTest extends TestCase
         $this->assertNotNull(Worksheet::withTrashed()->find($hoja->id)->deleted_at);
     }
 
+    // ─── La papelera ─────────────────────────────────────────────────────
+
+    public function test_la_papelera_lista_las_hojas_dadas_de_baja_con_su_motivo(): void
+    {
+        $hoja = $this->hoja($this->acidez);
+
+        $this->actingAs($this->usuario())
+            ->delete(route('lab_management.worksheets.destroy', $hoja->slug), [
+                'void_reason' => 'Reactivo vencido',
+            ]);
+
+        $props = $this->actingAs($this->superUsuario())
+            ->get(route('lab_management.worksheets.trash'))
+            ->viewData('page')['props'];
+
+        $this->assertCount(1, $props['worksheets']['data']);
+        $this->assertSame('Reactivo vencido', $props['worksheets']['data'][0]['void_reason']);
+        // Y QUIÉN la dio de baja: la papelera decía por qué desapareció una
+        // hoja pero no de quién fue la decisión.
+        $this->assertNotNull($props['worksheets']['data'][0]['deleter']);
+    }
+
+    public function test_la_papelera_es_solo_del_super(): void
+    {
+        $this->actingAs($this->usuario())
+            ->get(route('lab_management.worksheets.trash'))
+            ->assertRedirect();
+    }
+
+    /**
+     * Restaurar desde la papelera pasa por la MISMA puerta que "deshacer": no
+     * es un `restore()` a secas.
+     */
+    public function test_restaurar_desde_la_papelera_devuelve_la_hoja_entera(): void
+    {
+        $hoja = $this->hoja($this->acidez);
+        $hoja->forceFill(['status' => Worksheet::STATUS_VALIDATED])->save();
+
+        $this->actingAs($this->usuario())
+            ->delete(route('lab_management.worksheets.destroy', $hoja->slug), [
+                'void_reason' => 'Reactivo vencido',
+            ]);
+
+        $this->actingAs($this->superUsuario())
+            ->post(route('lab_management.worksheets.restore', $hoja->slug))
+            ->assertSessionHasNoErrors();
+
+        $devuelta = Worksheet::withTrashed()->find($hoja->id);
+        $this->assertNull($devuelta->deleted_at);
+        $this->assertNull($devuelta->void_reason);
+    }
+
+    /**
+     * NO hay borrado definitivo, y es a propósito: una hoja es la constancia
+     * de un ensayo que respalda informes ya firmados.
+     */
+    public function test_no_existe_borrado_definitivo_de_una_hoja(): void
+    {
+        $this->assertFalse(
+            \Illuminate\Support\Facades\Route::has('lab_management.worksheets.force_delete'),
+        );
+    }
+
+    // ─── La exportación del listado ──────────────────────────────────────
+
+    public function test_exportar_encola_el_trabajo_y_lo_deja_auditado(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->hoja($this->acidez);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.export_csv'), [
+                'scope'   => 'filtered',
+                'columns' => ['run_date', 'definition', 'status'],
+            ])
+            ->assertSessionHas('success');
+
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsCsvJob::class,
+        );
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event'          => 'export_queued',
+            'auditable_type' => Worksheet::class,
+            'module'         => 'worksheets',
+        ]);
+    }
+
+    /**
+     * Las columnas van por lista blanca. Sin eso, un envío armado a mano podría
+     * pedir `columns[]=void_reason` y llevarse en una planilla el motivo de
+     * cada baja.
+     */
+    public function test_exportar_rechaza_una_columna_que_no_esta_permitida(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.export_csv'), [
+                'columns' => ['void_reason'],
+            ])
+            ->assertSessionHasErrors('columns.0');
+
+        \Illuminate\Support\Facades\Queue::assertNothingPushed();
+    }
+
+    /**
+     * `id` y `slug` son identificadores internos: el diálogo se los ofrece
+     * solo al super, y el servidor es el que decide — esconder una casilla no
+     * es una autorización.
+     */
+    public function test_los_identificadores_internos_solo_los_exporta_el_super(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.export_csv'), ['columns' => ['id', 'run_date']])
+            ->assertSessionHasErrors('columns.0');
+
+        $this->actingAs($this->superUsuario())
+            ->post(route('lab_management.worksheets.export_csv'), ['columns' => ['id', 'slug', 'run_date']])
+            ->assertSessionHasNoErrors();
+    }
+
+    /** El CSV escribe lo mismo que la pantalla muestra. */
+    public function test_el_csv_escribe_la_tabla_del_listado(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $hoja = $this->hoja($this->acidez);
+        $hoja->forceFill(['status' => Worksheet::STATUS_VALIDATED])->save();
+
+        $usuario = $this->usuario();
+
+        (new \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsCsvJob($usuario->id, [
+            'scope'   => 'all',
+            'columns' => ['run_date', 'definition', 'status'],
+            'title'   => 'Hojas',
+        ]))->handle();
+
+        $descarga = \App\Models\Download::where('user_id', $usuario->id)->latest('id')->first();
+
+        $this->assertSame('ready', $descarga->status);
+
+        $contenido = \Illuminate\Support\Facades\Storage::disk('local')->get($descarga->path);
+
+        $this->assertStringContainsString('Número Ácido', $contenido);
+        // El estado sale TRADUCIDO, no como la clave interna: es lo que se lee
+        // en la pantalla.
+        $this->assertStringContainsString(__('worksheets.state.validated'), $contenido);
+        $this->assertStringNotContainsString('validated', $contenido);
+    }
+
     // ─── Fixtures ────────────────────────────────────────────────────────
 
     /**
@@ -536,5 +696,20 @@ class WorksheetIndexTest extends TestCase
         $usuario->assignRole($rol);
 
         return $this->cache[$clave] = $usuario;
+    }
+
+    /** El super: la papelera y la restauración son suyas. */
+    private function superUsuario(): User
+    {
+        if (isset($this->cache['super'])) {
+            return $this->cache['super'];
+        }
+
+        $rol = Role::firstOrCreate(['name' => 'super', 'guard_name' => 'web'], ['description' => 'Super']);
+
+        $usuario = User::factory()->create(['tenant_id' => 1, 'country_id' => 1, 'locale_id' => 1]);
+        $usuario->assignRole($rol);
+
+        return $this->cache['super'] = $usuario;
     }
 }

@@ -24,7 +24,7 @@ return [
     'status'          => 'Estado',
     'validated_by'    => 'Validada por',
     'validated_at'    => 'Fecha de validación',
-    'void_reason'     => 'Motivo de anulación',
+    'void_reason'     => 'Motivo de la baja',
     'ambient_temp_c'  => 'Temperatura ambiente',
     'ambient_humidity'=> 'Humedad ambiente',
     // Se imprime en el bloque de condiciones de ensayo del informe.
@@ -208,4 +208,14 @@ return [
     'bulk_cascade_note' => 'La baja retira los resultados de cada hoja de la capa consultable, marca sus puntos de control de calidad y devuelve sus ensayos a la cola. Los valores cargados quedan guardados con el motivo.',
     'bulk_none_deleted' => 'No se dio de baja ninguna hoja: :locked bloqueadas por candado, :voided ya dadas de baja.',
     'bulk_skipped_voided' => ':count ya estaban dadas de baja.',
+
+    // ── Papelera y exportación del listado ───────────────────────────────
+    'restored'        => 'Hoja restaurada. Sus resultados vuelven a informarse.',
+    'trash_title'     => 'Papelera de hojas de trabajo',
+    'trash_intro'     => 'Hojas dadas de baja, con su motivo. Se pueden restaurar: al hacerlo vuelven sus resultados a la capa consultable y sus ensayos al estado que tenían. No hay borrado definitivo — una hoja es la constancia de un ensayo que el laboratorio corrió.',
+    'trash_empty'     => 'No hay hojas dadas de baja.',
+    'trash_search'    => 'Buscar por prueba',
+    'deleted_at'      => 'Fecha de baja',
+    'deleted_by'      => 'Dada de baja por',
+    'export_note'     => 'Sale el listado —qué se corrió, qué día, quién y en qué estado—, no los valores medidos: el resultado de un ensayo se informa por su informe, con firma y código de verificación.',
 ];

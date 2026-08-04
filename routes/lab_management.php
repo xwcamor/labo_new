@@ -221,6 +221,31 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     | el permiso de EDITAR, así que cualquiera que pudiera editar podía validar
     | escribiendo la dirección a mano.
     */
+    // La papelera y la restauración: solo super, como en el resto de los
+    // módulos. VAN ANTES de `worksheets/{worksheet}` o "trash" se leería como
+    // el identificador de una hoja.
+    //
+    // NO hay borrado definitivo: una hoja es la constancia de un ensayo que el
+    // laboratorio corrió, y sus valores respaldan informes ya firmados. Ver el
+    // comentario de `WorksheetController::trash()`.
+    Route::middleware('role:super')->group(function () {
+        Route::get('worksheets/trash',           [WorksheetController::class, 'trash'])->name('worksheets.trash');
+        Route::post('worksheets/{slug}/restore', [WorksheetController::class, 'restore'])->name('worksheets.restore');
+    });
+
+    // Exportación del LISTADO (no de los valores medidos: eso es el informe).
+    // Cada formato con su tope de plan; el CSV va por lotes y no lleva tope.
+    Route::middleware('permission:worksheets.view')->group(function () {
+        Route::middleware(['throttle:5,1', 'plan_feature:export_excel'])
+            ->post('worksheets/export_excel', [WorksheetController::class, 'exportExcel'])->name('worksheets.export_excel');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_pdf'])
+            ->post('worksheets/export_pdf',   [WorksheetController::class, 'exportPdf'])->name('worksheets.export_pdf');
+        Route::middleware(['throttle:5,1', 'plan_feature:export_word'])
+            ->post('worksheets/export_word',  [WorksheetController::class, 'exportWord'])->name('worksheets.export_word');
+        Route::middleware('throttle:5,1')
+            ->post('worksheets/export_csv',   [WorksheetController::class, 'exportCsv'])->name('worksheets.export_csv');
+    });
+
     Route::middleware('permission:worksheets.view')->group(function () {
         Route::get('worksheets',             [WorksheetController::class, 'index'])->name('worksheets.index');
         Route::get('worksheets/create',      [WorksheetController::class, 'create'])->name('worksheets.create');

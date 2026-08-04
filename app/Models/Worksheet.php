@@ -223,12 +223,29 @@ class Worksheet extends Model
     {
         return [
             [
+                // Solo los estados VIVOS. `closed` es heredado y ya no se
+                // produce (hoy se valida en un paso), y `voided` no se lista:
+                // la hoja dada de baja está en la papelera, no en el listado.
+                // Ofrecerlos sería ofrecer dos filtros que devuelven vacío.
                 'key' => 'status', 'label' => __('worksheets.status'), 'type' => 'enum',
                 'operators' => ['=', '!=', 'in'],
                 'options'   => array_map(fn ($s) => [
                     'value' => $s,
                     'label' => __('worksheets.state.' . $s),
-                ], self::STATUSES),
+                ], [self::STATUS_DRAFT, self::STATUS_VALIDATED]),
+            ],
+            [
+                // El analista salió del filtro rápido (pedido del laboratorio:
+                // la franja se estaba llenando de desplegables) pero NO se
+                // perdió: vive acá, con los analistas que TIENEN hojas.
+                'key' => 'analyst_id', 'label' => __('worksheets.analyst'), 'type' => 'enum',
+                'operators' => ['=', '!=', 'in'],
+                'options'   => User::query()
+                    ->whereIn('id', static::query()->whereNotNull('analyst_id')->distinct()->pluck('analyst_id'))
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn ($u) => ['value' => $u->id, 'label' => $u->name])
+                    ->all(),
             ],
             ['key' => 'run_date',         'label' => __('worksheets.run_date'),         'type' => 'date',   'operators' => ['=', '>', '<', '>=', '<=']],
             ['key' => 'validated_at',     'label' => __('worksheets.validated_at'),     'type' => 'date',   'operators' => ['>', '<', '>=', '<=']],

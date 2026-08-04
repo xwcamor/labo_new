@@ -115,13 +115,10 @@ class WorksheetController extends Controller
             'worksheets' => array_merge($pagina->toArray(), [
                 'total_unfiltered' => Worksheet::count(),
             ]),
+            // El esquema del filtro avanzado. El ANALISTA vive ahí (con los que
+            // efectivamente corrieron alguna hoja) desde que salió del filtro
+            // rápido: la franja se estaba llenando de desplegables.
             'filterSchema' => Worksheet::filterSchema(),
-            // Los analistas que EFECTIVAMENTE corrieron alguna hoja. Ofrecer los
-            // 40 usuarios del sistema en un desplegable donde 35 no tienen ni
-            // una hoja es ofrecer 35 filtros que devuelven vacío.
-            'analysts'   => \App\Models\User::query()
-                ->whereIn('id', Worksheet::query()->whereNotNull('analyst_id')->distinct()->pluck('analyst_id'))
-                ->orderBy('name')->get(['id', 'name']),
             'tests'      => TestDefinition::where('is_active', true)
                 // Con su grupo, para ofrecerlas agrupadas (Físico Químico ·
                 // Cromatografías · Otros): son 29 y en lista plana no se
@@ -130,7 +127,9 @@ class WorksheetController extends Controller
                 // grupo llegaría nulo en todas.
                 ->with('group:id,name,sort_order')
                 ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name', 'test_group_id']),
-            'statuses'   => Worksheet::STATUSES,
+            // Topes de exportación por formato: el diálogo deshabilita el
+            // formato que no entra, en vez de dejar pedir y fallar después.
+            'exportLimits' => \App\Models\Setting::getExportLimits('worksheets'),
             'filters'    => array_merge(
                 $request->only([
                     'test_definition', 'status', 'from', 'to', 'analyst', 'sample',
@@ -869,6 +868,232 @@ class WorksheetController extends Controller
         }
 
         return back()->with('success', __('global.undo_done'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | La papelera
+    |--------------------------------------------------------------------------
+    | Las hojas dadas de baja, con su motivo y quién.
+    |
+    | ┌──────────────────────────────────────────────────────────────────────┐
+    | │ NO HAY BORRADO DEFINITIVO, Y ES A PROPÓSITO                          │
+    | └──────────────────────────────────────────────────────────────────────┘
+    | El resto de los módulos ofrece "eliminar para siempre" desde la papelera.
+    | Acá no. Una hoja de trabajo es la constancia de un ensayo que el
+    | laboratorio corrió: sus valores crudos son lo que respalda un informe que
+    | ya salió firmado, y ante una auditoría hay que poder mostrarlos. Dar de
+    | baja la saca de circulación —sus resultados dejan de informarse— y con
+    | eso alcanza. Un botón que destruya la fila sería un botón para borrar
+    | evidencia.
+    */
+    public function trash(Request $request)
+    {
+        abort_unless($request->user()?->hasRole('super'), 403);
+
+        $perPage = (int) $request->get('per_page', 25);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
+
+        $buscado = trim((string) $request->get('search', ''));
+
+        $hojas = Worksheet::onlyTrashed()
+            ->with(['definition:id,name', 'analyst:id,name', 'deleter:id,name'])
+            ->withCount([
+                'rows',
+                'rows as samples_count' => fn ($q) => $q->where('kind', WorksheetRow::KIND_SAMPLE),
+            ])
+            // Se busca por el NOMBRE DE LA PRUEBA: es lo único que identifica
+            // una hoja de un vistazo (no tiene código propio).
+            ->when($buscado !== '', fn ($q) => $q->whereHas(
+                'definition',
+                fn ($d) => $d->where('name', 'like', "%{$buscado}%"),
+            ))
+            ->orderByDesc('deleted_at')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return Inertia::render('Worksheets/Trash', [
+            'worksheets' => $hojas,
+            'filters'    => ['search' => $buscado, 'per_page' => $perPage],
+        ]);
+    }
+
+    /**
+     * Restaurar desde la papelera: la misma puerta que "deshacer".
+     *
+     * No es un `restore()` a secas — ver `WorksheetService::unvoid()`.
+     */
+    public function restore(Request $request, string $slug): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole('super'), 403);
+
+        $hoja = Worksheet::onlyTrashed()->where('slug', $slug)->firstOrFail();
+
+        $this->service->unvoid($hoja);
+
+        return back()->with('success', __('worksheets.restored'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exportar el listado
+    |--------------------------------------------------------------------------
+    | Sale la MISMA tabla que se está mirando: qué se corrió, qué día, quién, en
+    | qué estado y con cuántas muestras. Los valores medidos NO salen por acá:
+    | el resultado de un ensayo se informa por su informe, que lleva firma,
+    | código de verificación y límites de norma. Una planilla suelta con los
+    | números crudos y sin nada de eso es justo lo que el laboratorio no puede
+    | mandarle a un cliente.
+    */
+    public function exportCsv(Request $request): RedirectResponse
+    {
+        return $this->dispatchExport($request, 'csv', \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsCsvJob::class);
+    }
+
+    public function exportExcel(Request $request): RedirectResponse
+    {
+        return $this->dispatchExport($request, 'excel', \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsExcelJob::class);
+    }
+
+    public function exportPdf(Request $request): RedirectResponse
+    {
+        return $this->dispatchExport($request, 'pdf', \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsPdfJob::class);
+    }
+
+    public function exportWord(Request $request): RedirectResponse
+    {
+        return $this->dispatchExport($request, 'word', \App\Jobs\LabManagement\Worksheets\GenerateWorksheetsWordJob::class);
+    }
+
+    /** Validar → comprobar el tope → auditar → encolar. */
+    private function dispatchExport(Request $request, string $formato, string $job): RedirectResponse
+    {
+        $opciones = $this->buildExportOptions($request, $formato);
+
+        $this->assertExportLimit($formato, $opciones);
+        $this->recordExportAudit($formato, $opciones);
+
+        $job::dispatch(auth()->id(), $opciones);
+
+        return back()->with('success', __('global.download_in_queue'));
+    }
+
+    /**
+     * Qué se exporta, ya validado.
+     *
+     * Las columnas van por LISTA BLANCA: sin eso, un envío armado a mano podría
+     * pedir `columns[]=void_reason` y llevarse en una planilla el motivo de
+     * cada baja.
+     *
+     * @return array<string,mixed>
+     */
+    private function buildExportOptions(Request $request, string $formato): array
+    {
+        $permitidas = [
+            'run_date', 'definition', 'analyst', 'status', 'rows_count',
+            'samples_count', 'validator', 'validated_at',
+            'ambient_temp_c', 'ambient_humidity', 'lab_pressure_hpa',
+            'notes', 'created_at', 'creator',
+        ];
+
+        // `id` y `slug` son identificadores internos: solo el super se los
+        // lleva. El diálogo ya los ofrece solo a él, pero esto es lo que
+        // decide — esconder una casilla no es una autorización.
+        if ($request->user()?->hasRole('super')) {
+            $permitidas = array_merge(['id', 'slug'], $permitidas);
+        }
+
+        $reglas = [
+            'scope'                   => 'nullable|in:filtered,selected,all',
+            'selected_ids'            => 'array',
+            'selected_ids.*'          => 'integer',
+            'columns'                 => 'array|min:1',
+            'columns.*'               => 'in:' . implode(',', $permitidas),
+            'title'                   => 'nullable|string|max:120',
+            'include_filters_summary' => 'boolean',
+            'filters'                 => 'array',
+        ];
+        if ($formato === 'pdf') {
+            $reglas['orientation'] = 'nullable|in:portrait,landscape';
+            $reglas['paper_size']  = 'nullable|in:a4,letter';
+        }
+        if ($formato === 'excel') {
+            $reglas['autofilter']    = 'boolean';
+            $reglas['freeze_header'] = 'boolean';
+        }
+
+        $datos = $request->validate($reglas);
+
+        return [
+            'scope'                   => $datos['scope'] ?? 'filtered',
+            'selected_ids'            => $datos['selected_ids'] ?? [],
+            'columns'                 => $datos['columns'] ?? array_slice($permitidas, 0, 7),
+            'title'                   => $datos['title'] ?? __('worksheets.title'),
+            'include_filters_summary' => $datos['include_filters_summary'] ?? true,
+            'filters'                 => $datos['filters'] ?? [],
+            // Apaisado por omisión: son siete columnas y en vertical se apiñan.
+            'orientation'             => $datos['orientation'] ?? 'landscape',
+            'paper_size'              => $datos['paper_size'] ?? 'a4',
+            'autofilter'              => $datos['autofilter'] ?? true,
+            'freeze_header'           => $datos['freeze_header'] ?? true,
+        ];
+    }
+
+    /** El tope por formato del plan. El CSV va por lotes y no lleva tope. */
+    private function assertExportLimit(string $formato, array $opciones): void
+    {
+        if (\App\Support\FeatureGate::allows('export_unlimited_rows', auth()->user())
+            && config('features.features.export_unlimited_rows') !== null) {
+            return;
+        }
+
+        $tope = \App\Models\Setting::getExportLimit('worksheets', $formato);
+        if ($tope === 0) {
+            return;
+        }
+
+        $cuantas = match ($opciones['scope']) {
+            'selected' => count($opciones['selected_ids']),
+            'all'      => Worksheet::query()->count(),
+            default    => Worksheet::query()->filter(new Request($opciones['filters']))->count(),
+        };
+
+        abort_if($cuantas > $tope, 422, __('global.export_limit_exceeded', [
+            'count'  => number_format($cuantas),
+            'limit'  => number_format($tope),
+            'format' => strtoupper($formato),
+        ]));
+    }
+
+    /**
+     * Deja constancia de la INTENCIÓN de exportar.
+     *
+     * El estado final (listo, fallado) vive en `downloads`; esto registra quién
+     * pidió llevarse qué y con qué recorte, que es lo que una auditoría
+     * pregunta.
+     */
+    private function recordExportAudit(string $formato, array $opciones): void
+    {
+        \App\Models\AuditLog::create([
+            'user_id'        => auth()->id(),
+            'event'          => 'export_queued',
+            'auditable_type' => Worksheet::class,
+            'auditable_id'   => null,
+            'module'         => 'worksheets',
+            'old_values'     => null,
+            'new_values'     => [
+                'format'             => $formato,
+                'scope'              => $opciones['scope'],
+                'columns'            => $opciones['columns'],
+                'title'              => $opciones['title'],
+                'filters'            => $opciones['filters'],
+                'selected_ids_count' => count($opciones['selected_ids']),
+            ],
+            'url'        => route('lab_management.worksheets.index'),
+            'ip_address' => request()?->ip(),
+            'user_agent' => substr((string) request()?->userAgent(), 0, 500),
+            'created_at' => now(),
+        ]);
     }
 
     /** La ventana para arrepentirse, en segundos. */

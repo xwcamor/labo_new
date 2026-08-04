@@ -33,18 +33,20 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Button, Card, DatePicker, Dropdown, Menu, MenuItem, Select, SelectOptGroup,
-    SelectOption, Space, Tag, Tooltip,
+    SelectOption, Tooltip,
 } from 'ant-design-vue';
 import {
     AppstoreOutlined, AudioOutlined, BarsOutlined, ClearOutlined, CloseOutlined,
-    ControlOutlined, FilterOutlined, InfoCircleOutlined, PlusOutlined,
-    ProfileOutlined, SaveOutlined, SearchOutlined, SortAscendingOutlined,
-    SortDescendingOutlined, StarFilled, StarOutlined, TableOutlined,
+    ControlOutlined, DeleteOutlined, DownloadOutlined, FilterOutlined,
+    PlusOutlined, ProfileOutlined, SaveOutlined, SearchOutlined,
+    SettingOutlined, SortAscendingOutlined, SortDescendingOutlined, StarFilled,
+    StarOutlined, TableOutlined,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ResponsiveTable from '@/Components/Common/ResponsiveTable.vue';
 import ColumnSelector from '@/Components/Common/ColumnSelector.vue';
+import ExportDialog from '@/Components/Common/ExportDialog.vue';
 import InlineFilterBuilder from '@/Components/Common/InlineFilterBuilder.vue';
 import SavedViews from '@/Components/Common/SavedViews.vue';
 import WorksheetStatusTag from '@/Components/Worksheets/WorksheetStatusTag.vue';
@@ -65,16 +67,16 @@ import { useI18n } from '@/Plugins/i18n';
 import { groupTests, isGrouped } from '@/Utils/testGroups';
 import { plainDate } from './config/format';
 import { worksheetsTableColumns } from './config/columns';
+import { worksheetsExportableColumns, worksheetsExportEndpoints } from './config/exports';
 
 defineOptions({ layout: AppLayout });
 
 const props = defineProps({
     worksheets:   { type: Object, required: true },
     tests:        { type: Array,  default: () => [] },
-    analysts:     { type: Array,  default: () => [] },
-    statuses:     { type: Array,  default: () => [] },
     filters:      { type: Object, default: () => ({}) },
     filterSchema: { type: Array,  default: () => [] },
+    exportLimits: { type: Object, default: () => ({}) },
 });
 
 const { t } = useI18n();
@@ -338,6 +340,18 @@ const {
     rowDisabled:     (r) => !!(r.is_locked ?? r.locked_at),
 });
 
+// ── Descarga del listado ─────────────────────────────────────────────────
+// Sale la tabla que se está mirando, no los valores medidos: el resultado de
+// un ensayo se informa por su informe, con firma y código de verificación.
+const exportOpen = ref(false);
+const exportableColumns = computed(() => worksheetsExportableColumns(t));
+const exportEndpoints = computed(() => worksheetsExportEndpoints());
+const filtersSummary = computed(() => [
+    filters.value.test_definition && props.tests.find((x) => x.slug === filters.value.test_definition)?.name,
+    filters.value.sample && `${t('worksheets.sample_code')}: ${filters.value.sample}`,
+    (filters.value.from || filters.value.to) && `${t('worksheets.run_date')}: ${filters.value.from ?? '…'} → ${filters.value.to ?? '…'}`,
+].filter(Boolean).join(' · '));
+
 // ── "Eliminado. Deshacer (60 s)" ─────────────────────────────────────────
 // Dar de baja una hoja retira sus resultados del informe, marca sus puntos de
 // control de calidad y devuelve sus ensayos a la cola. Sin este aviso, el
@@ -411,106 +425,15 @@ const onTableChange = (page, _filters, sorter) => {
             </span>
         </div>
 
-        <Card class="ws-filters" :body-style="{ padding: '14px 16px' }">
-            <Space :size="10" wrap>
-                <Select
-                    v-model:value="filters.test_definition"
-                    allow-clear
-                    show-search
-                    option-filter-prop="label"
-                    style="min-width: 220px"
-                    :placeholder="$t('worksheets.test_definition')"
-                >
-                    <!-- Agrupadas por familia de ensayo. La búsqueda sigue
-                         filtrando por el nombre de la prueba: el encabezado
-                         ordena la lectura, no obliga a elegir grupo primero. -->
-                    <template v-if="showGroups">
-                        <SelectOptGroup v-for="group in testGroups" :key="group.key" :label="group.label">
-                            <SelectOption
-                                v-for="test in group.tests"
-                                :key="test.slug"
-                                :value="test.slug"
-                                :label="test.name"
-                            >
-                                {{ test.name }}
-                            </SelectOption>
-                        </SelectOptGroup>
-                    </template>
-
-                    <template v-else>
-                        <SelectOption
-                            v-for="test in tests"
-                            :key="test.slug"
-                            :value="test.slug"
-                            :label="test.name"
-                        >
-                            {{ test.name }}
-                        </SelectOption>
-                    </template>
-                </Select>
-
-                <Select
-                    v-model:value="filters.status"
-                    allow-clear
-                    style="min-width: 180px"
-                    :placeholder="$t('worksheets.status')"
-                >
-                    <SelectOption v-for="status in statuses" :key="status" :value="status">
-                        {{ $t(`worksheets.state.${status}`) }}
-                    </SelectOption>
-                </Select>
-
-                <!-- Por analista: es la pregunta "qué corrí yo esta semana", y
-                     era la única de las tres columnas que no se podía filtrar.
-                     La lista son los analistas QUE TIENEN hojas, no el padrón
-                     entero de usuarios. -->
-                <Select
-                    v-model:value="filters.analyst"
-                    allow-clear
-                    show-search
-                    option-filter-prop="label"
-                    style="min-width: 200px"
-                    :placeholder="$t('worksheets.analyst_filter')"
-                >
-                    <SelectOption
-                        v-for="user in analysts"
-                        :key="user.id"
-                        :value="user.id"
-                        :label="user.name"
-                    >
-                        {{ user.name }}
-                    </SelectOption>
-                </Select>
-
-                <DatePicker.RangePicker
-                    v-model:value="dateRange"
-                    value-format="YYYY-MM-DD"
-                    style="min-width: 260px"
-                    :placeholder="[$t('global.from'), $t('global.to')]"
-                />
-
-                <!-- El estado del filtro de fecha, escrito. Sin rango se listan
-                     TODAS las fechas: no hay ningún recorte por detrás. -->
-                <Tag :bordered="false" class="ws-filters__scope">
-                    <InfoCircleOutlined />
-                    {{ $t('worksheets.run_date') }}:
-                    <strong v-if="noDateFilter">{{ $t('global.all') }}</strong>
-                    <strong v-else>
-                        {{ plainDate(filters.from) || $t('global.all') }}
-                        —
-                        {{ plainDate(filters.to) || $t('global.all') }}
-                    </strong>
-                </Tag>
-
-                <Button v-if="hasFilters || activeFilterCount > 0" type="link" @click="clear">
-                    <ClearOutlined /> {{ $t('global.clear_filters') }}
-                </Button>
-            </Space>
-        </Card>
-
         <!-- Franja Fiori: cuántas hojas a la izquierda, herramientas a la
-             derecha. Va pegada a la tabla porque es de la tabla. -->
-        <div class="mi-tabletoolbar">
+             derecha. Va pegada a la tabla porque es de la tabla.
+
+             Los TRES filtros que se usan todos los días —el número de muestra,
+             la prueba y el rango de fechas— viven acá, junto al buscador. El
+             estado y el analista se fueron al filtro avanzado: eran dos
+             desplegables más en una fila que ya no entraba, y de los dos, uno
+             solo tiene dos valores posibles. -->
+        <div class="mi-tabletoolbar ws-toolbar">
             <div class="mi-tabletoolbar__left">
                 <span class="mi-toolbar-count">{{ counterLabel }}</span>
             </div>
@@ -543,6 +466,54 @@ const onTableChange = (page, _filters, sorter) => {
                     </Tooltip>
                 </label>
 
+                <!-- La prueba, agrupada por familia de ensayo. La búsqueda
+                     sigue filtrando por el nombre: el encabezado ordena la
+                     lectura, no obliga a elegir grupo primero. -->
+                <Select
+                    v-model:value="filters.test_definition"
+                    allow-clear
+                    show-search
+                    option-filter-prop="label"
+                    class="ws-toolbar__test"
+                    :placeholder="$t('worksheets.test_definition')"
+                >
+                    <template v-if="showGroups">
+                        <SelectOptGroup v-for="group in testGroups" :key="group.key" :label="group.label">
+                            <SelectOption
+                                v-for="test in group.tests"
+                                :key="test.slug"
+                                :value="test.slug"
+                                :label="test.name"
+                            >
+                                {{ test.name }}
+                            </SelectOption>
+                        </SelectOptGroup>
+                    </template>
+
+                    <template v-else>
+                        <SelectOption
+                            v-for="test in tests"
+                            :key="test.slug"
+                            :value="test.slug"
+                            :label="test.name"
+                        >
+                            {{ test.name }}
+                        </SelectOption>
+                    </template>
+                </Select>
+
+                <!-- El rango vacío significa TODAS las fechas, y el texto de
+                     ayuda lo dice: el sistema viejo recortaba a tres meses en
+                     silencio. -->
+                <Tooltip :title="noDateFilter ? $t('worksheets.date_all') : ''">
+                    <DatePicker.RangePicker
+                        v-model:value="dateRange"
+                        value-format="YYYY-MM-DD"
+                        class="ws-toolbar__dates"
+                        :placeholder="[$t('global.from'), $t('global.to')]"
+                    />
+                </Tooltip>
+
                 <Tooltip :title="$t('global.filters')">
                     <Button
                         class="mi-iconbtn"
@@ -552,6 +523,10 @@ const onTableChange = (page, _filters, sorter) => {
                         <FilterOutlined />
                         <span v-if="activeFilterCount > 0" class="mi-iconbtn__count">{{ activeFilterCount }}</span>
                     </Button>
+                </Tooltip>
+
+                <Tooltip v-if="hasFilters || activeFilterCount > 0" :title="$t('global.clear_filters')">
+                    <Button class="mi-iconbtn" @click="clear"><ClearOutlined /></Button>
                 </Tooltip>
 
                 <!-- En tarjetas y en móvil no hay cabecera que clickear: el
@@ -576,6 +551,26 @@ const onTableChange = (page, _filters, sorter) => {
                 <Tooltip v-if="viewMode === 'table'" :title="$t('global.columns')">
                     <Button class="mi-iconbtn" @click="colSel?.open()"><ControlOutlined /></Button>
                 </Tooltip>
+
+                <Tooltip :title="$t('global.export_hint')">
+                    <Button class="mi-iconbtn" @click="exportOpen = true"><DownloadOutlined /></Button>
+                </Tooltip>
+
+                <!-- Herramientas: por ahora la papelera y nada más. Este módulo
+                     no tiene importación ni edición en lote — una hoja de
+                     bancada no se carga desde una planilla. -->
+                <Dropdown v-if="isSuper" :trigger="['click']" placement="bottomRight">
+                    <Tooltip :title="$t('global.tools')">
+                        <Button class="mi-iconbtn"><SettingOutlined /></Button>
+                    </Tooltip>
+                    <template #overlay>
+                        <Menu>
+                            <MenuItem key="trash" @click="router.visit(route('lab_management.worksheets.trash'))">
+                                <DeleteOutlined /> {{ $t('global.view_deleted') }}
+                            </MenuItem>
+                        </Menu>
+                    </template>
+                </Dropdown>
 
                 <Dropdown :trigger="['click']" placement="bottomRight">
                     <Tooltip :title="$t('global.view_mode_hint')">
@@ -701,6 +696,20 @@ const onTableChange = (page, _filters, sorter) => {
             @delete="openBulkDelete"
         />
 
+        <ExportDialog
+            v-model:open="exportOpen"
+            :columns="exportableColumns"
+            :selected-ids="selectedRowKeys"
+            :has-filters="hasFilters || activeFilterCount > 0"
+            :filters-summary="filtersSummary"
+            :current-filters="buildQueryData()"
+            :default-title="$t('worksheets.title')"
+            :endpoints="exportEndpoints"
+            :limits="exportLimits"
+            :total-rows="worksheets.total ?? 0"
+            :total-unfiltered="worksheets.total_unfiltered ?? worksheets.total ?? 0"
+        />
+
         <WorksheetsBulkDeleteModal
             v-model:open="bulkOpen"
             v-model:reason="bulkReason"
@@ -713,9 +722,14 @@ const onTableChange = (page, _filters, sorter) => {
 </template>
 
 <style scoped>
-.ws-filters { margin-bottom: 12px; }
-.ws-filters__scope { color: var(--color-text-muted); }
-.ws-filters__scope strong { color: var(--color-text); }
+/* Los dos filtros que viven en la franja. Anchos fijos: la prueba tiene
+   nombres largos ("Resistividad Volumétrica 100°") y sin tope empuja al resto
+   de los botones fuera de la fila. */
+.ws-toolbar__test  { min-width: 210px; max-width: 240px; }
+.ws-toolbar__dates { width: 230px; }
+@media (max-width: 900px) {
+    .ws-toolbar__test, .ws-toolbar__dates { min-width: 0; width: 100%; max-width: none; }
+}
 .ws-link { font-weight: 600; }
 .ws-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 

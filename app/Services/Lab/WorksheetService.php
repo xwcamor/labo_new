@@ -616,9 +616,14 @@ class WorksheetService
             ]);
         }
 
+        // QUIÉN la dio de baja, además del motivo. Faltaba: la papelera decía
+        // por qué desapareció una hoja pero no de quién fue la decisión, que es
+        // justo lo que se pregunta cuando el ensayo hay que rehacerlo.
         $worksheet->forceFill([
-            'status'      => Worksheet::STATUS_VOIDED,
-            'void_reason' => $reason,
+            'status'              => Worksheet::STATUS_VOIDED,
+            'void_reason'         => $reason,
+            'deleted_by'          => auth()->id(),
+            'deleted_description' => $reason,
         ])->save();
 
         // Los resultados SÍ se retiran de la capa consultable: un ensayo dado de
@@ -681,10 +686,14 @@ class WorksheetService
         $worksheet->restore();
 
         // `validated_at` y `validated_by` NO se tocan: la baja tampoco los tocó,
-        // y quién validó la hoja es constancia, no estado de la pantalla.
+        // y quién validó la hoja es constancia, no estado de la pantalla. Lo
+        // que SÍ se limpia es el rastro de la baja: la hoja volvió, así que
+        // decir que sigue "dada de baja por Fulano" sería mentir.
         $worksheet->forceFill([
-            'status'      => Worksheet::STATUS_DRAFT,
-            'void_reason' => null,
+            'status'              => Worksheet::STATUS_DRAFT,
+            'void_reason'         => null,
+            'deleted_by'          => null,
+            'deleted_description' => null,
         ])->save();
 
         if (filled($motivo)) {

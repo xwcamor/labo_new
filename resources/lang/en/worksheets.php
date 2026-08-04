@@ -19,7 +19,7 @@ return [
     'status'          => 'Status',
     'validated_by'    => 'Validated by',
     'validated_at'    => 'Validated at',
-    'void_reason'     => 'Void reason',
+    'void_reason'     => 'Reason for voiding',
     'ambient_temp_c'  => 'Ambient temperature',
     'ambient_humidity'=> 'Ambient humidity',
     // Printed in the report's test-conditions block.
@@ -177,4 +177,14 @@ return [
     'bulk_cascade_note' => 'Voiding pulls each sheet\'s results out of the queryable layer, flags its quality-control points and sends its tests back to the queue. The values entered stay stored along with the reason.',
     'bulk_none_deleted' => 'No worksheet was voided: :locked locked, :voided already voided.',
     'bulk_skipped_voided' => ':count were already voided.',
+
+    // ── Trash and list export ────────────────────────────────────────────
+    'restored'        => 'Worksheet restored. Its results are reported again.',
+    'trash_title'     => 'Worksheet trash',
+    'trash_intro'     => 'Voided worksheets, with their reason. They can be restored: doing so brings their results back to the queryable layer and their tests back to the state they had. There is no permanent delete — a worksheet is the record of a test the laboratory ran.',
+    'trash_empty'     => 'No voided worksheets.',
+    'trash_search'    => 'Search by test',
+    'deleted_at'      => 'Voided on',
+    'deleted_by'      => 'Voided by',
+    'export_note'     => 'What comes out is the list —what was run, on what day, by whom and in what state—, not the measured values: a test result is reported through its report, with signature and verification code.',
 ];

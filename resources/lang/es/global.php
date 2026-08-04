@@ -445,4 +445,5 @@ return [
     // Cada pantalla debería pasar su propia clave —"3 pruebas pedidas" dice más
     // que "3 elementos"—; esta es la que se usa si no pasa ninguna.
     'n_items' => '{0} Sin elementos|{1} 1 elemento|[2,*] :count elementos',
+    'export_limit_exceeded' => 'La exportación en :format supera el límite (:count filas contra :limit como máximo). Use CSV para conjuntos grandes: va por lotes y no tiene tope.',
 ];

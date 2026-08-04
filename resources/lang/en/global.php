@@ -436,4 +436,5 @@ return [
     ],
 
     'n_items' => '{0} No items|{1} 1 item|[2,*] :count items',
+    'export_limit_exceeded' => 'The :format export exceeds the limit (:count rows against a maximum of :limit). Use CSV for large sets: it streams in batches and has no cap.',
 ];

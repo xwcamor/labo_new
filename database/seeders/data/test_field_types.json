@@ -113,6 +113,11 @@
       "por_que": "La otra mitad de la misma fórmula: es la titulación. Igual que el peso, sin ella no hay resultado que calcular."
     },
 
+    "numero_acido.resultado_mgkohg_aceite": {
+      "required": true,
+      "por_que": "Pedido del laboratorio. Es una columna CALCULADA, así que marcarla obligatoria no le pide nada al analista: lo que hace es que la hoja no publique si el resultado quedó en blanco. Con el peso y el volumen ya obligatorios eso casi no debería pasar, pero 'casi' no alcanza — si la fórmula no resuelve (un cero en el peso, una fila vieja guardada antes de que existiera el cálculo), la fila entraría al informe sin número ácido. Con esto la hoja lo reclama antes."
+    },
+
     "color.lec_1": {
       "type": "number", "decimals": 1, "min": 0, "min_exclusive": true,
       "por_que": "Escala ASTM D1500, que empieza en 0.5. El sistema anterior comparaba el color con `.to_f <= límite` y sus criterios eran '0.5 - máximo', '1.0 - máximo', '15 - máximo'."
@@ -177,7 +182,7 @@
 
     "viscocidad.termometro_pp_la_01c": {
       "type": "instrument",
-      "por_que": "En el sistema anterior era una Selección (tipo 3), igual que en Tensión Interfacial, pero su lista de opciones nunca se cargó: el analista abría un desplegable vacío. Como lo que se elige es un termómetro del laboratorio, la lista sale del catálogo de instrumentos y no de opciones sueltas por columna."
+      "por_que": "En el sistema anterior era TEXTO LIBRE (volcado de producción, sub_detail 113 tipo 1), a diferencia de Tensión Interfacial donde la misma etiqueta sí era una lista. OJO: el `db/seeds.rb` del repo Rails dice que era Selección; ese archivo es la semilla de desarrollo y quedó vieja —tiene 156 columnas contra las 208 del volcado—. Lo que manda es el volcado."
     },
     "viscocidad.viscosimetro_na": {
       "type": "instrument",
@@ -185,7 +190,7 @@
     },
     "dbds.no_de_equipo": {
       "type": "instrument",
-      "por_que": "En el sistema anterior era TEXTO LIBRE, y es la única columna de equipo que quedó así. En el resto de las pruebas la misma columna se llama 'Equipo PP-LA-01C' y sale de una lista."
+      "por_que": "En el sistema anterior era TEXTO LIBRE, igual que las dos columnas de equipo de Viscosidad. En el resto de las pruebas la misma columna se llama 'Equipo PP-LA-01C' y sale de una lista. OJO: al no haber lista que importar, esta columna quedó SIN equipos asignados y ofrece el catálogo entero — falta que el laboratorio diga cuáles son los suyos."
     },
     "resistividad_volumetrica_25o.tipo_de_equipo": {
       "type": "instrument",

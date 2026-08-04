@@ -22,8 +22,13 @@ return [
     'run_date'        => 'Fecha de ensayo',
     'analyst'         => 'Analista',
     'status'          => 'Estado',
-    'validated_by'    => 'Validada por',
-    'validated_at'    => 'Fecha de validación',
+    // "Completada", no "Validada": la hoja publica sola en cuanto no le falta
+    // ningún dato — nadie la revisa ni la firma. Es quien guardó la última fila
+    // que la dejó completa. Decir que alguien validó lo que no validó es peor
+    // que no decir nada.
+    'validated_by'    => 'Completada por',
+    'validated_at'    => 'Completada el',
+    'created_by'      => 'Registrada por',
     'void_reason'     => 'Motivo de la baja',
     'ambient_temp_c'  => 'Temperatura ambiente',
     'ambient_humidity'=> 'Humedad ambiente',

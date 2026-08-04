@@ -62,7 +62,7 @@ class WorksheetController extends Controller
      */
     private const ORDENABLES = [
         'run_date', 'status', 'validated_at', 'created_at',
-        'definition', 'analyst', 'validator', 'rows_count', 'samples_count', 'id',
+        'definition', 'analyst', 'validator', 'creator', 'rows_count', 'samples_count', 'id',
     ];
 
     public function index(Request $request)
@@ -77,7 +77,14 @@ class WorksheetController extends Controller
             ->select('worksheets.*')
             ->orderByFavoriteFirst(auth()->id())
             ->filter($request)
-            ->with(['definition:id,slug,code,name', 'analyst:id,name', 'validator:id,name', 'locker:id,name'])
+            // `creator` va siempre aunque su columna venga oculta: es un
+            // eager-load más en la MISMA consulta, y cargarlo solo cuando la
+            // columna está encendida obligaría a que el servidor supiera qué
+            // columnas eligió cada usuario en su navegador.
+            ->with([
+                'definition:id,slug,code,name', 'analyst:id,name',
+                'validator:id,name', 'creator:id,name', 'locker:id,name',
+            ])
             ->withCount([
                 'rows',
                 'rows as samples_count' => fn ($q) => $q->where('kind', WorksheetRow::KIND_SAMPLE),
@@ -178,6 +185,10 @@ class WorksheetController extends Controller
             ),
             'validator' => $query->orderBy(
                 \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.validated_by'),
+                $direction,
+            ),
+            'creator' => $query->orderBy(
+                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.created_by'),
                 $direction,
             ),
             'rows_count', 'samples_count' => $query->orderBy($sort, $direction),

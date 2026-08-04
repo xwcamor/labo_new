@@ -33,12 +33,12 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Button, Card, DatePicker, Dropdown, Menu, MenuItem, Select, SelectOptGroup,
-    SelectOption, Tooltip,
+    SelectOption, Tag, Tooltip,
 } from 'ant-design-vue';
 import {
     AppstoreOutlined, AudioOutlined, BarsOutlined, ClearOutlined, CloseOutlined,
     ControlOutlined, DeleteOutlined, DownloadOutlined, FilterOutlined,
-    PlusOutlined, ProfileOutlined, SaveOutlined, SearchOutlined,
+    LockOutlined, PlusOutlined, ProfileOutlined, SaveOutlined, SearchOutlined,
     SettingOutlined, SortAscendingOutlined, SortDescendingOutlined, StarFilled,
     StarOutlined, TableOutlined,
 } from '@ant-design/icons-vue';
@@ -663,12 +663,28 @@ const onTableChange = (page, _filters, sorter) => {
                         {{ record.analyst?.name ?? '—' }}
                     </template>
 
+                    <!-- El estado, y el candado al lado si la hoja está
+                         congelada. El candado ES estado: dice que la hoja ya no
+                         admite cambios. Hasta ahora solo se veía en la columna
+                         de acciones, al otro extremo de la fila. -->
                     <template v-else-if="column.key === 'status'">
                         <WorksheetStatusTag :status="record.status" />
+                        <Tooltip
+                            v-if="record.is_locked ?? record.locked_at"
+                            :title="record.lock_scope === 'super' ? $t('locks.locked_by_super_hint') : $t('locks.locked_hint')"
+                        >
+                            <Tag color="gold" :bordered="false" class="ws-lock">
+                                <LockOutlined /> {{ record.lock_scope === 'super' ? $t('locks.locked_by_super') : $t('locks.locked_tag') }}
+                            </Tag>
+                        </Tooltip>
                     </template>
 
                     <template v-else-if="column.key === 'validator'">
                         {{ record.validator?.name ?? '—' }}
+                    </template>
+
+                    <template v-else-if="column.key === 'creator'">
+                        {{ record.creator?.name ?? '—' }}
                     </template>
 
                     <WorksheetsActionsCell
@@ -731,6 +747,8 @@ const onTableChange = (page, _filters, sorter) => {
     .ws-toolbar__test, .ws-toolbar__dates { min-width: 0; width: 100%; max-width: none; }
 }
 .ws-link { font-weight: 600; }
+/* El candado va pegado al estado, sin separarse en dos bloques. */
+.ws-lock { margin-left: 4px; }
 .ws-empty { padding: 40px 16px; text-align: center; color: var(--color-text-muted); }
 
 /* La estrella de favorito (mismo trato que el resto de los índices). */

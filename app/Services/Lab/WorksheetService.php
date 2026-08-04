@@ -465,9 +465,20 @@ class WorksheetService
             return;
         }
 
+        // QUIÉN la completó, además de cuándo. Faltaba: `validated_by` solo lo
+        // llenaba `validate()`, el paso manual de supervisión que este flujo ya
+        // no usa —la hoja publica sola en cuanto no le falta ningún dato—, así
+        // que la columna quedaba vacía en TODAS las hojas y la pantalla mostraba
+        // un guion donde tenía que haber un nombre.
+        //
+        // Es quien guardó la última fila que dejó la hoja completa. No "validó"
+        // nada: la terminó. Por eso la etiqueta dice "Completada por" y no
+        // "Validada por" — decir que alguien revisó lo que no revisó es peor
+        // que no decir nada.
         $worksheet->forceFill([
             'status'       => Worksheet::STATUS_VALIDATED,
             'validated_at' => $worksheet->validated_at ?? now(),
+            'validated_by' => $worksheet->validated_by ?? auth()->id(),
         ])->save();
 
         // Los patrones alimentan la carta de control, las muestras pasan a la

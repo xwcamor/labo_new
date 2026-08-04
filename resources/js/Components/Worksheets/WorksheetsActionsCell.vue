@@ -13,6 +13,16 @@
  *
  * Esconder el botón es cortesía: la ruta declara `role:super|admin` y el trait
  * vuelve a decidir en el servidor.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ EL CANDADO PUESTO SE VE; PONERLO NO SE ANUNCIA                           │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ * Mismo criterio que la lista de informes: el candado CERRADO va en ámbar
+ * porque es un ESTADO —la hoja está congelada, y eso hay que verlo barriendo la
+ * columna con la vista—, mientras que "bloquear" es una acción disponible como
+ * cualquier otra y va en el gris del resto. Pintar las dos igual haría que una
+ * columna de veinte filas se viera toda encendida y el color dejara de decir
+ * nada.
  */
 import { computed } from 'vue';
 import { Button, Dropdown, Menu, MenuItem, Popconfirm, Space, Tag, Tooltip } from 'ant-design-vue';
@@ -127,7 +137,7 @@ const onMenu = ({ key }) => {
         </Popconfirm>
         <Popconfirm v-if="canUnlock" :get-popup-container="popupToBody" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
             <Tooltip :title="t('locks.unlock')">
-                <Button type="text" class="row-icon-btn" :aria-label="t('locks.unlock')">
+                <Button type="text" class="row-icon-btn row-lock-on" :aria-label="t('locks.unlock')">
                     <UnlockOutlined />
                 </Button>
             </Tooltip>
@@ -169,7 +179,7 @@ const onMenu = ({ key }) => {
         </Popconfirm>
         <Popconfirm v-if="canUnlock" :get-popup-container="popupToBody" :title="t('locks.unlock_confirm')" :ok-text="t('locks.unlock')" @confirm="doUnlock">
             <Tooltip :title="t('locks.unlock')">
-                <Button size="small" type="text" :aria-label="t('locks.unlock')">
+                <Button size="small" type="text" class="row-lock-on" :aria-label="t('locks.unlock')">
                     <UnlockOutlined />
                 </Button>
             </Tooltip>
@@ -208,4 +218,11 @@ const onMenu = ({ key }) => {
     padding: 0 !important;
 }
 .row-icon-btn :deep(.anticon) { font-size: 18px; }
+
+/* El candado PUESTO, en ámbar: es el mismo tono con el que la lista de informes
+   marca lo que ya no se toca, y el mismo de la etiqueta "Bloqueado" de la
+   columna Estado. Solo el de DESBLOQUEAR se pinta — poner el candado es una
+   acción más y va en el gris del resto. */
+.row-lock-on :deep(.anticon) { color: var(--color-warning); }
+.row-lock-on:hover :deep(.anticon) { color: var(--color-warning); }
 </style>

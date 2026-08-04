@@ -53,6 +53,11 @@
       "por_que": "Igual que Furanos."
     },
 
+    "color.equipo_pp_la_01c": {
+      "label": "Equipo",
+      "por_que": "Igual que Furanos."
+    },
+
     "azufre_1275b.equipo_pp_la_01c": {
       "label": "Equipo",
       "por_que": "Mismo caso que la bureta del Número Ácido: el código del equipo salía impreso en el encabezado. Cuál equipo se usó es un dato de cada corrida y se elige en la celda."

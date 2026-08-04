@@ -286,6 +286,94 @@ class WorksheetBatchTest extends TestCase
         $this->assertSame(Worksheet::STATUS_VALIDATED, $hoja->fresh()->status);
     }
 
+    // ─── Las constantes de la prueba ─────────────────────────────────────
+
+    /**
+     * Las columnas CONSTANTES (`is_reusable` + `default_value`) son las que no
+     * cambian dentro de una corrida: el factor del titulante, el volumen del
+     * blanco. Se cargan una vez en "Valores constantes" y valen para la tanda.
+     *
+     * Ese valor lo ponía SOLO la pantalla, al armar el borrador de una fila
+     * nueva — así que el patrón y el duplicado, que los crea el servidor al
+     * abrir la hoja, nacían VACÍOS. El analista veía la constante puesta en el
+     * diálogo y las dos primeras filas se la volvían a pedir; peor, la hoja
+     * contaba esas celdas como faltantes y no publicaba.
+     */
+    public function test_las_filas_obligatorias_nacen_con_las_constantes_puestas(): void
+    {
+        $this->definition->fields()->where('code', 'volumen')->update([
+            'is_reusable'   => true,
+            'default_value' => '0.514',
+        ]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.store'), [
+                'test_definition_id' => $this->definition->id,
+                'run_date'           => now()->toDateString(),
+            ]);
+
+        $hoja = Worksheet::first();
+
+        foreach ($hoja->rows()->get() as $fila) {
+            $valor = $fila->values->firstWhere(
+                'test_field_id',
+                $this->definition->fields()->where('code', 'volumen')->value('id'),
+            );
+
+            $this->assertNotNull($valor, "La fila {$fila->kind} nació sin la constante.");
+            $this->assertSame(0.514, (float) $valor->value_num);
+        }
+
+        // Y con la constante puesta, esa celda ya no cuenta como faltante.
+        $props = $this->actingAs($this->usuario())
+            ->get(route('lab_management.worksheets.show', $hoja->slug))
+            ->viewData('page')['props'];
+
+        $this->assertSame(0, $props['incomplete']['total']);
+    }
+
+    /** Las que trae "Traer muestras pendientes" también. */
+    public function test_las_muestras_traidas_de_una_vez_nacen_con_las_constantes(): void
+    {
+        $this->definition->fields()->where('code', 'volumen')->update([
+            'is_reusable'   => true,
+            'default_value' => '0.181',
+        ]);
+
+        $this->muestra('2026-0001');
+        $hoja = $this->hoja();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.rows.fill', $hoja->slug));
+
+        $fila = $hoja->rows()->where('kind', WorksheetRow::KIND_SAMPLE)->first();
+
+        // Por `test_field_id`, no `first()`: el orden de los valores de una
+        // fila no está garantizado y la primera columna es el código de muestra.
+        $this->assertSame(0.181, (float) $this->valorDe($fila, 'volumen'));
+    }
+
+    /** Lo que viene del formulario manda: la constante no lo pisa. */
+    public function test_la_constante_no_pisa_lo_que_el_analista_escribio(): void
+    {
+        $this->definition->fields()->where('code', 'volumen')->update([
+            'is_reusable'   => true,
+            'default_value' => '0.514',
+        ]);
+
+        $hoja = $this->hoja();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.rows.save', $hoja->slug), [
+                'kind'   => WorksheetRow::KIND_BLANK,
+                'values' => ['volumen' => [1 => '9.99']],
+            ]);
+
+        $fila = $hoja->rows()->where('kind', WorksheetRow::KIND_BLANK)->first();
+
+        $this->assertSame(9.99, (float) $this->valorDe($fila, 'volumen'));
+    }
+
     // ─── Una muestra, una fila ───────────────────────────────────────────
 
     /**
@@ -367,6 +455,14 @@ class WorksheetBatchTest extends TestCase
     }
 
     // ─── Fixtures ────────────────────────────────────────────────────────
+
+    /** El número guardado en una columna concreta de la fila. */
+    private function valorDe(WorksheetRow $fila, string $codigo): ?float
+    {
+        $campo = $this->definition->fields()->where('code', $codigo)->value('id');
+
+        return $fila->values->firstWhere('test_field_id', $campo)?->value_num;
+    }
 
     /** Una hoja con sus filas obligatorias ya puestas, como la crea el alta. */
     private function hoja(): Worksheet

@@ -65,9 +65,10 @@ class WorksheetService
      * agregarlas a mano, de a una, en toda hoja nueva — un trámite que el
      * sistema le impone y que él no decide.
      *
-     * Si son parte de la corrida, las pone la corrida. Se crean VACÍAS, que es
-     * lo mismo que un pliego de bancada preimpreso: los renglones están, los
-     * números los pone el analista.
+     * Si son parte de la corrida, las pone la corrida. Se crean como un pliego
+     * de bancada preimpreso: los renglones están y las CONSTANTES de la prueba
+     * ya vienen puestas —el factor del titulante, el volumen del blanco—; los
+     * números medidos los pone el analista.
      *
      * Se crean en la BASE y no como filas de adorno en la pantalla porque el
      * estado de la hoja tiene que ser real desde el minuto cero: una fila de
@@ -103,8 +104,9 @@ class WorksheetService
      * que copie a mano algo que la máquina ya tiene resuelto, con el riesgo de
      * que se saltee una y esa muestra quede sin ensayar.
      *
-     * Las filas salen VACÍAS y atadas a su prueba pedida: los números los pone
-     * el analista, el enlace con la muestra lo pone el sistema.
+     * Las filas salen con las CONSTANTES de la prueba puestas y atadas a su
+     * prueba pedida: los números medidos los pone el analista, el enlace con la
+     * muestra y los valores que no cambian los pone el sistema.
      *
      * La lista se resuelve ACÁ y no llega desde el navegador. Si viniera del
      * cliente, un envío armado a mano podría meter en esta hoja pruebas de otra
@@ -290,6 +292,12 @@ class WorksheetService
                     ?? $this->resolve($attributes, 'equipment_id', $row->equipment_id),
                 'notes'         => $this->resolve($attributes, 'notes', $row->notes),
             ])->save();
+
+            // Las CONSTANTES de la prueba, en las filas que nacen sin pasar
+            // por la pantalla. Ver `applyConstants`.
+            if ($esNueva) {
+                $input = $this->applyConstants($fields, $input);
+            }
 
             $this->writeValues($row, $fields, $input);
             $this->recalculate($row, $fields);
@@ -897,6 +905,66 @@ class WorksheetService
      * @param \Illuminate\Support\Collection<int,TestField> $fields
      * @param array<string,mixed> $input
      */
+    /**
+     * Los valores constantes de la prueba, en una fila que recién nace.
+     *
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ EL DEFECTO QUE ESTO CORRIGE                                          │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Las columnas marcadas como CONSTANTES (`is_reusable`, con su valor en
+     * `default_value`) son las que no cambian dentro de una corrida: el factor
+     * de la solución titulante, el volumen del blanco. Se cargan una vez en
+     * "Valores constantes" y valen para toda la tanda.
+     *
+     * Ese valor lo ponía SOLO la pantalla, al armar el borrador de una fila
+     * nueva. Y hay filas que no nacen en la pantalla:
+     *
+     *   · el patrón y el duplicado que la prueba EXIGE, que se crean solos al
+     *     abrir la hoja (`seedRequiredRows`);
+     *   · las que trae "Traer muestras pendientes" (`fillPendingSamples`).
+     *
+     * Esas nacían VACÍAS. El analista abría una hoja de Número Ácido con el
+     * factor KOH y el volumen del blanco ya cargados en Valores constantes, y
+     * las dos primeras filas —justo las obligatorias— le pedían tipearlos otra
+     * vez. Peor: la hoja contaba esas celdas como datos faltantes y no
+     * publicaba, sin que nada explicara por qué si el valor "ya estaba puesto".
+     *
+     * Ahora lo pone el SERVIDOR, que es el único punto por el que pasan las
+     * tres vías. La pantalla sigue arrastrando lo TIPEADO de la fila anterior
+     * —que es otra cosa: la corrida en la que el analista cambia el factor a
+     * mitad de tanda—, y como lo que viene del formulario tiene prioridad, ese
+     * arrastre nunca se pisa.
+     *
+     * @param  \Illuminate\Support\Collection<int,TestField> $fields
+     * @param  array<string,mixed>                            $input
+     * @return array<string,mixed>
+     */
+    private function applyConstants($fields, array $input): array
+    {
+        foreach ($fields as $field) {
+            if (! $field->is_reusable || blank($field->default_value) || filled($field->formula)) {
+                continue;
+            }
+
+            // Lo que vino del formulario manda: si el analista escribió algo
+            // —incluso vacío a propósito— la constante no lo reemplaza.
+            if (array_key_exists($field->code, $input)) {
+                continue;
+            }
+
+            // Una constante vale para TODAS las réplicas de la columna: el
+            // factor del titulante es el mismo para las cinco mediciones.
+            $porReplica = [];
+            for ($replica = 1; $replica <= max(1, (int) $field->replicates); $replica++) {
+                $porReplica[$replica] = $field->default_value;
+            }
+
+            $input[$field->code] = $porReplica;
+        }
+
+        return $input;
+    }
+
     private function writeValues(WorksheetRow $row, $fields, array $input): void
     {
         $fueraDeRango = [];

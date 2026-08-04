@@ -43,6 +43,21 @@
       "por_que": "Mismo caso que la bureta: el código del equipo salía impreso en el encabezado de la columna en vez de elegirse por fila."
     },
 
+    "azufre_1275b.equipo_pp_la_01c": {
+      "label": "Equipo",
+      "por_que": "Mismo caso que la bureta del Número Ácido: el código del equipo salía impreso en el encabezado. Cuál equipo se usó es un dato de cada corrida y se elige en la celda."
+    },
+
+    "azufre_62535_48_horas.equipo_pp_la_01c": {
+      "label": "Equipo",
+      "por_que": "Igual que el Azufre 1275B."
+    },
+
+    "azufre_62535_72_horas.equipo_pp_la_01c": {
+      "label": "Equipo",
+      "por_que": "Igual que el Azufre 1275B."
+    },
+
     "numero_acido.peso_aceite_g": {
       "required": true,
       "por_que": "Entra en la fórmula del resultado (mgKOH/g aceite = (V − Vb) × F × 56.1 / peso). Sin el peso no hay número ácido: la fila queda con el resultado en blanco y la hoja no publica. Marcarla obligatoria hace que la pantalla lo diga ANTES, en vez de dejar al analista descubrirlo cuando el resultado no sale."

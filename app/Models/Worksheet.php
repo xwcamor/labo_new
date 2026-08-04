@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\BelongsToTenant;
+use App\Traits\HasFavorites;
 use App\Traits\Lockable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -58,7 +59,7 @@ use Illuminate\Support\Str;
  */
 class Worksheet extends Model
 {
-    use HasFactory, SoftDeletes, Auditable, BelongsToTenant, Lockable;
+    use HasFactory, SoftDeletes, Auditable, BelongsToTenant, Lockable, HasFavorites;
 
     protected string $auditModule = 'worksheets';
 
@@ -137,6 +138,106 @@ class Worksheet extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Los filtros del listado: los rápidos, el avanzado y "solo favoritas".
+     *
+     * Vive en el modelo y no en el controlador, que es el estándar del resto de
+     * los índices. El ORDEN no está acá: lo resuelve el controlador por lista
+     * blanca, porque lo que llega de la URL no entra al SQL.
+     */
+    public function scopeFilter(Builder $query, $request): Builder
+    {
+        // Prefijo `worksheets.` en todo: `orderByFavoriteFirst` agrega un left
+        // join a `user_favorites` y las columnas sin calificar quedan ambiguas.
+        $query->when($request->filled('test_definition'), fn ($q) => $q->whereHas(
+            'definition',
+            fn ($d) => $d->where('slug', $request->test_definition)
+        ));
+
+        $query->when($request->filled('status'), fn ($q) => $q->where('worksheets.status', $request->status));
+
+        // El sistema viejo forzaba en silencio un "últimos tres meses" cuando no
+        // se mandaba fecha: los ensayos más viejos eran invisibles y nada lo
+        // decía. Acá el rango se pide o no se aplica.
+        $query->when($request->filled('from'), fn ($q) => $q->whereDate('worksheets.run_date', '>=', $request->from));
+        $query->when($request->filled('to'), fn ($q) => $q->whereDate('worksheets.run_date', '<=', $request->to));
+
+        // Por analista: es la pregunta "qué corrí yo esta semana", y era la
+        // única de las tres columnas del listado que no se podía filtrar.
+        $query->when($request->filled('analyst'), fn ($q) => $q->where('worksheets.analyst_id', $request->analyst));
+
+        // Por número de muestra. Se busca por la COLUMNA de la fila de bancada,
+        // no partiendo el texto: es lo que se pregunta cuando el cliente llama
+        // citando su correlativo y hay que dar con la hoja que lo corrió.
+        $query->when($request->filled('sample'), fn ($q) => $q->whereHas(
+            'rows',
+            fn ($r) => $r->where('sample_code', 'like', '%' . $request->sample . '%')
+        ));
+
+        $advanced = $request->input('advanced_where');
+        if (is_string($advanced)) {
+            $advanced = json_decode($advanced, true) ?: null;
+        }
+        if (is_array($advanced) && ! empty($advanced)) {
+            \App\Services\Automations\Support\FilterApplier::apply(
+                $query,
+                ['where' => $advanced],
+                static::filterSchema()
+            );
+        }
+
+        if ($request->filled('only_favorites') && filter_var($request->only_favorites, FILTER_VALIDATE_BOOLEAN)) {
+            $userId = auth()->id();
+
+            if ($userId) {
+                $query->whereExists(function ($q) use ($userId) {
+                    $q->select(\DB::raw(1))
+                        ->from('user_favorites')
+                        ->whereColumn('user_favorites.favoritable_id', 'worksheets.id')
+                        ->where('user_favorites.favoritable_type', static::class)
+                        ->where('user_favorites.user_id', $userId);
+                });
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Los campos que el filtro avanzado ofrece.
+     *
+     * Es el mismo contrato que el resto de los índices del sistema: la pantalla
+     * arma la consulta con estas claves y `FilterApplier` la traduce. Sin esto,
+     * el listado solo se podía acotar por prueba, estado y rango de fechas —
+     * tres desplegables fijos—, y buscar "las hojas de agosto que quedaron sin
+     * validar y tienen más de diez muestras" no tenía forma.
+     *
+     * Las condiciones ambientales entran porque son criterio real de auditoría:
+     * "mostrame las corridas con la sala por encima de 25 °C".
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function filterSchema(): array
+    {
+        return [
+            [
+                'key' => 'status', 'label' => __('worksheets.status'), 'type' => 'enum',
+                'operators' => ['=', '!=', 'in'],
+                'options'   => array_map(fn ($s) => [
+                    'value' => $s,
+                    'label' => __('worksheets.state.' . $s),
+                ], self::STATUSES),
+            ],
+            ['key' => 'run_date',         'label' => __('worksheets.run_date'),         'type' => 'date',   'operators' => ['=', '>', '<', '>=', '<=']],
+            ['key' => 'validated_at',     'label' => __('worksheets.validated_at'),     'type' => 'date',   'operators' => ['>', '<', '>=', '<=']],
+            ['key' => 'ambient_temp_c',   'label' => __('worksheets.ambient_temp_c'),   'type' => 'number', 'operators' => ['=', '!=', '>', '<', '>=', '<=']],
+            ['key' => 'ambient_humidity', 'label' => __('worksheets.ambient_humidity'), 'type' => 'number', 'operators' => ['=', '!=', '>', '<', '>=', '<=']],
+            ['key' => 'lab_pressure_hpa', 'label' => __('worksheets.lab_pressure_hpa'), 'type' => 'number', 'operators' => ['=', '!=', '>', '<', '>=', '<=']],
+            ['key' => 'notes',            'label' => __('worksheets.notes'),            'type' => 'string', 'operators' => ['contains']],
+            ['key' => 'created_at',       'label' => __('global.created_at'),           'type' => 'date',   'operators' => ['>', '<', '>=', '<=']],
+        ];
     }
 
     // ── Relaciones ───────────────────────────────────────────────────────

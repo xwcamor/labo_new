@@ -132,6 +132,10 @@ return [
             'model'      => \App\Models\Reception::class,
             'show_route' => 'lab_management.receptions.show',
         ],
+        'worksheets' => [
+            'model'      => \App\Models\Worksheet::class,
+            'show_route' => 'lab_management.worksheets.show',
+        ],
         // Agrega modulos nuevos aqui cuando crees patients, doctors, etc.
     ],
 ];

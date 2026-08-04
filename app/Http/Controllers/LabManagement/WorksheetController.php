@@ -59,33 +59,45 @@ class WorksheetController extends Controller
         $perPage = in_array($perPage, [10, 25, 50, 100, 200]) ? $perPage : 25;
 
         $query = Worksheet::query()
-            ->with(['definition:id,slug,code,name', 'analyst:id,name', 'validator:id,name'])
+            // `select` explícito ANTES de `orderByFavoriteFirst`: ese scope hace
+            // left join a `user_favorites` y sin acotar el select las columnas
+            // del join (id, created_at…) pisarían las de la hoja.
+            ->select('worksheets.*')
+            ->orderByFavoriteFirst(auth()->id())
+            ->filter($request)
+            ->with(['definition:id,slug,code,name', 'analyst:id,name', 'validator:id,name', 'locker:id,name'])
             ->withCount([
                 'rows',
                 'rows as samples_count' => fn ($q) => $q->where('kind', WorksheetRow::KIND_SAMPLE),
             ]);
 
-        $query->when($request->filled('test_definition'), fn ($q) => $q->whereHas(
-            'definition',
-            fn ($d) => $d->where('slug', $request->test_definition)
-        ));
+        // Los filtros (rápidos + avanzados + solo favoritas) viven en el modelo
+        // (`Worksheet::scopeFilter`), ya aplicados arriba — el estándar de los
+        // índices, con FilterApplier contra `filterSchema()`.
 
-        $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->status));
-
-        // El sistema viejo forzaba en silencio un filtro de "últimos tres
-        // meses" cuando no se mandaba fecha: los ensayos más viejos eran
-        // invisibles y nada en la pantalla lo decía. Acá el rango se pide o no
-        // se aplica.
-        $query->when($request->filled('from'), fn ($q) => $q->whereDate('run_date', '>=', $request->from));
-        $query->when($request->filled('to'), fn ($q) => $q->whereDate('run_date', '<=', $request->to));
-
-        $sort = in_array($request->get('sort'), ['run_date', 'status', 'id'], true)
-            ? $request->get('sort') : 'run_date';
+        // El orden, por LISTA BLANCA: lo que llega de la URL no entra al SQL.
+        $ordenables = ['run_date', 'status', 'validated_at', 'id'];
+        $pedido = (string) $request->get('sort', '');
+        $sort = in_array($pedido, $ordenables, true) ? $pedido : 'run_date';
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
+        // `advanced_where` viaja como JSON en la URL y la pantalla lo necesita
+        // como array para rehidratar el builder al recargar o compartir el enlace.
+        $advanced = $request->input('advanced_where');
+        if (is_string($advanced)) {
+            $advanced = json_decode($advanced, true) ?: null;
+        }
+
         return Inertia::render('Worksheets/Index', [
-            'worksheets' => $query->orderBy($sort, $direction)->orderBy('id', 'desc')
+            'worksheets' => $query->orderBy('worksheets.' . $sort, $direction)->orderByDesc('worksheets.id')
                 ->paginate($perPage)->withQueryString(),
+            'filterSchema' => Worksheet::filterSchema(),
+            // Los analistas que EFECTIVAMENTE corrieron alguna hoja. Ofrecer los
+            // 40 usuarios del sistema en un desplegable donde 35 no tienen ni
+            // una hoja es ofrecer 35 filtros que devuelven vacío.
+            'analysts'   => \App\Models\User::query()
+                ->whereIn('id', Worksheet::query()->whereNotNull('analyst_id')->distinct()->pluck('analyst_id'))
+                ->orderBy('name')->get(['id', 'name']),
             'tests'      => TestDefinition::where('is_active', true)
                 // Con su grupo, para ofrecerlas agrupadas (Físico Químico ·
                 // Cromatografías · Otros): son 29 y en lista plana no se
@@ -95,7 +107,26 @@ class WorksheetController extends Controller
                 ->with('group:id,name,sort_order')
                 ->orderBy('sort_order')->get(['id', 'slug', 'code', 'name', 'test_group_id']),
             'statuses'   => Worksheet::STATUSES,
-            'filters'    => $request->only(['test_definition', 'status', 'from', 'to', 'sort', 'direction', 'per_page']),
+            'filters'    => array_merge(
+                $request->only([
+                    'test_definition', 'status', 'from', 'to', 'analyst', 'sample',
+                    'only_favorites', 'per_page',
+                ]),
+                [
+                    'advanced_where' => is_array($advanced) ? $advanced : null,
+                    // El orden que se devuelve es el RESUELTO, no el pedido: la
+                    // pantalla lo reenvía en cada navegación siguiente, así que
+                    // devolverle una columna que el servidor descartó la haría
+                    // insistir con ella para siempre.
+                    'sort'      => $sort,
+                    'direction' => $direction,
+                ],
+            ),
+            'can'        => [
+                'create' => $this->allows('worksheets.create'),
+                'edit'   => $this->allows('worksheets.edit'),
+                'delete' => $this->allows('worksheets.delete'),
+            ],
         ]);
     }
 
@@ -724,6 +755,11 @@ class WorksheetController extends Controller
      */
     public function destroy(Request $request, Worksheet $worksheet): RedirectResponse
     {
+        // El mismo candado que corta `delete()`: sin esto la pantalla de
+        // confirmación se negaba a abrir pero la ruta DELETE seguía aceptando
+        // la baja de una hoja congelada.
+        abort_if($worksheet->is_locked, 403, __('locks.cannot_delete_locked'));
+
         $data = $request->validate([
             'void_reason' => ['required', 'string', 'min:3', 'max:500'],
         ]);
@@ -733,6 +769,71 @@ class WorksheetController extends Controller
         return redirect()
             ->route('lab_management.worksheets.index')
             ->with('success', __('worksheets.deleted'));
+    }
+
+    /**
+     * Baja masiva desde el listado, con motivo — el estándar de los índices.
+     *
+     * Cada hoja pasa por las MISMAS reglas que la baja individual, y por la
+     * misma puerta: `WorksheetService::void()`. Eso importa más acá que en un
+     * catálogo, porque dar de baja una hoja no es borrar una fila — retira sus
+     * resultados de la capa consultable, marca sus puntos de control de calidad
+     * y devuelve sus ensayos a la cola. Un `delete()` masivo pelado dejaría
+     * veinte informes imprimiendo valores sin hoja detrás.
+     *
+     * Las bloqueadas por candado y las ya dadas de baja se SALTAN en vez de
+     * abortar la operación: quien selecciona veinte no tiene por qué perderla
+     * por una.
+     */
+    public function bulkDelete(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids'                 => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*'               => ['integer'],
+            'deleted_description' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        // La consulta pasa por el scope de tenant del modelo: los ids ajenos
+        // simplemente no aparecen.
+        $hojas = Worksheet::query()->whereIn('id', $data['ids'])->get();
+
+        $borradas = 0;
+        $saltadasCandado = 0;
+        $saltadasEstado = 0;
+
+        foreach ($hojas as $hoja) {
+            if ($hoja->is_locked) {
+                $saltadasCandado++;
+                continue;
+            }
+
+            try {
+                $this->service->void($hoja, $data['deleted_description']);
+                $borradas++;
+            } catch (ValidationException) {
+                // Ya estaba dada de baja: su motivo original se conserva.
+                $saltadasEstado++;
+            }
+        }
+
+        if ($borradas === 0) {
+            return back()->withErrors([
+                'ids' => __('worksheets.bulk_none_deleted', [
+                    'locked' => $saltadasCandado,
+                    'voided' => $saltadasEstado,
+                ]),
+            ]);
+        }
+
+        $msg = __('global.deleted_success') . ' (' . $borradas . ')';
+        if ($saltadasCandado > 0) {
+            $msg .= ' · ' . __('locks.bulk_skipped_locked', ['count' => $saltadasCandado]);
+        }
+        if ($saltadasEstado > 0) {
+            $msg .= ' · ' . __('worksheets.bulk_skipped_voided', ['count' => $saltadasEstado]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**

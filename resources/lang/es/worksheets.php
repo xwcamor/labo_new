@@ -199,4 +199,13 @@ return [
     // El informe de cromatografia la imprime: un volumen de gas depende de la
     // presion a la que se midio.
     'lab_pressure_hpa' => 'Presion atmosferica del laboratorio',
+
+    // ── Listado: buscador, baja masiva y acciones de fila ────────────────
+    'search_sample'   => 'Buscar por N° de muestra',
+    'analyst_filter'  => 'Analista',
+    'record'          => 'hoja de trabajo',
+    'records'         => 'hojas de trabajo',
+    'bulk_cascade_note' => 'La baja retira los resultados de cada hoja de la capa consultable, marca sus puntos de control de calidad y devuelve sus ensayos a la cola. Los valores cargados quedan guardados con el motivo.',
+    'bulk_none_deleted' => 'No se dio de baja ninguna hoja: :locked bloqueadas por candado, :voided ya dadas de baja.',
+    'bulk_skipped_voided' => ':count ya estaban dadas de baja.',
 ];

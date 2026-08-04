@@ -280,6 +280,13 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
         Route::delete('worksheets/{worksheet}',     [WorksheetController::class, 'destroy'])->name('worksheets.destroy');
     });
 
+    // Baja masiva desde el listado. VA DESPUÉS de `worksheets/{worksheet}` en el
+    // archivo pero es POST, así que no compite con el GET de la ficha; el
+    // `plan_feature` y el throttle son los mismos que en el resto de los índices.
+    Route::middleware(['permission:worksheets.delete', 'plan_feature:bulk_operations', 'throttle:10,1'])->group(function () {
+        Route::post('worksheets/bulk_delete', [WorksheetController::class, 'bulkDelete'])->name('worksheets.bulk_delete');
+    });
+
     /*
     |----------------------------------------------------------------------
     | Recepción de muestras

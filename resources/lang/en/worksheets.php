@@ -168,4 +168,13 @@ return [
     // The chromatography report prints it: a gas volume depends on the pressure
     // it was measured at.
     'lab_pressure_hpa' => 'Laboratory atmospheric pressure',
+
+    // ── Index: search, bulk delete and row actions ──────────────────────
+    'search_sample'   => 'Search by sample no.',
+    'analyst_filter'  => 'Analyst',
+    'record'          => 'worksheet',
+    'records'         => 'worksheets',
+    'bulk_cascade_note' => 'Voiding pulls each sheet\'s results out of the queryable layer, flags its quality-control points and sends its tests back to the queue. The values entered stay stored along with the reason.',
+    'bulk_none_deleted' => 'No worksheet was voided: :locked locked, :voided already voided.',
+    'bulk_skipped_voided' => ':count were already voided.',
 ];

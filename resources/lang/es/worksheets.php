@@ -92,6 +92,11 @@ return [
     'required_kind'      => 'Obligatoria',
     'required_kind_help' => 'Esta prueba exige esta fila de control. No se puede borrar mientras sea la única de su tipo.',
     'no_pending_samples'      => 'Sin muestras con esta prueba',
+    // La muestra ya cargada se sigue VIENDO en la lista, en gris. Esconderla
+    // haría que quien la busca concluya que no existe o que se perdió su
+    // ingreso; verla tachada le dice la verdad y lo manda a la fila que la tiene.
+    'already_in_sheet'        => 'ya está en esta hoja',
+    'all_samples_loaded'      => 'Todas las muestras ya están cargadas',
     'no_pending_samples_help' => 'Ninguna muestra tiene pedida esta prueba. Pídala en el ingreso de muestras y volverá a aparecer acá.',
     'errors' => [
         'locked'                => 'La hoja está bloqueada por el supervisor. No admite cambios.',

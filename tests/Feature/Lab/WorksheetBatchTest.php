@@ -286,6 +286,41 @@ class WorksheetBatchTest extends TestCase
         $this->assertSame(Worksheet::STATUS_VALIDATED, $hoja->fresh()->status);
     }
 
+    // ─── Una muestra, una fila ───────────────────────────────────────────
+
+    /**
+     * La pantalla ya no deja ELEGIR una muestra que la hoja tiene cargada: su
+     * opción llega en gris y dice que ya está ahí. Pero la regla vive en el
+     * SERVIDOR y tiene que seguir viva — esconder una opción no es una
+     * autorización, y esta ruta admite envíos que no vienen de la grilla.
+     *
+     * Dos filas de la misma muestra serían dos resultados oficiales para la
+     * misma medición, y el informe imprimiría los dos.
+     */
+    public function test_la_misma_muestra_no_entra_dos_veces_en_la_hoja(): void
+    {
+        $muestra = $this->muestra('2026-0001');
+        $prueba  = SampleTest::where('sample_id', $muestra->id)->first();
+
+        $hoja = $this->hoja();
+
+        $fila = [
+            'kind'           => WorksheetRow::KIND_SAMPLE,
+            'sample_test_id' => $prueba->id,
+            'values'         => ['volumen' => [1 => '1.00']],
+        ];
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.rows.save', $hoja->slug), $fila)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.rows.save', $hoja->slug), $fila)
+            ->assertSessionHasErrors('sample_code');
+
+        $this->assertSame(1, $hoja->rows()->where('sample_test_id', $prueba->id)->count());
+    }
+
     // ─── La vista previa en lote ─────────────────────────────────────────
 
     public function test_la_vista_previa_resuelve_varias_filas_en_una_peticion(): void

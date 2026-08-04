@@ -75,6 +75,8 @@ return [
     'required_kind'      => 'Required',
     'required_kind_help' => 'This test requires this control row. It cannot be deleted while it is the only one of its kind.',
     'no_pending_samples'      => 'No samples with this test',
+    'already_in_sheet'        => 'already on this sheet',
+    'all_samples_loaded'      => 'Every sample is already loaded',
     'no_pending_samples_help' => 'No sample has this test requested. Request it in the sample intake and it will show up here.',
     'errors' => [
         'locked'                => 'The worksheet is locked by the supervisor. No changes allowed.',

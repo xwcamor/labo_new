@@ -312,6 +312,37 @@ const lastSaved = ref(null);
 /** ¿La fila tiene cambios sin guardar? Es lo que habilita su botón de guardar. */
 const isDirty = (id) => JSON.stringify(drafts.value[id]) !== baselines.value[id];
 
+/**
+ * Qué muestras ya tiene la hoja, para no dejar elegirlas dos veces.
+ *
+ * Una muestra, una fila: dos filas de la misma muestra serían dos resultados
+ * oficiales para la misma medición. El servidor ya lo rechazaba, pero recién
+ * después de que el analista eligiera, cargara los valores y guardara. Ahora
+ * la opción llega en gris y no se puede tomar.
+ *
+ * Se lee de los BORRADORES y no de las filas guardadas: dos filas nuevas sin
+ * guardar apuntando a la misma muestra son el mismo problema, y mirando solo
+ * lo guardado no se verían.
+ *
+ * `exceptoId` es la fila que pregunta: su propia elección no se marca tomada,
+ * o el selector no encontraría su opción y mostraría el número crudo del
+ * identificador en vez del correlativo.
+ */
+const tomadasPorOtras = (exceptoId) => {
+    const ids = [];
+
+    for (const [rowId, borrador] of Object.entries(drafts.value)) {
+        if (String(rowId) === String(exceptoId)) continue;
+        if (borrador?.kind === 'sample' && borrador.sample_test_id) ids.push(borrador.sample_test_id);
+    }
+
+    if (exceptoId !== 'new' && newDraft.value?.kind === 'sample' && newDraft.value.sample_test_id) {
+        ids.push(newDraft.value.sample_test_id);
+    }
+
+    return ids;
+};
+
 // ── Vista previa del cálculo ─────────────────────────────────────────────
 
 /**
@@ -919,6 +950,7 @@ watch(
                             <SampleTestSelect
                                 v-if="drafts[row.id]?.kind === 'sample'"
                                 :tests="pendingTests"
+                                :taken-ids="tomadasPorOtras(row.id)"
                                 :value="drafts[row.id].sample_test_id"
                                 :stored-code="row.sample_code"
                                 :disabled="readonly"
@@ -1022,6 +1054,7 @@ watch(
                             <SampleTestSelect
                                 v-if="newDraft.kind === 'sample'"
                                 :tests="pendingTests"
+                                :taken-ids="tomadasPorOtras('new')"
                                 :value="newDraft.sample_test_id"
                                 @update:value="(value) => (newDraft.sample_test_id = value)"
                                 @picked="(test) => onSamplePicked(newDraft, test)"

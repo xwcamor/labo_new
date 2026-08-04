@@ -66,6 +66,17 @@ const visibleOptions = computed(
     () => (props.field.options ?? []).filter((option) => !option.is_hidden),
 );
 
+/**
+ * El texto de la opción elegida, para el `title` del control.
+ *
+ * Aunque la celda cerrada ya no recorta —el ancho subió y el desplegable se
+ * mide por su contenido—, una norma larga en una pantalla angosta puede seguir
+ * quedando corta. El `title` la dice entera sin ocupar lugar.
+ */
+const textoDeOpcion = (id) => (props.field.options ?? []).find(
+    (option) => Number(option.id) === Number(id),
+)?.value ?? '';
+
 const set = (replicate, value) => emit('update', replicate, value);
 
 const valueAt = (replicate) => props.values?.[replicate] ?? null;
@@ -177,6 +188,8 @@ const trace = (replicate) => {
                 :disabled="disabled"
                 allow-clear
                 size="small"
+                :title="textoDeOpcion(valueAt(r)) || undefined"
+                :dropdown-match-select-width="false"
                 class="ws-cell__control"
                 @change="set(r, $event ?? null)"
             >
@@ -269,7 +282,10 @@ const trace = (replicate) => {
 
 /* Un ppm de cinco cifras entra de sobra en 68 px. */
 .ws-cell--number .ws-cell__control { min-width: 68px; }
-.ws-cell--select .ws-cell__control,
+/* Una norma ("ASTM D1533") son diez caracteres, y con la flecha del control no
+   entraban en 116 px: la celda decía "ASTM D15…" y desde ahí no se distingue
+   la D1533 de la D1500. */
+.ws-cell--select .ws-cell__control { min-width: 140px; }
 .ws-cell--date   .ws-cell__control { min-width: 116px; }
 .ws-cell--text   .ws-cell__control { min-width: 120px; }
 

@@ -374,6 +374,124 @@ class WorksheetBatchTest extends TestCase
         $this->assertSame(9.99, (float) $this->valorDe($fila, 'volumen'));
     }
 
+    // ─── Las listas de una sola opción ───────────────────────────────────
+
+    /**
+     * Cuando una columna ofrece UN valor y nada más —la norma de la prueba, el
+     * único equipo que el laboratorio tiene— elegirlo no decide nada, y la
+     * casilla que se olvida deja la hoja sin publicar. Se elige sola.
+     */
+    public function test_la_columna_con_una_sola_opcion_nace_elegida(): void
+    {
+        $norma = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->definition->id,
+            'code' => 'norma', 'label' => 'Norma', 'type' => 'select', 'sort_order' => 3,
+        ]);
+        $unica = $norma->options()->create(['value' => 'ASTM D974', 'sort_order' => 1]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.store'), [
+                'test_definition_id' => $this->definition->id,
+                'run_date'           => now()->toDateString(),
+            ]);
+
+        foreach (Worksheet::first()->rows()->get() as $fila) {
+            $valor = $fila->values->firstWhere('test_field_id', $norma->id);
+
+            $this->assertNotNull($valor, "La fila {$fila->kind} nació sin la norma.");
+            $this->assertSame($unica->id, $valor->option_id);
+        }
+    }
+
+    /** Con dos opciones la elección es real y la toma el analista. */
+    public function test_la_columna_con_dos_opciones_queda_vacia(): void
+    {
+        $norma = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->definition->id,
+            'code' => 'norma', 'label' => 'Norma', 'type' => 'select', 'sort_order' => 3,
+        ]);
+        $norma->options()->create(['value' => 'ASTM D974', 'sort_order' => 1]);
+        $norma->options()->create(['value' => 'ASTM D664', 'sort_order' => 2]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.store'), [
+                'test_definition_id' => $this->definition->id,
+                'run_date'           => now()->toDateString(),
+            ]);
+
+        foreach (Worksheet::first()->rows()->get() as $fila) {
+            $this->assertNull($fila->values->firstWhere('test_field_id', $norma->id)?->option_id);
+        }
+    }
+
+    /** Una opción oculta no cuenta: si la visible es una, sigue siendo una. */
+    public function test_la_opcion_oculta_no_cuenta_para_el_conteo(): void
+    {
+        $norma = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->definition->id,
+            'code' => 'norma', 'label' => 'Norma', 'type' => 'select', 'sort_order' => 3,
+        ]);
+        $vigente = $norma->options()->create(['value' => 'ASTM D974', 'sort_order' => 1]);
+        $norma->options()->create(['value' => 'ASTM D664', 'sort_order' => 2, 'is_hidden' => true]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.store'), [
+                'test_definition_id' => $this->definition->id,
+                'run_date'           => now()->toDateString(),
+            ]);
+
+        $fila = Worksheet::first()->rows()->first();
+
+        $this->assertSame($vigente->id, $fila->values->firstWhere('test_field_id', $norma->id)?->option_id);
+    }
+
+    /**
+     * La columna del Nº de muestra queda AFUERA aunque tenga una sola opción:
+     * ahí lo que se elige es a qué equipo del cliente pertenece la fila, y esa
+     * decisión es del analista. Pedido explícito del laboratorio.
+     */
+    public function test_el_codigo_de_muestra_no_se_elige_solo(): void
+    {
+        $this->definition->fields()->where('code', 'nro_muestra')->update(['type' => 'select']);
+
+        $campo = $this->definition->fields()->where('code', 'nro_muestra')->first();
+        $campo->options()->create(['value' => '2026-0001', 'sort_order' => 1]);
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.store'), [
+                'test_definition_id' => $this->definition->id,
+                'run_date'           => now()->toDateString(),
+            ]);
+
+        foreach (Worksheet::first()->rows()->get() as $fila) {
+            $this->assertNull($fila->values->firstWhere('test_field_id', $campo->id)?->option_id);
+        }
+    }
+
+    /** Lo que viene del formulario manda, igual que con las constantes. */
+    public function test_la_unica_opcion_no_pisa_lo_que_el_analista_eligio(): void
+    {
+        $norma = TestField::create([
+            'slug' => Str::random(22), 'test_definition_id' => $this->definition->id,
+            'code' => 'norma', 'label' => 'Norma', 'type' => 'select', 'sort_order' => 3,
+        ]);
+        $norma->options()->create(['value' => 'ASTM D974', 'sort_order' => 1]);
+        // Oculta: ya no se ofrece, pero la fila vieja que la usa la conserva.
+        $vieja = $norma->options()->create(['value' => 'ASTM D664', 'sort_order' => 2, 'is_hidden' => true]);
+
+        $hoja = $this->hoja();
+
+        $this->actingAs($this->usuario())
+            ->post(route('lab_management.worksheets.rows.save', $hoja->slug), [
+                'kind'   => WorksheetRow::KIND_BLANK,
+                'values' => ['norma' => [1 => $vieja->id]],
+            ]);
+
+        $fila = $hoja->rows()->where('kind', WorksheetRow::KIND_BLANK)->first();
+
+        $this->assertSame($vieja->id, $fila->values->firstWhere('test_field_id', $norma->id)?->option_id);
+    }
+
     // ─── Una muestra, una fila ───────────────────────────────────────────
 
     /**

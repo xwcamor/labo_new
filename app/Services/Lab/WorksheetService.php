@@ -2,6 +2,7 @@
 
 namespace App\Services\Lab;
 
+use App\Models\Instrument;
 use App\Models\QcChart;
 use App\Models\QcDuplicate;
 use App\Models\QcPoint;
@@ -216,7 +217,7 @@ class WorksheetService
         $kind = $attributes['kind'] ?? WorksheetRow::KIND_SAMPLE;
         $this->assertKindAllowed($worksheet, $kind, $row);
 
-        $fields = $worksheet->definition->fields()->with('options')->get();
+        $fields = $worksheet->definition->fields()->with(['options', 'instruments:id'])->get();
 
         return DB::transaction(function () use ($worksheet, $attributes, $input, $row, $fields, $kind, $publicar) {
             $row ??= new WorksheetRow(['worksheet_id' => $worksheet->id]);
@@ -293,10 +294,12 @@ class WorksheetService
                 'notes'         => $this->resolve($attributes, 'notes', $row->notes),
             ])->save();
 
-            // Las CONSTANTES de la prueba, en las filas que nacen sin pasar
-            // por la pantalla. Ver `applyConstants`.
+            // Las CONSTANTES de la prueba y las listas de una sola opción, en
+            // las filas que nacen sin pasar por la pantalla. Ver
+            // `applyConstants` y `applySingleChoice`.
             if ($esNueva) {
                 $input = $this->applyConstants($fields, $input);
+                $input = $this->applySingleChoice($fields, $input);
             }
 
             $this->writeValues($row, $fields, $input);
@@ -957,6 +960,79 @@ class WorksheetService
             $porReplica = [];
             for ($replica = 1; $replica <= max(1, (int) $field->replicates); $replica++) {
                 $porReplica[$replica] = $field->default_value;
+            }
+
+            $input[$field->code] = $porReplica;
+        }
+
+        return $input;
+    }
+
+    /**
+     * Las listas de UNA sola opción, ya elegidas.
+     *
+     * La norma de la prueba suele ser una y nada más (Contenido de Agua se
+     * corre con ASTM D1533 y con ninguna otra), y de varios equipos el
+     * laboratorio tiene uno solo. Desplegar para elegir lo único que se puede
+     * elegir es trabajo que no decide nada, repetido en cada fila, y la casilla
+     * que se olvida deja la hoja sin publicar por un dato que no tenía
+     * alternativa.
+     *
+     * Queda FUERA la columna del Nº de muestra: ahí lo que se elige es a qué
+     * equipo del cliente pertenece la fila, y esa decisión es del analista
+     * aunque quede una sola muestra pendiente. Fue el pedido explícito del
+     * laboratorio.
+     *
+     * Va junto a `applyConstants` y por el mismo motivo: la pantalla ya lo
+     * resuelve para las filas que el analista agrega, pero el patrón y el
+     * duplicado los crea el servidor y no pasan por ahí.
+     *
+     * @param  \Illuminate\Support\Collection<int,TestField> $fields
+     * @param  array<string,mixed>                            $input
+     * @return array<string,mixed>
+     */
+    private function applySingleChoice($fields, array $input): array
+    {
+        $catalogo = null;   // se consulta una vez, y solo si hace falta
+
+        foreach ($fields as $field) {
+            if ($field->role === TestField::ROLE_SAMPLE_CODE || filled($field->formula)) {
+                continue;
+            }
+
+            // Lo que vino del formulario manda, igual que con las constantes.
+            if (array_key_exists($field->code, $input)) {
+                continue;
+            }
+
+            $unica = null;
+
+            if ($field->type === 'select') {
+                $visibles = $field->options->where('is_hidden', false)->values();
+                $unica = $visibles->count() === 1 ? $visibles->first()->id : null;
+            }
+
+            if ($field->type === 'instrument') {
+                // La misma lista que ve el analista: la propia de la columna y,
+                // si no declara ninguna, el catálogo entero (`instrumentsByField`
+                // en el controlador hace ese mismo respaldo).
+                $ofrecidos = $field->instruments;
+
+                if ($ofrecidos->isEmpty()) {
+                    $catalogo ??= Instrument::where('is_active', true)->pluck('id');
+                    $unica = $catalogo->count() === 1 ? $catalogo->first() : null;
+                } else {
+                    $unica = $ofrecidos->count() === 1 ? $ofrecidos->first()->id : null;
+                }
+            }
+
+            if ($unica === null) {
+                continue;
+            }
+
+            $porReplica = [];
+            for ($replica = 1; $replica <= max(1, (int) $field->replicates); $replica++) {
+                $porReplica[$replica] = $unica;
             }
 
             $input[$field->code] = $porReplica;

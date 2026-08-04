@@ -245,10 +245,46 @@ const carriedValue = (field, replicate) => {
     // El valor por omisión es texto: sirve para lo que se escribe, no para lo
     // que se elige de una lista (ahí el valor es una clave foránea).
     const storage = storageOf(field);
-    if (storage === 'option_id' || storage === 'instrument_id') return null;
+    if (storage === 'option_id' || storage === 'instrument_id') return unicaOpcion(field);
 
     return field.default_value ?? null;
 };
+
+/**
+ * La única opción de una lista de una sola opción, ya elegida.
+ *
+ * Muchas columnas ofrecen UN valor y nada más: la norma de la prueba (ASTM
+ * D1533 y ninguna otra), la balanza que el laboratorio tiene. Desplegar y
+ * hacer clic para elegir lo único que se puede elegir es trabajo que no decide
+ * nada, repetido en cada fila, y la casilla que se olvida deja la hoja sin
+ * publicar.
+ *
+ * NO alcanza a la columna del Nº de muestra: ahí lo que se elige es a qué
+ * equipo pertenece la fila, y esa decisión es del analista aunque quede una
+ * sola muestra pendiente. Tampoco pisa nada: solo llena filas NUEVAS, y
+ * después de que la constante de la fila anterior tuvo su turno.
+ */
+function unicaOpcion(field) {
+    if (field.role === 'sample_code') return null;
+
+    const storage = storageOf(field);
+
+    if (storage === 'option_id') {
+        const visibles = (field.options ?? []).filter((option) => !option.is_hidden);
+
+        return visibles.length === 1 ? visibles[0].id : null;
+    }
+
+    if (storage === 'instrument_id') {
+        // La lista que el analista VE en esa columna, respaldo al catálogo
+        // completo incluido: si lo que ve es una sola, se elige sola.
+        const ofrecidos = instrumentsFor(field);
+
+        return ofrecidos.length === 1 ? ofrecidos[0].id : null;
+    }
+
+    return null;
+}
 
 /** Borrador editable de una fila (o de la que se está agregando). */
 const buildDraft = (row = null) => {

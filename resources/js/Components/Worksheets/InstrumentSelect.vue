@@ -56,6 +56,8 @@ const selected = computed(
             option-filter-prop="label"
             :option-label-prop="display === 'name' ? 'title' : 'children'"
             size="small"
+            :title="selected?.name || undefined"
+            :dropdown-match-select-width="false"
             class="ws-instrument__select"
             :class="{ 'ws-instrument__select--risky': isRisky(selected) }"
             @change="emit('update:value', $event ?? null)"
@@ -98,10 +100,14 @@ const selected = computed(
 </template>
 
 <style scoped>
-.ws-instrument { display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
-/* Mostrando solo el nombre, 170px sobran y son 170px que le faltan al resto de
-   la fila. */
-.ws-instrument--compact { min-width: 120px; }
+.ws-instrument { display: flex; flex-direction: column; gap: 2px; min-width: 190px; }
+/* ── El código del equipo entra ENTERO ─────────────────────────────────────
+   Mostrando solo el nombre pedía 120 px, y el nombre ES el código de
+   calibración: "PP-LA-01C-106" son trece caracteres que con la flecha y los
+   márgenes del control salían cortados ("PP-LA-01C-0…"). Elegir entre dos
+   equipos leyendo los primeros nueve caracteres, que son iguales en todos, no
+   es elegir. 148 px es lo que mide el más largo del catálogo con su flecha. */
+.ws-instrument--compact { min-width: 148px; }
 .ws-instrument__select { width: 100%; }
 .ws-instrument__opt { display: inline-flex; align-items: center; gap: 6px; }
 .ws-instrument__desc { color: var(--color-text-muted); font-size: 0.75rem; }

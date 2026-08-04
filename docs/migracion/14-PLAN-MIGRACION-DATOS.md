@@ -76,12 +76,15 @@ pierde información**, y eso decide de dónde se migra el equipo.
 
 | Dato | Laboratorio | Lo que llegó a trapp |
 |---|---|---|
-| Tensión | `num_ten varchar` — `"220/60/10"` | `num_vol` = `split('/').map(&:to_f).max` → **60.0** |
+| Tensión | `num_ten varchar` — `"220/60/10"` | `num_vol` = `split('/').map(&:to_f).max` → **220.0**. Se queda el primario; el secundario y el terciario desaparecen |
 | Potencia | `num_pot varchar` — la placa completa | igual, solo el máximo |
-| Ubicación | `location varchar`, texto libre | se busca una subestación por ese texto |
-| Tipo de equipo | 21 tipos | `return "1" if id > 3` → todo lo que no es Potencia/Distribución/Horno **se vuelve Potencia** |
-| Tipo de conexión | — | `connection_type_id: 16` clavado |
-| Índice de salud | — | `num_health: 0, state_health: "Muy Malo"` clavado |
+| Ubicación | `location varchar`, texto libre | **crea** una subestación con ese nombre, desde la VISTA del paso 3 |
+| Tipo de equipo | 21 tipos | `return "1" if id > 3` → los 18 que no son Potencia/Distribución/Horno **se vuelven Potencia** |
+| Tipo de conexión | no existe en el laboratorio | `connection_type_id: 16` clavado (el grupo `"-"`) |
+| Índice de salud | no existe | `num_health: 0, state_health: "Muy Malo", color_health: "red"` clavados |
+| Número de fases | no existe | no se escribe: queda **nulo** |
+| Posiciones del conmutador | no existe | no se escribe: queda **nulo** |
+| Sistema de preservación | 4 opciones | se **copia tal cual**. NO es invención: los catálogos coinciden 1:1 |
 
 Los 2.562 transformadores que TrafoDex ya tiene migrados son **esa copia
 aplanada**, no el original. La placa completa con sus barras solo existe en la

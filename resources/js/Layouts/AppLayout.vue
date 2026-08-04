@@ -730,6 +730,14 @@ const menuStructure = computed(() => [
                 href: route('lab_management.trends.index'), inertia: true,
                 visible: () => can('equipment.view'),
             },
+            // ── Las etiquetas del envase. Menú propio, como el "Control de
+            //    Stickers" del sistema anterior: quien imprime etiquetas va a
+            //    imprimir etiquetas, no está en medio de registrar una entrega ──
+            {
+                key: 'sample_labels', label: t('sidebar.sample_labels'), icon: TagsOutlined,
+                href: route('lab_management.sample_labels.index'), inertia: true,
+                visible: () => can('receptions.view'),
+            },
             // ── Bitácora ambiental de las salas ──
             {
                 key: 'ambient_logs', label: t('sidebar.ambient_logs'), icon: CloudOutlined,

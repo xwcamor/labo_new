@@ -25,6 +25,7 @@ return [
     'sample_reports'     => 'Informes de ensayo',
     'qc_charts'          => 'Cartas de control',
     'lab_reports'        => 'Reportes de Lab.',
+    'sample_labels'      => 'Etiquetas de muestra',
     'ambient_logs'       => 'Condiciones ambientales',
     'trends'             => 'Tendencias',
     'stock_items'        => 'Almacén',

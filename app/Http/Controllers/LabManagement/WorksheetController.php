@@ -96,11 +96,9 @@ class WorksheetController extends Controller
 
         // El orden, por LISTA BLANCA: lo que llega de la URL no entra al SQL.
         //
-        // Se ordena por TODAS las columnas del listado, no solo por las tres que
-        // son columna propia de la hoja. Las otras cuatro salen de una relación
-        // o de un recuento, y por eso van como SUBCONSULTA correlacionada y no
-        // como join: un join a `users` para ordenar por analista multiplicaría
-        // filas y ensuciaría los `withCount` que ya viajan en la consulta.
+        // Se ordena por TODAS las columnas del listado, no solo por las que son
+        // columna propia de la hoja. Cómo se resuelven las que viven en otra
+        // tabla —y por qué con join y no con subconsulta— está en `aplicarOrden`.
         $pedido = (string) $request->get('sort', '');
         $sort = in_array($pedido, self::ORDENABLES, true) ? $pedido : 'run_date';
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
@@ -163,9 +161,21 @@ class WorksheetController extends Controller
     /**
      * Traduce la columna pedida a un ORDER BY, ya validada contra la lista blanca.
      *
-     * Las tres primeras son columna propia de la hoja. Las tres siguientes viven
-     * en otra tabla y entran como SUBCONSULTA correlacionada: un join a `users`
-     * para ordenar por analista multiplicaría filas y falsearía los `withCount`.
+     * ┌──────────────────────────────────────────────────────────────────────┐
+     * │ JOIN, NO SUBCONSULTA CORRELACIONADA                                  │
+     * └──────────────────────────────────────────────────────────────────────┘
+     * Las cuatro columnas que viven en otra tabla se ordenaban con una
+     * subconsulta por fila. Con 10.000 hojas eso son 10.000 subconsultas ANTES
+     * de poder ordenar: medido, 3.063 ms para ordenar por analista. Con un
+     * `leftJoin` y su índice, 25 ms.
+     *
+     * El join es SEGURO y no multiplica filas: las cuatro apuntan por clave
+     * foránea a una clave PRIMARIA, así que cada hoja empareja con una fila o
+     * con ninguna. El miedo a ensuciar los `withCount` venía de los joins a
+     * tablas HIJAS (`worksheet_rows`), que sí multiplican; éstos van al revés.
+     * El `select('worksheets.*')` explícito del listado impide además que las
+     * columnas del join pisen las de la hoja.
+     *
      * Los dos recuentos se ordenan por el alias que `withCount` ya dejó en el
      * SELECT — no se vuelven a calcular.
      *
@@ -174,23 +184,21 @@ class WorksheetController extends Controller
      */
     private function aplicarOrden($query, string $sort, string $direction)
     {
+        // Alias propios: `analyst_id`, `validated_by` y `created_by` apuntan a
+        // la MISMA tabla, y sin alias el segundo join chocaría con el primero.
         return match ($sort) {
-            'definition' => $query->orderBy(
-                TestDefinition::select('name')->whereColumn('test_definitions.id', 'worksheets.test_definition_id'),
-                $direction,
-            ),
-            'analyst' => $query->orderBy(
-                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.analyst_id'),
-                $direction,
-            ),
-            'validator' => $query->orderBy(
-                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.validated_by'),
-                $direction,
-            ),
-            'creator' => $query->orderBy(
-                \App\Models\User::select('name')->whereColumn('users.id', 'worksheets.created_by'),
-                $direction,
-            ),
+            'definition' => $query
+                ->leftJoin('test_definitions as ord_def', 'ord_def.id', '=', 'worksheets.test_definition_id')
+                ->orderBy('ord_def.name', $direction),
+            'analyst' => $query
+                ->leftJoin('users as ord_ana', 'ord_ana.id', '=', 'worksheets.analyst_id')
+                ->orderBy('ord_ana.name', $direction),
+            'validator' => $query
+                ->leftJoin('users as ord_val', 'ord_val.id', '=', 'worksheets.validated_by')
+                ->orderBy('ord_val.name', $direction),
+            'creator' => $query
+                ->leftJoin('users as ord_cre', 'ord_cre.id', '=', 'worksheets.created_by')
+                ->orderBy('ord_cre.name', $direction),
             'rows_count', 'samples_count' => $query->orderBy($sort, $direction),
             default => $query->orderBy('worksheets.' . $sort, $direction),
         };

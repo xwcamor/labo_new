@@ -411,11 +411,28 @@ Route::prefix('lab_management')->name('lab_management.')->group(function () {
     Route::middleware('permission:receptions.view')->group(function () {
         Route::get('receptions/{reception}/export', [ReceptionController::class, 'export'])->name('receptions.export');
 
-        // El pliego de etiquetas para los envases. Va con el permiso de
-        // LECTURA a propósito: imprimir una etiqueta no cambia la muestra, y
-        // quien reparte los envases a la bancada no siempre es quien puede
-        // editar la entrega. Lo que sí queda es la constancia de la impresión.
-        Route::get('receptions/{reception}/labels', [SampleLabelController::class, 'sheet'])->name('receptions.labels');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Etiquetas de muestra
+    |----------------------------------------------------------------------
+    | Menú propio, como el "Control de Stickers" del sistema anterior: quien
+    | imprime etiquetas va a imprimir etiquetas y nada más. Antes eran dos
+    | botones dentro de la ficha de la entrega.
+    |
+    | Van con el permiso de LECTURA de muestras a propósito: imprimir una
+    | etiqueta no cambia la muestra, y quien reparte los envases a la bancada
+    | no siempre es quien puede editar la entrega. Lo que sí queda es la
+    | constancia de la impresión en el registro de auditoría.
+    |
+    | Imprimir es POST: la selección puede ser de doscientos códigos, que en
+    | una dirección no entran, y qué se imprimió no tiene por qué quedar en el
+    | historial del navegador.
+    */
+    Route::middleware('permission:receptions.view')->group(function () {
+        Route::get('sample_labels',        [SampleLabelController::class, 'index'])->name('sample_labels.index');
+        Route::post('sample_labels/print', [SampleLabelController::class, 'print'])->name('sample_labels.print');
     });
 
     /*

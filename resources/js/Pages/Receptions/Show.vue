@@ -28,7 +28,7 @@ import {
 import {
     DeleteOutlined, DownloadOutlined, EditOutlined, ExperimentOutlined,
     FileTextOutlined, FilePdfOutlined, HistoryOutlined, InboxOutlined,
-    LockOutlined, PlusOutlined, PrinterOutlined, SolutionOutlined, ThunderboltFilled,
+    LockOutlined, PlusOutlined, SolutionOutlined, ThunderboltFilled,
 } from '@ant-design/icons-vue';
 
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -95,15 +95,6 @@ const canEdit   = computed(() => can('receptions.edit'));
 const canDelete = computed(() => can('receptions.delete'));
 
 // ── Etiquetas de los envases ─────────────────────────────────────────────
-// Sin `samples` sale el pliego con TODAS las muestras de la entrega, que es
-// como se usa: una vez, al confirmar los correlativos y antes de repartir los
-// frascos a la bancada. Con una muestra sale solo la suya, para reponer una
-// etiqueta despegada sin gastar el pliego entero.
-const labelSheetUrl = (sample = null) => route(
-    'lab_management.receptions.labels',
-    sample ? [props.reception.slug, { 'samples[]': sample.id }] : props.reception.slug,
-);
-
 // La muestra que venía en el QR del frasco. Al escanear se abre esta ficha con
 // ?sample=2026-0003 y la fila queda resaltada: una entrega de veinte frascos
 // sin esto obliga a buscar el número a ojo, que es justo lo que el QR evita.
@@ -607,19 +598,14 @@ const confirmarDesbloqueo = () => {
                         </Button>
                     </Tooltip>
 
-                    <!-- El pliego de etiquetas para los envases. Se abre en otra
-                         pestaña: es un PDF para mandar a la impresora, no una
-                         pantalla de la que se vuelve. -->
-                    <Tooltip :title="$t('labels.print_help')">
-                        <Button
-                            v-if="samples.length > 0"
-                            size="small"
-                            :href="labelSheetUrl()"
-                            target="_blank"
-                        >
-                            <PrinterOutlined /> {{ $t('labels.print') }}
-                        </Button>
-                    </Tooltip>
+                    <!-- ACÁ HABÍA UN BOTÓN "IMPRIMIR ETIQUETAS" y se fue a su
+                         propio menú (Etiquetas de muestra), como el "Control de
+                         Stickers" del sistema anterior: quien imprime etiquetas
+                         va a imprimir etiquetas y nada más, no está en medio de
+                         registrar una entrega. Además el pliego A4 que se
+                         armaba acá tenía su propia caja y sus propios márgenes,
+                         y las etiquetas no caían donde la impresora del
+                         laboratorio las espera. -->
 
                     <Tooltip :title="$t('receptions.assign_to_all_hint')">
                         <Button
@@ -692,13 +678,6 @@ const confirmarDesbloqueo = () => {
                             >
                                 {{ $t('receptions.assign_tests') }}
                             </Button>
-                            <!-- Reponer UNA etiqueta despegada sin gastar el
-                                 pliego entero. -->
-                            <Tooltip :title="$t('labels.print_one', { code: record.code })">
-                                <Button size="small" :href="labelSheetUrl(record)" target="_blank">
-                                    <PrinterOutlined />
-                                </Button>
-                            </Tooltip>
                             <!-- ACÁ HABÍA UN BOTÓN "VISTA PREVIA" y se quitó.
                                  Abría el PDF de la muestra en vivo, sin
                                  correlativo, sin código de verificación y sin

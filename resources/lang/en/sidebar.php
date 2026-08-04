@@ -22,6 +22,7 @@ return [
     'sample_reports'     => 'Test reports',
     'qc_charts'          => 'Control charts',
     'lab_reports'        => 'Lab reports',
+    'sample_labels'      => 'Sample labels',
     'ambient_logs'       => 'Ambient conditions',
     'trends'             => 'Trends',
     'stock_items'        => 'Stock',

@@ -117,15 +117,15 @@
 
     "viscocidad.termometro_pp_la_01c": {
       "type": "instrument",
-      "por_que": "La misma etiqueta es un instrumento en Tensión Interfacial. Viscosidad es la única de las 29 pruebas donde el sistema anterior la dejó como texto libre."
+      "por_que": "En el sistema anterior era una Selección (tipo 3), igual que en Tensión Interfacial, pero su lista de opciones nunca se cargó: el analista abría un desplegable vacío. Como lo que se elige es un termómetro del laboratorio, la lista sale del catálogo de instrumentos y no de opciones sueltas por columna."
     },
     "viscocidad.viscosimetro_na": {
       "type": "instrument",
-      "por_que": "Es el viscosímetro de bancada; su constante va en la columna de al lado. Sin instrumento no hay trazabilidad ISO 17025 de esta prueba."
+      "por_que": "Es el viscosímetro de bancada; su constante va en la columna de al lado. El sistema anterior lo dejó como TEXTO LIBRE, y sin instrumento no hay trazabilidad ISO 17025 de esta prueba."
     },
     "dbds.no_de_equipo": {
       "type": "instrument",
-      "por_que": "En el resto de las pruebas la misma columna se llama 'Equipo PP-LA-01C' y es un instrumento."
+      "por_que": "En el sistema anterior era TEXTO LIBRE, y es la única columna de equipo que quedó así. En el resto de las pruebas la misma columna se llama 'Equipo PP-LA-01C' y sale de una lista."
     },
     "resistividad_volumetrica_25o.tipo_de_equipo": {
       "type": "instrument",

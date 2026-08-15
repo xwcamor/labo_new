@@ -8,6 +8,13 @@
 > nuevo. **Nada de esto se verificó contra la base MySQL de producción**, porque
 > no está disponible en el entorno de desarrollo. Los puntos que dependen de
 > ella están marcados como tales y son la primera tarea del plan.
+>
+> **El detalle campo por campo de la frontera con trapp está en
+> [`16-FRONTERA-LABAPP-TRAPP.md`](16-FRONTERA-LABAPP-TRAPP.md)**: el inventario
+> completo del mandrakeo de la importación, los ceros de "no medido" que siguen
+> vivos, la clave de enlace por número de serie y sus cinco fallas, y el choque
+> de códigos de aceite entre los dos sistemas nuevos. Es la referencia que hay
+> que tener al lado al escribir los importadores.
 
 ---
 
